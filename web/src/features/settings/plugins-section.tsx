@@ -10,9 +10,10 @@
 // - Reuse: Settings › Devices' shape (a machine picker in the heading, a
 //   component keyed by the machine so nothing of one machine shows under
 //   another's name) and the kit's rows, switch, menu, dialog and banner.
-// - Paseo's feedback is an inline alert under the install field: the page
-//   draws it there too, a note on success and an error banner on failure,
-//   not a toast.
+// - Every notice is the kit's Alert, as Paseo's page uses its Alert: the
+//   trust notice (sm warning), a change's result under the install field
+//   (sm, its kind, the words as its title), the offline and too-old states
+//   (md warning).
 // - Stated differences: no docs link (Vessel has no published plugin
 //   reference yet); the field asks for a directory, the one source the
 //   node installs (ADR 0115); the trust notice does not say plugins run in
@@ -33,7 +34,7 @@ import {
 import type { NodeKey } from "../../wire/bridge";
 import type { PluginListItem } from "../../wire/proto";
 import {
-  Banner,
+  Alert,
   Button,
   Field,
   Row,
@@ -91,16 +92,20 @@ function PluginsOf({ machine }: { machine: NodeKey }) {
     return (
       <SettingsPage lead={LEAD}>
         <SettingsSection title={PLUGIN_WORDS.title} action={picker}>
-          <Banner>
-            {state === "offline" ? (
-              <>
-                <strong>{PLUGIN_WORDS.offlineTitle}</strong>{" "}
-                {PLUGIN_WORDS.offlineDescription}
-              </>
-            ) : (
-              <strong>{PLUGIN_WORDS.updateTitle}</strong>
-            )}
-          </Banner>
+          {state === "offline" ? (
+            <Alert
+              size="md"
+              variant="warning"
+              title={PLUGIN_WORDS.offlineTitle}
+              description={PLUGIN_WORDS.offlineDescription}
+            />
+          ) : (
+            <Alert
+              size="md"
+              variant="warning"
+              title={PLUGIN_WORDS.updateTitle}
+            />
+          )}
         </SettingsSection>
       </SettingsPage>
     );
@@ -119,10 +124,12 @@ function PluginsOf({ machine }: { machine: NodeKey }) {
   return (
     <SettingsPage lead={LEAD}>
       <SettingsSection title={PLUGIN_WORDS.title} action={picker}>
-        <Banner>
-          <strong>{PLUGIN_WORDS.trustedTitle}</strong>{" "}
-          {PLUGIN_WORDS.trustedDescription}
-        </Banner>
+        <Alert
+          size="sm"
+          variant="warning"
+          title={PLUGIN_WORDS.trustedTitle}
+          description={PLUGIN_WORDS.trustedDescription}
+        />
         <RowList label={PLUGIN_WORDS.globalTitle}>
           <Row
             title={PLUGIN_WORDS.globalTitle}
@@ -143,7 +150,6 @@ function PluginsOf({ machine }: { machine: NodeKey }) {
               value={source}
               onChange={setSource}
               placeholder={PLUGIN_WORDS.sourcePlaceholder}
-              mono
               spellCheck={false}
               disabled={busy}
               onKeyDown={(event) => {
@@ -157,13 +163,12 @@ function PluginsOf({ machine }: { machine: NodeKey }) {
               : PLUGIN_WORDS.install}
           </Button>
         </div>
-        {plugins.feedback === null ? null : plugins.feedback.kind ===
-          "error" ? (
-          <Banner tone="error">{plugins.feedback.message}</Banner>
-        ) : (
-          <p className="section-note" role="status">
-            {plugins.feedback.message}
-          </p>
+        {plugins.feedback === null ? null : (
+          <Alert
+            size="sm"
+            variant={plugins.feedback.kind}
+            title={plugins.feedback.message}
+          />
         )}
         <PluginList
           listed={plugins.listed}

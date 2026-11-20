@@ -1,0 +1,101 @@
+/* Alert (kit/alert.tsx): Paseo's alert.tsx with its control-geometry
+   sizes. Transparent, bordered, rounded; the accent colours the icon, the
+   title and (at half strength) the border, except success and default,
+   which keep the plain border. */
+
+.alert {
+  --alert-accent: var(--text-primary);
+  --alert-icon: 16px;
+  --alert-icon-gap: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-6);
+  background: transparent;
+  color: var(--text-primary);
+  font: var(--t-body);
+}
+
+.alert.xs {
+  --alert-icon: 12px;
+  --alert-icon-gap: 8px;
+  gap: 0;
+  padding: 8px 12px;
+  border-radius: var(--r-5);
+  font: var(--t-meta);
+}
+
+.alert.sm {
+  --alert-icon: 14px;
+  padding: 12px 16px;
+}
+
+.alert.md {
+  padding: 16px 24px;
+}
+
+.alert.lg {
+  --alert-icon: 20px;
+  --alert-icon-gap: 16px;
+  gap: 4px;
+  padding: 24px 32px;
+}
+
+.alert.info {
+  --alert-accent: var(--info);
+  border-color: color-mix(in srgb, var(--info) 50%, transparent);
+}
+
+.alert.warning {
+  --alert-accent: var(--warn);
+  border-color: color-mix(in srgb, var(--warn) 50%, transparent);
+}
+
+.alert.error {
+  --alert-accent: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 50%, transparent);
+}
+
+.alert.success {
+  --alert-accent: var(--online);
+}
+
+.alert-lead {
+  display: flex;
+  align-items: center;
+  gap: var(--alert-icon-gap);
+}
+
+.alert-icon {
+  display: flex;
+  flex: none;
+  justify-content: center;
+  width: var(--alert-icon);
+  color: var(--alert-accent);
+}
+
+.alert-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.alert-title {
+  color: var(--alert-accent);
+  font-weight: 500;
+}
+
+.alert-description {
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.alert-body.indent {
+  margin-left: calc(var(--alert-icon) + var(--alert-icon-gap));
+}
+
+.alert-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}

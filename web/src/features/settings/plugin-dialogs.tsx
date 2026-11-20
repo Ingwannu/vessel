@@ -15,7 +15,7 @@ import {
 } from "../../data/plugins";
 import type { NodeKey } from "../../wire/bridge";
 import type { PluginListItem, PluginLogs } from "../../wire/proto";
-import { Banner, Button, Dialog } from "../../ui/kit";
+import { Alert, Button, Dialog } from "../../ui/kit";
 
 /** Paseo's PluginLogsSheet, as the kit's dialog (a sheet when compact). */
 export function PluginLogsDialog({
@@ -53,16 +53,16 @@ export function PluginLogsDialog({
     content = <p className="plugin-logs-state">{PLUGIN_WORDS.logsLoading}</p>;
   } else if (!logs.ok) {
     content = (
-      <Banner
-        tone="error"
-        action={
-          <Button size="sm" variant="outline" onClick={refresh}>
-            {PLUGIN_WORDS.logsRefresh}
-          </Button>
-        }
+      <Alert
+        size="sm"
+        variant="error"
+        title={PLUGIN_WORDS.logsErrorTitle}
+        description={problemWords(logs)}
       >
-        <strong>{PLUGIN_WORDS.logsErrorTitle}</strong> {problemWords(logs)}
-      </Banner>
+        <Button size="sm" variant="outline" onClick={refresh}>
+          {PLUGIN_WORDS.logsRefresh}
+        </Button>
+      </Alert>
     );
   } else if (logs.value.entries.length === 0) {
     content = <p className="plugin-logs-state">{PLUGIN_WORDS.logsEmpty}</p>;

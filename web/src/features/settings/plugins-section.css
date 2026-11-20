@@ -1,5 +1,7 @@
 /* Settings › Plugins (plugins-section.tsx), Paseo's host Plugins page:
    the install card (the field over its button, 16 inside, 12 between),
+   the empty list's words centred in the card (Paseo's styles.empty: 16
+   inside, the row hint's muted 12px),
    a row's status badge beside its id, the description, source and error
    lines under it, and the logs dialog's entries (Paseo's logEntry: 12
    inside, 8 apart, on its surface2 fill, here the well fill that shows on
@@ -44,6 +46,13 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.plugin-empty {
+  padding: 16px;
+  color: var(--text-secondary);
+  font: var(--t-meta);
+  text-align: center;
 }
 
 .plugin-logs {

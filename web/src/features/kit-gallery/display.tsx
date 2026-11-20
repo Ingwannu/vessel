@@ -6,6 +6,7 @@ import { useState } from "react";
 import {
   Badge,
   type BadgeLook,
+  Alert,
   Banner,
   Button,
   EmptyState,
@@ -60,6 +61,34 @@ export function Display() {
         Reconnecting to laptop. 연결이 끊겨 다시 잇는 중입니다.
       </Banner>
       <Banner tone="error">The machine refused the pairing link.</Banner>
+      <Specimens caption="alerts: Paseo's in-flow notice, by variant and size">
+        <div className="kit-wide">
+          <Alert
+            size="sm"
+            variant="warning"
+            title="Plugins are trusted code"
+            description="They run on this machine without sandboxing. 신뢰하는 코드만 설치하세요."
+          />
+          <Alert size="sm" variant="success" title="Plugins enabled" />
+          <Alert
+            size="sm"
+            variant="error"
+            title="Unable to load plugins"
+            description="The machine refused it."
+          >
+            <Button size="sm" variant="outline">
+              Retry
+            </Button>
+          </Alert>
+          <Alert size="sm" title="Loading plugins…" />
+          <Alert
+            size="md"
+            variant="info"
+            title="Plugin host is offline"
+            description="Reconnect to this machine to manage its plugins."
+          />
+        </div>
+      </Specimens>
       <Specimens caption="a skeleton, an empty state">
         <div className="kit-wide">
           <Skeleton />

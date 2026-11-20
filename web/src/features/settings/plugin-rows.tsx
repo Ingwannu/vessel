@@ -1,8 +1,9 @@
 // Settings › Plugins' list (ADR 0115): Paseo's catalog card and its
 // `PluginRow` (plugins-page.tsx): the id with its status badge, the
 // description, source and error under it, the enable switch, and a menu
-// of Logs, Reload (only while enabled) and Remove; or the list's loading,
-// error (with Retry) and empty states.
+// of Logs, Reload (only while enabled) and Remove; or the list's loading
+// (an sm Alert), error (an sm error Alert with an outline Retry) and empty
+// state (the card with its words centred), as Paseo's `catalogContent`.
 
 import type { Outcome } from "../../data/outcome";
 import {
@@ -15,8 +16,8 @@ import {
 } from "../../data/plugins";
 import type { PluginListItem } from "../../wire/proto";
 import {
+  Alert,
   Badge,
-  Banner,
   Button,
   IconButton,
   Menu,
@@ -45,24 +46,28 @@ export function PluginList({
   handlers: PluginRowHandlers;
 }) {
   if (listed === null) {
-    return <p className="settings-empty">{PLUGIN_WORDS.loading}</p>;
+    return <Alert size="sm" title={PLUGIN_WORDS.loading} />;
   }
   if (!listed.ok) {
     return (
-      <Banner
-        tone="error"
-        action={
-          <Button size="sm" onClick={onRetry}>
-            {PLUGIN_WORDS.retry}
-          </Button>
-        }
+      <Alert
+        size="sm"
+        variant="error"
+        title={PLUGIN_WORDS.errorTitle}
+        description={problemWords(listed)}
       >
-        <strong>{PLUGIN_WORDS.errorTitle}</strong> {problemWords(listed)}
-      </Banner>
+        <Button size="sm" variant="outline" onClick={onRetry}>
+          {PLUGIN_WORDS.retry}
+        </Button>
+      </Alert>
     );
   }
   if (listed.value.length === 0) {
-    return <p className="settings-empty">{PLUGIN_WORDS.empty}</p>;
+    return (
+      <RowList label={PLUGIN_WORDS.title}>
+        <li className="plugin-empty">{PLUGIN_WORDS.empty}</li>
+      </RowList>
+    );
   }
   return (
     <RowList label={PLUGIN_WORDS.title}>
