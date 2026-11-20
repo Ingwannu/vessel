@@ -70,13 +70,16 @@ export function usePlugins(machine: NodeKey, supported: boolean): PluginsHold {
   useEffect(() => {
     if (!supported) return;
     const ended = new AbortController();
+    // Read through a call: a property check would be narrowed across the
+    // awaits, though the cleanup may abort while a poll is out.
+    const stopped = () => ended.signal.aborted;
     void (async () => {
       const first = await watchPlugins(fleet, machine, Number.MAX_SAFE_INTEGER);
-      if (!first.ok) return;
+      if (stopped() || !first.ok) return;
       let seen = first.value;
-      while (!ended.signal.aborted) {
+      for (;;) {
         const next = await watchPlugins(fleet, machine, seen);
-        if (ended.signal.aborted || !next.ok) return;
+        if (stopped() || !next.ok) return;
         if (next.value !== seen) {
           seen = next.value;
           load();
