@@ -17,7 +17,8 @@
 //!   std's batch-file handling (cmd.exe with std's quoting, which refuses an
 //!   argument it cannot quote safely: that refusal is the toast). The file
 //!   manager is GPUI's (`reveal_path`, `open_with_system`), not a process of
-//!   ours.
+//!   ours; so is the browser for a forge's page (`open_url`, step B, given
+//!   `https://` only).
 //! - Cost: a reaper thread per editor started, gone when the editor's
 //!   launcher exits (most CLIs hand off to a running editor at once).
 
@@ -155,5 +156,9 @@ impl Launcher for System {
 
     fn open_folder(&self, path: &Path, cx: &App) {
         cx.open_with_system(path);
+    }
+
+    fn open_page(&self, url: &str, cx: &App) {
+        cx.open_url(url);
     }
 }

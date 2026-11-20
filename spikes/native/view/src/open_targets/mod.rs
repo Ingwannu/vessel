@@ -25,6 +25,7 @@
 //!   here by hand (one arm per table).
 
 mod commands;
+pub mod forge;
 pub mod guard;
 pub mod launch;
 pub mod listing;
@@ -33,6 +34,7 @@ pub mod listing;
 mod tests;
 
 pub use commands::Env;
+pub use forge::{Forge, LinkedFile, forge_of, page};
 pub use guard::{Checked, Refused, Request, checked};
 pub use launch::{Plan, Unavailable, plan};
 pub use listing::{Entry, EntryKind, Probe, installed, list};

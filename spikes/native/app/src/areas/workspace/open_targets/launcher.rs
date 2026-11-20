@@ -1,5 +1,6 @@
 //! The one seam through which Open in editor reaches outside the app
-//! (ADR 0123): a program started, an entry revealed, a folder opened.
+//! (ADR 0123): a program started, an entry revealed, a folder opened, a
+//! forge's page opened in the browser (step B).
 //! The app's own is `system::System`; tests use `Recording`, so no
 //! test starts an editor or a file manager.
 
@@ -23,6 +24,9 @@ pub(crate) trait Launcher: Send + Sync {
     fn reveal(&self, path: &Path, cx: &App);
     /// Open the folder `path` in the file manager.
     fn open_folder(&self, path: &Path, cx: &App);
+    /// Open the forge page `url` in the browser; the caller passes
+    /// `https://` only (ADR 0123 "Step B").
+    fn open_page(&self, url: &str, cx: &App);
 }
 
 /// A launcher that starts nothing: in tests before one is set, and on the
@@ -40,6 +44,8 @@ impl Launcher for Nothing {
     fn reveal(&self, _path: &Path, _cx: &App) {}
 
     fn open_folder(&self, _path: &Path, _cx: &App) {}
+
+    fn open_page(&self, _url: &str, _cx: &App) {}
 }
 
 /// What a test's launcher was asked to do.
@@ -52,6 +58,8 @@ pub(crate) enum Launched {
     Reveal(PathBuf),
     /// A folder opened.
     OpenFolder(PathBuf),
+    /// A forge's page opened.
+    OpenPage(String),
 }
 
 /// A launcher that only writes down what it was asked.
@@ -86,5 +94,9 @@ impl Launcher for Recording {
 
     fn open_folder(&self, path: &Path, _cx: &App) {
         self.note(Launched::OpenFolder(path.to_path_buf()));
+    }
+
+    fn open_page(&self, url: &str, _cx: &App) {
+        self.note(Launched::OpenPage(url.to_owned()));
     }
 }

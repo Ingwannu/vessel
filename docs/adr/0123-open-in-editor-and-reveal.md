@@ -128,3 +128,87 @@ scratch PATH that only writes its arguments to a file.
   the words; the app's listing, launch, reveal, refusal toasts and the
   machine-elsewhere case with the recording launcher; the marks' geometry
   and colours.
+
+## Step B: "Open on <forge>" (2026-11-20)
+
+Paseo ends its open-in-editor list with the forge's page: the branch's
+tree, or the shown file at its line
+(`packages/app/src/workspace/open-in-editor/planner.ts:147`, `:179`). In a
+browser, which has no desktop bridge, that link is the header's only
+target (`button.tsx:112`, the caret only with more than one target,
+`:259`). It shows for any daemon, local or not.
+
+### Decision
+
+- The node: `GitStatus` gains optional `origin { host, path, kind? }`
+  (`git.status`, `git.stage`, `git.unstage`, `git.discard`), read from
+  `git remote get-url origin` and parsed as Paseo parses a remote
+  (`git-remote.ts:55`: `user@host:path`, or an `https`, `http` or `ssh`
+  URL; `vessel_forge::remote::web`). Only the host and path go on the
+  wire; the address, which may hold a token, never leaves the node. `host`
+  keeps a port only for `http(s)` on a port that is not the scheme's own.
+  `kind` is `github` for GitHub's own hosts and for a host the node holds
+  a GitHub token for (from its environment or `gh`); a host `gh` was not
+  asked about is asked off the status read, so a status never waits for
+  `gh`.
+- The protocol: `ORIGIN_LINK_PROTOCOL` is pending (None) and takes the
+  next number at its node-line merge. A peer below it is not served the
+  field: the node does not read it for such a peer, and
+  `Reply::for_protocol` strips it from a status in a fleet envelope. An
+  older node sends none; then no link shows (Paseo with an old daemon: no
+  `remoteUrl`, no forge target).
+- The rules, once in each client (`web/src/data/forge-links.ts`,
+  `view/src/open_targets/forge.rs`), both tested with Paseo's
+  `forge-url.test.ts` cases: the forge is the node's `kind`, else the
+  public host's (`forge-manifest.ts:59-111`); the web host is the forge's
+  first public host for any of its public hosts (`ssh.github.com` is
+  `github.com`), else the node's host and port; the branch tree and the
+  file with each forge's infixes and line anchor; a detached `HEAD` or a
+  path that climbs out of the repository links nothing. A link is always
+  `https://`.
+- The page: the session bar, after Summary and before the session actions
+  (Paseo's order), Paseo's button with its one target: the forge's mark
+  in the muted colour, named "Open workspace in GitHub" or "Open <file> in
+  GitHub" (the active file tab, at the line it was opened at). It reads
+  the session's status when shown, when the folder changes, and every
+  30 s while the page is visible. `window.open` with
+  `noopener,noreferrer`, `https://` only.
+- The native app: the header's chooser lists the forge after the editors
+  and the file manager (Paseo's order); its id is a preferred editor like
+  the others; another machine's session shows the forge alone. It opens
+  through the `Launcher` seam (`cx.open_url`), `https://` only; tests use
+  the recording launcher.
+- The marks: Simple Icons 16.38.0 (CC0) paths for GitHub, GitLab, Gitea,
+  Forgejo and Codeberg, unchanged, in `docs/design/forge-marks/` with their
+  hashes; drawn in the control's text colour, as Paseo draws a forge mark
+  in its list (`button.tsx:56`).
+
+### Which hosts get a link, per forge
+
+Paseo finds a forge by its public hosts, after resolving an SSH host
+alias with `ssh -G` (`forge-resolver.ts:222`), and any other host by
+asking each forge's command line (`forge-registry.ts:133-170`; a yes kept,
+a no for 60 s). Vessel follows the public hosts exactly. The differences
+are what `vessel_forge` cannot recognise today:
+
+- GitHub: `github.com` and `ssh.github.com` link. A self-hosted GitHub
+  (Enterprise Server, `ghe.com`) links when the node holds a token for its
+  host, where Paseo asks `gh auth status --hostname` (the same sign-in
+  `gh` keeps). No difference beyond a token set in the node's environment
+  also counting.
+- GitLab: `gitlab.com` links. A self-managed GitLab does not: Paseo asks
+  `glab auth status --hostname`, and `vessel_forge` has no GitLab.
+- Gitea: `gitea.com` links. A self-hosted Gitea does not: Paseo asks
+  `tea` and the server's version; `vessel_forge` has no Gitea.
+- Forgejo: never links (Paseo has no public host for it and finds it only
+  through `tea`).
+- Codeberg: `codeberg.org` links, as in Paseo.
+- An SSH host alias (`Host work` in the SSH configuration) does not link:
+  `vessel_forge` does not resolve aliases. (Paseo resolves it for the
+  forge, then builds the link on the alias's name.)
+- The wire's host and path types refuse what no forge serves: a host
+  label with `_`, a path of one segment or with characters outside
+  `A-Z a-z 0-9 . _ -`. Such a remote links nothing.
+- Paseo sends the raw `remote.origin.url` and reads it from the config;
+  Vessel sends host and path, read through `git remote get-url`, so a
+  `url.<base>.insteadOf` applies as it does to a push.
