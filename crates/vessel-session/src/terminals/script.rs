@@ -84,6 +84,7 @@ where
     let (restarts, restarting) = mpsc::channel(1);
     let shared = Arc::new(Shared {
         info: watch::Sender::new(info),
+        attention_claim: Mutex::new(None),
         ring: Mutex::new(ring),
         input: None,
         kill: kill.clone(),

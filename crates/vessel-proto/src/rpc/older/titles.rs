@@ -39,10 +39,21 @@ pub(super) fn inbox_page(page: &InboxPage, protocol: ProtocolVersion) -> Option<
 }
 
 /// A terminal with the title a person gave it cut.
+///
+/// Its attention (ADR 0089) is cut too, for a peer before
+/// `ATTENTION_NOTIFICATIONS_PROTOCOL`: every terminal projection (lists,
+/// subscriptions, script runs, nested fleet replies) passes through here,
+/// so both rules apply wherever a terminal travels.
 pub(super) fn terminal(info: &TerminalInfo, protocol: ProtocolVersion) -> Option<TerminalInfo> {
-    let title = SessionTitle::optional_for_protocol(info.title.as_ref(), protocol)?;
-    let mut older = info.clone();
-    older.title = title;
+    let title = SessionTitle::optional_for_protocol(info.title.as_ref(), protocol);
+    let without_attention = info.for_protocol(protocol);
+    if title.is_none() && without_attention.is_none() {
+        return None;
+    }
+    let mut older = without_attention.unwrap_or_else(|| info.clone());
+    if let Some(title) = title {
+        older.title = title;
+    }
     Some(older)
 }
 
@@ -266,12 +277,22 @@ mod tests {
             DateTime::UNIX_EPOCH,
         );
         info.title = Some(long());
+        assert!(info.attention.is_some(), "a new terminal reports attention");
         let older_terminal = terminal(&info, older()).unwrap();
         assert_eq!(
             cut(older_terminal.title.as_ref()),
             SessionTitle::LEGACY_MAX_CHARS
         );
-        assert_eq!(terminal(&info, crate::PROTOCOL_VERSION), None);
+        assert_eq!(older_terminal.attention, None, "attention is cut too");
+
+        // A current peer reads the title whole. Its attention is still cut
+        // until the integrator assigns `ATTENTION_NOTIFICATIONS_PROTOCOL`;
+        // a terminal without attention is not copied at all.
+        let current = terminal(&info, crate::PROTOCOL_VERSION).unwrap_or_else(|| info.clone());
+        assert_eq!(current.title, Some(long()));
+        let mut quiet = info.clone();
+        quiet.attention = None;
+        assert_eq!(terminal(&quiet, crate::PROTOCOL_VERSION), None);
         let list = TerminalList {
             terminals: vec![info],
             revision: 0,
@@ -300,6 +321,9 @@ mod tests {
         );
         // `terminal.rename` names a script's run as any terminal.
         info.title = Some(long());
+        // Attention has its own rule (`a_terminal_reaches_an_older_peer_cut`);
+        // without it a current peer gets no copy.
+        info.attention = None;
         info
     }
 

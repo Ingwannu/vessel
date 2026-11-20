@@ -63,6 +63,19 @@ impl CredentialHash {
         self.matches_bytes(secret.expose())
     }
 
+    /// Hash a terminal's activity-only capability (ADR 0089).
+    #[must_use]
+    pub fn of_terminal(secret: &vessel_proto::notifications::TerminalActivitySecret) -> Self {
+        Self::of_bytes(secret.expose())
+    }
+    /// Compare an activity-only capability in constant time.
+    #[must_use]
+    pub fn matches_terminal(
+        &self,
+        secret: &vessel_proto::notifications::TerminalActivitySecret,
+    ) -> bool {
+        self.matches_bytes(secret.expose())
+    }
     fn of_bytes(secret: &[u8]) -> Self {
         Self(Sha256::digest(secret).into())
     }

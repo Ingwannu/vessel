@@ -7,45 +7,66 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 use vessel_proto::inbox::InboxCursor;
+use vessel_proto::notifications::NotificationSource;
 use vessel_store::{PushAttention, StoredPush};
+
+const COALESCE: Duration = Duration::from_millis(250);
+const SEND_DEADLINE: Duration = Duration::from_secs(10);
+const DELIVERY_CONCURRENCY: usize = 4;
 
 pub(crate) async fn start(
     push: Arc<Push>,
+    terminals: Arc<crate::terminals::Terminals>,
     tasks: &TaskTracker,
     stop: CancellationToken,
 ) -> Result<(), vessel_store::StoreError> {
     // Subscribe before reading the watermark: an attention committed during
     // startup is either in the initial snapshot or wakes this receiver.
     let changes = push.store.inbox_changes();
+    let (terminals, terminal_changes) = super::terminal::Observer::new(terminals);
     let head = push.store.inbox_head().await?;
-    drop(tasks.spawn(run(push, changes, head, stop)));
+    let observed = Observed {
+        changes,
+        terminal_changes,
+        head,
+        terminals,
+    };
+    drop(tasks.spawn(run(push, observed, stop)));
     Ok(())
 }
-async fn run(
-    push: Arc<Push>,
-    mut changes: tokio::sync::watch::Receiver<()>,
-    mut head: InboxCursor,
-    stop: CancellationToken,
-) {
+async fn run(push: Arc<Push>, mut observed: Observed, stop: CancellationToken) {
     loop {
-        tokio::select! { () = stop.cancelled() => break, wake = changes.changed() => { if wake.is_err() { break; } } }
+        tokio::select! {
+            () = stop.cancelled() => break,
+            wake = observed.changes.changed() => { if wake.is_err() { break; } },
+            wake = observed.terminal_changes.changed() => { if wake.is_err() { break; } },
+        }
         #[cfg(test)]
         self_pause(&push, &stop).await;
-        tokio::select! { () = stop.cancelled() => break, () = tokio::time::sleep(Duration::from_millis(250)) => {} }
-        let before = head;
+        tokio::select! { () = stop.cancelled() => break, () = tokio::time::sleep(COALESCE) => {} }
+        let before = observed.head;
+        let terminal = observed.terminals.capture();
         let signal = async {
-            head = push.store.inbox_head().await?;
-            push.pick(before, head).await
+            observed.head = push.store.inbox_head().await?;
+            Ok::<_, vessel_store::StoreError>(
+                push.pick(before, observed.head).await?.is_some()
+                    || terminal.current(&push).is_some(),
+            )
         }
         .await;
         match signal {
-            Ok(Some(_attention)) => {}
-            Ok(None) => continue,
+            Ok(true) => {}
+            Ok(false) => continue,
             Err(_store) => {
                 tracing::warn!(reason = "store", "push attention could not be read");
                 continue;
             }
         }
+        let burst = Burst {
+            after: before,
+            through: observed.head,
+            terminal,
+        };
         let subscriptions = match push.store.push_subscriptions(Utc::now()).await {
             Ok(subscriptions) => subscriptions,
             Err(_store) => {
@@ -53,32 +74,26 @@ async fn run(
                 continue;
             }
         };
-        let sent = stream::iter(subscriptions).for_each_concurrent(4, |subscription| {
-            let push = Arc::clone(&push);
-            async move {
-                let result = push
-                    .send_one(
-                        subscription,
-                        Burst {
-                            after: before,
-                            through: head,
-                        },
-                    )
-                    .await;
-                if let Err(error) = &result {
-                    tracing::warn!(
-                        reason = error.label(),
-                        "push delivery failed; the inbox is still available"
-                    );
+        let sent =
+            stream::iter(subscriptions).for_each_concurrent(DELIVERY_CONCURRENCY, |subscription| {
+                let push = Arc::clone(&push);
+                let burst = burst.clone();
+                async move {
+                    let result = push.send_one(subscription, burst).await;
+                    if let Err(error) = &result {
+                        tracing::warn!(
+                            reason = error.label(),
+                            "push delivery failed; the inbox is still available"
+                        );
+                    }
+                    #[cfg(test)]
+                    if let Some(hook) = &push.preparation
+                        && hook.finished.send(result.ok().flatten()).await.is_err()
+                    {
+                        tracing::debug!("push preparation observer closed");
+                    }
                 }
-                #[cfg(test)]
-                if let Some(hook) = &push.preparation
-                    && hook.finished.send(result.ok().flatten()).await.is_err()
-                {
-                    tracing::debug!("push preparation observer closed");
-                }
-            }
-        });
+            });
         tokio::select! { () = stop.cancelled() => break, () = sent => {} }
     }
 }
@@ -107,18 +122,25 @@ impl Push {
     async fn admission(
         &self,
         stored: &StoredPush,
-        mut burst: Burst,
-    ) -> Result<Option<PushAttention>, PushError> {
-        while let Some(attention) = self.pick(burst.after, burst.through).await? {
+        burst: &Burst,
+    ) -> Result<Option<NotificationSource>, PushError> {
+        let mut after = burst.after;
+        while let Some(attention) = self.pick(after, burst.through).await? {
             if self
                 .store
                 .push_admitted(stored, attention, Utc::now())
                 .await?
                 && self.should_push(attention.key.session)
             {
-                return Ok(Some(attention));
+                return Ok(Some(NotificationSource::Session {
+                    key: attention.key,
+                    cursor: attention.cursor,
+                }));
             }
-            burst.after = attention.cursor;
+            after = attention.cursor;
+        }
+        if self.store.push_lease_admitted(stored, Utc::now()).await? {
+            return Ok(burst.terminal.current(self));
         }
         Ok(None)
     }
@@ -128,8 +150,8 @@ impl Push {
         &self,
         stored: StoredPush,
         burst: Burst,
-    ) -> Result<Option<PushAttention>, PushError> {
-        tokio::time::timeout(Duration::from_secs(10), self.send_within(stored, burst))
+    ) -> Result<Option<NotificationSource>, PushError> {
+        tokio::time::timeout(SEND_DEADLINE, self.send_within(stored, burst))
             .await
             .map_err(|_elapsed| super::delivery::DeliveryError::Timeout)?
     }
@@ -137,8 +159,8 @@ impl Push {
         &self,
         stored: StoredPush,
         burst: Burst,
-    ) -> Result<Option<PushAttention>, PushError> {
-        if self.admission(&stored, burst).await?.is_none() {
+    ) -> Result<Option<NotificationSource>, PushError> {
+        if self.admission(&stored, &burst).await?.is_none() {
             return Ok(None);
         }
         let crypto = self.crypto().await?;
@@ -157,7 +179,7 @@ impl Push {
         self.prepared(super::PreparedStage::Transport).await;
         // Last admission check follows every asynchronous preparation step,
         // including DNS. The following send begins with no preparatory await.
-        let Some(attention) = self.admission(&stored, burst).await? else {
+        let Some(attention) = self.admission(&stored, &burst).await? else {
             return Ok(None);
         };
         match prepared.send().await? {
@@ -174,11 +196,19 @@ impl Push {
     }
 }
 
+struct Observed {
+    changes: tokio::sync::watch::Receiver<()>,
+    terminal_changes: tokio::sync::watch::Receiver<()>,
+    head: InboxCursor,
+    terminals: super::terminal::Observer,
+}
+
 /// Inclusive upper bound captured after coalescing, exclusive lower bound.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 struct Burst {
     after: InboxCursor,
     through: InboxCursor,
+    terminal: super::terminal::Burst,
 }
 #[cfg(test)]
 async fn self_pause(push: &Push, stop: &CancellationToken) {

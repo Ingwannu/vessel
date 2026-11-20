@@ -66,6 +66,12 @@ pub(crate) enum WriteOp {
 pub(crate) enum Write {
     /// Accepted label writes belong to the serial publication actor.
     WorkspaceLabels(Box<crate::workspace_labels::Write>),
+    /// One elected person's exact local notification admission.
+    NotificationClaim {
+        authority: crate::NotificationAuthority,
+        source: crate::PushAttention,
+        done: Done<crate::LocalAdmission>,
+    },
     /// Store a new session. Boxed: operations wait in a bounded queue, and
     /// an inline `SessionInfo` would size every slot for this rare one.
     Create {
@@ -110,6 +116,15 @@ pub(crate) enum Write {
         session: SessionId,
         at: DateTime<Utc>,
         done: Done<vessel_proto::subagents::DetachedSession>,
+    },
+    /// Narrow passive read; reuses marks after an atomic pending-request
+    /// veto, with `session.mark`'s residence rule for the mutation clock.
+    ReadAttention {
+        session: SessionId,
+        through: EventSeq,
+        at: DateTime<Utc>,
+        residence: crate::Residence,
+        done: Done<SessionCommit<KeptMarks>>,
     },
     /// Delete an ended session whole (protocol 10).
     Delete { session: SessionId, done: Done },
@@ -181,6 +196,10 @@ pub(crate) struct Setup {
     /// looks for every worktree whose session is gone anyway.
     pub(crate) pruned: watch::Sender<u64>,
     /// Coalesced wake-up after a committed attention event, never raw output.
+    /// Its one consumer is the node's push worker (`inbox_changes`), which
+    /// reads the inbox after its delivery cursor: a mark or `inbox.read`
+    /// wakes it but moves no cursor, so it finds nothing new. Clients learn
+    /// of marks by reading again, not from this signal.
     pub(crate) inbox: watch::Sender<()>,
     /// Registry invalidation carries no data; consumers read a complete committed snapshot.
     pub(crate) registry: watch::Sender<()>,
@@ -213,6 +232,10 @@ enum Answer {
             StoreError,
         >,
     ),
+    NotificationClaim(
+        Done<crate::LocalAdmission>,
+        Result<crate::LocalAdmission, StoreError>,
+    ),
     Done(Done, Result<(), StoreError>),
     Session(
         Done<SessionCommit<()>>,
@@ -240,6 +263,7 @@ impl Answer {
             Self::LabelUpdated(done, result) => done.send(after(failed, result)).is_ok(),
             Self::LabelDeleted(done, result) => done.send(after(failed, result)).is_ok(),
             Self::Detached(done, result) => done.send(after(failed, result)).is_ok(),
+            Self::NotificationClaim(done, result) => done.send(after(failed, result)).is_ok(),
             Self::Done(done, result) => done.send(after(failed, result)).is_ok(),
             Self::Session(done, result) => done.send(after(failed, result)).is_ok(),
             Self::Marked(done, result) => done.send(after(failed, result)).is_ok(),
@@ -268,7 +292,8 @@ struct Effects {
     registry: crate::registry::RegistryChange,
     /// Sessions whose logs grew, for the per-session byte cap.
     touched: HashSet<SessionId>,
-    /// A committed batch introduced attention.
+    /// A committed batch introduced or changed attention: it wakes the
+    /// `inbox` watch (whose only consumer is the push worker, above).
     attention: bool,
     /// A session ended, so retention may prune ended sessions.
     ended: bool,
