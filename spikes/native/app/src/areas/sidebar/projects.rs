@@ -156,7 +156,7 @@ pub(super) fn groups(
             several_machines: tree.several_machines,
             compact,
             touch,
-            lifted: false,
+            lift: Lift::InList,
         };
         // The dragged block's place is a gap of its height (TRACKER 811).
         let block = match dragging.filter(|drag| drag.key.is(project.machine, project.project.id)) {
@@ -194,7 +194,7 @@ pub(super) fn groups(
             several_machines: tree.several_machines,
             compact,
             touch,
-            lifted: true,
+            lift: Lift::Lifted,
         };
         list = list.child(
             div()
@@ -219,8 +219,17 @@ struct Block {
     compact: bool,
     /// The phone's sheet (the session rows).
     touch: bool,
-    /// Drawn lifted, over the list, while dragged (TRACKER 811).
-    lifted: bool,
+    /// In the list, or lifted over it while dragged (TRACKER 811).
+    lift: Lift,
+}
+
+/// Where a block is drawn (TRACKER 811).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Lift {
+    /// In its place in the list.
+    InList,
+    /// Over the list at the pointer, while dragged.
+    Lifted,
 }
 
 /// A project's header and what it holds while open (Paseo's
@@ -242,7 +251,7 @@ fn block(
         tokens,
         cx,
     );
-    let header = if drawn.lifted {
+    let header = if drawn.lift == Lift::Lifted {
         // Paseo's `projectRowDragging`.
         header
             .bg(tokens.neutral.surface2)
@@ -284,7 +293,7 @@ fn block(
         .role(gpui::Role::Group)
         .aria_label(name)
         .relative()
-        .when(!drawn.lifted, |block| {
+        .when(drawn.lift == Lift::InList, |block| {
             block.child(anchor_probe(
                 &shell.areas.sidebar.place(&drag::block_place(&key)),
             ))

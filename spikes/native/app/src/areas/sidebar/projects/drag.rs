@@ -219,7 +219,7 @@ impl Shell {
         let ticks = cx.spawn(async move |this, cx| {
             loop {
                 cx.background_executor().timer(TICK).await;
-                let going = this.update(cx, |shell, cx| shell.project_drag_scrolled(cx));
+                let going = this.update(cx, Shell::project_drag_scrolled);
                 if !matches!(going, Ok(true)) {
                     break;
                 }
