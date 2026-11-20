@@ -107,3 +107,17 @@ difference until this item).
 - Q4 The compact layout (390, the phone sheet): Paseo drags there too (with a mouse after 6, on
   touch after a 180 ms hold). I propose the same pointer drag there; the native app has no
   touch input.
+
+## Rulings (coordinator, 2026-11-20)
+
+- Q1: (a), as Paseo's: the lifted block follows the pointer vertically, a gap opens where it will
+  land, no drop line.
+- Q2: (a): written only on a drop that changes the order. The visible difference, stated: before
+  any drag Paseo lists projects in first-seen order and Vessel by name; after a drag, new
+  projects go to the end in both.
+- Q3: auto-scroll now, in the outer 20% as dnd-kit's.
+- Q4: the same pointer drag at 390.
+- The other stated differences are accepted. The 200 ms gap opening: done if GPUI's animation
+  API does it cheaply, else stated.
+- Frames: start of a drag, mid-drag over another project with the gap open, the drop, Escape
+  restoring, auto-scroll near an edge; 1280 en-dark and ko-light, plus one at 390.
