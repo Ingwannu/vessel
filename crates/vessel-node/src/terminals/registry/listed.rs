@@ -16,8 +16,10 @@
 //!   status, title, service state or end), never for a resize or output.
 //! - Cost: the counter is the node's, not a place's, so a change beside
 //!   another session wakes a waiter too, which reads the same list and
-//!   asks again; one task per kept terminal (at most 96), ending with the
-//!   terminal's handle or the node.
+//!   asks again. An agent, which lists only the terminals it opened, is
+//!   woken by others' changes as well: it learns when they happen, never
+//!   what they are. One task per kept terminal (at most 96), ending with
+//!   the terminal's handle or the node.
 
 use tokio::sync::watch;
 use vessel_proto::terminals::{ServiceState, TerminalInfo};

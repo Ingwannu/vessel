@@ -8563,8 +8563,10 @@ side: SessionId, };
  *   claims the terminal; its later fits are updates, applied only while it
  *   still owns it; another client's update is dropped (and answered as
  *   done, as Paseo's returns `false` without an error).
- * - Owner: one connection (its identity, not its client's name), so two
- *   windows of one app do not share it.
+ * - Owner: one connection (its identity, not its client's name). Clients
+ *   that share a connection share its ownership: the page's server keeps
+ *   one per node for every tab, the native app one per machine for all its
+ *   windows, and a home node one for the calls it forwards.
  */
 export type ResizeIntent = "claim" | "update";
 
