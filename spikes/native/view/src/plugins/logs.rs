@@ -100,7 +100,8 @@ impl Logs {
 }
 
 /// An entry's head: its time and its stream (Paseo's
-/// `{entry.timestamp} {entry.stream}`).
+/// `{entry.timestamp} {entry.stream}`). The node keeps nanoseconds; Paseo's
+/// times are `toISOString()`'s, to the millisecond, so the head is too.
 #[must_use]
 pub fn log_head(entry: &LogEntry) -> String {
     let stream = match entry.stream {
@@ -109,6 +110,6 @@ pub fn log_head(entry: &LogEntry) -> String {
     };
     format!(
         "{} {stream}",
-        entry.at.to_rfc3339_opts(SecondsFormat::AutoSi, true)
+        entry.at.to_rfc3339_opts(SecondsFormat::Millis, true)
     )
 }

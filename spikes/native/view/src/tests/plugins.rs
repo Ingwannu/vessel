@@ -4,7 +4,7 @@
 //! the page's flow over its calls (the page's `use-plugins.ts`): what is
 //! asked, which answers count, and the watch.
 
-use chrono::{TimeZone as _, Utc};
+use chrono::{TimeZone as _, Timelike as _, Utc};
 use vessel_proto::parking::ParkAfter;
 use vessel_proto::plugins::{
     LogEntry, LogSequence, LogStream, LogTruncation, PluginGeneration, PluginId, PluginListItem,
@@ -314,12 +314,19 @@ fn heads_a_log_entry_with_its_time_and_where_it_came_from() {
     };
     assert_eq!(
         log_head(&entry(LogStream::Host)),
-        "2026-11-19T18:00:00Z vessel"
+        "2026-11-19T18:00:00.000Z vessel"
     );
     assert_eq!(
         log_head(&entry(LogStream::Stderr)),
-        "2026-11-19T18:00:00Z stderr"
+        "2026-11-19T18:00:00.000Z stderr"
     );
+    let mut fine = entry(LogStream::Host);
+    fine.at = Utc
+        .with_ymd_and_hms(2026, 11, 20, 0, 46, 29)
+        .unwrap()
+        .with_nanosecond(163_814_811)
+        .unwrap();
+    assert_eq!(log_head(&fine), "2026-11-20T00:46:29.163Z vessel");
 }
 
 #[test]
