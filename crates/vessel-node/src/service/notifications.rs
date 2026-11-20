@@ -66,7 +66,7 @@ impl NodeService {
             }
             NotificationSource::Terminal { terminal, revision } => {
                 let entry = self
-                    .terminal_for(connection.principal(), terminal)
+                    .terminal_for(connection, terminal)
                     .map_err(crate::terminals::TerminalsError::wire)?;
                 if let NotificationAuthority::Device(device) = authority {
                     let granted = self
@@ -109,7 +109,7 @@ impl NodeService {
             ));
         }
         let entry = self
-            .terminal_for(connection.principal(), request.terminal)
+            .terminal_for(connection, request.terminal)
             .map_err(crate::terminals::TerminalsError::wire)?;
         entry
             .handle
@@ -129,7 +129,7 @@ impl NodeService {
         request: ReportTerminalActivity,
     ) -> Result<TerminalAttention, WireError> {
         let entry = self
-            .terminal_for(connection.principal(), request.terminal)
+            .terminal_for(connection, request.terminal)
             .map_err(crate::terminals::TerminalsError::wire)?;
         entry
             .handle
