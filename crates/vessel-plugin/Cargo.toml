@@ -1,0 +1,23 @@
+[package]
+name = "vessel-plugin"
+description = "In-process create hooks for a Vessel node: Paseo's hook names, and no helper process yet (ADR 0068)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license-file.workspace = true
+repository.workspace = true
+
+[dependencies]
+# Spec fields the create hooks may read or replace (ADR 0068).
+vessel-proto.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["macros"] }
+# The same cancellation token the node already stops on. Not a new crate.
+tokio-util.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt"] }
+
+[lints]
+workspace = true

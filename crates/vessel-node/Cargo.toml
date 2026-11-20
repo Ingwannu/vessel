@@ -29,6 +29,9 @@ vessel-llm.workspace = true
 # stopped as the session runtime starts agents; already below it.
 vessel-proc.workspace = true
 vessel-proto.workspace = true
+# Create-hook names and the empty registry (ADR 0068). The node calls it
+# from session create; a release build registers nothing.
+vessel-plugin.workspace = true
 vessel-lsp.workspace = true
 vessel-relay.workspace = true
 vessel-rpc.workspace = true

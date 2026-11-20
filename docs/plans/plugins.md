@@ -93,9 +93,10 @@ are separate decisions. They are not implied by slice 4.
   A refusal is `InvalidRequest`. A timeout is `Unavailable`. The
   hook machinery slice is accepted. The host (a helper process,
   and what may be installed) waits for the owner.
-- Half-done: the crate is not started.
-- Next: the registry and the two create hooks, as the record
-  states. Not the helper process.
+- Half-done: nothing left in this slice. The registry and the
+  two create hooks are in `vessel-plugin`, called from
+  `create_starting`.
+- Next: do not start the helper process. That waits for the owner.
 - Not verified: Paseo's scheduler implementation and the provider
   `forkSession` body; the field-by-field provider schemas; the
   app's client-bundle loader; whether `localeCompare` and byte

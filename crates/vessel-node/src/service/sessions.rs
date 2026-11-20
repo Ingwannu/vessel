@@ -122,6 +122,13 @@ impl NodeService {
         if self.lifecycle.is_draining() {
             return Err(wire(&ServiceError::Draining));
         }
+        spec = super::plugins::rewrite_create(
+            &self.hooks,
+            &self.lifecycle.stopping(),
+            origin.as_ref(),
+            spec,
+        )
+        .await?;
         self.refuse_installing(&spec.harness)
             .map_err(|error| wire(&error))?;
         // An imported session's place named its own machine's project; it
@@ -188,6 +195,12 @@ impl NodeService {
         if let Some(handle) = self.sessions.live(info.id) {
             self.watch_session(&handle, principal);
         }
+        super::plugins::note_created(
+            &self.hooks,
+            &self.lifecycle.stopping(),
+            origin.as_ref(),
+            info.spec.clone(),
+        );
         Ok(self.with_workspace(info))
     }
 

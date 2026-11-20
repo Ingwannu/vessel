@@ -37,6 +37,7 @@ use crate::workspace::{Occupant, Workspaces};
 // The calls of protocols 2 to 8, by area.
 mod fleet;
 mod fleet_control;
+mod plugins;
 mod profiles;
 mod sessions;
 mod transfers;
@@ -145,6 +146,9 @@ pub(crate) struct NodeService {
     notices: Arc<Notices>,
     /// Creation/reset lease also held by a detached creation task.
     side_opening: Arc<tokio::sync::Mutex<()>>,
+    /// Create hooks (ADR 0068). Empty in a release build, so create is
+    /// unchanged. Tests register handlers on their own registry, not here.
+    hooks: plugins::Hooks,
 }
 
 /// The parts a [`NodeService`] serves.
@@ -240,6 +244,7 @@ impl NodeService {
             settings,
             notices: Arc::default(),
             side_opening: Arc::default(),
+            hooks: plugins::Hooks::empty(),
         }
     }
 

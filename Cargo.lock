@@ -3516,6 +3516,7 @@ dependencies = [
  "vessel-llm",
  "vessel-lsp",
  "vessel-mcp",
+ "vessel-plugin",
  "vessel-proc",
  "vessel-proto",
  "vessel-relay",
@@ -3526,6 +3527,17 @@ dependencies = [
  "vessel-testkit",
  "vessel-workspace",
  "which",
+]
+
+[[package]]
+name = "vessel-plugin"
+version = "0.1.0"
+dependencies = [
+ "thiserror 2.0.21",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "vessel-proto",
 ]
 
 [[package]]

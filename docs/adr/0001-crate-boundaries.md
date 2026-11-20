@@ -204,3 +204,9 @@ first two edges had been in the manifests without this record):
 
 From here the check holds the map: a manifest edge missing from the table,
 or a table edge missing from the manifests, fails the gate.
+
+`vessel-plugin` (ADR 0068) holds the create-hook names and the in-process
+registry. `vessel-node -> plugin`: session create calls it after the
+draining refusal and before the checks that read the spec. The crate
+depends only on `vessel-proto`, for the spec fields a hook may read or
+replace. It starts no process. A release registry is empty.

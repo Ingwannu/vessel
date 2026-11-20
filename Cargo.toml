@@ -86,6 +86,7 @@ vessel-llm = { path = "crates/vessel-llm" }
 vessel-lsp = { path = "crates/vessel-lsp" }
 vessel-mcp = { path = "crates/vessel-mcp" }
 vessel-node = { path = "crates/vessel-node" }
+vessel-plugin = { path = "crates/vessel-plugin" }
 vessel-proc = { path = "crates/vessel-proc" }
 vessel-proto = { path = "crates/vessel-proto" }
 vessel-pty = { path = "crates/vessel-pty" }
