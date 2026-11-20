@@ -1,8 +1,8 @@
 # Browser packet resume
 
-2026-11-20. P1 (TRACKER 512) is active. The current slice covers the Linux
-Chromium component, workspace-bound actor, profile relaunch and launch policy.
-P2–P5 have no implementation commits from this track.
+2026-11-20. The coordinator moved the track from the verified P1 component
+into P2 (TRACKER 509). The two remaining P1 checks move to the end of the
+track. The app worktree advances independently from the qualified component.
 Product browser calls, the native pane and agent tool discovery are unavailable.
 
 ## Committed source and evidence
@@ -81,6 +81,13 @@ Product browser calls, the native pane and agent tool discovery are unavailable.
   categories. Profile audits found 310 and 240 private owned entries
   respectively, no remaining exact-profile process and no forced signal.
   The coordinator received the combined scoped pass.
+- `eb5b786e2` and `eff2a9021` stage the local, isolated DNS policy fixture.
+  The standalone system resolver control observed both addresses as UID/GID
+  1000. Format passed on `eff2a9021`
+  (`impl-browser-node-20261120T053456Z-eff2a902`). Strict Clippy failed in
+  `impl-browser-node-20261120T053526Z-eff2a902` on three unnecessary
+  `super::` qualifications in `candidate_tests.rs`. The new browser test has
+  no export or live result. These runs are terminal.
 
 ## Review and next work
 
@@ -89,22 +96,18 @@ The coordinator approved the plan and ADR and received the scoped pass for
 ready, the node reviewer precedes the integrator. P2 onward needs the
 coordinator's frames verdict before the native reviewer and lead.
 
-1. Gate the direct-proxy DNS fixture. The standalone resolver control passed
-   in a private namespace with one initial public and one rebound loopback
-   answer. Run the exact exported browser DNS test through the guarded
-   namespace fixture. Keep one detached remote run queued or running at
-   a time.
-2. Finish the General qualification at the authenticated node entry point.
-   The browser method rows and `BROWSER_PROTOCOL` are unassigned. Engine
-   availability waits for qualification and integration. Run the exact whole
-   root gate for package review.
-3. P2 binds the native pane, verified frame transport and profile clear to
+1. P2 binds the native pane, verified frame transport and profile clear to
    the pane registry. P3 consumes the existing composer and image paths. P4
    delivers the complete tool path and default-off host setting. After P4,
    the coordinator assigns the D2 producer for P5. No other track is known to
    be waiting for this branch now. P2 needs this runtime, P3 needs the shared
    image/composer seam, P4 needs the reviewed anchored upload boundary and
    P5 needs the service lease.
+2. At the end of the track, verify the app's own sandbox policy when a
+   controlled name resolves to a new address and verify the authenticated
+   node entry. Use local fixtures only. Keep one detached remote run at a
+   time. The browser method rows and `BROWSER_PROTOCOL` are unassigned.
+   Run the exact whole root gate for package review after integration.
 
 Use the approved remote runner and one detached gate at a time. Recover work
 from exact receipts. The live diagnostic uses the exported artifact, pinned
