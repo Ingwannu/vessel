@@ -54,8 +54,8 @@ pub use theme::{Appearance, HexColor, ThemeColors, ThemeContribution};
 pub const PLUGINS_PROTOCOL: Option<crate::ProtocolVersion> = Some(crate::ProtocolVersion::new(36));
 
 /// A node's plugin catalog and plugin method calls (ADR 0115, "Catalog and
-/// invoke"): `plugin.catalog` and `plugin.invoke`. Drafted as the next after
-/// [`PLUGINS_PROTOCOL`]; the integrator assigns it in merge order.
+/// invoke"): `plugin.catalog` and `plugin.invoke`. Assigned 41 at its node-line
+/// merge, the next after the workspace-folder terminals' 40.
 pub const PLUGIN_CATALOG_PROTOCOL: Option<crate::ProtocolVersion> =
     Some(crate::ProtocolVersion::new(41));
 

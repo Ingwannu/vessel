@@ -21,11 +21,12 @@ import type {
   AccountRead,
 } from "../../data/account-usage/reader";
 import type { QuotaDisplay } from "../../data/account-usage/values";
-import { Banner, Button, IconButton, Tooltip } from "../../ui/kit";
+import { Alert, Button, IconButton, Tooltip } from "../../ui/kit";
 import type { NodeKey } from "../../wire/bridge";
 import { SettingsSection } from "../settings/settings-page";
 import { QuotaCardView, type WindowPins } from "./quota-card";
 import { useAccountReader, useQuotaClock } from "./use-account-usage";
+import { UsageReadFailed } from "./usage-read-failed";
 import { useUsagePrefs } from "./use-usage-prefs";
 import { UsageOptions } from "./usage-options";
 
@@ -115,8 +116,14 @@ export function PlanContent({
   const display = useUsagePrefs().usage.display;
   const { now, locale, deviceClock } = useQuotaClock();
   if (plan.ready === null) {
-    return plan.read.kind === "failed" ? (
-      <Banner tone="error">{plan.read.problem.message}</Banner>
+    const read = plan.read;
+    return read.kind === "failed" ? (
+      <UsageReadFailed
+        message={read.problem.message}
+        onRetry={() => {
+          plan.reader.open(read.node);
+        }}
+      />
     ) : (
       <Message text="Reading usage…" />
     );
@@ -181,7 +188,8 @@ function PlanBody({
   const prefsOf = useUsagePrefs();
   const problem =
     ready.problem === null ? null : (
-      <Banner tone="error">{ready.problem.message}</Banner>
+      // Paseo's setting error: an Alert, its message only.
+      <Alert variant="error" description={ready.problem.message} />
     );
   if (ready.reports.policy === "off") {
     return (

@@ -172,8 +172,8 @@ has calls to answer; a helper that only says ready teaches nothing.)
 
 ### Catalog and invoke (2026-11-20, P3a; coordinator ruling 2026-11-20)
 
-Protocol drafted as the next after the manager's (`PLUGIN_CATALOG_PROTOCOL`,
-assigned at merge).
+Protocol 41 (`PLUGIN_CATALOG_PROTOCOL`), assigned at its node-line merge, the next after the
+workspace-folder terminals' 40.
 
 | Method | Scope | Request -> reply |
 |---|---|---|

@@ -13,7 +13,7 @@ import { useEffect, useState } from "react";
 import { useFleet } from "../../context";
 import { inviteDevice, type Pairing } from "../../data/devices";
 import { when } from "../../data/format";
-import { nextStep } from "../../data/outcome";
+import { withNextStep } from "../../data/outcome";
 import type { NodeKey } from "../../wire/bridge";
 import { Button, Field, Icon, TextField } from "../../ui/kit";
 import { CopyButton } from "../../ui/parts";
@@ -63,10 +63,7 @@ export function InviteCard({
         setPairing(outcome.value);
         setShowing(false);
       } else {
-        toast(
-          `${outcome.problem.message} ${nextStep(outcome.problem)}`,
-          "error",
-        );
+        toast(withNextStep(outcome.problem), "error");
       }
     });
   };

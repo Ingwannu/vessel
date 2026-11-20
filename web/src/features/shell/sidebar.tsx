@@ -64,7 +64,7 @@ export function Sidebar({
   const phone = useMedia(COMPACT);
   return (
     <nav
-      className="sidebar"
+      className={inSettings ? "sidebar in-settings" : "sidebar"}
       role="navigation"
       aria-label="Sidebar"
       onClick={(event) => {
