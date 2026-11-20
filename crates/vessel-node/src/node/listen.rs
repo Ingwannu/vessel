@@ -4,8 +4,8 @@ use std::net::SocketAddr;
 
 use tokio::net::TcpListener;
 use vessel_proto::{NodeId, RelayToken};
-use vessel_relay::address::ClientAddress;
 use vessel_relay::TlsConfig;
+use vessel_relay::address::ClientAddress;
 use vessel_store::DataDir;
 
 use crate::config::Config;

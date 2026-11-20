@@ -87,9 +87,11 @@ fn profile_targets(profiles: &NodeProfiles) -> Vec<Target> {
         let Some(parts) = vessel_harness::layout(*harness).also_reads else {
             return true;
         };
-        let read = parts.iter().fold(profiles.user_home().to_path_buf(), |path, part| {
-            path.join(part)
-        });
+        let read = parts
+            .iter()
+            .fold(profiles.user_home().to_path_buf(), |path, part| {
+                path.join(part)
+            });
         let read = canonical(&read);
         !filled.iter().any(|root| *root == read)
     });
@@ -292,8 +294,7 @@ mod tests {
         std::fs::create_dir(&work).unwrap();
         let env = vessel_harness::HarnessEnv::new(dir.path().to_owned())
             .with_var("CLAUDE_CONFIG_DIR", work.as_os_str().to_owned());
-        let profiles =
-            NodeProfiles::load(vessel_store::DataDir::new(dir.path()), env).unwrap();
+        let profiles = NodeProfiles::load(vessel_store::DataDir::new(dir.path()), env).unwrap();
         let roots: Vec<PathBuf> = profile_targets(&profiles)
             .into_iter()
             .map(|target| canonical(&target.root))
