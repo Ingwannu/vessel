@@ -1347,6 +1347,27 @@ facts by path until the root changes (`app/src/areas/workspace/code/sort.rs`,
 order in `view::workspace::file_tree`). A machine below the file panels'
 protocol sorts by name and shows no trigger.
 
+A file opens in Paseo's built-in panel for its name (F-F38, F-F40;
+`view::workspace::viewers`, `app/src/areas/workspace/code/panels.rs`).
+Markdown has the Preview|Source control in its head and opens on Preview
+unless it was opened at a line. The Preview draws the edit's text through
+the kit's Markdown. A relative link opens that file in the Files tab, a
+web link opens in the browser, and an image under the root is read with
+`file.read_bytes`. Past Paseo's native display budget (10 MiB), or when
+read only in part, the Preview says "This file is too large to display".
+On a machine with the file panels' protocol, an image (png, jpg, gif, webp,
+svg) is read whole into memory (`link::workspace::image_bytes`, checked
+against the version's hash). It is drawn fitted to the panel and zoomed as
+the lightbox zooms (`view::composer::viewer` with `Fit::Panel`), and read
+again when the watch sees the file change. HTML stays Source only: the app
+has no web engine (coordinator's ruling 2 of 2026-11-19, until ADR 0020).
+A Markdown file's front matter (`---` YAML at the top) is the page's
+two-column table above the body, read by yaml-rust2 0.13.0 as Paseo reads
+it (`view::workspace::front_matter`, its cases with the page's tests). The
+crate came in through the fixed native-crate-lock step; it adds hashlink
+0.12.2 to the lock, its default `encoding` feature stays off, and only that
+module names it.
+
 Add project is Paseo's sheet (TRACKER 234, docs/plans/wp-add-project-flow.md):
 the sidebar's "+", the composer's "Add project" row and Settings > Projects
 open it over the window (`kit::flow_sheet`, Paseo's panel); its pages are

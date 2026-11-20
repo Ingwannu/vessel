@@ -188,8 +188,21 @@ impl Shell {
     /// Show `path`: edited in place at a desktop's width (read whole, in
     /// one page of at most 1 MiB), read-only at a phone's (Paseo's rule).
     fn show_file(&mut self, machine: &str, root: WorkspaceRoot, path: RelPath, line: Option<u32>) {
+        let protocol = self
+            .fleet
+            .machines
+            .iter()
+            .find(|known| known.name == machine)
+            .and_then(|known| known.protocol);
+        let look = super::panels::Look::of(
+            &path,
+            line.is_some(),
+            vessel_app_view::workspace::file_panels::offered(protocol),
+        );
         let files = &mut self.areas.workspace.code.files;
-        let editable = !files.narrow.get();
+        // An image drawn by its panel is not edited; its first page tells
+        // the watch its version.
+        let editable = !files.narrow.get() && look.image.is_none();
         files.viewer = Some(Viewer {
             path: path.clone(),
             text: Shown::Loading,
@@ -198,6 +211,7 @@ impl Shell {
             chosen: None,
             edit: editable.then(super::editing::Editing::new),
             watch: Watch::default(),
+            look,
         });
         let read = if editable {
             super::editing::whole_read(root, path)

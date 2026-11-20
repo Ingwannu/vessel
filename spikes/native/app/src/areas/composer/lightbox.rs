@@ -2,6 +2,8 @@
 //! Viewport geometry belongs to view; this area owns only window input.
 
 mod decode;
+/// The Files tab's image panel decodes as the lightbox does.
+pub(crate) use decode::load as decode_image;
 mod draw;
 /// Register the modal with the root without adding feature logic there.
 pub(crate) fn overlay(

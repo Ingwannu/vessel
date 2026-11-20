@@ -83,3 +83,24 @@ fn toolbar_steps_stay_between_fit_and_eight_times_as_paseos_lightbox() {
     view.reset();
     assert_eq!(view.scale().to_bits(), MIN_SCALE.to_bits());
 }
+
+#[test]
+fn the_files_panel_fits_to_the_whole_canvas_as_paseos_image_panel() {
+    // Paseo's geometry.test.ts: an 800x600 viewport, content fitted to
+    // 800x400 with no padding or cap.
+    let mut view = Viewport::fitted(extent(1600.0, 800.0), extent(800.0, 600.0), Fit::Panel);
+    assert_eq!(view.size(), extent(800.0, 400.0));
+    // Zooming at (600, 300) to 2 keeps the point under the cursor.
+    view.zoom(2.0, position(600.0, 300.0));
+    assert_eq!(view.scale().to_bits(), (2.0_f32).to_bits());
+    assert_eq!(view.left().to_bits(), (-600.0_f32).to_bits());
+    // A pan stops at the scaled content's edges: 400 across, 100 down.
+    view.reset();
+    view.zoom_center(2.0);
+    view.drag(position(0.0, 0.0), position(900.0, -900.0));
+    assert_eq!(view.left().to_bits(), (0.0_f32).to_bits());
+    assert_eq!(view.top().to_bits(), (-200.0_f32).to_bits());
+    // A resize fits again, to the panel, not the lightbox's cap.
+    view.resize(extent(2000.0, 1400.0));
+    assert_eq!(view.size(), extent(2000.0, 1000.0));
+}
