@@ -1,7 +1,7 @@
-// Following a machine's plugins (node review R1, R3, notes 3 and 5): a
-// failed poll is not the end, a quiet answer is paced, a change is read
-// again, the baseline comes before the read, and a change lets the controls
-// go only after the list is read again.
+// Following a machine's plugins (node review R1, R3, notes 3 and 5; app
+// review note 1): a failed poll or read is not the end, a quiet answer is
+// paced, a change is read again, the baseline comes before the read, and a
+// change lets the controls go only after the list is read again.
 
 import { describe, expect, it } from "vitest";
 
@@ -15,7 +15,7 @@ const dropped: Outcome<number> = {
 
 /** A scripted node: each poll takes the next answer; the run stops when
  * the script is spent. */
-function scripted(answers: Outcome<number>[]) {
+function scripted(answers: Outcome<number>[], reads: boolean[] = []) {
   const stop = new AbortController();
   const log: string[] = [];
   const follow = {
@@ -30,7 +30,7 @@ function scripted(answers: Outcome<number>[]) {
     },
     reload: () => {
       log.push("reload");
-      return Promise.resolve();
+      return Promise.resolve(reads.shift() ?? true);
     },
     quietly: () => {
       log.push("quiet");
@@ -88,6 +88,39 @@ describe("following a machine's plugins", () => {
       "reload",
       "retry",
       "poll any",
+    ]);
+  });
+
+  it("starts over after a failed read, as after a failed poll", async () => {
+    const { follow, stop, log } = scripted([at(4), at(4), at(5)], [false]);
+    await followPlugins(follow, stop.signal);
+    expect(log).toEqual([
+      "poll any",
+      "reload",
+      "retry",
+      "poll any",
+      "reload",
+      "poll 4",
+      "reload",
+      "poll 5",
+    ]);
+  });
+
+  it("starts over when the read after a change fails", async () => {
+    const { follow, stop, log } = scripted(
+      [at(4), at(5), at(5)],
+      [true, false],
+    );
+    await followPlugins(follow, stop.signal);
+    expect(log).toEqual([
+      "poll any",
+      "reload",
+      "poll 4",
+      "reload",
+      "retry",
+      "poll any",
+      "reload",
+      "poll 5",
     ]);
   });
 

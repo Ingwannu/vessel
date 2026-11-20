@@ -1,6 +1,6 @@
-// Paseo's usage read error (settings/usage/usage-section.tsx:74), apart
-// from plan-usage.tsx so that file stays inside the 300-line budget and the
-// view is rendered on its own in its test (TRACKER 820).
+// Paseo's usage read error (packages/app/src/usage/usage-section.tsx:72-82),
+// apart from plan-usage.tsx so that file stays inside the 300-line budget and
+// the view is rendered on its own in its test (TRACKER 820).
 
 import { Alert, Button } from "../../ui/kit";
 

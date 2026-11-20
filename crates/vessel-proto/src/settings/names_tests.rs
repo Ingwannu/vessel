@@ -17,6 +17,7 @@ fn settings() -> NodeSettings {
             .unwrap(),
         ),
         plugins_enabled: false,
+        terminal_agent_hooks: false,
     }
 }
 

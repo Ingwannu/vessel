@@ -91,15 +91,22 @@ export function runSetup(
 
 /** Remove a worktree. With `keep`, one where something would be lost is
  * kept and the answer says why; `snapshot` keeps a snapshot first;
- * `discard` removes it anyway and deletes its branch. */
+ * `discard` removes it anyway and deletes its branch. `endTerminals`
+ * (protocol 40, ADR 0121) ends the live terminals in it first; send it
+ * only after the person saw how many (Paseo's terminal warning). */
 export function removeWorktree(
   fleet: Fleet,
   node: NodeKey,
   worktree: WorktreeId,
   ifLost: IfLost,
+  endTerminals = false,
 ): Promise<Outcome<RemoveWorktreeOutcome>> {
   return attempt(() =>
-    fleet.bridge.call(node, "worktree.remove", { worktree, if_lost: ifLost }),
+    fleet.bridge.call(node, "worktree.remove", {
+      worktree,
+      if_lost: ifLost,
+      ...(endTerminals ? { end_terminals: true } : {}),
+    }),
   );
 }
 

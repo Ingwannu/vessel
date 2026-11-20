@@ -34,16 +34,24 @@
 //!   answers within 25 s); it stops on a failure and starts again with the
 //!   next connection.
 
-use vessel_proto::plugins::{PluginGeneration, PluginId, PluginListItem, PluginLogs, PluginStatus};
+use vessel_proto::plugins::{
+    InvokePlugin, PluginCatalog, PluginGeneration, PluginId, PluginListItem, PluginLogs,
+    PluginStatus,
+};
 use vessel_proto::settings::NodeSettings;
-use vessel_proto::{ErrorCode, ProtocolVersion};
+use vessel_proto::{ErrorCode, ProtocolVersion, RawJson};
 
 use crate::devices::Ticket;
 
+mod catalog;
 mod logs;
 mod page;
 mod words;
 
+pub use catalog::{
+    Answered as CatalogAnswered, CATALOG_PROTOCOL, Catalogs, Pause as CatalogPause, Place,
+    PluginCall, PluginCommand, PluginSlash, QUIET_AFTER, RETRY_AFTER, context_at, speaks_catalog,
+};
 pub use logs::{Logs, LogsView, log_head};
 pub use page::{Answered, Page, RowLook};
 pub use words::{change_words, problem_words, source_line, status_word};
@@ -229,6 +237,10 @@ pub enum Request {
     Logs(PluginId),
     /// `plugin.watch` after a generation.
     Watch(PluginGeneration),
+    /// `plugin.catalog` (the app's catalog watcher, not the page).
+    Catalog,
+    /// `plugin.invoke`: a plugin method an item or a slash command runs.
+    Invoke(InvokePlugin),
 }
 
 /// What a call answered.
@@ -246,6 +258,10 @@ pub enum Reply {
     Logs(PluginLogs),
     /// The node's plugin generation.
     Generation(PluginGeneration),
+    /// The running installations' declarations.
+    Catalog(PluginCatalog),
+    /// What a plugin method answered.
+    Output(RawJson),
 }
 
 /// A call to send: what to ask, with the ticket its answer will carry.

@@ -217,3 +217,10 @@ export function worktreeRefusalWords(reason: WorktreeRefusal): string {
       return "The machine refused to make the worktree for a reason this page does not know.";
   }
 }
+
+/** Paseo's terminal warning (`workspace.tabs.confirmations.bulk.terminals`,
+ * workspace-bulk-close.ts), said before a worktree's removal ends the
+ * `count` live terminals in it (ADR 0121). */
+export function closesTerminals(count: number): string {
+  return `This will close ${String(count)} terminal(s). Any running process in a closed terminal will be stopped immediately.`;
+}

@@ -273,6 +273,9 @@ impl PrefsDoc {
                 body.sidebar.make_read().labels.set(picks.clone());
             }
             PreferenceChange::SidebarUsage(on) => body.sidebar.make_read().usage.set(*on),
+            PreferenceChange::SidebarTrailing(trailing) => {
+                body.sidebar.make_read().trailing.set(*trailing);
+            }
             PreferenceChange::UsageDisplay(display) => {
                 body.usage.make_read().display.set(*display);
             }

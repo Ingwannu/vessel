@@ -22,6 +22,7 @@ mod fleet;
 mod forge;
 mod formatted_models;
 mod history;
+mod hooks;
 mod inbox;
 mod init;
 mod io;
@@ -111,9 +112,11 @@ async fn cli() -> ExitCode {
             command: args::NodeCommand::Diagnostics { .. }
         }
     );
-    // A node shows its lifecycle; client commands only warnings.
+    // A node shows its lifecycle; client commands only warnings; an agent's
+    // hook nothing at all (Paseo's `paseo hooks` is silent).
     let default_level = match cli.command {
         Command::Node { .. } => "info",
+        Command::Hooks { .. } => "off",
         Command::Nodes { .. }
         | Command::Status
         | Command::Harnesses

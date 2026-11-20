@@ -21,7 +21,7 @@
 
 mod env;
 mod producer;
-pub(crate) use producer::{ActivityProducer, producer_auth, producer_env};
+pub(crate) use producer::{ActivityProducer, hook_cli, producer_auth, producer_env};
 mod ports;
 mod registry;
 mod scripts;

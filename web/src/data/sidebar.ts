@@ -57,6 +57,8 @@ export interface SidebarSession {
   mark: SessionMark;
   /** Its worktree's branch, when it has one (track B-page). */
   branch: string | null;
+  /** When it last did something (`activeAt`), for the trailing slot. */
+  activity: string;
 }
 
 /** A machine's row and the sessions under it. */
@@ -147,6 +149,7 @@ export function sessionRow(
     title: sessionName(session),
     mark: sessionMark(session),
     branch: session.workspace?.branch ?? null,
+    activity: activeAt(session),
   };
 }
 

@@ -17,8 +17,21 @@ pub(super) fn groups<'a, S, T>(
     query: &str,
 ) -> Vec<Group<'a, S, T>> {
     let query = Query::new(query);
+    let mut sections: Vec<u16> = entries
+        .iter()
+        .filter_map(|entry| {
+            if let PaletteGroup::Plugin(section) = entry.group {
+                Some(section)
+            } else {
+                None
+            }
+        })
+        .collect();
+    sections.sort_unstable();
+    sections.dedup();
     let mut populated: Vec<(Option<Score>, Group<'a, S, T>)> = PaletteGroup::ALL
         .into_iter()
+        .chain(sections.into_iter().map(PaletteGroup::Plugin))
         .filter_map(|group| {
             let mut scored: Vec<_> = entries
                 .iter()
