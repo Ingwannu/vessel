@@ -119,7 +119,11 @@ request and the places are 40's.
 3. **Older callers.** An agent call below 40 keeps the `session` place it named: it could not decode a workspace place
    in the answer, and such a shell keeps the old life. A person's client below 40 no longer lists an agent's
    workspace shell, by decision 5's filter (stated).
-4. **Existing shells.** Session-placed shells are not moved (this ADR's rejected re-homing). In practice the node
+4. **A project's list.** `terminal.list { place: project }` matches every project place of that project, whatever
+   its `dir`, as the node already does (decision 3). A session in a project subfolder gives its agent's shell
+   `project { project, dir }`, and the page's project workspace takes every project place of its project (the
+   coordinator's ruling on node review R2, 2026-11-20).
+5. **Existing shells.** Session-placed shells are not moved (this ADR's rejected re-homing). In practice the node
    restart that installs this ends every live terminal on that node.
 
 ### Alternatives considered
