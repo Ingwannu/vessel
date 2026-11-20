@@ -18,7 +18,7 @@ const en = {
   rename: "Rename",
   name: "Name",
   copyAgent: "Copy agent ID",
-  copyTerminal: "Copy terminal ID",
+  copyTerminal: "Copy terminal id",
   copyPath: "Copy file path",
   copyResume: "Copy resume command",
   reload: "Reload agent",

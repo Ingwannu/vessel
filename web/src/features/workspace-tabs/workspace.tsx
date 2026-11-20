@@ -1,7 +1,6 @@
-// All views share a workspace tab host. Agent bodies are rendered by the
-// route owner so the agent and legacy terminal retain their normal entry.
+// The route owner supplies agent and legacy terminal bodies to the workspace.
 
-import { type ReactNode } from "react";
+import { type ReactNode, useCallback, useState } from "react";
 
 import { sessionName } from "../../data/titles";
 import { WorkspaceChat } from "../workspace/workspace-chat";
@@ -10,10 +9,12 @@ import { tabKey, type WorkspaceTab } from "../../data/workspace/tab-layout";
 import { Button, Dialog, Skeleton } from "../../ui/kit";
 import type { NodeKey } from "../../wire/bridge";
 import type {
+  SessionId,
   SessionInfo,
   SessionPlace,
   WorkspaceRoot,
 } from "../../wire/proto";
+import { SessionBar } from "../session/session-bar";
 import { NewSession } from "../compose/new-session";
 import { useMedia } from "../shell/use-media";
 import { Launcher, TabChrome } from "./chrome";
@@ -24,17 +25,25 @@ import { TerminalPane } from "./terminal-pane";
 import { useWorkspace } from "./use-workspace";
 import { tabWords } from "./words";
 
+export interface AgentPaneActions {
+  summaryOpen: boolean;
+  closeSummary: () => void;
+  onTitle: (id: SessionId, name: string | null) => void;
+}
+
 interface WorkspaceProps {
   node: NodeKey;
+  label: string;
   anchor: SessionInfo;
   root: WorkspaceRoot | null;
   projects: ProjectsView;
   scope: string;
-  agent: (session: SessionInfo, openChanges: () => void) => ReactNode;
+  agent: (session: SessionInfo, actions: AgentPaneActions) => ReactNode;
 }
 
 export function Workspace({
   node,
+  label,
   anchor,
   root,
   projects,
@@ -43,6 +52,17 @@ export function Workspace({
 }: WorkspaceProps) {
   const words = tabWords(navigator.language);
   const compact = useMedia("(width < 600px)");
+  const narrowSummary = useMedia("(width < 1280px)");
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const [title, setTitle] = useState<{
+    id: SessionId;
+    name: string | null;
+  } | null>(null);
+  const onTitle = useCallback((id: SessionId, name: string | null) => {
+    setTitle((current) =>
+      current?.id === id && current.name === name ? current : { id, name },
+    );
+  }, []);
   const state = useWorkspace(node, anchor, root, projects, scope, words);
   const { active, actions, lifecycle, layout, markDirty, openFile, select } =
     state;
@@ -89,6 +109,15 @@ export function Workspace({
   const launch = compact
     ? actions.filter((action) => action.label !== words.diff)
     : actions;
+  const heading =
+    active?.kind === "agent" ? (state.session(active.id) ?? anchor) : anchor;
+  const openSummary = () => {
+    select({ kind: "agent", id: heading.id });
+    setSummaryOpen(true);
+  };
+  const closeSummary = () => {
+    setSummaryOpen(false);
+  };
   const openChanges = () => {
     select({ kind: "changes" });
   };
@@ -112,7 +141,7 @@ export function Workspace({
           session === undefined ? (
             <Skeleton />
           ) : (
-            agent(session, openChanges)
+            agent(session, { summaryOpen, closeSummary, onTitle })
           )
         ) : null;
       }
@@ -173,6 +202,17 @@ export function Workspace({
 
   return (
     <section className="workspace-tabs">
+      <SessionBar
+        key={heading.id}
+        node={node}
+        label={label}
+        session={heading}
+        renamed={title?.id === heading.id ? title.name : null}
+        onPlace={openChanges}
+        {...(narrowSummary && heading.spec.mode === "structured"
+          ? { onSummary: openSummary }
+          : {})}
+      />
       <TabChrome
         items={items}
         active={layout.active}

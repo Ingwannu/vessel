@@ -21,6 +21,7 @@ export interface TabAction {
   disabled?: boolean;
   danger?: boolean;
   tooltip?: string;
+  shortcut?: string;
 }
 
 export interface TabChromeProps {
@@ -41,17 +42,29 @@ function actionsFor(
   compact: boolean,
 ): TabAction[] {
   const { words } = props;
-  const directions: readonly { scope: CloseScope; label: string }[] = [
-    { scope: "before", label: compact ? words.above : words.before },
-    { scope: "after", label: compact ? words.below : words.after },
-    { scope: "others", label: words.others },
+  const directions: readonly {
+    scope: CloseScope;
+    label: string;
+    icon: IconName;
+  }[] = [
+    {
+      scope: "before",
+      label: compact ? words.above : words.before,
+      icon: "arrow-left-to-line",
+    },
+    {
+      scope: "after",
+      label: compact ? words.below : words.after,
+      icon: "arrow-right-to-line",
+    },
+    { scope: "others", label: words.others, icon: "copy-x" },
   ];
   const tabs = props.items.map(({ tab }) => tab);
-  return directions.map(({ scope, label }) => {
+  return directions.map(({ scope, label, icon }) => {
     const targets = tabsToClose(tabs, tabKey(item.tab), scope);
     return {
       label,
-      icon: "close" as const,
+      icon,
       disabled: targets.length === 0,
       run: () => {
         props.closeMany(targets, label);
@@ -67,6 +80,7 @@ export function menuRows(actions: readonly TabAction[]) {
       icon={action.icon}
       onSelect={action.run}
       disabled={action.disabled ?? false}
+      {...(action.shortcut === undefined ? {} : { shortcut: action.shortcut })}
       {...(action.tooltip === undefined ? {} : { tooltip: action.tooltip })}
       tone={action.danger === true ? "danger" : "default"}
     >

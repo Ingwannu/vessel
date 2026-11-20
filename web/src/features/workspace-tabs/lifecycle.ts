@@ -124,7 +124,7 @@ export function useTabLifecycle(input: {
     }).length;
     const terminals = tabs.filter((tab) => tab.kind === "terminal").length;
     setConfirmation({
-      title,
+      title: `${title}?`,
       label: words.close,
       message: words.bulk(
         agents,

@@ -20,7 +20,6 @@ import { toast } from "../../ui/toasts";
 import type { NodeKey, StreamState } from "../../wire/bridge";
 import type { SessionInfo } from "../../wire/proto";
 import { mountTerminal } from "./mount-terminal";
-import { SessionBar } from "./session-bar";
 
 export function TerminalView({
   node,
@@ -84,7 +83,6 @@ export function TerminalView({
   const calls = usage?.id === session.id ? usage.usage : null;
   return (
     <>
-      <SessionBar node={node} label={label} session={session} renamed={null} />
       {stream?.state === "reconnecting" ? (
         <Banner>
           Reconnecting to {label} · {stream.message} · the terminal is frozen

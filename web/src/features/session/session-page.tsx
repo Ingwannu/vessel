@@ -91,11 +91,12 @@ function SessionWorkspace({
     <Workspace
       key={scope}
       node={node}
+      label={label}
       anchor={session}
       root={root}
       projects={projects}
       scope={scope}
-      agent={(shown, openChanges) =>
+      agent={(shown, actions) =>
         shown.spec.mode === "structured" ? (
           <div className="session">
             <StructuredSession
@@ -103,7 +104,7 @@ function SessionWorkspace({
               node={node}
               label={label}
               session={shown}
-              openChanges={openChanges}
+              actions={actions}
             />
           </div>
         ) : (

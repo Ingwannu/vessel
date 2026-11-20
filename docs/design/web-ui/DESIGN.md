@@ -2076,7 +2076,7 @@ control, GOAT), on purpose:
     order and selection on this browser. Summary remains beside the active
     session at desktop widths.
 12. **Session URLs remain deep links.** The frame gives the active session
-    its existing title and controls under the workspace tab strip.
+    its title, project, and actions above the strip, whichever tab is selected.
 13. **Settings is a column, not the full pane.** agent-orchestrator's
     settings body is up to 1152px wide; this one is GOAT's 896px reading
     width, so a row's control stays near its label on a wide window.

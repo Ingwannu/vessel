@@ -30,6 +30,7 @@ import type {
 import type { TabAction } from "./chrome-parts";
 import { childAgent } from "./close-tabs";
 import { useTabLifecycle } from "./lifecycle";
+import { useLaunchShortcuts } from "./launch-shortcuts";
 import { useLayout } from "./use-layout";
 import { useTerminals } from "./use-terminals";
 import type { TabWords } from "./words";
@@ -186,19 +187,29 @@ export function useWorkspace(
       toast(result.problem.message, "error");
     }
   };
+  const newAgent = () => {
+    select({ kind: "draft" });
+  };
+  const newTerminal = () => void launchTerminal();
+  const canCreateTerminal = terminalEnabled && !terminals.creating;
+  const shortcuts = useLaunchShortcuts(
+    newAgent,
+    newTerminal,
+    canCreateTerminal,
+  );
   const actions: TabAction[] = [
     {
       label: words.agent,
       icon: "compose",
-      run: () => {
-        select({ kind: "draft" });
-      },
+      run: newAgent,
+      ...(shortcuts.agent === null ? {} : { shortcut: shortcuts.agent }),
     },
     {
       label: words.terminal,
       icon: "terminal",
-      disabled: !terminalEnabled || terminals.creating,
-      run: () => void launchTerminal(),
+      disabled: !canCreateTerminal,
+      run: newTerminal,
+      ...(shortcuts.terminal === null ? {} : { shortcut: shortcuts.terminal }),
     },
     {
       label: words.changes,

@@ -46,7 +46,14 @@ test("a session starts in a new worktree once its commands are approved, setup s
   await expect(tab(page, "Changes")).toHaveAttribute("aria-selected", "true");
   await expect(page.getByText("No changes against base.")).toBeVisible();
   const prior = page.url();
-  await openPanelTab(page, "Agent");
+  await page.getByRole("button", { name: "New tab", exact: true }).click();
+  await expect(
+    page
+      .getByRole("menuitem", { name: "Agent", exact: true })
+      .locator(".menu-shortcut"),
+  ).toHaveText("Alt+Shift+A");
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("Alt+Shift+A");
   await page
     .getByRole("textbox", { name: "Prompt" })
     .fill("Review the same worktree");

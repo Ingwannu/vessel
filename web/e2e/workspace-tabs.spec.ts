@@ -33,7 +33,7 @@ test("workspace files retain a dirty edit, reorder, and ask once on a bulk close
   expect(dragged.indexOf("Diff")).toBeLessThan(dragged.indexOf("tax.ts"));
   await panelTab(page, "Files").click({ button: "right" });
   await page.getByRole("menuitem", { name: "Close tabs to the left" }).click();
-  const bulk = page.getByRole("dialog", { name: "Close tabs to the left" });
+  const bulk = page.getByRole("dialog", { name: "Close tabs to the left?" });
   await expect(bulk).toContainText("unsaved changes");
   await bulk.getByRole("button", { name: "Cancel" }).click();
   await expect(editor).toHaveValue("export const RATE = 0.73;\n");
@@ -55,15 +55,42 @@ test("a standalone terminal accepts input and closes through the compact switche
   await openUi(page);
   await startInShop(page, "Local", "Use a terminal tab");
   await expect(page).toHaveURL(/\/sessions\/[^/]+\/[^/]+$/);
-  await openPanelTab(page, "Terminal");
+  await page.getByRole("button", { name: "New tab", exact: true }).click();
+  await expect(
+    page
+      .getByRole("menuitem", { name: "Terminal", exact: true })
+      .locator(".menu-shortcut"),
+  ).toHaveText("Alt+Shift+T");
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("Alt+Shift+T");
   const terminal = page.locator(".workspace-terminal .xterm-host");
   await expect(terminal).toBeVisible();
   await terminal.click();
   await page.keyboard.insertText("printf '%s%s\\n' work- space-ready");
   await page.keyboard.press("Enter");
   await expect(terminal).toContainText("work-space-ready");
+  const heading = page.getByRole("heading", {
+    name: "Use a terminal tab",
+    exact: true,
+  });
+  await expect(heading).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /^Project shop: show changes$/ }),
+  ).toBeVisible();
+  await openPanelTab(page, "Files");
+  await expect(heading).toBeVisible();
+  await panelTab(page, "Files").click({ button: "right" });
+  await page.getByRole("menuitem", { name: "Close other tabs" }).click();
+  const bulk = page.getByRole("dialog", { name: "Close other tabs?" });
+  await expect(bulk).toContainText("close 1 terminal(s)");
+  await expect(bulk).toContainText(
+    "Any running process in a closed terminal will be stopped immediately.",
+  );
+  await bulk.getByRole("button", { name: "Cancel" }).click();
+  await panelTab(page, "Terminal").click();
 
   await page.setViewportSize({ width: 390, height: 844 });
+  await expect(heading).toBeVisible();
   await page.getByRole("button", { name: /Switch tabs/ }).click();
   const switcher = page.getByRole("dialog", {
     name: "Workspace tabs",

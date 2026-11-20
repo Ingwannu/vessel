@@ -29,7 +29,7 @@ import { Inspector } from "./inspector";
 import { Outline } from "./outline";
 import { useMedia } from "../shell/use-media";
 import { clearMarks, type Reveal } from "./reveal";
-import { SessionBar } from "./session-bar";
+import type { AgentPaneActions } from "../workspace-tabs/workspace";
 import { Timeline } from "./timeline";
 import { TimelineSourceContext } from "./timeline-source";
 import { useReadMarks } from "./use-read-marks";
@@ -40,13 +40,13 @@ export function StructuredSession({
   node,
   label,
   session,
-  openChanges,
+  actions,
 }: {
   node: NodeKey;
   /** The machine's name. */
   label: string;
   session: SessionInfo;
-  openChanges: () => void;
+  actions: AgentPaneActions;
 }) {
   const fleet = useFleet();
   const { timeline, stream } = useTimeline(node, session.id, isLive(session));
@@ -70,7 +70,10 @@ export function StructuredSession({
   }, [logged, session.id]);
   const inspector = useStore(prefs, (state) => state.values.layout.inspector);
   const narrow = useMedia("(width < 1280px)");
-  const [summaryOpen, setSummaryOpen] = useState(false);
+  const { summaryOpen, closeSummary, onTitle } = actions;
+  useEffect(() => {
+    onTitle(session.id, timeline.title);
+  }, [onTitle, session.id, timeline.title]);
   const [finding, setFinding] = useState<number | null>(null);
   const [reveal, setReveal] = useState<Reveal | null>(null);
   const [scroller, setScroller] = useState<HTMLDivElement | null>(null);
@@ -133,20 +136,6 @@ export function StructuredSession({
   }, []);
   return (
     <>
-      <SessionBar
-        node={node}
-        label={label}
-        session={session}
-        renamed={timeline.title}
-        onPlace={openChanges}
-        {...(narrow
-          ? {
-              onSummary: () => {
-                setSummaryOpen(true);
-              },
-            }
-          : {})}
-      />
       <div className="session-main">
         {stream?.state === "reconnecting" ? (
           <Banner>
@@ -195,13 +184,7 @@ export function StructuredSession({
         />
       ) : null}{" "}
       {narrow && summaryOpen ? (
-        <Sheet
-          side="right"
-          label="Summary"
-          onClose={() => {
-            setSummaryOpen(false);
-          }}
-        >
+        <Sheet side="right" label="Summary" onClose={closeSummary}>
           <Inspector
             node={node}
             label={label}
