@@ -46,6 +46,10 @@ use crate::files;
 use crate::rel::fold;
 use crate::skill::{SkillName, SkillNameError, skill_name};
 
+mod entries;
+
+use entries::{bundle_path, read_error, sorted_entries};
+
 /// The largest file a bundle carries; larger ones are left out.
 pub const MAX_FILE: u64 = 16 * 1024 * 1024;
 
@@ -339,6 +343,8 @@ impl Builder<'_> {
             }
         };
         let file = fs::File::open(path).map_err(|source| read_error(path, source))?;
+        // The size above is only a first look: the file may grow before it
+        // is copied, so the copy is bounded too.
         let Some((hash, size)) = self.blobs.insert_limited(file, MAX_FILE).map_err(read)? else {
             self.too_large(path, metadata.len().max(MAX_FILE.saturating_add(1)));
             return Ok(());
@@ -471,30 +477,6 @@ impl Builder<'_> {
                 .push(SourceProblem::Symlink(path.to_path_buf()));
         }
         Ok(inside)
-    }
-}
-
-/// The entries of `dir` with UTF-8 names, by name.
-fn sorted_entries(dir: &Path) -> Result<Vec<(String, PathBuf)>, BundleError> {
-    let mut entries = Vec::new();
-    for entry in fs::read_dir(dir).map_err(|source| read_error(dir, source))? {
-        let entry = entry.map_err(|source| read_error(dir, source))?;
-        if let Ok(name) = entry.file_name().into_string() {
-            entries.push((name, entry.path()));
-        }
-    }
-    entries.sort();
-    Ok(entries)
-}
-
-fn bundle_path(text: &str) -> Option<BundlePath> {
-    text.parse().ok()
-}
-
-fn read_error(path: &Path, source: io::Error) -> BundleError {
-    BundleError::Read {
-        path: path.to_path_buf(),
-        source,
     }
 }
 

@@ -75,7 +75,7 @@ async fn an_idle_server_shuts_down_and_closes_its_mailbox() {
             ..config("normal", &state)
         };
         let (sender, receiver) = mpsc::channel(8);
-        let task = tokio::spawn(server(
+        let task = tokio::spawn(server::run(
             Key {
                 workspace: root.clone(),
                 language: lsp::Language::Rust,
@@ -109,7 +109,7 @@ async fn an_abandoned_query_keeps_the_server_warm() {
         let root = dir.path().canonicalize().unwrap();
         let (sender, receiver) = mpsc::channel(8);
         let stop = CancellationToken::new();
-        let task = tokio::spawn(server(
+        let task = tokio::spawn(server::run(
             Key {
                 workspace: root.clone(),
                 language: lsp::Language::Rust,

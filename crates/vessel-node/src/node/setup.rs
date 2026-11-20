@@ -222,8 +222,8 @@ impl Startup {
     pub(super) async fn open(config: &Config) -> Result<Self, NodeError> {
         // Keep the checks and I/O in the exact original order. A malformed
         // relay/proxy must still fail before any node state starts.
-        let clients = super::client_address(config)?;
-        let relaying = super::relaying(config)?;
+        let clients = super::listen::client_address(config)?;
+        let relaying = super::listen::relaying(config)?;
         let super::Prepared {
             id,
             token,
