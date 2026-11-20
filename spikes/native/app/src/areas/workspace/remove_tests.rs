@@ -76,12 +76,12 @@ fn list(terminals: Vec<TerminalInfo>) -> TerminalList {
 
 /// A shell whose projects machine speaks `protocol`, showing `worktree`'s
 /// removal kept for being in use, with `cards` listed.
-fn open(
-    cx: &mut TestAppContext,
+fn open<'a>(
+    cx: &'a mut TestAppContext,
     worktree: &WorktreeInfo,
     protocol: ProtocolVersion,
     cards: Vec<Card>,
-) -> (Entity<Probe>, &mut VisualTestContext) {
+) -> (Entity<Probe>, &'a mut VisualTestContext) {
     language_tests::init(cx);
     let worktree = worktree.clone();
     cx.add_window_view(move |window, cx| {
