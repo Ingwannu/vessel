@@ -49,15 +49,15 @@ pub use theme::{Appearance, HexColor, ThemeColors, ThemeContribution};
 /// The plugin manager calls (ADR 0115): `plugin.list`, `plugin.logs`,
 /// `plugin.inspect`, `plugin.install`, `plugin.enable`, `plugin.disable`,
 /// `plugin.reload`, `plugin.remove`, `plugin.watch`, and the node settings'
-/// `plugins_enabled`. Drafted as 35 (the next after ADR 0113's 34); the
-/// integrator assigns it in merge order.
-pub const PLUGINS_PROTOCOL: Option<crate::ProtocolVersion> = Some(crate::ProtocolVersion::new(35));
+/// `plugins_enabled`. Drafted as 35; assigned 36 at its node-line merge,
+/// after ADR 0088's `forge.repos` took 35.
+pub const PLUGINS_PROTOCOL: Option<crate::ProtocolVersion> = Some(crate::ProtocolVersion::new(36));
 
 /// A node's plugin catalog and plugin method calls (ADR 0115, "Catalog and
 /// invoke"): `plugin.catalog` and `plugin.invoke`. Drafted as the next after
 /// [`PLUGINS_PROTOCOL`]; the integrator assigns it in merge order.
 pub const PLUGIN_CATALOG_PROTOCOL: Option<crate::ProtocolVersion> =
-    Some(crate::ProtocolVersion::new(36));
+    Some(crate::ProtocolVersion::new(37));
 
 pub use declarations::{
     Action, Availability, Button, ButtonBehavior, ChoiceOption, CommandContext, Contribution,

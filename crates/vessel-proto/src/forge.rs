@@ -3,6 +3,7 @@
 //! and the calls that read, open and merge one.
 //! ADR 0061's project-page values are also defined here, without a
 //! registered project-list call until its protocol admission is ready.
+//! ADR 0088 adds GitHub repository search (`forge.repos`, `repos`).
 //!
 //! [Decision Log]
 //! - Purpose: agent-orchestrator, GOAT and Paseo all follow a session's
@@ -25,6 +26,7 @@ mod calls;
 mod names;
 mod project;
 mod pull;
+mod repos;
 
 pub use access::{
     ForgeAccess, ForgeStatus, GhState, HostStatus, PullRequestList, PullRequestView, RefusedReason,
@@ -36,7 +38,7 @@ pub use calls::{
 };
 pub use names::{
     CheckName, ForgeHost, ForgeLogin, ForgeUrl, InvalidForgeValue, PullBody, PullNumber, PullTitle,
-    RepoPath, is_format,
+    RepoDescription, RepoPath, RepoQuery, is_format,
 };
 pub use project::{
     InvalidOpenPullPage, InvalidPullCursor, OpenPullPage, PROJECT_PULL_REQUESTS, ProjectPullCursor,
@@ -45,6 +47,10 @@ pub use project::{
 pub use pull::{
     CheckRun, CheckState, Checks, ChecksState, ForgeKind, MergeMethod, Mergeable, PullRequest,
     PullState, PullSummary, RepoRef, ReviewDecision, Reviews,
+};
+pub use repos::{
+    REPOSITORY_SEARCH_PROTOCOL, RepoLimit, Repository, RepositoryList, SearchRepositories,
+    Visibility,
 };
 
 #[cfg(test)]

@@ -8,7 +8,7 @@
 use vessel_proto::forge::{
     ForgeAccess, ForgeStatus, GetForgeStatus, GetPullRequest, ListPullRequests, MergeOutcome,
     MergePullRequest, OpenOutcome, OpenPullRequest, PullRequestList, PullRequestView,
-    SessionPullRequest, SetFeedback,
+    RepositoryList, SearchRepositories, SessionPullRequest, SetFeedback,
 };
 use vessel_proto::{ErrorCode, SessionId, SessionMode, WireError};
 use vessel_session::SessionHandle;
@@ -25,6 +25,19 @@ impl NodeService {
         _: GetForgeStatus,
     ) -> Result<ForgeStatus, WireError> {
         Ok(self.forges.status().await)
+    }
+
+    /// `forge.repos` (ADR 0088): the guard refused agents; a person's
+    /// Add project sheet lists and searches the account's repositories.
+    pub(crate) async fn search_repositories(
+        &self,
+        _: &Connection,
+        request: SearchRepositories,
+    ) -> Result<RepositoryList, WireError> {
+        Ok(self
+            .forges
+            .repositories(&request.query, request.limit)
+            .await)
     }
 
     /// `pr.list`.

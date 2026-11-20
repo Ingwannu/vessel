@@ -384,6 +384,11 @@ pub const PROTOCOLS: &[(&str, Option<crate::ProtocolVersion>, &str)] = &[
         "`project.create_directory`, and `~` in project paths (ADR 0113).",
     ),
     (
+        "REPOSITORY_SEARCH_PROTOCOL",
+        crate::forge::REPOSITORY_SEARCH_PROTOCOL,
+        "`forge.repos`: GitHub repository search for Add project (ADR 0088).",
+    ),
+    (
         "PLUGINS_PROTOCOL",
         crate::plugins::PLUGINS_PROTOCOL,
         "The plugin manager: `plugin.*` and the node's plugin switch (ADR 0115).",

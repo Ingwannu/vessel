@@ -276,6 +276,7 @@ impl Call {
             | Self::FindFiles(_)
             | Self::SearchFiles(_)
             | Self::ForgeStatus(_)
+            | Self::SearchRepositories(_)
             | Self::ListPullRequests(_)
             | Self::GetPullRequest(_)
             | Self::OpenPullRequest(_)

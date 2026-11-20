@@ -430,6 +430,10 @@ pub enum Grouping {
     /// Their registry workspace (ADR 0106), each with its label chips;
     /// only this grouping is filtered by labels.
     Workspace,
+    /// Their project, each project heading its sessions (Paseo's default
+    /// grouping; the native app's, TRACKER 682). The page draws it as
+    /// `Machine` until its own (TRACKER 812).
+    Project,
 }
 
 /// The order of sessions within a group.
@@ -484,5 +488,22 @@ mod tests {
             r#"{"appearance":{"theme":"system","interface_size":14,"code_size":12,"content_width":"comfortable","conversation":"full"},"layout":{"sidebar":"shown","inspector":"shown","explorer_sort":"name"},"composer":{"send":"enter","delivery":"steer"},"shortcuts":{},"notifications":{"alerts":"off","title":true},"sidebar":{"group":"machine","sort":"created","ended":true,"labels":[],"usage":false},"usage":{"display":"used","host":null,"pins":null},"defaults":{}}"#
         );
         assert_eq!(serde_json::from_str::<Preferences>(&text).unwrap(), values);
+    }
+
+    #[test]
+    fn project_is_a_grouping_the_document_and_a_change_carry() {
+        // The native app's default grouping (TRACKER 682): one shared value,
+        // so a document it writes stays the page's to read (which draws it as
+        // Machine until TRACKER 812).
+        let mut values = Preferences::default();
+        values.sidebar.group = Grouping::Project;
+        let text = serde_json::to_string(&values).unwrap();
+        assert!(text.contains(r#""sidebar":{"group":"project","#), "{text}");
+        assert_eq!(serde_json::from_str::<Preferences>(&text).unwrap(), values);
+        let change: PreferenceChange =
+            serde_json::from_str(r#"{"set":"sidebar_group","value":"project"}"#).unwrap();
+        assert_eq!(change, PreferenceChange::SidebarGroup(Grouping::Project));
+        // The page's own default is unchanged.
+        assert_eq!(Grouping::default(), Grouping::Machine);
     }
 }

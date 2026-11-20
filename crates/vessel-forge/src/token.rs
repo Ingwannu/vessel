@@ -205,6 +205,12 @@ impl Credentials {
         found
     }
 
+    /// The machine's `gh`, when it has one (asked how it clones, ADR 0088).
+    #[must_use]
+    pub fn gh(&self) -> Option<&Gh> {
+        self.gh.as_ref()
+    }
+
     /// The forge said 401: forget `host`'s token, so the next call asks
     /// again, at most once a minute (a token that stays bad is not asked
     /// for on every read).

@@ -63,3 +63,14 @@ export function useWhere(): Where {
     agent: queryValue(params.get("agent")),
   };
 }
+
+/** The session the page shows (`/sessions/$node/$id`), if one. */
+export function shownSession(
+  where: Where,
+): { node: NodeKey; id: string } | null {
+  const [first, node, id] = where.segments;
+  const key = node === undefined ? null : nodeKeyOf(node);
+  return first === "sessions" && key !== null && id !== undefined
+    ? { node: key, id }
+    : null;
+}

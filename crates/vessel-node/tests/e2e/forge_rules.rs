@@ -9,7 +9,7 @@ use std::sync::Arc;
 use vessel_forge::fake::{Failure, FakeForge};
 use vessel_proto::forge::{
     ForgeAccess, GetForgeStatus, GetPullRequest, MergeMethod, MergePullRequest, OpenOutcome,
-    OpenPullRequest, OpenRefusal, PullNumber, PullTitle, SetFeedback,
+    OpenPullRequest, OpenRefusal, PullNumber, PullTitle, SearchRepositories, SetFeedback,
 };
 use vessel_proto::workspace::{CommitId, SessionPlace};
 use vessel_proto::{AgentEvent, ErrorCode, EventRecord, GetSession, SessionEvent, SessionInput};
@@ -96,6 +96,11 @@ async fn an_agent_opens_only_what_it_pushed_and_merges_nothing() {
         assert_eq!(code(agent.call(feedback).await), ErrorCode::Forbidden);
         assert_eq!(
             code(agent.call(GetForgeStatus {}).await),
+            ErrorCode::Forbidden
+        );
+        // The account's repositories are the node's sign-in (ADR 0088).
+        assert_eq!(
+            code(agent.call(SearchRepositories::default()).await),
             ErrorCode::Forbidden
         );
         // Not placed: the owner's first session has no pull request.

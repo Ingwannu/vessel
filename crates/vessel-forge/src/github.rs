@@ -21,6 +21,7 @@
 mod facts;
 mod graphql;
 mod reads;
+mod repos;
 mod rest;
 mod writes;
 
@@ -29,7 +30,8 @@ use std::sync::Arc;
 use reqwest::{Method, StatusCode, Url};
 use serde::de::DeserializeOwned;
 use vessel_proto::forge::{
-    ForgeHost, ForgeKind, ForgeLogin, MergeMethod, PullNumber, RefusedReason, RepoRef,
+    ForgeHost, ForgeKind, ForgeLogin, MergeMethod, PullNumber, RefusedReason, RepoLimit, RepoRef,
+    Repository,
 };
 use vessel_proto::workspace::{BranchName, CommitId};
 
@@ -295,6 +297,15 @@ impl Forge for GitHub {
 
     fn can_write<'a>(&'a self, repo: &'a RepoRef, login: &'a ForgeLogin) -> Answer<'a, bool> {
         Box::pin(self.writes_to(repo, login))
+    }
+
+    fn repositories<'a>(
+        &'a self,
+        host: &'a ForgeHost,
+        query: &'a str,
+        limit: RepoLimit,
+    ) -> Answer<'a, Vec<Repository>> {
+        Box::pin(self.repos_of(host, query, limit))
     }
 }
 

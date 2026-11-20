@@ -170,6 +170,19 @@ forge_text!(
     "check name",
     check_rule
 );
+forge_text!(
+    /// A repository's description on its forge: one line (ADR 0088).
+    RepoDescription,
+    "repository description",
+    description_rule
+);
+forge_text!(
+    /// What `forge.repos` searches GitHub for: one line, empty for the
+    /// signed-in account's own repositories (ADR 0088).
+    RepoQuery,
+    "repository query",
+    query_rule
+);
 
 /// The most characters of a title.
 const TITLE: usize = 256;
@@ -177,6 +190,10 @@ const TITLE: usize = 256;
 const BODY: usize = 64 * 1024;
 /// The most characters of a check's name.
 const CHECK: usize = 256;
+/// The most characters of a repository's description (GitHub's own).
+const DESCRIPTION: usize = 350;
+/// The most characters of a repository query.
+const QUERY: usize = 256;
 /// The most bytes of an address.
 const URL: usize = 2048;
 
@@ -262,6 +279,21 @@ fn title_rule(text: &str) -> Result<(), &'static str> {
 
 fn check_rule(text: &str) -> Result<(), &'static str> {
     line(text, CHECK)
+}
+
+fn description_rule(text: &str) -> Result<(), &'static str> {
+    line(text, DESCRIPTION)
+}
+
+/// A query may be empty (Paseo's empty search lists the account's own).
+fn query_rule(text: &str) -> Result<(), &'static str> {
+    if text.chars().any(char::is_control) {
+        return Err("one line, no control character");
+    }
+    if text.chars().count() > QUERY {
+        return Err("too long");
+    }
+    Ok(())
 }
 
 fn body_rule(text: &str) -> Result<(), &'static str> {
@@ -371,6 +403,30 @@ impl CheckName {
         Self(Arc::from(
             lossy_line(text, CHECK).unwrap_or_else(|| "(unnamed)".to_owned()),
         ))
+    }
+}
+
+impl RepoDescription {
+    /// A description made of a forge's `text`: one line, at most 350
+    /// characters; `None` when nothing is left.
+    #[must_use]
+    pub fn lossy(text: &str) -> Option<Self> {
+        lossy_line(text, DESCRIPTION).map(|line| Self(Arc::from(line)))
+    }
+}
+
+impl RepoQuery {
+    /// The text without the white space around it, as the node searches.
+    #[must_use]
+    pub fn trimmed(&self) -> &str {
+        self.0.trim()
+    }
+}
+
+impl Default for RepoQuery {
+    /// The empty query: the account's own repositories.
+    fn default() -> Self {
+        Self(Arc::from(""))
     }
 }
 

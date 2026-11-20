@@ -1,0 +1,251 @@
+/* The Files tab's viewers (Paseo's built-in file panels; F-F38, F-F39,
+   F-F40; docs/plans/wp-file-viewers.md):
+   - a panel's state centred in it: Loading with a spinner, an error in the
+     danger ink;
+   - the Markdown preview: a 16px gutter around a reading column, its front
+     matter a two-column table (keys mono at 14/20 in the muted ink on the
+     well, values in the ink at the same size, cells 12 by 8) 24px above
+     the body; the body as the conversation
+     draws Markdown, with headings, numbered lists, rules and images;
+   - the HTML preview: the file in a frame filling the panel on white, as
+     a page is drawn;
+   - the image: fitted in the panel, the zoom buttons in its top right
+     corner 8px in, shown while the pointer or the focus is there. */
+
+.file-state {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 0;
+  padding: 16px;
+  color: var(--text-secondary);
+  font: var(--t-body);
+  text-align: center;
+}
+
+.file-state.error {
+  color: var(--danger);
+}
+
+.md-doc-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.md-doc {
+  max-width: 78ch;
+  margin: 0 auto;
+  padding: 16px 24px;
+  color: var(--text-primary);
+  font: var(--t-body);
+  overflow-wrap: anywhere;
+}
+
+.md-front {
+  display: grid;
+  grid-template-columns: minmax(0, min(30%, 180px)) minmax(0, 1fr);
+  margin: 0 0 24px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-3);
+  overflow: hidden;
+}
+
+/* Paseo's cells: 14/20 text, key and value alike, scaled with the
+   interface's font size as the body is. */
+.md-front dt,
+.md-front dd {
+  margin: 0;
+  padding: 8px 12px;
+  line-height: calc(20px * var(--ui-scale));
+  white-space: pre-wrap;
+}
+
+/* Paseo's key: mono at the body's 14/20, the value's size (its
+   frontMatterKey), not the smaller code token. */
+.md-front dt {
+  background: var(--bg-well);
+  color: var(--text-secondary);
+  font: 400 calc(14px * var(--ui-scale)) / calc(20px * var(--ui-scale))
+    var(--font-mono);
+}
+
+.md-front dt:not(:first-of-type),
+.md-front dt:not(:first-of-type) + dd {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.md-doc :is(h1, h2, h3, h4, h5, h6) {
+  margin: 20px 0 8px;
+  font-family: var(--font-sans);
+  font-weight: 600;
+}
+
+.md-doc :is(h1, h2, h3, h4, h5, h6):first-child {
+  margin-top: 0;
+}
+
+.md-doc h1 {
+  font-size: calc(22px * var(--ui-scale));
+  line-height: calc(28px * var(--ui-scale));
+}
+
+.md-doc h2 {
+  font-size: calc(18px * var(--ui-scale));
+  line-height: calc(24px * var(--ui-scale));
+}
+
+.md-doc :is(h3, h4, h5, h6) {
+  font-size: calc(14px * var(--ui-scale));
+  line-height: calc(20px * var(--ui-scale));
+}
+
+.md-doc p {
+  margin: 0 0 8px;
+}
+
+.md-doc :is(ul, ol) {
+  margin: 0 0 8px;
+  padding-left: 22px;
+}
+
+.md-doc code {
+  padding: 0 4px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 3px;
+  background: var(--bg-hover);
+  font: var(--t-mono);
+}
+
+.md-doc pre {
+  margin: 8px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-2);
+  background: var(--bg-hover);
+  font: var(--t-mono);
+  line-height: 1.6;
+  overflow: auto;
+}
+
+.md-doc pre code {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.md-doc blockquote {
+  margin: 8px 0;
+  padding: 0 0 0 10px;
+  border-left: 2px solid var(--accent);
+  color: var(--text-secondary);
+}
+
+.md-doc hr {
+  margin: 16px 0;
+  border: 0;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.md-doc img {
+  max-width: 100%;
+}
+
+/* A link in running text is ink like the text around it, so it is
+   underlined: colour cannot mark it. A file link is a button that opens
+   the file here, drawn as the web links are. */
+.md-doc a,
+.md-file-link {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.md-file-link {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.html-frame {
+  flex: 1;
+  min-height: 0;
+  border: 0;
+  background: white;
+}
+
+.zoomable {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.zoomable-canvas {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+}
+
+.zoomable-canvas.grab {
+  cursor: grab;
+}
+
+.zoomable-canvas.grabbing {
+  cursor: grabbing;
+}
+
+.zoomable-content {
+  flex-shrink: 0;
+  transform-origin: center center;
+}
+
+.zoomable-content img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.zoomable-probe {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.zoomable-tools {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--d-1) var(--ease);
+}
+
+.zoomable-tools .icon-btn {
+  background: var(--bg-elevated);
+}
+
+.zoomable:hover .zoomable-tools,
+.zoomable:focus-within .zoomable-tools {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (hover: none) {
+  .zoomable-tools {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
