@@ -94,7 +94,7 @@ px-step spikes/native/app/src/areas/workspace/code/frame.rs 4
 px-step spikes/native/app/src/areas/workspace/code/search.rs 7
 px-step spikes/native/app/src/areas/workspace/code/tree.rs 6
 px-step spikes/native/app/src/areas/workspace/code/viewer.rs 13
-px-step spikes/native/app/src/areas/workspace/projects.rs 7
+px-step spikes/native/app/src/areas/workspace/projects.rs 6
 px-step spikes/native/app/src/areas/workspace/remove.rs 3
 px-step spikes/native/app/src/areas/workspace/sidebar.rs 11
 px-step spikes/native/app/src/areas/workspace/start_card.rs 5

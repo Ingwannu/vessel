@@ -171,15 +171,7 @@ impl Shell {
                     self.read_branches(&machine, project);
                 }
             }
-            PlacePick::AddProject => {
-                self.areas.settings.machine = Some(machine);
-                self.open_settings(
-                    Some(vessel_app_view::settings::Section::Projects),
-                    window,
-                    cx,
-                );
-                self.open_add_menu();
-            }
+            PlacePick::AddProject => self.open_add_flow(Some(machine), window, cx),
             PlacePick::Isolation(mode) => {
                 self.areas.workspace.place.mode = mode;
                 let project = self
