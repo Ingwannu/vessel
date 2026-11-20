@@ -30,6 +30,8 @@
 use std::collections::HashSet;
 
 use vessel_app_kit::assets::Glyph;
+use vessel_app_kit::picker::anchor_probe;
+use vessel_app_kit::popup::shadow_md;
 use vessel_app_kit::status_mark::icon_box;
 use vessel_app_kit::theme::{SidebarSurfaces, spacing};
 use vessel_app_kit::ui::{
@@ -37,8 +39,6 @@ use vessel_app_kit::ui::{
     InteractiveElement as _, IntoElement as _, MouseButton, ParentElement as _, SharedString,
     Stateful, StatefulInteractiveElement as _, Styled as _, div, px, svg,
 };
-use vessel_app_kit::picker::anchor_probe;
-use vessel_app_kit::popup::shadow_md;
 use vessel_app_kit::{Tokens, Type, TypeExt as _};
 use vessel_app_view::Card;
 use vessel_app_view::prefs::{ProjectKey, SidebarView};
@@ -285,7 +285,9 @@ fn block(
         .aria_label(name)
         .relative()
         .when(!drawn.lifted, |block| {
-            block.child(anchor_probe(&shell.areas.sidebar.place(&drag::block_place(&key))))
+            block.child(anchor_probe(
+                &shell.areas.sidebar.place(&drag::block_place(&key)),
+            ))
         })
         .flex()
         .flex_col()

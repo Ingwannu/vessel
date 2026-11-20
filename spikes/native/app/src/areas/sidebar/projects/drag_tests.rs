@@ -52,7 +52,10 @@ fn release(cx: &mut VisualTestContext, at: Point<Pixels>) {
 }
 
 /// The order the drag would leave now, if one is under way.
-fn dragged_order(cx: &mut VisualTestContext, shell: &gpui::Entity<Shell>) -> Option<Vec<ProjectKey>> {
+fn dragged_order(
+    cx: &mut VisualTestContext,
+    shell: &gpui::Entity<Shell>,
+) -> Option<Vec<ProjectKey>> {
     shell.read_with(cx, |shell, _| {
         shell
             .areas
@@ -80,33 +83,53 @@ fn a_press_that_moves_less_than_six_folds_and_drags_nothing(cx: &mut TestAppCont
     assert_eq!(dragged_order(cx, &shell), None);
     release(cx, point(docs.x, docs.y + px(5.0)));
     shell.read_with(cx, |shell, _| {
-        assert!(shell.prefs.settings.folded_projects.contains("fixture", project_id(1)));
+        assert!(
+            shell
+                .prefs
+                .settings
+                .folded_projects
+                .contains("fixture", project_id(1))
+        );
         assert!(shell.prefs.settings.project_order.is_empty());
     });
 }
 
 #[gpui::test]
-fn a_dragged_block_goes_where_it_is_held_and_the_release_keeps_the_order(
-    cx: &mut TestAppContext,
-) {
+fn a_dragged_block_goes_where_it_is_held_and_the_release_keeps_the_order(cx: &mut TestAppContext) {
     let (shell, cx) = setup(cx, 2);
     let docs = on_header(block(cx, &shell, 1));
     let shop = block(cx, &shell, 0);
     press(cx, docs);
     drag_to(cx, point(docs.x, docs.y + px(10.0)));
     // Lifted, nothing moved yet.
-    assert_eq!(dragged_order(cx, &shell), Some(vec![key(1), key(2), key(0)]));
+    assert_eq!(
+        dragged_order(cx, &shell),
+        Some(vec![key(1), key(2), key(0)])
+    );
     // Held over shop's centre: docs goes after it, the rest close up.
     drag_to(cx, point(docs.x, shop.center().y));
-    assert_eq!(dragged_order(cx, &shell), Some(vec![key(2), key(0), key(1)]));
+    assert_eq!(
+        dragged_order(cx, &shell),
+        Some(vec![key(2), key(0), key(1)])
+    );
     release(cx, point(docs.x, shop.center().y));
     assert_eq!(dragged_order(cx, &shell), None);
     assert_eq!(stored(cx, &shell), vec![key(2), key(0), key(1)]);
     // The release did not fold docs, and the tree draws the new order.
     shell.read_with(cx, |shell, _| {
-        assert!(!shell.prefs.settings.folded_projects.contains("fixture", project_id(1)));
+        assert!(
+            !shell
+                .prefs
+                .settings
+                .folded_projects
+                .contains("fixture", project_id(1))
+        );
     });
-    let (notes, shop, docs) = (block(cx, &shell, 2), block(cx, &shell, 0), block(cx, &shell, 1));
+    let (notes, shop, docs) = (
+        block(cx, &shell, 2),
+        block(cx, &shell, 0),
+        block(cx, &shell, 1),
+    );
     assert!(notes.top() < shop.top() && shop.top() < docs.top());
 }
 
@@ -118,7 +141,10 @@ fn escape_puts_the_order_back_and_ends_the_drag(cx: &mut TestAppContext) {
     press(cx, docs);
     drag_to(cx, point(docs.x, docs.y + px(10.0)));
     drag_to(cx, point(docs.x, shop.center().y));
-    assert_eq!(dragged_order(cx, &shell), Some(vec![key(2), key(0), key(1)]));
+    assert_eq!(
+        dragged_order(cx, &shell),
+        Some(vec![key(2), key(0), key(1)])
+    );
     cx.simulate_keystrokes("escape");
     cx.run_until_parked();
     assert_eq!(dragged_order(cx, &shell), None);

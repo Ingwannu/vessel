@@ -138,10 +138,7 @@ mod tests {
         assert_eq!(order.place("laptop", shop.project), Some(2));
         // gpu-box out of reach: its project is not shown, and keeps its
         // place after the ones the drop shows (Paseo's merge).
-        assert!(order.dropped(
-            &[docs.clone(), shop.clone()],
-            &[shop.clone(), docs.clone()]
-        ));
+        assert!(order.dropped(&[docs.clone(), shop.clone()], &[shop.clone(), docs.clone()]));
         assert_eq!(order, ProjectOrder::of(vec![shop, docs, model]));
     }
 

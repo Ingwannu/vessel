@@ -151,9 +151,8 @@ impl Fleet {
                 });
             }
         }
-        let place = |project: &SidebarProject<'_>| {
-            state.order.place(project.machine, project.project.id)
-        };
+        let place =
+            |project: &SidebarProject<'_>| state.order.place(project.machine, project.project.id);
         projects.sort_by(|one, two| match (place(one), place(two)) {
             (Some(first), Some(second)) => first.cmp(&second),
             (Some(_), None) => Ordering::Less,

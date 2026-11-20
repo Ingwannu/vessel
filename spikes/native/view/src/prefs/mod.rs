@@ -154,7 +154,10 @@ pub struct Preferences {
     )]
     pub folded_projects: FoldedProjects,
     /// The projects' order in that tree, once dragged (native only).
-    #[serde(deserialize_with = "lenient", skip_serializing_if = "ProjectOrder::is_empty")]
+    #[serde(
+        deserialize_with = "lenient",
+        skip_serializing_if = "ProjectOrder::is_empty"
+    )]
     pub project_order: ProjectOrder,
     /// What new sessions start with, by machine.
     #[serde(deserialize_with = "lenient_entries")]
