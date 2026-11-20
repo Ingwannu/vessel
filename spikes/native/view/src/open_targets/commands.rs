@@ -139,16 +139,15 @@ const fn installs(target: TargetId) -> Installs {
 /// PATH, then (macOS) `/Applications` and `~/Applications`, then (Windows)
 /// `LOCALAPPDATA` and `ProgramFiles`.
 pub(super) fn candidates(target: TargetId, platform: Platform, env: &Env) -> Vec<Candidate> {
-    let mut found: Vec<Candidate> = names(target)
-        .iter()
-        .copied()
-        .map(Candidate::Name)
-        .collect();
+    let mut found: Vec<Candidate> = names(target).iter().copied().map(Candidate::Name).collect();
     let installs = installs(target);
     if let (Platform::MacOs, Some(inside)) = (platform, installs.mac) {
         found.push(Candidate::Path(under("/Applications", inside)));
         if let Some(home) = &env.home {
-            found.push(Candidate::Path(under(home, &format!("Applications/{inside}"))));
+            found.push(Candidate::Path(under(
+                home,
+                &format!("Applications/{inside}"),
+            )));
         }
     }
     if platform == Platform::Windows {
