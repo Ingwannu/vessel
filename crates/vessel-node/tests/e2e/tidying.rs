@@ -172,6 +172,7 @@ async fn deleting_a_session_tidies_its_worktree_and_never_loses_work() {
             .call(RemoveWorktree {
                 worktree: worked.id,
                 if_lost: IfLost::Discard,
+                end_terminals: false,
             })
             .await
             .unwrap();
@@ -260,6 +261,7 @@ async fn a_session_whose_folder_is_gone_does_not_start_again() {
             .call(RemoveWorktree {
                 worktree: worktree.id,
                 if_lost: IfLost::Keep,
+                end_terminals: false,
             })
             .await
             .unwrap();
