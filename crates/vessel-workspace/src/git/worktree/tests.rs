@@ -418,3 +418,25 @@ async fn a_branch_git_cannot_read_is_never_counted_as_nothing() {
     sandbox.run(&repo, &["update-ref", "-d", "refs/heads/vessel/test"]);
     assert_eq!(git.would_lose(&path, Some(&branch)).await.unwrap(), []);
 }
+
+/// A commit that lands on the created branch after the inspection keeps
+/// the branch, though its folder goes.
+#[tokio::test]
+async fn a_commit_after_the_inspection_keeps_the_branch() {
+    let sandbox = Sandbox::new();
+    let (repo, path, branch, git) = setup(&sandbox).await;
+    assert_eq!(git.would_lose(&path, Some(&branch)).await.unwrap(), []);
+    sandbox.run(&path, &["commit", "-q", "--allow-empty", "-m", "late"]);
+    git.remove_worktree(&repo, &path, Some(&branch), false)
+        .await
+        .unwrap();
+    assert!(!path.exists());
+    let branches = git.branches(&repo).await.unwrap();
+    assert!(
+        branches
+            .branches
+            .iter()
+            .any(|found| found.name.as_str() == "vessel/test"),
+        "the branch keeps the late commit"
+    );
+}

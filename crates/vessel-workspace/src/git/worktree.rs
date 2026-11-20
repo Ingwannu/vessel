@@ -480,16 +480,12 @@ impl Git {
             command = command.args(["--force", "--force"]);
         }
         command.arg(path).run().await?;
-        if let Some(branch) = created {
-            let deleted = self
-                .command(repo)
-                .args(["branch", "-D", "--end-of-options"])
-                .arg(branch.as_str())
-                .output()
-                .await?;
-            if deleted.code != Some(0) {
-                tracing::debug!(%branch, "the worktree's branch was already gone");
-            }
+        // A commit made on the branch since it was inspected (an agent
+        // still running) is not deleted with it, unless forced.
+        if let Some(branch) = created
+            && (force || self.branch_is_lost_freely(repo, branch).await)
+        {
+            self.delete_branch(repo, branch).await?;
         }
         Ok(())
     }

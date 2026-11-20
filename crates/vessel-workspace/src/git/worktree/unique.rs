@@ -8,6 +8,10 @@
 //!   it", and that is asked of git directly (`show-ref`) rather than read
 //!   from a failed `rev-list`, which also fails on a corrupt object
 //!   database or a bad ref.
+//! - The branch is asked again when it is deleted (`branch_is_lost_freely`):
+//!   the inspection and the removal are separate runs, and a commit can
+//!   land on the branch between them. If one did, the branch stays (its
+//!   folder is gone; the branch keeps the commit).
 
 use std::path::Path;
 
@@ -38,6 +42,49 @@ impl Git {
             tips.push(format!("refs/heads/{branch}"));
         }
         self.count_unique(dir, &tips, created).await
+    }
+
+    /// Whether deleting `branch` of `repo` loses no commit: it is gone, or
+    /// everything on it is kept elsewhere. A failure to tell is "no", so
+    /// the branch stays.
+    pub(super) async fn branch_is_lost_freely(&self, repo: &Path, branch: &BranchName) -> bool {
+        let counted = match self.has_branch(repo, branch).await {
+            Ok(false) => return true,
+            Ok(true) => {
+                self.count_unique(repo, &[format!("refs/heads/{branch}")], Some(branch))
+                    .await
+            }
+            Err(error) => Err(error),
+        };
+        match counted {
+            Ok(0) => true,
+            Ok(commits) => {
+                tracing::warn!(%branch, commits, "the worktree's branch has commits of its own; kept");
+                false
+            }
+            Err(error) => {
+                tracing::warn!(%branch, %error, "could not count the branch's own commits; kept");
+                false
+            }
+        }
+    }
+
+    /// `branch -D` of `branch` in `repo`; one already gone is no error.
+    pub(super) async fn delete_branch(
+        &self,
+        repo: &Path,
+        branch: &BranchName,
+    ) -> Result<(), GitError> {
+        let deleted = self
+            .command(repo)
+            .args(["branch", "-D", "--end-of-options"])
+            .arg(branch.as_str())
+            .output()
+            .await?;
+        if deleted.code != Some(0) {
+            tracing::debug!(%branch, "the worktree's branch was already gone");
+        }
+        Ok(())
     }
 
     /// Commits reachable from `tips` and from no branch but `created`, no
