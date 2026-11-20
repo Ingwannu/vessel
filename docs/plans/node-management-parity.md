@@ -360,3 +360,34 @@ The ADR adds the btrfs/overlayfs visibility limitation and names the kernel
 format source. No new dependency, wire call, application bound or platform
 path is added. Focused store clippy and seven lock tests pass; the whole
 workspace gate remains pending.
+
+
+### Slice 2f: service path fidelity
+
+Modify the existing installer; reuse its renderers and the existing
+`RemoteCommand` POSIX quoting. Standard-library absolute paths avoid
+manager-cwd ambiguity without canonicalizing symlinks. The ADR records
+Unicode/control refusal and systemd data-argument dollar escaping, distinct
+from Environment quoting. There is no new dependency, crate edge, wire call
+or numeric bound. Existing service test cases remain unchanged; add unit
+cases for location/encoding/quoting and a process-level relative installation
+through the existing fake service tools. Windows still skips installation.
+
+The larger stop-time observer draft is deliberately separate: it must not
+expose unused APIs merely for a future caller. Detection, pre-RPC warnings,
+bounded reads and loaded-manager authority validation follow in separate
+reviewable changes. Compilation and whole-gate evidence are still pending.
+
+
+Move file I/O off the async worker while preserving both platform reports. Exclusive file creation makes the existing no-overwrite
+promise hold when two initializers run concurrently; a barrier-based test
+checks that one wins and its content survives. The earlier path-only draft's
+focused clippy result predates these changes. This rebased draft is not
+compiled; focused and whole-gate evidence must be collected anew.
+
+
+Existing service files are compared as byte streams with bounded buffering,
+not decoded into an unbounded String. A non-Unicode personal file is a
+preserved difference; the comparison can also finish against an endless
+reader. Only new validated templates are written. This changes installation
+comparison behavior; no independent reporting-only refactor is included.
