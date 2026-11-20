@@ -657,13 +657,49 @@ fn the_new_directory_method_knows_its_version_scope_and_shape() {
         })
         .collect();
     assert_eq!(methods, PROJECT_DIRECTORY_METHODS);
-    assert_eq!(PROJECT_DIRECTORY_PROTOCOL, Some(crate::PROTOCOL_VERSION));
+    assert!(PROJECT_DIRECTORY_PROTOCOL <= Some(crate::PROTOCOL_VERSION));
     // The name is checked when the request is decoded.
     let refused = serde_json::from_value::<Call>(serde_json::json!({
         "method": "project.create_directory",
         "params": {"parent": "~", "name": "../escape"},
     }));
     assert!(refused.is_err());
+}
+
+/// ADR 0088's first method, assigned 35 (`REPOSITORY_SEARCH_PROTOCOL`):
+/// the account's GitHub repositories for Add project, `operate` (they
+/// include private ones; its one caller ends in `project.clone`).
+const REPOSITORY_SEARCH_METHODS: &[(&str, Scope)] = &[("forge.repos", Scope::Operate)];
+
+#[test]
+fn the_repository_search_knows_its_version_scope_and_shape() {
+    use crate::forge::REPOSITORY_SEARCH_PROTOCOL;
+    let methods: Vec<_> = Method::ALL
+        .iter()
+        .filter(|method| method.since() == REPOSITORY_SEARCH_PROTOCOL)
+        .inspect(|method| {
+            assert_eq!(method.shape(), MethodShape::Unary, "{method:?}");
+            assert!(method.forwardable(), "{method:?}");
+        })
+        .map(|method| {
+            (
+                method.as_str(),
+                method.scope().expect("legacy method requires a scope"),
+            )
+        })
+        .collect();
+    assert_eq!(methods, REPOSITORY_SEARCH_METHODS);
+    assert_eq!(REPOSITORY_SEARCH_PROTOCOL, Some(crate::PROTOCOL_VERSION));
+    // The limit and the query are checked when the request is decoded.
+    for params in [
+        serde_json::json!({"query": "a", "limit": 51}),
+        serde_json::json!({"query": "a\nb"}),
+    ] {
+        let refused = serde_json::from_value::<Call>(
+            serde_json::json!({"method": "forge.repos", "params": params}),
+        );
+        assert!(refused.is_err());
+    }
 }
 
 #[test]
@@ -888,6 +924,7 @@ const FORWARDABLE: &[&str] = &[
     "project.icon",
     "agent.diagnostic",
     "project.create_directory",
+    "forge.repos",
 ];
 
 #[test]

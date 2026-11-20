@@ -1,14 +1,21 @@
 // The Add project sheet's calls that `data/workspace/projects.ts` does not
-// have: the home's folders for the field (`folder.suggest`, ADR 0112) and
-// a new empty directory made a project (`project.create_directory`,
-// ADR 0113). The protocols that gate them are the generated
-// `HOST_FOLDERS_PROTOCOL` and `PROJECT_DIRECTORY_PROTOCOL` (`wire/proto`).
+// have: the home's folders for the field (`folder.suggest`, ADR 0112), a
+// new empty directory made a project (`project.create_directory`,
+// ADR 0113) and the account's GitHub repositories (`forge.repos`,
+// ADR 0088). The protocols that gate them are the generated
+// `HOST_FOLDERS_PROTOCOL`, `PROJECT_DIRECTORY_PROTOCOL` and
+// `REPOSITORY_SEARCH_PROTOCOL` (`wire/proto`).
 
 import type { NodeKey } from "../../../wire/bridge";
-import type { FolderSuggestions, ProjectInfo } from "../../../wire/proto";
+import type {
+  FolderSuggestions,
+  ProjectInfo,
+  RepositoryList,
+} from "../../../wire/proto";
 import type { Fleet } from "../../fleet";
 import { attempt, type Outcome } from "../../outcome";
 import { addProject, cloneProject } from "../projects";
+import { REPOSITORY_ROWS } from "./repositories";
 
 /** Paseo's rows per search. */
 export const FOLDER_ROWS = 30;
@@ -21,6 +28,18 @@ export function askFolders(
 ): Promise<Outcome<FolderSuggestions>> {
   return attempt(() =>
     fleet.bridge.call(node, "folder.suggest", { query, limit: FOLDER_ROWS }),
+  );
+}
+
+/** The signed-in account's GitHub repositories on `node`, or GitHub's
+ * search for `query` (Paseo's `searchGithubRepositories`, limit 30). */
+export function askRepositories(
+  fleet: Fleet,
+  node: NodeKey,
+  query: string,
+): Promise<Outcome<RepositoryList>> {
+  return attempt(() =>
+    fleet.bridge.call(node, "forge.repos", { query, limit: REPOSITORY_ROWS }),
   );
 }
 

@@ -19,7 +19,7 @@ mod token;
 #[cfg(feature = "fake")]
 pub mod fake;
 
-pub use gh::Gh;
+pub use gh::{CloneProtocol, Gh};
 pub use github::GitHub;
 pub use provider::{
     Answer, Author, Comment, Discussion, FailedCheck, Forge, ForgeError, Found, Fresh, ItemId,

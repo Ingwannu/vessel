@@ -11,8 +11,9 @@
 // - Choice: Paseo's state and functions one for one, each returning a new
 //   state; the sheet (`features/projects/add-project-flow.tsx`) holds one
 //   and draws its last page.
-// - Cost: the GitHub pages are here before the sheet draws search rows
-//   (TRACKER 440); the model is the same with or without them.
+// - The GitHub search page's rows come from `forge.repos` (TRACKER 440,
+//   ADR 0088, `repositories.ts`) on a machine of that protocol; on an
+//   older one it lists the typed choices only, as before.
 
 import type { NodeKey } from "../../../wire/bridge";
 

@@ -45,7 +45,10 @@ use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
 use vessel_forge::{EnvTokens, Forge};
 use vessel_harness::Lookup;
-use vessel_proto::forge::{ForgeStatus, PullRequestList, PullRequestView, SessionPullRequest};
+use vessel_proto::forge::{
+    ForgeStatus, PullRequestList, PullRequestView, RepoLimit, RepoQuery, RepositoryList,
+    SessionPullRequest,
+};
 use vessel_proto::{ErrorCode, ProjectId, SessionId, WireError};
 use vessel_session::SessionHandle;
 use vessel_store::Store;
@@ -200,6 +203,11 @@ impl Forges {
         self.hosts
             .status(self.watched.load(Ordering::Relaxed), limit)
             .await
+    }
+
+    /// `forge.repos` (ADR 0088).
+    pub(crate) async fn repositories(&self, query: &RepoQuery, limit: RepoLimit) -> RepositoryList {
+        self.hosts.repositories(query, limit).await
     }
 
     /// The project a session's place is in (for `Started`).
