@@ -295,7 +295,11 @@ impl Shell {
     /// The scrollback setting changed: every open terminal keeps that many
     /// lines from now on, as Paseo's desktop applies it live (a model at its
     /// parse takes it when it comes back).
-    pub(crate) fn terminal_scrollback(&mut self, lines: ScrollbackLines, cx: &mut Context<'_, Self>) {
+    pub(crate) fn terminal_scrollback(
+        &mut self,
+        lines: ScrollbackLines,
+        cx: &mut Context<'_, Self>,
+    ) {
         let keys: Vec<PaneKey> = self.areas.terminal_tabs.panes.keys().cloned().collect();
         for key in keys {
             if let Some(pane) = self.areas.terminal_tabs.panes.get_mut(&key) {

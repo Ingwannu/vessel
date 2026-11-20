@@ -14,8 +14,8 @@ use vessel_app_kit::Scheme;
 use vessel_app_kit::terminal_grid::{CellSize, GridCursor, GridFill, GridFrame, GridRow};
 use vessel_app_kit::ui::{App, Bounds, Context, Pixels, point, px, size};
 use vessel_app_view::terminal::grid::{Generation, Grid, Scroll, TextAt};
-use vessel_app_view::terminal::{FoundMatch, GridSize, span_on};
 use vessel_app_view::terminal::paint::rows;
+use vessel_app_view::terminal::{FoundMatch, GridSize, span_on};
 use vessel_proto::ResizeIntent;
 
 use super::{Blink, PaneKey, Stage};
@@ -84,28 +84,44 @@ impl Shell {
         if let Some(kept) = super::select::live_selection(pane.selected, grid) {
             let color = gpui::rgba(tokens.terminal.selection).into();
             let range = kept.selection.range(grid);
-            mark_rows(&mut grid_rows, grid, scroll, |row_start, cols| {
-                span_on(range, row_start, cols)
-                    .map(|span| (span, color))
-                    .into_iter()
-                    .collect()
-            }, Layer::Fill);
+            mark_rows(
+                &mut grid_rows,
+                grid,
+                scroll,
+                |row_start, cols| {
+                    span_on(range, row_start, cols)
+                        .map(|span| (span, color))
+                        .into_iter()
+                        .collect()
+                },
+                Layer::Fill,
+            );
         }
         if let Some(find) = pane.find.as_mut() {
             let (matches, current) = find.marks();
             let other = convert::hsla(palette.ansi[3]);
             let active = convert::hsla(palette.ansi[4]);
             let shown = visible(matches, grid, scroll);
-            mark_rows(&mut grid_rows, grid, scroll, |row_start, cols| {
-                shown
-                    .iter()
-                    .filter_map(|(index, found)| {
-                        let color = if Some(*index) == current { active } else { other };
-                        span_on((found.start, found.end), row_start, cols)
-                            .map(|span| (span, color))
-                    })
-                    .collect()
-            }, Layer::Outline);
+            mark_rows(
+                &mut grid_rows,
+                grid,
+                scroll,
+                |row_start, cols| {
+                    shown
+                        .iter()
+                        .filter_map(|(index, found)| {
+                            let color = if Some(*index) == current {
+                                active
+                            } else {
+                                other
+                            };
+                            span_on((found.start, found.end), row_start, cols)
+                                .map(|span| (span, color))
+                        })
+                        .collect()
+                },
+                Layer::Outline,
+            );
             // Paseo's `findWidgetCoversSelection`: the bar goes to the
             // bottom when the current match is under it.
             let cell = pane.grid.read(cx).cell;
@@ -330,7 +346,11 @@ fn visible<'a>(
 ) -> Vec<(usize, &'a FoundMatch)> {
     let rows = grid.size().rows();
     let top = grid.text_at(scroll, 0, 0);
-    let bottom = grid.text_at(scroll, rows.saturating_sub(1), grid.size().cols().saturating_sub(1));
+    let bottom = grid.text_at(
+        scroll,
+        rows.saturating_sub(1),
+        grid.size().cols().saturating_sub(1),
+    );
     let from = matches.partition_point(|found| found.end < top);
     matches
         .iter()

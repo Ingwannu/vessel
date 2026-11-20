@@ -29,9 +29,9 @@
 use std::rc::Rc;
 
 use gpui::{
-    App, BorderStyle, Bounds, Corners, Edges, Font, FontFeatures, FontStyle, FontWeight, Hsla, IntoElement, Pixels, Point,
-    ShapedLine, SharedString, Size, StrikethroughStyle, Styled as _, TextAlign, TextRun,
-    UnderlineStyle, Window, canvas, fill, point, px, size,
+    App, BorderStyle, Bounds, Corners, Edges, Font, FontFeatures, FontStyle, FontWeight, Hsla,
+    IntoElement, Pixels, Point, ShapedLine, SharedString, Size, StrikethroughStyle, Styled as _,
+    TextAlign, TextRun, UnderlineStyle, Window, canvas, fill, point, px, size,
 };
 
 use crate::fonts::{MONO, fallbacks};

@@ -92,7 +92,10 @@ impl Finder {
     /// Record the matches in one logical line; `false` once the limit is
     /// reached.
     fn search_line(&mut self, chars: &[char], places: &[TextAt]) -> bool {
-        let printed = chars.iter().rposition(|c| *c != ' ').map_or(0, |last| last.saturating_add(1));
+        let printed = chars
+            .iter()
+            .rposition(|c| *c != ' ')
+            .map_or(0, |last| last.saturating_add(1));
         let mut lowered = Vec::with_capacity(printed);
         let mut where_ = Vec::with_capacity(printed);
         for (c, place) in chars.iter().zip(places).take(printed) {

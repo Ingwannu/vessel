@@ -16,7 +16,9 @@
 //!   window to rewrite the text in).
 
 use gpui::Subscription;
-use vessel_app_kit::ui::{AnyElement, Context, IntoElement as _, ParentElement as _, Styled as _, Window, div, px};
+use vessel_app_kit::ui::{
+    AnyElement, Context, IntoElement as _, ParentElement as _, Styled as _, Window, div, px,
+};
 use vessel_app_kit::{TextField, Tokens, settings};
 use vessel_app_view::prefs::PreferenceChange;
 use vessel_app_view::terminal::ScrollbackLines;

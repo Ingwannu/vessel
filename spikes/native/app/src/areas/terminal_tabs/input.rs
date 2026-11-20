@@ -343,7 +343,9 @@ impl Shell {
         pane.typed = Typed::Once;
         pane.viewport = vessel_app_view::terminal::Viewport::default();
         if pane.sender.paste(encoded) == Taken::DroppedFirst {
-            tracing::warn!("a terminal tab's pastes waiting passed their bound; a paste was refused");
+            tracing::warn!(
+                "a terminal tab's pastes waiting passed their bound; a paste was refused"
+            );
         }
         let _had = self.terminal_tab_unselect(key);
         self.terminal_tab_pump(key);

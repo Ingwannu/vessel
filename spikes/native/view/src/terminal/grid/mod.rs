@@ -40,9 +40,9 @@ mod tests;
 pub use cell::{Cell, Glyph, Line, Wrap};
 pub use history::CELL_LIMIT;
 pub(crate) use history::HistoryRow;
-pub use text::TextAt;
 pub use modes::{Bracketed, CursorKeys, Shown, Visibility};
 pub use pen::{Colour, Concealment, Pen, Polarity, Rgb, Slant, Strike, Underline, Weight};
+pub use text::TextAt;
 
 use history::History;
 use modes::{At, Modes, Saved};

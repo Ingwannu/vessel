@@ -8,11 +8,11 @@ use gpui::{AnyElement, Context, KeyDownEvent, Window};
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::theme::radius;
 use vessel_app_kit::ui::{
-    FluentBuilder as _, InteractiveElement as _, IntoElement as _, ParentElement as _,
-    Styled as _, div, px,
+    FluentBuilder as _, InteractiveElement as _, IntoElement as _, ParentElement as _, Styled as _,
+    div, px,
 };
 use vessel_app_kit::{
-    ButtonState, ControlSizing, ToolbarButton, ToolbarConfig, ToolbarIcon, ToolbarInk, Tokens,
+    ButtonState, ControlSizing, Tokens, ToolbarButton, ToolbarConfig, ToolbarIcon, ToolbarInk,
     Type, TypeExt as _, popup,
 };
 
@@ -36,7 +36,10 @@ const GAP: f32 = 4.0;
 pub(super) fn covered(cell: vessel_app_kit::terminal_grid::CellSize) -> (u16, u16) {
     let height = INSET + PADDING * 2.0 + 2.0 + FIELD_HEIGHT;
     let width = INSET + WIDTH;
-    (cells(height, f32::from(cell.height)), cells(width, f32::from(cell.width)))
+    (
+        cells(height, f32::from(cell.height)),
+        cells(width, f32::from(cell.width)),
+    )
 }
 
 #[expect(

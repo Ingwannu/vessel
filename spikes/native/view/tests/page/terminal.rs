@@ -113,7 +113,11 @@ fn a_paste_past_the_room_keeps_its_place_before_keys_typed_during_it() {
     assert_eq!(sender.keys("before"), Taken::Queued);
     let first = sender.take();
     assert_eq!(sender.paste(paste.clone()), Taken::Queued);
-    assert_eq!(sender.keys("x"), Taken::Queued, "typed keys keep their own room");
+    assert_eq!(
+        sender.keys("x"),
+        Taken::Queued,
+        "typed keys keep their own room"
+    );
     assert_eq!(sender.keys("\u{3}"), Taken::Queued);
     sender.answered();
     let rest = drain(&mut sender);

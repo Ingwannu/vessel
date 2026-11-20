@@ -106,13 +106,27 @@ fn mod_f_is_the_terminals_only_while_a_terminal_has_the_keyboard(cx: &mut TestAp
         shell.terminal_tab_focus(&key, window, cx);
         assert!(shell.find_goes_to_terminal(window, cx));
         shell.terminal_tab_key(&key, &down(&chord("f")), window, cx);
-        assert!(shell.areas.terminal_tabs.panes.get(&key).is_some_and(|pane| pane.find.is_some()));
+        assert!(
+            shell
+                .areas
+                .terminal_tabs
+                .panes
+                .get(&key)
+                .is_some_and(|pane| pane.find.is_some())
+        );
         // Its bar holds the keyboard now, and Mod+F is still the terminal's.
         assert!(shell.terminal_find_focused(window, cx));
         assert!(shell.find_goes_to_terminal(window, cx));
         // Escape's close gives the terminal the keyboard back.
         shell.terminal_find_close(&key, window, cx);
-        assert!(shell.areas.terminal_tabs.panes.get(&key).is_some_and(|pane| pane.find.is_none()));
+        assert!(
+            shell
+                .areas
+                .terminal_tabs
+                .panes
+                .get(&key)
+                .is_some_and(|pane| pane.find.is_none())
+        );
         assert!(shell.terminal_focused(window));
     });
 }
@@ -128,17 +142,39 @@ fn find_counts_and_moves_round_the_matches(cx: &mut TestAppContext) {
     shell.update_in(cx, |shell, window, cx| {
         live(shell, &key, b"hit\r\nmiss\r\nHIT\r\nhit", cx);
         shell.terminal_find_open(&key, window, cx);
-        let source = shell.areas.terminal_tabs.panes.get(&key).and_then(|pane| pane.find.as_ref()).map(|find| find.field.id()).unwrap();
+        let source = shell
+            .areas
+            .terminal_tabs
+            .panes
+            .get(&key)
+            .and_then(|pane| pane.find.as_ref())
+            .map(|find| find.field.id())
+            .unwrap();
         shell.terminal_find_changed(source, "hit".to_owned(), cx);
         let count = |shell: &Shell| {
-            shell.areas.terminal_tabs.panes.get(&key).and_then(|pane| pane.find.as_ref()).map(super::super::find::PaneFind::count)
+            shell
+                .areas
+                .terminal_tabs
+                .panes
+                .get(&key)
+                .and_then(|pane| pane.find.as_ref())
+                .map(super::super::find::PaneFind::count)
         };
-        assert_eq!(count(shell), Some(Count::At("1".to_owned(), "3".to_owned())));
+        assert_eq!(
+            count(shell),
+            Some(Count::At("1".to_owned(), "3".to_owned()))
+        );
         shell.terminal_find_move(&key, true, cx);
-        assert_eq!(count(shell), Some(Count::At("2".to_owned(), "3".to_owned())));
+        assert_eq!(
+            count(shell),
+            Some(Count::At("2".to_owned(), "3".to_owned()))
+        );
         shell.terminal_find_move(&key, false, cx);
         shell.terminal_find_move(&key, false, cx);
-        assert_eq!(count(shell), Some(Count::At("3".to_owned(), "3".to_owned())));
+        assert_eq!(
+            count(shell),
+            Some(Count::At("3".to_owned(), "3".to_owned()))
+        );
         shell.terminal_find_changed(source, "nothing".to_owned(), cx);
         assert_eq!(count(shell), Some(Count::None));
         shell.terminal_find_changed(source, String::new(), cx);
@@ -172,7 +208,14 @@ fn ctrl_c_copies_a_selection_and_is_the_shells_without_one(cx: &mut TestAppConte
     assert_eq!(copied.as_deref(), Some("copy"));
     shell.update_in(cx, |shell, window, cx| {
         shell.terminal_tab_type(&key, "x", cx);
-        assert!(shell.areas.terminal_tabs.panes.get(&key).is_some_and(|pane| pane.selected.is_none()));
+        assert!(
+            shell
+                .areas
+                .terminal_tabs
+                .panes
+                .get(&key)
+                .is_some_and(|pane| pane.selected.is_none())
+        );
         shell.terminal_tab_key(&key, &down("ctrl-c"), window, cx);
     });
     assert_eq!(drained(&probe, &shell, &key, cx), "x\u{3}");
@@ -212,13 +255,24 @@ fn a_scrollback_change_applies_to_an_open_tab(cx: &mut TestAppContext) {
     shell.update_in(cx, |shell, _window, cx| {
         live(shell, &key, b"1\r\n2\r\n3\r\n4\r\n5\r\n6\r\n7", cx);
         let held = |shell: &Shell| {
-            shell.areas.terminal_tabs.panes.get(&key).and_then(|pane| pane.model.as_ref()).map(|model| model.grid().history_len())
+            shell
+                .areas
+                .terminal_tabs
+                .panes
+                .get(&key)
+                .and_then(|pane| pane.model.as_ref())
+                .map(|model| model.grid().history_len())
         };
         assert_eq!(held(shell), Some(3));
         shell.terminal_scrollback(ScrollbackLines::clamped(1), cx);
         assert_eq!(held(shell), Some(1));
         assert_eq!(
-            shell.areas.terminal_tabs.panes.get(&key).map(|pane| pane.scrollback),
+            shell
+                .areas
+                .terminal_tabs
+                .panes
+                .get(&key)
+                .map(|pane| pane.scrollback),
             Some(ScrollbackLines::clamped(1))
         );
     });

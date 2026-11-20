@@ -34,7 +34,10 @@ pub(crate) struct Selected {
 
 impl Selected {
     /// `selection` as made on what `grid` shows now.
-    pub(crate) const fn on(selection: Selection, grid: &vessel_app_view::terminal::grid::Grid) -> Self {
+    pub(crate) const fn on(
+        selection: Selection,
+        grid: &vessel_app_view::terminal::grid::Grid,
+    ) -> Self {
         Self {
             selection,
             shown: grid.shown(),
@@ -137,10 +140,7 @@ impl Shell {
         if !std::mem::replace(&mut pane.selecting, false) {
             return;
         }
-        if pane
-            .selected
-            .is_some_and(|kept| kept.selection.is_empty())
-        {
+        if pane.selected.is_some_and(|kept| kept.selection.is_empty()) {
             pane.selected = None;
             pane.marked();
             self.terminal_tab_draw(key, cx);
@@ -149,7 +149,11 @@ impl Shell {
 
     /// Copy the selection to the clipboard. Whether there was one to copy
     /// (Ctrl+C without one is the shell's ^C).
-    pub(super) fn terminal_tab_copy(&mut self, key: &PaneKey, cx: &mut gpui::Context<'_, Self>) -> bool {
+    pub(super) fn terminal_tab_copy(
+        &mut self,
+        key: &PaneKey,
+        cx: &mut gpui::Context<'_, Self>,
+    ) -> bool {
         let Some(pane) = self.areas.terminal_tabs.panes.get(key) else {
             return false;
         };

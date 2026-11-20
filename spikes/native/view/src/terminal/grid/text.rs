@@ -63,8 +63,7 @@ impl Grid {
 
     /// The address one past the live screen's last row.
     pub(crate) fn text_end(&self) -> HistoryRow {
-        self.screen_top()
-            .after(Scroll(u32::from(self.size.rows())))
+        self.screen_top().after(Scroll(u32::from(self.size.rows())))
     }
 
     /// The live screen's top row.
@@ -253,7 +252,10 @@ impl Grid {
 
 /// xterm.js's default `wordSeparator`, and a blank.
 fn is_separator(c: char) -> bool {
-    matches!(c, ' ' | '(' | ')' | '[' | ']' | '{' | '}' | '\'' | ',' | '"' | '`')
+    matches!(
+        c,
+        ' ' | '(' | ')' | '[' | ']' | '{' | '}' | '\'' | ',' | '"' | '`'
+    )
 }
 
 /// The run of `chars` around `index` that `keep` holds for.

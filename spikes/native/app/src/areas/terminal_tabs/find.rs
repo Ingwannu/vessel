@@ -222,7 +222,11 @@ impl Shell {
             .terminal_tabs
             .panes
             .iter()
-            .find(|(_, pane)| pane.find.as_ref().is_some_and(|find| find.field.id() == source))
+            .find(|(_, pane)| {
+                pane.find
+                    .as_ref()
+                    .is_some_and(|find| find.field.id() == source)
+            })
             .map(|(key, _)| key.clone())
     }
 
@@ -332,9 +336,9 @@ impl Shell {
         };
         find.task = Some(cx.spawn(async move |this, cx| {
             loop {
-                let Ok(Some(done)) =
-                    this.update(cx, |shell, cx| shell.terminal_find_step(&stepped, ticket, cx))
-                else {
+                let Ok(Some(done)) = this.update(cx, |shell, cx| {
+                    shell.terminal_find_step(&stepped, ticket, cx)
+                }) else {
                     return;
                 };
                 match done {
@@ -384,7 +388,8 @@ impl Shell {
         let Some(pane) = self.areas.terminal_tabs.panes.get_mut(key) else {
             return;
         };
-        if let (Some(grid), Some(find)) = (pane.model.as_ref().map(|model| model.grid()), &pane.find)
+        if let (Some(grid), Some(find)) =
+            (pane.model.as_ref().map(|model| model.grid()), &pane.find)
             && let Some(found) = find.current.and_then(|at| find.matches.get(at))
         {
             let scroll = pane.viewport.offset(grid);
