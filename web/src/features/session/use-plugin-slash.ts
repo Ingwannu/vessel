@@ -32,8 +32,12 @@ import type { NodeKey } from "../../wire/bridge";
 import type { AgentCommand, SessionInfo } from "../../wire/proto";
 
 export interface PluginSlash {
-  /** The agent's commands with the plugins' before them. */
-  merge: (agent: readonly AgentCommand[]) => readonly AgentCommand[];
+  /** The agent's commands with the plugins' before them; `null` (the
+   * agent has not said) stays `null` only when no plugin offers any, since
+   * Paseo lists the plugins' commands while the agent's are unknown. */
+  merge: (
+    agent: readonly AgentCommand[] | null,
+  ) => readonly AgentCommand[] | null;
   /** Run `text` when it names a plugin command; `true` when it did. */
   run: (text: string, hasAttachments: boolean) => boolean;
 }
@@ -65,7 +69,7 @@ export function usePluginSlash(
             description: command.description,
             hint: command.argumentHint === "" ? null : command.argumentHint,
           })),
-          ...agent.filter((command) => !names.has(command.name)),
+          ...(agent ?? []).filter((command) => !names.has(command.name)),
         ];
       },
       run: (text, hasAttachments) => {
