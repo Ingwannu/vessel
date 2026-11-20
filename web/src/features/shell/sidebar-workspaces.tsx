@@ -42,7 +42,9 @@ export function SidebarWorkspaces() {
   const view = useStore(prefs, (value) => value.values.sidebar);
   const { hub, state } = useLabels();
   const stats = useDiffStats();
-  const cards = !useMedia(COMPACT) && useMedia(FINE_POINTER);
+  const compact = useMedia(COMPACT);
+  const fine = useMedia(FINE_POINTER);
+  const cards = !compact && fine;
   usePruneFilter(state, view.labels);
   const rows = useMemo(
     () => sidebarWorkspaces(fleet, state, view, view.labels),
@@ -75,9 +77,7 @@ export function SidebarWorkspaces() {
               several={machines > 1}
               cards={cards}
               stat={
-                row.id === null
-                  ? undefined
-                  : stats.byNode[row.node]?.[row.id]
+                row.id === null ? undefined : stats.byNode[row.node]?.[row.id]
               }
               onCreate={(workspace) => {
                 setCreating({ node: row.node, workspace });
