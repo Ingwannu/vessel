@@ -1,13 +1,4 @@
-// New session (agent-orchestrator's `/new`): "What do you want to work
-// on?", one raised box for the prompt with what the session runs with in
-// its foot, and where it runs in the tray under it. Send creates the
-// session with those choices and opens it in place of this page as soon
-// as it exists; the prompt goes without waiting on the agent's start
-// (started.ts, data/openings.ts), as in agent-orchestrator and GOAT.
-// What each part decides is data/new-session.ts's. Until the person
-// chooses, the machine's last start fills in the agent, the profile and
-// the choices (data/defaults.ts), and a successful start is kept as that.
-
+// The standard composer serves both /new and the workspace's draft.
 import "./new-session.css";
 
 import { useNavigate } from "@tanstack/react-router";
@@ -42,7 +33,10 @@ import { NewSessionNotes } from "./new-session-notes";
 import { AttachmentStrip } from "./attachment-strip";
 import { PromptBox } from "./prompt-box";
 import { SendButton } from "./send-button";
-import { useDraft } from "./use-draft";
+import {
+  useNewSessionDraft,
+  type WorkspaceDraft,
+} from "./use-new-session-draft";
 import { useDraftPresence } from "./use-draft-presence";
 import { useShortcut } from "../shortcuts/handlers";
 import { useAgentOptions } from "./use-agent-options";
@@ -65,17 +59,21 @@ const EMPTY_DRAFT: Draft = {
 
 const NO_CRUMBS: readonly never[] = [];
 
-export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
+export function NewSession({
+  wanted,
+  workspace,
+}: {
+  wanted: Draft["machine"];
+  workspace?: WorkspaceDraft;
+}) {
   const fleet = useFleet();
   const navigate = useNavigate();
   const state = useFleetState((value) => value);
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
-  // The page's draft, kept by the bridge (back after a reload or launch).
-  const saved = useDraft(null);
+  const saved = useNewSessionDraft(workspace?.onDirtyChange);
   useShortcut("focus-composer", () => focusPage(text.current));
   const [busy, setBusy] = useState(false);
-  // Files for the first message, held until the session exists.
-  const tray = trayOf("new");
+  const tray = trayOf(workspace?.tray ?? "new");
   const [error, setError] = useState<string | null>(null);
   const text = useRef<HTMLTextAreaElement>(null);
   useCrumbs(NO_CRUMBS);
@@ -83,12 +81,14 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
 
   const book = state.book ?? [];
   const machine =
-    draft.machine ??
-    machineMeant(
-      book,
-      [wanted, state.selected],
-      (key) => state.statuses[key]?.state === "connected",
-    );
+    workspace === undefined
+      ? (draft.machine ??
+        machineMeant(
+          book,
+          [wanted, state.selected],
+          (key) => state.statuses[key]?.state === "connected",
+        ))
+      : wanted;
   const listed = machine === null ? undefined : state.harnesses[machine];
   const harnesses = listed ?? [];
   const status = machine === null ? undefined : state.statuses[machine];
@@ -100,19 +100,17 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
     harnesses,
     rememberedAgent(defaults, nodeId, harnesses),
   );
-  // Kept per machine for the four only; an added agent starts on its own.
   const known = agent === null ? null : knownAgent(agent);
   const harness =
     harnesses.find((candidate) => sameAgent(candidate.kind, agent)) ?? null;
   const modes = harness === null ? null : agentModes(harness);
   const agentLabel = agent === null ? "No agent" : agentName(agent, agents);
-  // What the machine's last start chose, while the person has chosen
-  // nothing for this agent yet (data/defaults.ts).
   const effective: Draft = {
     ...draft,
     machine,
     agent,
     prompt: saved.text,
+    folder: workspace?.folder ?? draft.folder,
     ...startingPicks(draft, defaults, nodeId, known),
   };
   const terminal = harness !== null && startsTerminal(effective, harness);
@@ -139,7 +137,6 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
     setError(null);
     setDraft((current) => ({ ...current, ...next }));
   };
-  // Another machine or agent: its choices start again from what it kept.
   const restart = (next: Partial<Draft>) => {
     change({ ...next, profile: "", picks: {}, chosen: false });
   };
@@ -156,7 +153,11 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
       setBusy(false);
       return;
     }
-    const spec = specOf(effective, harness, options);
+    const fromDraft = specOf(effective, harness, options);
+    const spec =
+      workspace?.place == null
+        ? fromDraft
+        : { ...fromDraft, cwd: null, place: workspace.place };
     void starter.create(spec).then((created) => {
       if (created?.ok !== true) {
         setBusy(false);
@@ -165,13 +166,20 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
       }
       const id = created.value.id;
       saved.clear();
-      sendFirst(fleet, machine, id, spec, effective.prompt.trim());
+      sendFirst(
+        fleet,
+        machine,
+        id,
+        spec,
+        effective.prompt.trim(),
+        workspace?.tray,
+      );
       rememberStarted(fleet, nodeId, known, effective, options);
       fleet.select(machine);
       void fleet.refreshSessions(machine);
-      // agent-orchestrator's: in place of this page, and not for someone
-      // who has left it meanwhile (the session is in the sidebar).
-      if (here.current) {
+      if (workspace !== undefined) {
+        workspace.done(id);
+      } else if (here.current) {
         void navigate({
           to: "/sessions/$node/$id",
           params: { node: machine, id },
@@ -180,7 +188,6 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
       }
     });
   };
-  // Send during "Loading models…" waits for them (use-options-wait.ts).
   const optionsWait = useOptionsWait(options.kind === "loading", start);
   const send = () => {
     if (!ready.ok || harness === null || machine === null || busy) {
@@ -207,7 +214,7 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
             saved.setText(prompt);
           }}
           note={
-            saved.note === "too-long"
+            workspace === undefined && saved.note === "too-long"
               ? "This draft is too long to keep; it stays in this tab until it is sent."
               : undefined
           }
@@ -255,18 +262,20 @@ export function NewSession({ wanted }: { wanted: Draft["machine"] }) {
             />
           }
           tray={
-            <WhereTray
-              machines={machineChoices(book, state.statuses, true)}
-              machine={machine}
-              onMachine={(next) => {
-                restart({ machine: next, agent: null });
-              }}
-              starter={starter}
-              folder={draft.folder}
-              onFolder={(folder) => {
-                change({ folder });
-              }}
-            />
+            workspace === undefined ? (
+              <WhereTray
+                machines={machineChoices(book, state.statuses, true)}
+                machine={machine}
+                onMachine={(next) => {
+                  restart({ machine: next, agent: null });
+                }}
+                starter={starter}
+                folder={draft.folder}
+                onFolder={(folder) => {
+                  change({ folder });
+                }}
+              />
+            ) : null
           }
         />
         <NewSessionNotes

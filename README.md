@@ -1044,7 +1044,11 @@ browser on Unix (on Windows, open the printed address).
   and a composer that changes the same choices while it runs, and asks
   each permission once, over the composer. Its summary holds the plan,
   the files it touched, its model calls and, under Details, its
-  identifiers. Beside Summary, **Changes** and **Files** show the code
+  identifiers. The workspace's **New tab** menu opens an agent draft,
+  terminal, Changes, Diff or Files. File tabs keep unsaved edits while
+  you switch tabs. Desktop tabs can be dragged to reorder them. At
+  compact widths, the tab count opens the switcher.
+  **Changes** and **Files** show the code
   of its worktree or project (the branch's chip in the title bar opens
   Changes, in a sheet on a phone): every changed file's diff, by
   comparison (everything since the base, uncommitted, staged, unstaged,

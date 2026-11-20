@@ -7,11 +7,14 @@ import "./session-page.css";
 import { useEffect, useState } from "react";
 
 import { useCrumbs, useFleet, useFleetState } from "../../context";
+import { workspaceTabScope } from "../../data/workspace/tab-layout";
 import { readSession } from "../../data/calls";
 import { shortId } from "../../data/format";
 import { labelOf } from "../../data/nodes";
 import { Banner, Skeleton } from "../../ui/kit";
 import type { SessionId, SessionInfo } from "../../wire/proto";
+import { useSessionRoot } from "../workspace/use-session-root";
+import { Workspace } from "../workspace-tabs/workspace";
 import { StructuredSession } from "./structured-session";
 import { TerminalView } from "./terminal-view";
 import type { NodeKey } from "../../wire/bridge";
@@ -26,6 +29,7 @@ export function SessionView({ node, id }: { node: NodeKey; id: SessionId }) {
   );
   const [fetched, setFetched] = useState<{
     id: SessionId;
+    node: NodeKey;
     session: SessionInfo | null;
     error: string | null;
   } | null>(null);
@@ -39,8 +43,8 @@ export function SessionView({ node, id }: { node: NodeKey; id: SessionId }) {
       if (current) {
         setFetched(
           outcome.ok
-            ? { id, session: outcome.value, error: null }
-            : { id, session: null, error: outcome.problem.message },
+            ? { id, node, session: outcome.value, error: null }
+            : { id, node, session: null, error: outcome.problem.message },
         );
       }
     });
@@ -48,7 +52,7 @@ export function SessionView({ node, id }: { node: NodeKey; id: SessionId }) {
       current = false;
     };
   }, [fleet, node, id, missing]);
-  const read = fetched?.id === id ? fetched : null;
+  const read = fetched?.id === id && fetched.node === node ? fetched : null;
   const session = listed ?? read?.session ?? null;
   const error = read?.error ?? null;
   // The page names itself (session-bar.tsx); a session not found yet is
@@ -69,23 +73,50 @@ export function SessionView({ node, id }: { node: NodeKey; id: SessionId }) {
       </div>
     );
   }
-  return session.spec.mode === "structured" ? (
-    <div className="session">
-      <StructuredSession
-        key={session.id}
-        node={node}
-        label={label}
-        session={session}
-      />
-    </div>
-  ) : (
-    <div className="session term">
-      <TerminalView
-        key={session.id}
-        node={node}
-        label={label}
-        session={session}
-      />
-    </div>
+  return <SessionWorkspace node={node} label={label} session={session} />;
+}
+
+function SessionWorkspace({
+  node,
+  label,
+  session,
+}: {
+  node: NodeKey;
+  label: string;
+  session: SessionInfo;
+}) {
+  const { root, projects } = useSessionRoot(node, session);
+  const scope = workspaceTabScope(node, root, session.id);
+  return (
+    <Workspace
+      key={scope}
+      node={node}
+      anchor={session}
+      root={root}
+      projects={projects}
+      scope={scope}
+      agent={(shown, openChanges) =>
+        shown.spec.mode === "structured" ? (
+          <div className="session">
+            <StructuredSession
+              key={shown.id}
+              node={node}
+              label={label}
+              session={shown}
+              openChanges={openChanges}
+            />
+          </div>
+        ) : (
+          <div className="session term">
+            <TerminalView
+              key={shown.id}
+              node={node}
+              label={label}
+              session={shown}
+            />
+          </div>
+        )
+      }
+    />
   );
 }

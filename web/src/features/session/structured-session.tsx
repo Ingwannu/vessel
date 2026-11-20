@@ -25,9 +25,9 @@ import { useShortcut } from "../shortcuts/handlers";
 import { Composer } from "./composer";
 import { FindBar } from "./find-bar";
 import { FoldProvider } from "./folds";
-import { Inspector, InspectorSheet } from "./inspector";
+import { Inspector } from "./inspector";
 import { Outline } from "./outline";
-import { usePanel } from "./panel-state";
+import { useMedia } from "../shell/use-media";
 import { clearMarks, type Reveal } from "./reveal";
 import { SessionBar } from "./session-bar";
 import { Timeline } from "./timeline";
@@ -40,11 +40,13 @@ export function StructuredSession({
   node,
   label,
   session,
+  openChanges,
 }: {
   node: NodeKey;
   /** The machine's name. */
   label: string;
   session: SessionInfo;
+  openChanges: () => void;
 }) {
   const fleet = useFleet();
   const { timeline, stream } = useTimeline(node, session.id, isLive(session));
@@ -67,7 +69,7 @@ export function StructuredSession({
     }
   }, [logged, session.id]);
   const inspector = useStore(prefs, (state) => state.values.layout.inspector);
-  const panel = usePanel(inspector);
+  const narrow = useMedia("(width < 1280px)");
   const [finding, setFinding] = useState<number | null>(null);
   const [reveal, setReveal] = useState<Reveal | null>(null);
   const [scroller, setScroller] = useState<HTMLDivElement | null>(null);
@@ -135,7 +137,7 @@ export function StructuredSession({
         label={label}
         session={session}
         renamed={timeline.title}
-        onPlace={panel.openChanges}
+        onPlace={openChanges}
       />
       <div className="session-main">
         {stream?.state === "reconnecting" ? (
@@ -176,22 +178,12 @@ export function StructuredSession({
           </div>
         </div>
       </div>
-      {inspector === "shown" && !panel.narrow ? (
+      {inspector === "shown" && !narrow ? (
         <Inspector
           node={node}
           label={label}
           session={session}
           timeline={timeline}
-          panel={panel}
-        />
-      ) : null}
-      {panel.sheet ? (
-        <InspectorSheet
-          node={node}
-          label={label}
-          session={session}
-          timeline={timeline}
-          panel={panel}
         />
       ) : null}
     </>

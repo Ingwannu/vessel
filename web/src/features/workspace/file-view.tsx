@@ -1,19 +1,5 @@
-// One file in the Files tab (agent-orchestrator's file pane): a 36px head
-// with the way back, the file's path (its folders muted, its name in the
-// ink) and Edit; the text in its colours; or the editor, with Cancel and
-// Save (⌘/Ctrl+S) and a dot while there are unsaved edits. A save that
-// finds the file changed on disk keeps the edits and shows both sides
-// (GOAT's banner: reload from disk, or overwrite). The file's watch
-// (ADR 0105) follows the disk with no edit open; with one open, or when
-// the file is gone, Paseo's conflict alert says so under the head.
-//
-// Paseo's built-in panels (F-F38, F-F39, F-F40;
-// docs/plans/wp-file-viewers.md) pick how the file shows by its name:
-// Markdown and HTML have a Preview beside their Source, opened on Preview
-// unless the file was opened at a line (each later line asked for turns
-// to Source again); an image is drawn, zoomable, from its bytes on a node
-// that reads them (`file.read_bytes`); anything else is its Source. The
-// Preview draws the edit while one is open, as Paseo's draws its buffer.
+// Owns one file's editor and save guard. The tab keeps it mounted so
+// switching away preserves the original version and any unsaved text.
 
 import "./files.css";
 
@@ -60,6 +46,8 @@ export function FileView({
   filePanels,
   onBack,
   onOpenFile,
+  active,
+  onDirtyChange,
 }: {
   node: NodeKey;
   root: WorkspaceRoot;
@@ -73,8 +61,10 @@ export function FileView({
   onBack: () => void;
   /** Open another file of the workspace (a Markdown link). */
   onOpenFile: (path: RelPath) => void;
+  active: boolean;
+  onDirtyChange: (dirty: boolean) => void;
 }) {
-  const file = useFile(node, root, path);
+  const file = useFile(node, root, path, active);
   const [draft, setDraft] = useState<string | null>(null);
   // The version the edit started from: the save's guard, whatever is
   // read after it.
@@ -96,25 +86,29 @@ export function FileView({
   const editing = draft !== null;
   const dirty =
     editing && (text.kind !== "text" || draft !== text.lines.join("\n"));
+  useEffect(
+    () => onDirtyChange(dirty || saving),
+    [dirty, saving, onDirtyChange],
+  );
   const tooBig = text.kind === "text" && text.version.size > WRITE_LIMIT;
   // The disk moved past what is shown (the file's watch): the view follows
   // it; an open edit keeps its text under the alert, and its save then
   // meets the change as the conflict below. A file gone keeps its copy.
   const { disk, refresh } = file;
   useEffect(() => {
-    if (disk === "changed" && draft === null) {
+    if (active && disk === "changed" && draft === null) {
       refresh();
     }
-  }, [disk, draft, refresh]);
+  }, [active, disk, draft, refresh]);
 
   // A Preview draws the whole file: the pages not read yet are read.
   const partial = text.kind === "text" && text.next !== null;
   const { whole } = file;
   useEffect(() => {
-    if (previewing && partial && !tooLargeToPreview) {
+    if (active && previewing && partial && !tooLargeToPreview) {
       void whole();
     }
-  }, [previewing, partial, tooLargeToPreview, whole]);
+  }, [active, previewing, partial, tooLargeToPreview, whole]);
 
   const save = (force: boolean) => {
     if (draft === null || saving) {

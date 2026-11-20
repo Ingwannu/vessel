@@ -32,7 +32,7 @@ import type {
   Nonce,
   StreamId,
 } from "../wire/bridge";
-import type { SearchKey, SessionId } from "../wire/proto";
+import type { SearchKey, SessionId, TerminalId } from "../wire/proto";
 
 /** This machine's own node on the wire (`NodeKey::HERE`). */
 const HERE_TEXT = "_here";
@@ -59,6 +59,11 @@ export function isNodeKey(text: string): text is NodeKey {
 
 /** Whether `text` is a session's id as a node mints it. */
 export function isSessionId(text: string): text is SessionId {
+  return UUID.test(text);
+}
+
+/** Whether the terminal registry minted this handle. */
+export function isTerminalId(text: string): text is TerminalId {
   return UUID.test(text);
 }
 

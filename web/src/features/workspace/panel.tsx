@@ -1,22 +1,19 @@
-// A session's code panel, Changes and Files (the inspector's tabs beside
-// Summary): a screen of its own, loaded the first time one of the two is
-// opened (ADR 0017's amendment: the chunk is pinned by the index's import
-// map like every other). It reads the session's worktree, its project's
-// folder, or the project whose folder holds the session's own; a session
-// in no project's folder is offered to add its folder as one.
+// Loads code viewers only after a workspace tab asks for them. Every
+// viewer uses the same root as the composer and keeps its existing RPCs.
 
 import { useState } from "react";
 
-import { useFleet } from "../../context";
+import { useFleet, useFleetState } from "../../context";
 import { projectIn, tookProject } from "../../data/workspace/project-store";
 import { addProject } from "../../data/workspace/projects";
-import { rootKey } from "../../data/workspace/root";
+import { hasFilePanels } from "../../data/workspace/files";
 import { Button, EmptyState, Skeleton } from "../../ui/kit";
 import type { NodeKey } from "../../wire/bridge";
-import type { RelPath, SessionInfo } from "../../wire/proto";
+import type { RelPath, SessionInfo, WorkspaceRoot } from "../../wire/proto";
 import { ChangesTab } from "./changes-tab";
-import { useSessionRoot } from "./use-session-root";
-import { FilesTab, type Opened } from "./files-tab";
+import type { ProjectsView } from "../../data/workspace/project-store";
+import { FileView } from "./file-view";
+import { FilesTab } from "./files-tab";
 
 function NoProject({ node, session }: { node: NodeKey; session: SessionInfo }) {
   const fleet = useFleet();
@@ -59,25 +56,36 @@ function NoProject({ node, session }: { node: NodeKey; session: SessionInfo }) {
   );
 }
 
+export type CodeTarget =
+  { kind: "changes" | "diff" | "files" } | { kind: "file"; path: RelPath };
+
 export function WorkspacePanel({
   node,
   session,
+  root,
+  projects,
   tab,
-  opened,
-  onOpened,
+  goTo,
+  active,
+  onOpen,
+  onBack,
+  onDirtyChange,
 }: {
   node: NodeKey;
   session: SessionInfo;
-  tab: "changes" | "files";
-  opened: Opened | null;
-  /** A file opened (from the tree, a search, or a diff's header), or
-   * `null` back to the tree; opening one shows the Files tab. */
-  onOpened: (opened: Opened | null) => void;
+  root: WorkspaceRoot | null;
+  projects: ProjectsView;
+  tab: CodeTarget;
+  goTo: { line: number; seq: number } | null;
+  active: boolean;
+  onOpen: (path: RelPath, line: number | null) => void;
+  onBack: () => void;
+  onDirtyChange: (dirty: boolean) => void;
 }) {
-  // One object while it names the same place: the tabs' reads (the
-  // comparison's poll, a file's pages, a search's settle) are effects of
-  // the root (use-session-root.ts).
-  const { root, projects } = useSessionRoot(node, session);
+  const protocol = useFleetState((state) => {
+    const status = state.statuses[node];
+    return status?.state === "connected" ? status.protocol : null;
+  });
   if (root === null) {
     return projects.kind === "loading" ? (
       <div className="changes-pad">
@@ -92,33 +100,48 @@ export function WorkspacePanel({
       ? root.project
       : (session.workspace?.project ?? null);
   const project = owner === null ? null : projectIn(projects, owner);
-  // The root's folder: the project's; a worktree's is where the node
-  // started the session (its cwd).
   const folder =
     root.kind === "project"
       ? (project?.root ?? null)
       : (session.spec.cwd ?? null);
-  const open = (path: RelPath) => {
-    onOpened({ path, goTo: null });
-  };
-  return tab === "changes" ? (
-    <ChangesTab
-      key={rootKey(root)}
-      node={node}
-      session={session.id}
-      root={root}
-      onOpen={open}
-      defaultBranch={project?.default_branch ?? null}
-    />
-  ) : (
-    <FilesTab
-      key={rootKey(root)}
-      node={node}
-      root={root}
-      folder={folder}
-      session={session.id}
-      opened={opened}
-      onOpened={onOpened}
-    />
-  );
+  switch (tab.kind) {
+    case "changes":
+    case "diff":
+      return (
+        <ChangesTab
+          node={node}
+          session={session.id}
+          root={root}
+          view={tab.kind}
+          onOpen={(path) => onOpen(path, null)}
+          defaultBranch={project?.default_branch ?? null}
+        />
+      );
+    case "files":
+      return (
+        <FilesTab
+          node={node}
+          root={root}
+          folder={folder}
+          session={session.id}
+          onOpen={onOpen}
+        />
+      );
+    case "file":
+      return (
+        <FileView
+          node={node}
+          root={root}
+          folder={folder}
+          session={session.id}
+          path={tab.path}
+          goTo={goTo}
+          filePanels={hasFilePanels(protocol)}
+          active={active}
+          onBack={onBack}
+          onOpenFile={(path) => onOpen(path, null)}
+          onDirtyChange={onDirtyChange}
+        />
+      );
+  }
 }

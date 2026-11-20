@@ -15,7 +15,7 @@ import { expect, test } from "@playwright/test";
 import { loadEnv } from "./fleet";
 import { choose, newSessionPage } from "./kit";
 import { openUi } from "./open";
-import { panelTab as tab, startInShop } from "./shop";
+import { openPanelTab, panelTab as tab, startInShop } from "./shop";
 
 test("a session starts in a new worktree once its commands are approved, setup shown as it runs", async ({
   page,
@@ -117,7 +117,7 @@ test("the Changes tab lists the work, stages it, and says a refusal plainly", as
   await openUi(page);
   await startInShop(page, "Local", "Look at the work");
   await expect(page).toHaveURL(/\/sessions\/[^/]+\/[^/]+$/);
-  await tab(page, "Changes").click();
+  await openPanelTab(page, "Diff");
   const list = page.getByRole("region", { name: "Changed files" });
   for (const name of ["cart.ts", "discount.ts", "prices.ts", "todo.md"]) {
     await expect(list.getByText(name, { exact: true })).toBeVisible();
@@ -151,7 +151,7 @@ test("an edit is saved, and one saved after the file changed on disk shows both 
   await openUi(page);
   await startInShop(page, "Local", "Edit a file");
   await expect(page).toHaveURL(/\/sessions\/[^/]+\/[^/]+$/);
-  await tab(page, "Files").click();
+  await openPanelTab(page, "Files");
   await page.getByRole("searchbox", { name: "Go to file" }).fill("tax");
   await page
     .getByRole("list", { name: "Files found" })
@@ -198,7 +198,7 @@ test("a shown file follows the disk; an open edit keeps its text under Paseo's a
     await openUi(page);
     await startInShop(page, "Local", "Watch a file");
     await expect(page).toHaveURL(/\/sessions\/[^/]+\/[^/]+$/);
-    await tab(page, "Files").click();
+    await openPanelTab(page, "Files");
     await page.getByRole("searchbox", { name: "Go to file" }).fill("todo");
     await page
       .getByRole("list", { name: "Files found" })
@@ -272,7 +272,7 @@ test("lines selected in a diff go into the session's draft as a reference", asyn
   await openUi(page);
   await startInShop(page, "Local", "Read the diff");
   await expect(page).toHaveURL(/\/sessions\/[^/]+\/[^/]+$/);
-  await tab(page, "Changes").click();
+  await openPanelTab(page, "Diff");
   const list = page.getByRole("region", { name: "Changed files" });
   const lines = list.locator('.d-line[data-path="src/cart.ts"]');
   await expect(lines.first()).toBeVisible();

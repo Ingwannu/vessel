@@ -14,7 +14,7 @@ import { expect, type Page, test } from "@playwright/test";
 
 import { loadEnv } from "./fleet";
 import { openUi } from "./open";
-import { panelTab, startInShop } from "./shop";
+import { openPanelTab, startInShop } from "./shop";
 
 /** A 4×2 and a 2×4 PNG, to tell the image's two versions apart. */
 const WIDE = Buffer.from(
@@ -78,7 +78,7 @@ test("Markdown, HTML and images open in Paseo's panels, and an image follows the
     await openUi(page);
     await startInShop(page, "Local", "Look at the viewers");
     await expect(page).toHaveURL(/\/sessions\/[^/]+\/[^/]+$/);
-    await panelTab(page, "Files").click();
+    await openPanelTab(page, "Files");
     await page
       .getByRole("region", { name: "Files" })
       .getByRole("button", { name: "viewers", exact: true })
