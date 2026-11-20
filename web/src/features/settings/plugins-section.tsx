@@ -173,7 +173,9 @@ function PluginsOf({ machine }: { machine: NodeKey }) {
         <PluginList
           listed={plugins.listed}
           pending={plugins.pending}
-          onRetry={plugins.load}
+          onRetry={() => {
+            void plugins.load();
+          }}
           handlers={{
             onAction: plugins.act,
             onLogs: setLogsOf,

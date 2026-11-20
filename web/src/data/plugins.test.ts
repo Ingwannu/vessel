@@ -74,7 +74,7 @@ describe("row words", () => {
   it("shows the source only when the node gave the path", () => {
     expect(pluginSourceLine(night)).toBeNull();
     expect(pluginSourceLine({ ...night, path: "/home/a/night" })).toBe(
-      "Directory: /home/a/night",
+      "/home/a/night",
     );
   });
 
