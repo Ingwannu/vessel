@@ -675,8 +675,9 @@ so ordinary and detail navigation keep one compact look.
 Diagnostics uses `Glyph::Stethoscope`, one original24-grid/1.5-stroke vector,
 consumed at16 for pointer and20 for compact settings navigation.
 Settings' list also draws `Glyph::FolderGit` (Projects, Workspaces) and
-`Glyph::Boxes` (Providers): original drawings on the same grid after
-Paseo's `FolderGit2` and `Boxes`, at the same two sizes.
+`Glyph::Boxes` (Providers) and `Glyph::Blocks` (Plugins): original drawings
+on the same grid after Paseo's `FolderGit2`, `Boxes` and `Blocks`, at the same
+two sizes.
 
 The source-specific `host_rename_button(id, ButtonState, tokens)` keeps
 Paseo's pencil: `theme::icon::SM`, padding `spacing::S1`, `theme::radius::MD`,

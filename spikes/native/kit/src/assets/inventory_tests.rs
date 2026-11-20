@@ -36,6 +36,7 @@ const BEFORE: &[(Glyph, &str)] = &[
     (Glyph::Folder, "kit/folder.svg"),
     (Glyph::FolderGit, "kit/folder-git.svg"),
     (Glyph::Boxes, "kit/boxes.svg"),
+    (Glyph::Blocks, "kit/blocks.svg"),
     (Glyph::Machine, "kit/machine.svg"),
     (Glyph::More, "kit/more.svg"),
     (Glyph::Sliders, "kit/sliders.svg"),
