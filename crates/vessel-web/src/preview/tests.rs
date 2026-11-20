@@ -29,20 +29,21 @@ fn a_panel_keeps_only_its_last_document() {
 fn the_least_recently_loaded_goes_first_past_the_count() {
     let previews = Previews::default();
     let start = Instant::now();
+    let second = Duration::from_secs(1);
+    // Each posted a second after the one before: no two tie.
     let ids: Vec<String> = (0..MAX_DOCUMENTS)
         .map(|nth| {
-            previews
-                .put(&format!("panel-{nth}"), bytes(1), start)
-                .unwrap()
+            let at = after(start, second, u32::try_from(nth).unwrap());
+            previews.put(&format!("panel-{nth}"), bytes(1), at).unwrap()
         })
         .collect();
-    let later = after(start, Duration::from_secs(1), 1);
-    let first = ids.first().unwrap();
+    let later = after(start, second, 100);
     // The first was loaded again: the second is now the oldest.
-    assert!(previews.show(first, later).is_some());
+    assert!(previews.show(&ids[0], later).is_some());
     let _ninth = previews.put("another", bytes(1), later).unwrap();
-    assert!(previews.show(first, later).is_some());
+    assert!(previews.show(&ids[0], later).is_some());
     assert!(previews.show(&ids[1], later).is_none());
+    assert!(previews.show(&ids[2], later).is_some());
 }
 
 #[test]
