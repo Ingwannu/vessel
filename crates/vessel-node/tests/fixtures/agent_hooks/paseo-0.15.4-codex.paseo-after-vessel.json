@@ -16,8 +16,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if [ -n \"$VESSEL_TERMINAL_ACTIVITY_ID\" ]; then \"${VESSEL_HOOK_CLI:-vessel}\" hooks \"codex\" \"PostToolUse\"; fi",
-            "commandWindows": "if defined VESSEL_TERMINAL_ACTIVITY_ID (if defined VESSEL_HOOK_CLI (\"%VESSEL_HOOK_CLI%\" hooks \"codex\" \"PostToolUse\") else (vessel hooks \"codex\" \"PostToolUse\")) else (exit /b 0)",
+            "command": "if [ -n \"$VESSEL_TERMINAL_ACTIVITY_ID\" ]; then \"${VESSEL_HOOK_CLI:-vessel}\" hooks \"codex\" \"PostToolUse\" 2>/dev/null || true; fi",
+            "commandWindows": "if defined VESSEL_TERMINAL_ACTIVITY_ID (if defined VESSEL_HOOK_CLI (\"%VESSEL_HOOK_CLI%\" hooks \"codex\" \"PostToolUse\" 2>NUL & exit /b 0) else (vessel hooks \"codex\" \"PostToolUse\" 2>NUL & exit /b 0)) else (exit /b 0)",
             "timeout": 10
           }
         ]
@@ -40,8 +40,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if [ -n \"$VESSEL_TERMINAL_ACTIVITY_ID\" ]; then \"${VESSEL_HOOK_CLI:-vessel}\" hooks \"codex\" \"UserPromptSubmit\"; fi",
-            "commandWindows": "if defined VESSEL_TERMINAL_ACTIVITY_ID (if defined VESSEL_HOOK_CLI (\"%VESSEL_HOOK_CLI%\" hooks \"codex\" \"UserPromptSubmit\") else (vessel hooks \"codex\" \"UserPromptSubmit\")) else (exit /b 0)",
+            "command": "if [ -n \"$VESSEL_TERMINAL_ACTIVITY_ID\" ]; then \"${VESSEL_HOOK_CLI:-vessel}\" hooks \"codex\" \"UserPromptSubmit\" 2>/dev/null || true; fi",
+            "commandWindows": "if defined VESSEL_TERMINAL_ACTIVITY_ID (if defined VESSEL_HOOK_CLI (\"%VESSEL_HOOK_CLI%\" hooks \"codex\" \"UserPromptSubmit\" 2>NUL & exit /b 0) else (vessel hooks \"codex\" \"UserPromptSubmit\" 2>NUL & exit /b 0)) else (exit /b 0)",
             "timeout": 10
           }
         ]
@@ -64,8 +64,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if [ -n \"$VESSEL_TERMINAL_ACTIVITY_ID\" ]; then \"${VESSEL_HOOK_CLI:-vessel}\" hooks \"codex\" \"PreToolUse\"; fi",
-            "commandWindows": "if defined VESSEL_TERMINAL_ACTIVITY_ID (if defined VESSEL_HOOK_CLI (\"%VESSEL_HOOK_CLI%\" hooks \"codex\" \"PreToolUse\") else (vessel hooks \"codex\" \"PreToolUse\")) else (exit /b 0)",
+            "command": "if [ -n \"$VESSEL_TERMINAL_ACTIVITY_ID\" ]; then \"${VESSEL_HOOK_CLI:-vessel}\" hooks \"codex\" \"PreToolUse\" 2>/dev/null || true; fi",
+            "commandWindows": "if defined VESSEL_TERMINAL_ACTIVITY_ID (if defined VESSEL_HOOK_CLI (\"%VESSEL_HOOK_CLI%\" hooks \"codex\" \"PreToolUse\" 2>NUL & exit /b 0) else (vessel hooks \"codex\" \"PreToolUse\" 2>NUL & exit /b 0)) else (exit /b 0)",
             "timeout": 10
           }
         ]
@@ -88,8 +88,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if [ -n \"$VESSEL_TERMINAL_ACTIVITY_ID\" ]; then \"${VESSEL_HOOK_CLI:-vessel}\" hooks \"codex\" \"PermissionRequest\"; fi",
-            "commandWindows": "if defined VESSEL_TERMINAL_ACTIVITY_ID (if defined VESSEL_HOOK_CLI (\"%VESSEL_HOOK_CLI%\" hooks \"codex\" \"PermissionRequest\") else (vessel hooks \"codex\" \"PermissionRequest\")) else (exit /b 0)",
+            "command": "if [ -n \"$VESSEL_TERMINAL_ACTIVITY_ID\" ]; then \"${VESSEL_HOOK_CLI:-vessel}\" hooks \"codex\" \"PermissionRequest\" 2>/dev/null || true; fi",
+            "commandWindows": "if defined VESSEL_TERMINAL_ACTIVITY_ID (if defined VESSEL_HOOK_CLI (\"%VESSEL_HOOK_CLI%\" hooks \"codex\" \"PermissionRequest\" 2>NUL & exit /b 0) else (vessel hooks \"codex\" \"PermissionRequest\" 2>NUL & exit /b 0)) else (exit /b 0)",
             "timeout": 10
           }
         ]
@@ -112,8 +112,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if [ -n \"$VESSEL_TERMINAL_ACTIVITY_ID\" ]; then \"${VESSEL_HOOK_CLI:-vessel}\" hooks \"codex\" \"Stop\"; fi",
-            "commandWindows": "if defined VESSEL_TERMINAL_ACTIVITY_ID (if defined VESSEL_HOOK_CLI (\"%VESSEL_HOOK_CLI%\" hooks \"codex\" \"Stop\") else (vessel hooks \"codex\" \"Stop\")) else (exit /b 0)",
+            "command": "if [ -n \"$VESSEL_TERMINAL_ACTIVITY_ID\" ]; then \"${VESSEL_HOOK_CLI:-vessel}\" hooks \"codex\" \"Stop\" 2>/dev/null || true; fi",
+            "commandWindows": "if defined VESSEL_TERMINAL_ACTIVITY_ID (if defined VESSEL_HOOK_CLI (\"%VESSEL_HOOK_CLI%\" hooks \"codex\" \"Stop\" 2>NUL & exit /b 0) else (vessel hooks \"codex\" \"Stop\" 2>NUL & exit /b 0)) else (exit /b 0)",
             "timeout": 10
           }
         ]

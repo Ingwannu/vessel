@@ -145,7 +145,12 @@ impl NodeService {
     ) -> Result<TerminalHandle, TerminalsError> {
         let runner = &self.terminals.runner;
         let spec = terminals::shell_spec(shell, folder, &runner.config.removed);
-        let spec = terminals::producer_env(spec, activity, runner.endpoint.path());
+        let spec = terminals::producer_env(
+            spec,
+            activity,
+            runner.endpoint.path(),
+            terminals::hook_cli(),
+        );
         start_shell(ShellStart {
             info,
             spec,

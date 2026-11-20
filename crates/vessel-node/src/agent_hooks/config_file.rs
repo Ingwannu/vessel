@@ -1,13 +1,14 @@
 //! Claude Code's `settings.json` and Codex's `hooks.json`: a `hooks` object
 //! with one list of matcher entries per event (Paseo's
-//! `claude/claude-settings.js` and `codex/codex-settings.js`).
+//! `claude/claude-settings.ts` and `codex/codex-settings.ts`).
 //!
 //! [Decision Log]
 //! - Purpose: add Vessel's entry to each event, or take it out, and change
 //!   nothing else in a file that is a person's own.
 //! - Paseo parses the whole file, replaces its marked entries, and writes
-//!   it back with `JSON.stringify(config, null, 2)`. A file that is not an
-//!   object becomes `{}`.
+//!   it back with `JSON.stringify(config, null, 2)`. Text that is not JSON
+//!   stops it with an error (`claude-settings.ts:23-24`); JSON that is not
+//!   an object becomes `{}` (`:25-27`).
 //! - Choice:
 //!   - The file is read as an object that keeps its keys in order and each
 //!     value's text as written ([`Object`], on `serde_json`'s `RawValue`).
@@ -28,7 +29,7 @@
 //!   - A file that is not JSON, not an object, has `hooks` or one of
 //!     Vessel's events twice, or whose `hooks` or event list has another
 //!     shape is left untouched ([`Outcome::Invalid`]). Paseo would replace
-//!     it.
+//!     a non-object with `{}`.
 //!   - A file that does not exist is created only to install, never to
 //!     remove.
 //!   - The entry is Paseo's: `{"matcher": "", "hooks": [{"type": "command",

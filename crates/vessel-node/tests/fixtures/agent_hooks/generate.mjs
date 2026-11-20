@@ -73,9 +73,9 @@ const personal = {
 // Vessel's commands, as src/agent_hooks.rs writes them (tests.rs checks the
 // same text through the fixtures).
 const vesselShell = (agent, event) =>
-  `if [ -n "$VESSEL_TERMINAL_ACTIVITY_ID" ]; then "\${VESSEL_HOOK_CLI:-vessel}" hooks "${agent}" "${event}"; fi`;
+  `if [ -n "$VESSEL_TERMINAL_ACTIVITY_ID" ]; then "\${VESSEL_HOOK_CLI:-vessel}" hooks "${agent}" "${event}" 2>/dev/null || true; fi`;
 const vesselWindows = (agent, event) =>
-  `if defined VESSEL_TERMINAL_ACTIVITY_ID (if defined VESSEL_HOOK_CLI ("%VESSEL_HOOK_CLI%" hooks "${agent}" "${event}") else (vessel hooks "${agent}" "${event}")) else (exit /b 0)`;
+  `if defined VESSEL_TERMINAL_ACTIVITY_ID (if defined VESSEL_HOOK_CLI ("%VESSEL_HOOK_CLI%" hooks "${agent}" "${event}" 2>NUL & exit /b 0) else (vessel hooks "${agent}" "${event}" 2>NUL & exit /b 0)) else (exit /b 0)`;
 const vesselEntry = (agent, event) => ({
   matcher: "",
   hooks: [

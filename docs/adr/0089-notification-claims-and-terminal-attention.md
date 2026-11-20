@@ -167,38 +167,39 @@ wire test with the final assigned protocol remains required at integration.
 
 ### The CLI consumer: agent hooks (2026-11-20)
 
-The reference is Paseo 0.15.4 as installed (`@getpaseo/cli` and its `@getpaseo/server`, paths under each
-package's `dist/`):
+The reference is Paseo 0.15.4's sources (~/refs/paseo-latest/packages; `server/src/terminal/agent-hooks/`
+unless a path says otherwise):
 
-- **`vessel hooks <agent> <event>`**, after `cli/dist/commands/hooks.js`.
-  - Paseo reads `PASEO_TERMINAL_ID`, `PASEO_ACTIVITY_TOKEN` and `PASEO_TERMINAL_ACTIVITY_URL` (lines 31-33)
+- **`vessel hooks <agent> <event>`**, after `cli/src/commands/hooks.ts`.
+  - Paseo reads `PASEO_TERMINAL_ID`, `PASEO_ACTIVITY_TOKEN` and `PASEO_TERMINAL_ACTIVITY_URL` (lines 55-57)
     and exits silently when any is missing.
-  - It reads stdin with a 100 ms idle timeout (line 42) and posts with a 500 ms abort (line 69). Every
-    failure is silent.
+  - It reads stdin with a 100 ms idle timeout (lines 63-76, the timeout at 68) and posts with a 500 ms
+    abort (line 98). Every failure is silent.
   - Vessel reads `VESSEL_TERMINAL_ACTIVITY_ID`, `_SECRET` and `_SOCKET` and connects with the terminal's
     capability (`LocalCredential::TerminalActivity`), sending `terminal.activity` with no revision. It
     keeps the same timeouts and the same silence.
-- **Event maps**, copied exactly from `server/dist/server/terminal/agent-hooks/`:
-  - `claude/claude.js:2-7,39-42`: UserPromptSubmit → Working; Stop, StopFailure, SessionEnd → Idle;
+- **Event maps**, copied exactly:
+  - `claude/claude.ts:4-9,28-48`: UserPromptSubmit → Working; Stop, StopFailure, SessionEnd → Idle;
     Notification → NeedsInput only when the stdin JSON's `notification_type` is `idle_prompt`.
-  - `codex/codex.js:2-8`: UserPromptSubmit, PreToolUse, PostToolUse → Working; PermissionRequest →
+  - `codex/codex.ts:4-10`: UserPromptSubmit, PreToolUse, PostToolUse → Working; PermissionRequest →
     NeedsInput; Stop → Idle.
-  - `opencode/opencode.js:2-8`: `session.status.busy` and `.retry` → Working; `.idle` → Idle;
+  - `opencode/opencode.ts:4-10`: `session.status.busy` and `.retry` → Working; `.idle` → Idle;
     `permission.asked` → NeedsInput; `permission.replied` → Working.
   - An unknown agent or event reports nothing.
-- **Installer**, after `agent-hook-installer.js`, `claude/claude-settings.js`, `codex/codex-settings.js` and
-  `opencode/opencode-plugin.js`.
+- **Installer**, after `agent-hook-installer.ts`, `claude/claude-settings.ts`, `codex/codex-settings.ts`
+  and `opencode/opencode-plugin.ts`.
   - Claude: `$CLAUDE_CONFIG_DIR` or `~/.claude`, file `settings.json`. Each event gets one entry, which
-    `claude-settings.js:20-33` writes as `{matcher: "", hooks: [{type: "command", command, timeout: 10}]}`.
+    `claude-settings.ts:33-53` writes as `{matcher: "", hooks: [{type: "command", command, timeout: 10}]}`.
   - Codex: `$CODEX_HOME` or `~/.codex`, file `hooks.json`, with the same entry plus `commandWindows`.
   - OpenCode: `$OPENCODE_CONFIG_DIR` or `$XDG_CONFIG_HOME/opencode` (`~/.config/opencode`), file
     `plugins/<name>.js`, the plugin source that runs `<cli> hooks opencode <event>`.
-  - The command (`agent-hook-installer.js:43-50`) is
-    `if [ -n "$VESSEL_TERMINAL_ACTIVITY_ID" ]; then "${VESSEL_HOOK_CLI:-vessel}" hooks "<agent>" "<event>"; fi`,
+  - The command (`agent-hook-installer.ts:136-150`) is
+    `if [ -n "$VESSEL_TERMINAL_ACTIVITY_ID" ]; then "${VESSEL_HOOK_CLI:-vessel}" hooks "<agent>" "<event>" 2>/dev/null || true; fi`,
     with a cmd.exe form. Paseo's marker is `hooks <agent>`, unquoted (`claude/claude.ts:25`,
-    `codex/codex.ts:26` in the source).
+    `codex/codex.ts:26`). Paseo stops with an error on a file that is not JSON
+    (`claude-settings.ts:23-24`) and makes a non-object `{}`.
 - **Setting.** "Terminal agent hooks" is off by default, as is `enableTerminalAgentHooks`
-  (`server/dist/server/server/config.js:429`). Following `terminal-agent-hook-setting.js`, the node
+  (`server/src/server/config.ts:681`). Following `terminal-agent-hook-setting.ts`, the node
   installs the hooks when the setting is on at start and when it is turned on, and removes them when it
   is turned off. The settings field is pending under this feature's constant, in the same packet, so one
   protocol number carries the whole feature.
@@ -257,11 +258,28 @@ As built (`vessel-node/src/agent_hooks.rs` and its modules, `vessel-cli/src/hook
   Turning the setting off never creates a file. Install and off touch OpenCode's plugin only when its text
   is exactly Vessel's.
 - **Writes.** Writes are owner-only and atomic (`vessel_fleet::write_private`), after the one-time
-  `<file>.vessel-backup`. Removing OpenCode's plugin keeps no copy: only a file exactly Vessel's is
-  removed, and a copy would be a stray file in OpenCode's `plugins` folder. In test builds every write path refuses the real home's agent configuration.
+  `<file>.vessel-backup`.
+  - A link is followed, as Paseo's `writePrivateFileAtomicSync` does (`server/src/server/private-files.ts:27-55`):
+    the target is written, so a `settings.json` linked into a person's dotfiles stays a link. The backup
+    holds the target's bytes, beside the link (node review R2).
+  - The backup is created with `create_new`, so no second writer can overwrite it (R3).
+  - Removing OpenCode's plugin keeps no copy: only a file exactly Vessel's is removed, and a copy would be
+    a stray file in OpenCode's `plugins` folder.
+  - In test builds every write path refuses the real home's agent configuration.
 - **The setting.** `terminal_agent_hooks` is in `NodeSettings` and `SetNodeSettings`. It is hidden below,
-  and refused before, `ATTENTION_NOTIFICATIONS_PROTOCOL`. It is applied when changed, and at start when on,
-  on the settings writers' tracker.
+  and refused before, `ATTENTION_NOTIFICATIONS_PROTOCOL`. It is applied when changed, and at start when on
+  once the constant is assigned (never while it is unassigned: nothing could report, node review note 7).
+  One worker applies it, always the latest state wanted, on the settings writers' tracker
+  (`agent_hooks/applier.rs`). A quick on-then-off cannot interleave two read-modify-writes (R3).
+- **Beside Paseo, R1.** No command Vessel writes contains `hooks claude` or `hooks codex`, tested with
+  Paseo's own `includes()` (`paseos_markers_match_no_command_vessel_writes`).
+- **A hook never fails the agent (R4).** In every terminal with a capability the node sets
+  `VESSEL_HOOK_CLI` to the `vessel` installed beside `vesseld` (`terminals::hook_cli`). Paseo sets
+  `PASEO_HOOK_CLI` to its CLI's absolute path the same way (`terminal/terminal.ts:460-467,481-492`).
+  The command also ends `2>/dev/null || true` (cmd.exe: `2>NUL & exit /b 0`). A missing `vessel`
+  (127), or an older one without `hooks` (clap's 2, which Claude Code takes as a blocking hook result),
+  still returns 0 silently. Paseo's command has neither: its CLI ships inside its app. Paseo also puts
+  its CLI's folder first on the terminal's `PATH`; Vessel leaves the person's `PATH` as it is.
 - **The OpenCode plugin** runs `$VESSEL_HOOK_CLI`, or `vessel` when unset, as the other agents' commands
   do. Paseo's plugin runs `paseo`.
 
@@ -436,6 +454,12 @@ At assignment (the node review of the owed packet, 2026-11-20, PASS):
 - `pushed` takes the time after the burst's deliveries, which only lengthens a
   gap by their duration;
 - a burst still gives each device one source, as before.
+
+At assignment (the node review of the agent hooks, 2026-11-20):
+- Paseo clears a terminal's working activity on a standalone Ctrl-C or Esc in its input
+  (`terminal/terminal.ts:180-182,1164-1166`), because Claude Code runs no `Stop` hook on an interrupt.
+  Vessel has no such input-side fallback yet, so after Esc during a Claude turn the terminal would stay
+  "working". It is owed with the assigned wire.
 
 Recorded, not owed (they fail closed or are allowed by the design):
 - one malformed parentage row fails a whole `pending_push` page through

@@ -6,11 +6,12 @@
 //! - Purpose: a terminal's attention (finished, needs input) is only as good
 //!   as the activity reported for it. A shell cannot tell when the agent in
 //!   it starts or stops a turn, but the agent's own hooks can.
-//! - Reference: Paseo 0.15.4, `cli/dist/commands/hooks.js` and
-//!   `server/dist/server/terminal/agent-hooks/` (`provider-registry.js`,
-//!   `claude/`, `codex/`, `opencode/`, `agent-hook-installer.js`,
-//!   `terminal-agent-hook-setting.js`). The event maps below are Paseo's,
-//!   event for event.
+//! - Reference: Paseo 0.15.4's sources in ~/refs/paseo-latest/packages:
+//!   `cli/src/commands/hooks.ts:46-114` and
+//!   `server/src/terminal/agent-hooks/` (`claude/claude.ts:13-18,28-48`,
+//!   `codex/codex.ts:14-19`, `opencode/opencode.ts:14-19`,
+//!   `agent-hook-installer.ts:136-150`, `terminal-agent-hook-setting.ts`).
+//!   The event maps below are Paseo's, event for event.
 //! - Existing assets: the activity-only capability every terminal gets
 //!   (`VESSEL_TERMINAL_ACTIVITY_*`, `terminals/producer.rs`), the local IPC
 //!   endpoint that admits it, and the agents' homes as the node starts them
@@ -40,6 +41,18 @@
 //!     remove Vessel's hooks. Paseo's own installer was run over Vessel's
 //!     entries to check this (`tests/fixtures/agent_hooks/generate.mjs`); the
 //!     unquoted form fails there.
+//!   - A hook never fails the agent (node review R4). The node sets
+//!     `VESSEL_HOOK_CLI` in every terminal it gives a capability to: the
+//!     `vessel` installed beside `vesseld` (`terminals/producer.rs`), as
+//!     Paseo sets `PASEO_HOOK_CLI` to its own CLI
+//!     (`terminal/terminal.ts:460-467,481-492`). And the command itself
+//!     ends `2>/dev/null || true` (`cmd.exe`: `2>NUL & exit /b 0`): with no
+//!     `vessel` found (127), or an older one without `hooks` (clap's 2,
+//!     which Claude Code takes as a blocking hook), it still returns 0 and
+//!     says nothing. Paseo's command has neither; its CLI ships inside its
+//!     app, where Vessel's may be any `vessel` on the PATH.
+//!   - One worker applies the setting at a time, always the latest wanted
+//!     state ([`Applier`], node review R3).
 //! - Rules beyond Paseo (the coordinator, 2026-11-20), because these files
 //!   drive a person's agents:
 //!   - a one-time backup before the first write to an existing file;
@@ -55,9 +68,12 @@ use vessel_harness::{HarnessEnv, Profile};
 use vessel_proto::HarnessKind;
 use vessel_proto::notifications::TerminalActivitySignal;
 
+mod applier;
 mod config_file;
 mod files;
 mod plugin_file;
+
+pub(crate) use applier::Applier;
 
 /// An agent whose hooks Vessel installs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -93,7 +109,7 @@ impl Agent {
     }
 
     /// The events its hooks report, each with its signal (Paseo's maps:
-    /// `claude/claude.js:2-7`, `codex/codex.js:2-8`, `opencode/opencode.js:2-8`).
+    /// `claude/claude.ts:4-9`, `codex/codex.ts:4-10`, `opencode/opencode.ts:4-10`).
     /// Claude Code's `Notification` is decided by its input
     /// ([`Event::signal`]).
     const fn events(self) -> &'static [(&'static str, Option<TerminalActivitySignal>)] {
@@ -171,7 +187,7 @@ impl Event {
 
     /// The activity to report, given the hook's input when
     /// [`reads_input`](Self::reads_input). Claude Code's `Notification`
-    /// needs input only for its idle prompt (`claude/claude.js:39-42`);
+    /// needs input only for its idle prompt (`claude/claude.ts:28-48`);
     /// any other notification, or no input, reports nothing.
     #[must_use]
     pub fn signal(&self, input: Option<&str>) -> Option<TerminalActivitySignal> {
@@ -236,13 +252,13 @@ impl Targets {
     }
 }
 
-/// The command a hook runs (Paseo's `agent-hook-installer.js:43-46`): only
-/// inside a Vessel terminal, with `VESSEL_HOOK_CLI` naming another `vessel`.
-/// The agent and event are quoted so the command never contains Paseo's
-/// marker (see the Decision Log).
+/// The command a hook runs (Paseo's `agent-hook-installer.ts:136-142`):
+/// only inside a Vessel terminal, with `VESSEL_HOOK_CLI` naming the
+/// `vessel` to run. The agent and event are quoted so the command never
+/// contains Paseo's marker, and it always returns 0 (see the Decision Log).
 fn shell_command(agent: Agent, event: &str) -> String {
     format!(
-        "if [ -n \"${}\" ]; then \"${{{}:-vessel}}\" hooks \"{}\" \"{}\"; fi",
+        "if [ -n \"${}\" ]; then \"${{{}:-vessel}}\" hooks \"{}\" \"{}\" 2>/dev/null || true; fi",
         vessel_proto::notifications::TERMINAL_ACTIVITY_ID_ENV,
         HOOK_CLI_ENV,
         agent.id(),
@@ -250,17 +266,18 @@ fn shell_command(agent: Agent, event: &str) -> String {
     )
 }
 
-/// The same for `cmd.exe` (Paseo's `agent-hook-installer.js:47-50`).
+/// The same for `cmd.exe` (Paseo's `agent-hook-installer.ts:144-150`).
 fn windows_command(agent: Agent, event: &str) -> String {
     let id = vessel_proto::notifications::TERMINAL_ACTIVITY_ID_ENV;
-    let args = format!("hooks \"{}\" \"{}\"", agent.id(), event);
+    let args = format!("hooks \"{}\" \"{}\" 2>NUL & exit /b 0", agent.id(), event);
     format!(
         "if defined {id} (if defined {HOOK_CLI_ENV} (\"%{HOOK_CLI_ENV}%\" {args}) else (vessel {args})) else (exit /b 0)"
     )
 }
 
-/// What names another `vessel` for the hooks (Paseo's `PASEO_HOOK_CLI`).
-const HOOK_CLI_ENV: &str = "VESSEL_HOOK_CLI";
+/// What names the `vessel` the hooks run (Paseo's `PASEO_HOOK_CLI`); the
+/// node sets it in a terminal with a capability.
+pub const HOOK_CLI_ENV: &str = "VESSEL_HOOK_CLI";
 
 /// Whether `command` is exactly one Vessel installs for one of `agent`'s
 /// events.
@@ -271,4 +288,8 @@ fn marked(command: &str, agent: Agent) -> bool {
 }
 
 #[cfg(test)]
+mod beside_paseo_tests;
+#[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod writing_tests;

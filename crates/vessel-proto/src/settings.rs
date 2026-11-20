@@ -347,6 +347,12 @@ mod tests {
     fn hooks_switch_is_hidden_below_the_attention_protocol_and_absent_while_off() {
         let off: NodeSettings = serde_json::from_str(r#"{"park_after":{"kind":"never"}}"#).unwrap();
         assert!(!off.terminal_agent_hooks);
+        assert!(
+            !serde_json::to_string(&off)
+                .unwrap()
+                .contains("terminal_agent_hooks"),
+            "absent while off"
+        );
         let on = NodeSettings {
             terminal_agent_hooks: true,
             ..off.clone()
@@ -370,6 +376,22 @@ mod tests {
         let change: SetNodeSettings =
             serde_json::from_str(r#"{"terminal_agent_hooks":true}"#).unwrap();
         assert_eq!(change.terminal_agent_hooks, Some(true));
+        // A change naming it, on or off, needs the attention protocol, and
+        // is refused while that is unassigned (`rpc/since.rs`).
+        for named in [Some(true), Some(false)] {
+            let call = crate::Call::SetNodeSettings(SetNodeSettings {
+                terminal_agent_hooks: named,
+                ..SetNodeSettings::default()
+            });
+            match crate::notifications::ATTENTION_NOTIFICATIONS_PROTOCOL {
+                None => assert_eq!(call.required_protocol(), None, "{named:?}"),
+                Some(assigned) => {
+                    assert!(call.required_protocol() >= Some(assigned), "{named:?}");
+                }
+            }
+        }
+        let unnamed = crate::Call::SetNodeSettings(SetNodeSettings::default());
+        assert!(unnamed.required_protocol().is_some());
     }
 
     /// A node of 17 answers without `drivers`: every agent over ACP. A

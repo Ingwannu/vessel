@@ -1,6 +1,6 @@
 //! `vessel hooks <agent> <event>`: an agent's hook reports the activity of
 //! the Vessel terminal it runs in (ADR 0089, "The CLI consumer: agent
-//! hooks"; Paseo 0.15.4 `cli/dist/commands/hooks.js`).
+//! hooks"; Paseo 0.15.4 `cli/src/commands/hooks.ts`).
 //!
 //! [Decision Log]
 //! - Purpose: Claude Code, Codex and `OpenCode` run their hooks for every
@@ -11,8 +11,8 @@
 //!   - outside a Vessel terminal (no `VESSEL_TERMINAL_ACTIVITY_*`), and for
 //!     an agent or event without a mapping, it does nothing;
 //!   - the input is read only for Claude Code's `Notification`, waiting at
-//!     most 100 ms for each piece (Paseo's `hooks.js:42`);
-//!   - the report is given 500 ms (`hooks.js:69`);
+//!     most 100 ms for each piece (Paseo's `hooks.ts:63-76`, the 100 ms at `:68`);
+//!   - the report is given 500 ms (`hooks.ts:98`);
 //!   - every failure is silent: a hook must never disturb the agent, and the
 //!     command always exits 0.
 //! - Vessel's transport: the terminal's activity-only capability on the

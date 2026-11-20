@@ -7,11 +7,18 @@
 //!   one half written, must keep what was there first, and must never come
 //!   from a test.
 //! - Choice:
-//!   - Every write goes through [`replace`] or [`remove`]. Both keep a
-//!     one-time copy of the file as it was (`<file>.vessel-backup`) before
-//!     its first change, and never overwrite that copy.
-//!   - Writes are owner-only and atomic (`vessel_fleet::write_private`, as
-//!     Paseo's `writePrivateFileAtomicSync`).
+//!   - Every write goes through [`replace`], which keeps a one-time copy of
+//!     the file as it was (`<file>.vessel-backup`, beside the path the
+//!     agent reads) before its first change. The copy is created with
+//!     `create_new`, so two writers can never overwrite it (node review
+//!     R3). [`remove`] takes away only Vessel's own exact file and keeps no
+//!     copy.
+//!   - Writes are owner-only and atomic (`vessel_fleet::write_private`) and
+//!     go to the file a link points at, as Paseo's
+//!     `writePrivateFileAtomicSync` does (`server/private-files.ts:27-55`):
+//!     a `settings.json` linked into a person's dotfiles stays a link, and
+//!     the backup holds the target's bytes (node review R2). Renaming onto
+//!     the link itself would replace it with a plain file.
 //!   - In test builds, both refuse any path inside the real home's agent
 //!     configuration, or under `CLAUDE_CONFIG_DIR` or `CODEX_HOME`, with a
 //!     panic. A test that reached a real file would fail rather than write.
@@ -49,8 +56,43 @@ fn back_up(path: &Path) -> io::Result<()> {
         return Ok(());
     }
     match std::fs::read(path) {
-        Ok(contents) => write(&backup, &contents),
+        Ok(contents) => create_new_private(&backup, &contents),
         Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(error),
+    }
+}
+
+/// A new owner-only file at `path` holding `contents`; one already there
+/// is kept as it is. A failed write takes the new file away again.
+fn create_new_private(path: &Path, contents: &[u8]) -> io::Result<()> {
+    #[cfg(test)]
+    refuse_real(path);
+    let mut options = std::fs::OpenOptions::new();
+    let _options = options.write(true).create_new(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt as _;
+        let _private = options.mode(0o600);
+    }
+    let mut file = match options.open(path) {
+        Ok(file) => file,
+        Err(error) if error.kind() == io::ErrorKind::AlreadyExists => return Ok(()),
+        Err(error) => return Err(error),
+    };
+    let written = io::Write::write_all(&mut file, contents).and_then(|()| file.sync_all());
+    if written.is_err() {
+        drop(file);
+        let _removed = std::fs::remove_file(path);
+    }
+    written
+}
+
+/// Where a write to `path` lands: the file a link points at (Paseo's
+/// `resolveSymlinkedFile`), or `path` itself when nothing is there yet.
+fn destination(path: &Path) -> io::Result<PathBuf> {
+    match std::fs::canonicalize(path) {
+        Ok(target) => Ok(target),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(path.to_owned()),
         Err(error) => Err(error),
     }
 }
@@ -61,9 +103,13 @@ fn write(path: &Path, contents: &[u8]) -> io::Result<()> {
     vessel_fleet::write_private(path, contents)
 }
 
-/// Write `contents` to `path`, after its one-time backup.
+/// Write `contents` to `path` (to its target when it is a link), after its
+/// one-time backup.
 pub(super) fn replace(path: &Path, contents: &[u8]) -> Outcome {
-    match back_up(path).and_then(|()| write(path, contents)) {
+    let written = back_up(path)
+        .and_then(|()| destination(path))
+        .and_then(|target| write(&target, contents));
+    match written {
         Ok(()) => Outcome::Changed(path.to_owned()),
         Err(error) => Outcome::Failed(path.to_owned(), error),
     }

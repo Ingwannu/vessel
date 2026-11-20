@@ -1,4 +1,4 @@
-//! `OpenCode`'s plugin file (Paseo's `opencode/opencode-plugin.js`): a whole
+//! `OpenCode`'s plugin file (Paseo's `opencode/opencode-plugin.ts`): a whole
 //! file of Vessel's own, which reports `OpenCode`'s events through
 //! `vessel hooks opencode <event>`.
 //!

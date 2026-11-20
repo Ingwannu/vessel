@@ -95,6 +95,8 @@ pub(crate) enum SettingsError {
 pub(crate) struct Settings {
     data_dir: DataDir,
     runtime: Arc<SessionRuntime>,
+    /// The terminal agent hooks' one worker (ADR 0089).
+    hooks: Arc<crate::agent_hooks::Applier>,
     /// `--park-after`, or its default.
     flag: ParkAfter,
     /// What a person changed, as kept; held over write and apply.
@@ -144,9 +146,13 @@ impl Settings {
                 (SetNodeSettings::default(), kept, false)
             }
         };
+        let hooks = crate::agent_hooks::Applier::new(crate::agent_hooks::Targets::of(
+            runtime.harness_env(),
+        ));
         let settings = Self {
             data_dir,
             runtime,
+            hooks,
             flag,
             saved: Arc::new(Mutex::new(saved.clone())),
             writers: TaskTracker::new(),
@@ -207,12 +213,12 @@ impl Settings {
     }
 
     /// Install or remove the terminal agent hooks in the agents' own
-    /// configuration (ADR 0089), off the async threads; the work is joined
-    /// with the settings writers at shutdown. Where they go is each agent's
-    /// home as this node starts it.
+    /// configuration (ADR 0089), off the async threads, through one worker
+    /// that applies the latest state wanted; it is joined with the settings
+    /// writers at shutdown. Where they go is each agent's home as this node
+    /// starts it.
     pub(crate) fn apply_agent_hooks(&self, on: bool) {
-        let targets = crate::agent_hooks::Targets::of(self.runtime.harness_env());
-        drop(self.writers.spawn_blocking(move || targets.apply(on)));
+        self.hooks.want(on, &self.writers);
     }
 
     /// The settings in force.
