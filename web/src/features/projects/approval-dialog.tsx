@@ -21,7 +21,7 @@ import {
   type ScriptLine,
 } from "../../data/workspace/command-changes";
 import { comparedWords } from "../../data/workspace/command-words";
-import { Banner, Button, Dialog } from "../../ui/kit";
+import { Alert, Button, Dialog } from "../../ui/kit";
 import { CommandList } from "./command-list";
 import { ScriptList } from "./script-list";
 
@@ -150,11 +150,19 @@ function ApprovalContents({
         lines={changed?.teardown ?? asListed(shown.teardown)}
       />
       {scripts.length === 0 ? null : <ScriptList lines={scripts} />}
-      <Banner>
-        A command that runs a script of the repository (<code>./setup.sh</code>,{" "}
-        <code>npm ci</code> running package scripts) runs whatever that script
-        says on that branch.
-      </Banner>
+      {/* Paseo's setup panel warns of code you have not reviewed with a
+          warning Alert in the flow (TRACKER 820). */}
+      <Alert
+        size="sm"
+        variant="warning"
+        description={
+          <>
+            A command that runs a script of the repository (
+            <code>./setup.sh</code>, <code>npm ci</code> running package
+            scripts) runs whatever that script says on that branch.
+          </>
+        }
+      />
       <p className="commands-digest">Digest {shown.digest}</p>
     </>
   );

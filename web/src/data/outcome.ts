@@ -94,3 +94,20 @@ export function nextStep(problem: Problem): string {
       return "This page lost its connection to vessel ui; it reconnects by itself.";
   }
 }
+
+/** The problem's message, then its next step, as two sentences.
+ *
+ * A node's message often ends without a stop ("… (it needs the `admin`
+ * scope)"), so a bare join read as one run-on sentence (TRACKER 820).
+ * One shared join, so every site that says both reads the same:
+ * - the message is kept as the node wrote it, with a period added only
+ *   when it does not already end in `.`, `!` or `?`;
+ * - an empty message leaves only the next step. */
+export function withNextStep(problem: Problem): string {
+  const said = problem.message.trimEnd();
+  const next = nextStep(problem);
+  if (said === "") {
+    return next;
+  }
+  return /[.!?]$/.test(said) ? `${said} ${next}` : `${said}. ${next}`;
+}
