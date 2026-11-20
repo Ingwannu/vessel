@@ -21,8 +21,8 @@
 //!   - `:90-105`: becoming visible is input; becoming hidden sends nothing
 //!     until the next heartbeat ([`Presence::visibility`]);
 //!   - `use-client-activity.ts:125-148`: a heartbeat on connecting, then
-//!     every 15 s while connected.
-//!   The page does the same (`web/src/data/presence.ts`).
+//!     every 15 s while connected;
+//!   - the page does the same (`web/src/data/presence.ts`).
 //! - Visible is the window's visibility, as Paseo's desktop reads the
 //!   document's: shown on screen, active or not. A minimized or hidden
 //!   window reports `Background`; a visible one that is not active still
@@ -191,16 +191,16 @@ impl<K: Eq + Hash> Told<K> {
         later: Millis,
     ) -> ReportPushPresence {
         let before = self.told.insert(connection, snapshot.last_input);
-        let fresh = match before {
-            Some(before) => snapshot.last_input > before,
-            None => {
+        let fresh = before.map_or_else(
+            || {
                 let age = snapshot
                     .now
                     .saturating_sub(snapshot.last_input)
                     .saturating_add(later);
                 age <= millis(HEARTBEAT)
-            }
-        };
+            },
+            |before| snapshot.last_input > before,
+        );
         ReportPushPresence {
             focus: snapshot.focus(machine),
             activity: if fresh {
