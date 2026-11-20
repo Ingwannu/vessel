@@ -51,7 +51,8 @@ pub(super) enum Surface {
 }
 
 /// A close row, disabled when it would close nothing or anything that is
-/// not local (an agent archives, a terminal confirms).
+/// not local (an agent archives), but for one terminal tab, which asks to
+/// be confirmed (TRACKER 342).
 pub(super) fn close_item(
     shell: &Shell,
     tab: TabId,
@@ -60,7 +61,9 @@ pub(super) fn close_item(
 ) -> (Action, MenuItem) {
     let disabled = with_layout(shell, |layout| {
         layout.close_plans(tab, scope).map(|plans| {
-            plans.is_empty() || plans.iter().any(|plan| plan.effect() != CloseEffect::Local)
+            plans.is_empty()
+                || (plans.iter().any(|plan| plan.effect() != CloseEffect::Local)
+                    && !crate::areas::terminal_tabs::closes_terminal(scope, &plans))
         })
     })
     .unwrap_or(true);

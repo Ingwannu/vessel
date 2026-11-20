@@ -17,8 +17,8 @@
 //!   combobox sheet's title-only header (TRACKER 798: no close button, no
 //!   rule); the rows are drawn here because the kit combobox has neither a
 //!   row's trailing control nor a footer.
-//! - New terminal stays disabled until a terminal tab can be made in a
-//!   pane, as 776's new-tab menu disables Terminal.
+//! - New terminal opens a shell tab (TRACKER 481), disabled while a create
+//!   waits for its answer (Paseo's `createTerminalDisabled`).
 
 use super::{Compact, current, tabs};
 use crate::areas::layout::draw::tab_label;
@@ -286,11 +286,19 @@ fn footer(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> Div {
             label: words.new_terminal().into(),
         },
         ButtonKind::Secondary,
-        ButtonState::Disabled,
+        if shell.terminal_tab_creating() {
+            ButtonState::Disabled
+        } else {
+            ButtonState::Enabled
+        },
         ControlSizing::Touch,
         tokens,
     )
-    .flex_1();
+    .flex_1()
+    .on_click(cx.listener(|shell, _event, window, cx| {
+        shell.compact_close_switcher(window, cx);
+        shell.terminal_tab_new(None, window, cx);
+    }));
     let footer = div();
     #[cfg(test)]
     let footer = footer.debug_selector(|| "compact-tab-switcher-footer".to_owned());

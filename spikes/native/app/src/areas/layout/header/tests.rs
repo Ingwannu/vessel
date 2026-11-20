@@ -232,7 +232,7 @@ fn the_new_tab_menu_lists_the_catalog_and_agent_opens_the_new_agent_page(cx: &mu
             launches,
             [
                 (Some(PaneOp::Launch(Launch::Agent)), false),
-                (None, true),
+                (Some(PaneOp::Launch(Launch::Terminal)), false),
                 (None, true),
                 (None, true),
                 (None, true),

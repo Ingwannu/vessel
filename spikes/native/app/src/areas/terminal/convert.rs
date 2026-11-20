@@ -13,7 +13,7 @@ use vessel_app_view::terminal::grid::{Rgb, Slant, Strike, Underline, Weight};
 use vessel_app_view::terminal::paint::{Ink, PaintedRow, Palette, RunInk};
 
 /// The kit's palette as the model's: the same bytes.
-pub(super) fn palette(colors: &TerminalColors) -> Palette {
+pub(crate) fn palette(colors: &TerminalColors) -> Palette {
     let mut ansi = [Rgb::default(); 16];
     for (colour, word) in ansi.iter_mut().zip(colors.ansi) {
         *colour = rgb_of(word);
@@ -33,12 +33,12 @@ const fn rgb_of(word: u32) -> Rgb {
 }
 
 /// A drawn colour.
-pub(super) fn hsla(colour: Rgb) -> Hsla {
+pub(crate) fn hsla(colour: Rgb) -> Hsla {
     rgb(u32::from_be_bytes([0, colour.r, colour.g, colour.b])).into()
 }
 
 /// A painted row as the control draws it.
-pub(super) fn row(row: &PaintedRow) -> GridRow {
+pub(crate) fn row(row: &PaintedRow) -> GridRow {
     GridRow {
         fills: row
             .fills

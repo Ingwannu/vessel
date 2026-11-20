@@ -101,6 +101,7 @@ pub(crate) fn frame(
         .children(super::workspace_menu::overlay(shell, tokens, window, cx))
         .children(super::menu::overlay(shell, tokens, window, cx))
         .children(super::header::menu_overlay(shell, tokens, window, cx))
+        .children(crate::areas::terminal_tabs::overlay(shell, tokens, window, cx))
         // The one rename dialog, drawn by the frame so it shows whichever
         // tab is in front (TRACKER 800).
         .children(crate::areas::conversation::rename_dialog(
@@ -379,7 +380,7 @@ pub(super) fn tab_label(shell: &Shell, target: &Target) -> String {
             ),
         Target::NewTab => shell.words.layout().new_tab().to_owned(),
         Target::File { path, .. } => path.as_str().to_owned(),
-        Target::Terminal(id) => id.to_string(),
+        Target::Terminal(id) => crate::areas::terminal_tabs::label(shell, *id),
         Target::Browser(id) => id.as_str().to_owned(),
         Target::Draft(id) => id.to_string(),
         Target::Changes => shell.words.layout().changes().to_owned(),

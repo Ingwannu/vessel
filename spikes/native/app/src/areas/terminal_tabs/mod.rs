@@ -1,0 +1,284 @@
+//! A workspace's shell terminals as tabs (TRACKER 481, 482, 483, 338, 342,
+//! 354): Paseo's terminal panel (`components/terminal-pane.tsx`, opened by
+//! `screens/workspace/terminals/use-workspace-terminals.ts`).
+//!
+//! [Decision Log]
+//! - Purpose: Paseo opens a shell beside its agents as a tab: "Terminal" in
+//!   the "+" menu, the New tab panel and Ctrl+Shift+T; the tab streams the
+//!   shell, takes the keyboard, sizes it on focus, lists the workspace's
+//!   other shells and kills one on a confirmed Close. The native app modelled
+//!   the tab (`Target::Terminal`) and drew "panel unavailable" in it.
+//! - Existing assets: ADR 0031's calls on the node (protocol 11); the
+//!   terminal session screen's parser, grid, colours, replay and wheel
+//!   (`areas::terminal`, ADR 0073), reused here; the view's key and paste
+//!   encoders, `TerminalSender` (one send in flight) and `query_duty`; the
+//!   layout's reconcile, close plans and tab menu.
+//! - Alternatives: generalising the session screen's single `TerminalArea`
+//!   to many (its tests and opening rules rewritten), or a GPUI entity per
+//!   tab holding its own state (the app keeps every area's state in the
+//!   shell, `areas/mod.rs`; a model entity read inside a region would draw
+//!   stale, `crate::region`).
+//! - Choice: an area of its own with one `Pane` per open terminal tab, keyed
+//!   by machine and terminal, in the shell's state; the grid stays its own
+//!   cached view (`TerminalGrid`), and one small entity per pane is the
+//!   platform's text input (IME) for that pane, forwarding to the shell.
+//! - Place: today a workspace layout is a session's (`LayoutKey::Session`),
+//!   so a shell is opened beside that session (`TerminalPlace::Session`, in
+//!   its folder), where Paseo opens one in the workspace's directory.
+//! - List: the node pushes no list of terminals (ADR 0031); the app asks
+//!   for the open workspace's on each fleet read (every 2 s, as the
+//!   sessions are listed) and after its own create, close or an end, and
+//!   reconciles the tabs as Paseo does on `terminals_changed`.
+//! - Cost and stated differences: a shell another client opened shows
+//!   within one read, not at once; another viewer's resize is not refused
+//!   (no claim/update on the wire until ADR 0116); the tab's label is a
+//!   rename's title, never the shell's own (no OSC title on the node); no
+//!   selection, copy or find (P3), no key bar (P4), no file drop (P7).
+
+mod body;
+mod draw;
+mod input;
+mod open;
+mod stream;
+#[cfg(test)]
+mod tests;
+
+use std::cell::Cell;
+use std::collections::HashMap;
+use std::rc::Rc;
+
+use gpui::{FocusHandle, Task};
+use vessel_app_kit::DialogState;
+use vessel_app_kit::ui::{App, Bounds, Context, Entity, Pixels, Window};
+use vessel_app_view::layout::{ClosePlan, LayoutKey};
+use vessel_app_view::terminal::{
+    GridSize, Origin, ScrollbackLines, TerminalLog, TerminalModel, TerminalSender, Typed, Viewport,
+};
+use vessel_app_view::terminal_tabs::Trouble;
+use vessel_proto::terminals::{TerminalInfo, TerminalPlace};
+use vessel_proto::{EventSeq, TerminalId};
+
+pub(crate) use body::{overlay, panel};
+use draw::DrawKey;
+use input::TerminalKeys;
+pub(crate) use open::closes_terminal;
+
+use crate::areas::terminal::grid::TerminalGrid;
+use crate::areas::terminal::scroll::Wheel;
+use crate::shell::Shell;
+
+/// One terminal tab's machine and terminal.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub(crate) struct PaneKey {
+    /// The machine, by its book name.
+    pub(crate) machine: String,
+    /// The terminal.
+    pub(crate) terminal: TerminalId,
+}
+
+/// Where a pane's stream is.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Stage {
+    /// Following was asked; history is being read.
+    Attaching,
+    /// History drawn; live output applies as it comes.
+    Live,
+    /// No live screen: the red line under it says why.
+    Trouble(Trouble),
+    /// Its machine is not connected; it follows again when it is.
+    Offline,
+}
+
+/// The cursor's blink phase.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Blink {
+    On,
+    Off,
+}
+
+/// One open terminal tab.
+pub(crate) struct Pane {
+    /// The terminal as last reported (a follow's start, a list).
+    pub(crate) info: Option<TerminalInfo>,
+    pub(crate) stage: Stage,
+    /// Whether this app opened it (it answers queries until someone types).
+    origin: Origin,
+    /// Whether the person typed in it.
+    typed: Typed,
+    /// `None` while a parse runs on the background executor.
+    model: Option<TerminalModel>,
+    /// Which records were applied; its `next` is where a follow resumes.
+    log: TerminalLog,
+    /// Records before this are history (applied without answering).
+    live_from: EventSeq,
+    history: Vec<u8>,
+    live: Vec<u8>,
+    /// Identity of this pane's current follow: stale parses are dropped.
+    ticket: Rc<()>,
+    pub(crate) grid: Entity<TerminalGrid>,
+    pub(crate) probe: Rc<Cell<Option<Bounds<Pixels>>>>,
+    /// The cells that fit the pane's box.
+    fit: Option<GridSize>,
+    /// The size last sent to the node.
+    sent_size: Option<GridSize>,
+    settling: Option<Task<()>>,
+    drawn: Option<DrawKey>,
+    blink: Blink,
+    viewport: Viewport,
+    wheel: Wheel,
+    pub(crate) focus: FocusHandle,
+    pub(crate) keys: Entity<TerminalKeys>,
+    /// The IME's text being composed, drawn at the cursor.
+    pub(crate) preedit: Option<String>,
+    sender: TerminalSender,
+    /// Its focus observers.
+    observers: Vec<gpui::Subscription>,
+}
+
+/// Where a create opens its tab.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct Creating {
+    /// The machine asked.
+    machine: String,
+    /// The place asked for.
+    place: TerminalPlace,
+    /// The layout it opens in.
+    workspace: LayoutKey,
+    /// The New tab tab it replaces, else `None`: the focused pane.
+    replaces: Option<vessel_app_view::layout::TabId>,
+    /// The window's layout mode when it was asked.
+    mode: vessel_app_view::layout::LayoutMode,
+}
+
+/// The terminal tabs' state.
+pub(crate) struct TerminalTabs {
+    panes: HashMap<PaneKey, Pane>,
+    /// Creates sent, oldest first.
+    creating: Vec<Creating>,
+    /// The list asked for and not yet answered: one at a time.
+    listing: Option<(String, TerminalPlace)>,
+    /// A new terminal's pane takes the keyboard on its first frame.
+    focus_next: Option<PaneKey>,
+    /// A list of the open workspace's terminals, waiting for a frame (the
+    /// layout's reconcile needs the window's layout mode).
+    listed: Option<(LayoutKey, Vec<TerminalId>)>,
+    /// The Close asked of the person.
+    confirm: Option<(LayoutKey, ClosePlan)>,
+    pub(crate) dialog: DialogState,
+    /// The cursor blinks in this pane only.
+    blinking: Option<(PaneKey, Task<()>)>,
+    /// The pane that has the keyboard (its focus observers keep it).
+    focused: Option<PaneKey>,
+}
+
+impl TerminalTabs {
+    pub(crate) fn new(cx: &mut App) -> Self {
+        Self {
+            panes: HashMap::new(),
+            creating: Vec::new(),
+            listing: None,
+            focus_next: None,
+            listed: None,
+            confirm: None,
+            dialog: DialogState::new(cx),
+            blinking: None,
+            focused: None,
+        }
+    }
+
+    /// A pane by its key.
+    pub(crate) fn pane(&self, key: &PaneKey) -> Option<&Pane> {
+        self.panes.get(key)
+    }
+}
+
+impl Pane {
+    fn new(origin: Origin, cx: &mut Context<'_, Shell>, key: &PaneKey) -> Self {
+        use gpui::AppContext as _;
+        let shell = cx.weak_entity();
+        let keys_key = key.clone();
+        Self {
+            info: None,
+            stage: Stage::Attaching,
+            origin,
+            typed: Typed::Never,
+            model: Some(TerminalModel::new(
+                GridSize::default(),
+                ScrollbackLines::default(),
+            )),
+            log: TerminalLog::default(),
+            live_from: EventSeq::ZERO,
+            history: Vec::new(),
+            live: Vec::new(),
+            ticket: Rc::new(()),
+            grid: cx.new(|_cx| TerminalGrid::empty()),
+            probe: Rc::new(Cell::new(None)),
+            fit: None,
+            sent_size: None,
+            settling: None,
+            drawn: None,
+            blink: Blink::On,
+            viewport: Viewport::default(),
+            wheel: Wheel::default(),
+            focus: cx.focus_handle(),
+            keys: cx.new(|_cx| TerminalKeys::new(shell, keys_key)),
+            preedit: None,
+            sender: TerminalSender::default(),
+            observers: Vec::new(),
+        }
+    }
+}
+
+/// The pane key of a terminal tab in `workspace`: its machine is the
+/// layout's (a session's layout today).
+pub(crate) fn pane_key(workspace: &LayoutKey, terminal: TerminalId) -> Option<PaneKey> {
+    match workspace {
+        LayoutKey::Session { machine, .. } => Some(PaneKey {
+            machine: machine.as_str().to_owned(),
+            terminal,
+        }),
+        LayoutKey::Workspace { .. } => None,
+    }
+}
+
+/// A terminal tab's label: its title, else "Terminal" (Paseo's
+/// `terminal.title ?? terminal.name`, its fallback word).
+pub(crate) fn label(shell: &Shell, terminal: TerminalId) -> String {
+    shell
+        .areas
+        .terminal_tabs
+        .panes
+        .iter()
+        .find(|(key, _)| key.terminal == terminal)
+        .and_then(|(_, pane)| pane.info.as_ref())
+        .and_then(vessel_app_view::terminal_tabs::title)
+        .map_or_else(
+            || shell.words.terminal_tabs().fallback().to_owned(),
+            str::to_owned,
+        )
+}
+
+/// The place a workspace opens its shells in.
+pub(crate) fn place_of(workspace: &LayoutKey) -> Option<TerminalPlace> {
+    match workspace {
+        LayoutKey::Session { session, .. } => Some(TerminalPlace::Session { session: *session }),
+        LayoutKey::Workspace { .. } => None,
+    }
+}
+
+impl Shell {
+    /// Whether a terminal tab has the keyboard (the shortcuts' terminal
+    /// focus scope: Paseo's `terminal:false` shortcuts stay off).
+    pub(crate) fn terminal_tab_focused(&self, window: &Window) -> bool {
+        self.areas
+            .terminal_tabs
+            .panes
+            .values()
+            .any(|pane| pane.focus.is_focused(window))
+    }
+
+    /// Whether `machine` is connected.
+    fn machine_online(&self, machine: &str) -> bool {
+        self.fleet.online().any(|online| online.name == machine)
+    }
+}

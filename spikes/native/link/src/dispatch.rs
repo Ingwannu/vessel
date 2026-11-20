@@ -111,6 +111,7 @@ impl State {
             } => self.act(&machine, session, act),
             Command::Workspace { machine, ask } => self.workspace(machine, ask),
             Command::Search(ask) => self.search(ask),
+            Command::Terminals(ask) => self.terminals(ask).await,
             Command::SavePrefs(prefs) => save_prefs(prefs).await,
         }
     }
