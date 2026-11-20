@@ -75,16 +75,46 @@ impl NodeService {
             .map_err(|error| wire(&error))
     }
 
-    /// `worktree.remove`.
+    /// `worktree.remove`. With `end_terminals` (ADR 0121, Paseo's
+    /// `killTerminalsForWorkspace`, after the client asked the person) the
+    /// live terminals in its folder end first, so they no longer refuse the
+    /// removal; without it they do, as before. Removed, the terminals that
+    /// were placed in it are forgotten with it.
+    ///
+    /// A live session in the folder refuses the removal whatever is asked,
+    /// so its shells are left running then: ending them would lose a dev
+    /// server for nothing. A removal kept for another reason found after
+    /// the end (work it would lose, a session starting in between) leaves
+    /// them ended: the person agreed to end them.
     pub(crate) async fn remove_worktree(
         &self,
         _: &Connection,
         request: RemoveWorktree,
     ) -> Result<RemoveWorktreeOutcome, WireError> {
-        self.workspaces
+        if request.end_terminals {
+            let folder = self
+                .workspaces
+                .worktree(request.worktree)
+                .map_err(|error| wire(&error))?
+                .path;
+            let a_session_in_it = self
+                .sessions
+                .live_folders()
+                .iter()
+                .any(|(_, cwd)| cwd.starts_with(&folder));
+            if !a_session_in_it {
+                self.terminals.end_in(&folder).await;
+            }
+        }
+        let outcome = self
+            .workspaces
             .remove_worktree(request.worktree, request.if_lost, || self.occupied())
             .await
-            .map_err(|error| wire(&error))
+            .map_err(|error| wire(&error))?;
+        if matches!(outcome, RemoveWorktreeOutcome::Removed { .. }) {
+            self.terminals.forget_worktree(request.worktree);
+        }
+        Ok(outcome)
     }
 
     /// `worktree.snapshots`.
