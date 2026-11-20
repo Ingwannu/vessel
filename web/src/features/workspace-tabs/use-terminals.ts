@@ -1,10 +1,23 @@
 // List only when the workspace is usable. An in-flight read cannot
 // resurrect a shell that just closed or outrun the create response.
+//
+// From protocol 40 (ADR 0121) a worktree or folder workspace lists its
+// place by itself, the node matching it, and on the same tick reads the
+// shells beside its sessions: agents still open those (`create_terminal`
+// asks for `Session`), and the place's list leaves them out. One tick
+// replaces the strip's list, so a new shell shows within it and an ended
+// one leaves (`readStrip`).
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { Outcome } from "../../data/outcome";
 import { useFleet } from "../../context";
+import {
+  readStrip,
+  sessionHost,
+  speaksWorkspacePlaces,
+  workspaceTerminalPlace,
+} from "../../data/workspace/terminal-place";
 import {
   openWorkspaceTerminal,
   workspaceTerminals,
@@ -12,12 +25,37 @@ import {
 import type { NodeKey } from "../../wire/bridge";
 import type {
   SessionId,
+  SessionInfo,
   TerminalId,
   TerminalInfo,
   TerminalPlace,
+  WorkspaceRoot,
 } from "../../wire/proto";
 
 const LIST_INTERVAL_MS = 2_000;
+
+/** The place the workspace opens its shells in. ADR 0121 (protocol 40):
+ * the workspace's own folder holds them, so no agent is needed to open
+ * one and archiving one ends none. Below 40 an ended (not archived)
+ * agent still hosts them, as in 817. */
+export function useTerminalPlace(
+  protocol: number | null,
+  root: WorkspaceRoot | null,
+  anchor: SessionInfo,
+  eligible: readonly SessionInfo[],
+): TerminalPlace | null {
+  const folder = anchor.spec.cwd ?? null;
+  // The host matters only for a session place; leaving it out otherwise
+  // keeps the place (and its list) from changing as agents start or stop.
+  const host =
+    speaksWorkspacePlaces(protocol) && (root !== null || folder !== null)
+      ? null
+      : sessionHost([anchor, ...eligible]);
+  return useMemo(
+    () => workspaceTerminalPlace({ protocol, root, folder, host }),
+    [protocol, root, folder, host],
+  );
+}
 
 interface WorkspaceTerminals {
   rows: readonly TerminalInfo[];
@@ -48,26 +86,21 @@ export function useTerminals(
     let timer: number | undefined;
     const read = async () => {
       const since = revision.current;
-      const result = await workspaceTerminals(
-        fleet,
-        node,
-        place?.kind === "project" ? place : null,
-      );
+      // No place (below 40, every agent archived): an empty strip, as before.
+      const result =
+        place === null
+          ? { ok: true as const, value: [] }
+          : await readStrip(
+              (asked) => workspaceTerminals(fleet, node, asked),
+              place,
+              sessionIds,
+            );
       if (!live) {
         return;
       }
       if (result.ok && !pending.current && since === revision.current) {
         setRows(
-          result.value.terminals.filter(
-            (terminal) =>
-              terminal.kind.kind === "shell" &&
-              !closed.current.has(terminal.id) &&
-              (place?.kind === "project"
-                ? terminal.place.kind === "project" &&
-                  (terminal.place.dir ?? null) === (place.dir ?? null)
-                : terminal.place.kind === "session" &&
-                  sessionIds.has(terminal.place.session)),
-          ),
+          result.value.filter((terminal) => !closed.current.has(terminal.id)),
         );
       }
       timer = window.setTimeout(() => void read(), LIST_INTERVAL_MS);

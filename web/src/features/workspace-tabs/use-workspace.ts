@@ -1,9 +1,7 @@
 import { useBlocker, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { isLive } from "../../data/format";
 import { useFleetState } from "../../context";
-import { isArchived } from "../../data/marks";
 import {
   projectAt,
   type ProjectsView,
@@ -26,7 +24,6 @@ import type {
   SessionId,
   SessionInfo,
   TerminalInfo,
-  TerminalPlace,
   WorkspaceRoot,
 } from "../../wire/proto";
 import type { TabAction } from "./chrome-parts";
@@ -34,7 +31,7 @@ import { childAgent, isLiveTerminal } from "./close-tabs";
 import { useTabLifecycle } from "./lifecycle";
 import { useLaunchShortcuts } from "./launch-shortcuts";
 import { useLayout } from "./use-layout";
-import { useTerminals } from "./use-terminals";
+import { useTerminalPlace, useTerminals } from "./use-terminals";
 import type { TabWords } from "./words";
 
 const NO_SESSIONS: readonly SessionInfo[] = [];
@@ -95,21 +92,7 @@ export function useWorkspace(
       ),
     [anchor.id, listed, projects, root],
   );
-  // Ended agents can still host a shell for checking their work. Archive
-  // alone ends those terminals and prevents the session from hosting more.
-  const candidates = [anchor, ...eligible].filter(
-    (agent) => !isArchived(agent),
-  );
-  const terminalAnchor = (candidates.find(isLive) ?? candidates[0])?.id;
-  const place = useMemo<TerminalPlace | null>(
-    () =>
-      root?.kind === "project"
-        ? { kind: "project", project: root.project }
-        : terminalAnchor === undefined
-          ? null
-          : { kind: "session", session: terminalAnchor },
-    [root, terminalAnchor],
-  );
+  const place = useTerminalPlace(protocol, root, anchor, eligible);
   const sessionIds = useMemo(
     () => new Set([anchor.id, ...eligible.map((session) => session.id)]),
     [anchor.id, eligible],
@@ -225,7 +208,11 @@ export function useWorkspace(
       label: words.terminal,
       icon: "terminal",
       disabled: !canCreateTerminal,
-      ...(place === null ? { description: words.terminalNeedsAgent } : {}),
+      // Only with no place: below protocol 40 (a workspace whose agents are
+      // all archived), or a folder the page cannot name.
+      ...(place === null && terminalEnabled
+        ? { description: words.terminalNeedsAgent }
+        : {}),
       run: newTerminal,
       ...(shortcuts.terminal === null ? {} : { shortcut: shortcuts.terminal }),
     },

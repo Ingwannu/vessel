@@ -24,6 +24,7 @@ import type {
   QuestionId,
   QueueEntryId,
   SessionId,
+  TerminalId,
   ToolCallId,
   TransferId,
   UploadId,
@@ -57,6 +58,7 @@ interface Handles {
   QuestionId: QuestionId;
   QueueEntryId: QueueEntryId;
   SessionId: SessionId;
+  TerminalId: TerminalId;
   ToolCallId: ToolCallId;
   TransferId: TransferId;
   UploadId: UploadId;

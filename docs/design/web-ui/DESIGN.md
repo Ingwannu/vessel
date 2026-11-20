@@ -473,8 +473,19 @@ frame's foot. Summary is 340px of sections (plan, files touched, model
 calls, Details). It is visible at 1280px and above and has the
 `⌘⇧B` shortcut. Below 1280px, the Summary button opens a sheet. Above the session, the workspace tab strip holds agent
 views, terminals, Changes, Diff, Files and individual file editors
-(ADR 0118). At widths below 600px, the tab count opens the switcher and
-Changes shows inline diffs. The branch chip opens Changes at any width.
+(ADR 0118). A workspace's terminals belong to its folder, as Paseo's do
+(ADR 0121, protocol 40): a project workspace opens them in the project, a
+worktree workspace in the worktree, a folder outside every project in that
+folder, so "New terminal" needs no agent and archiving an agent ends none of
+them. Below protocol 40 they sit beside the workspace's first live
+unarchived agent (else its first unarchived one, an ended agent still
+hosting a shell), and with every agent archived the action is disabled and
+says so. Shells beside the workspace's agents (agents still open them, as
+do older clients) are read on the same 2 s tick as the place's list, so
+one an agent opens shows within the tick and one that ends leaves the
+strip. At widths below 600px,
+the tab count opens the switcher and Changes shows inline diffs. The branch
+chip opens Changes at any width.
 The log's find bar sits at the top right and the outline on its left
 edge (§6.16).
 
@@ -1656,7 +1667,15 @@ counts the scripts with setup and teardown.
 snapshot): `Remove "<branch>"?`, one line per reason the node gave ("2
 files with uncommitted changes", "1 commit on no other branch"), then
 "Keep a snapshot and remove" (only when a snapshot keeps all of it) or
-"Discard and remove", which says first what it deletes.
+"Discard and remove", which says first what it deletes. From protocol 40
+(ADR 0121) live terminals in it no longer have to be closed by hand: when
+they keep it and no live session is in it, Paseo's terminal warning with
+their count ("This will close 2 terminal(s). Any running process in a
+closed terminal will be stopped immediately.") sits above the same
+buttons as a kit Alert (sm, warning), and those buttons then ask the node
+to end them first (`end_terminals`).
+Paseo ends a worktree's terminals on archive without a word; Vessel asks.
+A live session in it still keeps it, with no warning and both buttons off.
 
 ---
 
@@ -1747,7 +1766,7 @@ The rest is in a menu at the bar's end, "Session actions":
 | Pin session / Unpin session | protocol 10; `session.mark` `pin`, `unpin` |
 | Mark as unread / Mark as read | protocol 10; `unread`, `read` up to the last record shown |
 | Start again | an ended structured session whose agent can resume (`abilities.resume`, and its own session id is known); `session.resume`, which also unarchives it |
-| Archive session / Unarchive | protocol 10; archiving a live session stops its agent first, so the confirmation says so ("Archiving stops the agent on laptop first."); from protocol 11 it also ends the terminals and services beside it, which the confirmation says too |
+| Archive session / Unarchive | protocol 10; archiving a live session stops its agent first, so the confirmation says so ("Archiving stops the agent on laptop first."); from protocol 11 it also ends the terminals and services beside it, which the confirmation says too. A worktree's or a folder's terminals (ADR 0121, protocol 40) are never beside a session, so the confirmation never counts them; a shell an agent opened beside itself still is, and is counted and ended as before |
 | Delete permanently | protocol 10, an ended session; confirmed ("Delete this session permanently?", what goes and what stays); `session.delete`, and a toast says what became of its worktree (removed, or kept and why) |
 | Move to another profile | a session with a timeline, while live; a dialog listing profiles of the same agent, on the same model route (`session.move_profile`) |
 | Copy agent id | Paseo's row for the agent's id (a Vessel session is its agent); the toast says "Copied Agent ID" (`toast.copied`) |
