@@ -192,13 +192,19 @@ fn drops_keys_past_its_bound_and_says_so_once() {
     assert_eq!(sender.keys("z"), Taken::DroppedFirst);
     assert_eq!(sender.keys("w"), Taken::Dropped);
     sender.answered();
-    let Some(Outgoing::Keys(long)) = sender.take() else {
-        panic!("the long keys next");
-    };
-    assert_eq!(long.len(), MAX_PENDING);
+    // The long keys go next, in order, a send's bound at a time.
+    let mut long = String::new();
+    while long.len() < MAX_PENDING {
+        let Some(Outgoing::Keys(part)) = sender.take() else {
+            panic!("the long keys next");
+        };
+        assert!(part.len() <= MAX_SEND_BYTES, "{}", part.len());
+        long.push_str(&part);
+        sender.answered();
+    }
+    assert_eq!(long, "y".repeat(MAX_PENDING));
     // Room again: keys are taken.
     assert_eq!(sender.keys("v"), Taken::Queued);
-    sender.answered();
     assert_eq!(sender.take(), Some(keys("v")));
 }
 
