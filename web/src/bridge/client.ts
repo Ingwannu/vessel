@@ -120,6 +120,10 @@ export class Bridge {
     return reply.result;
   }
 
+  /** The session key while the socket is welcomed (ADR 0122's post). */
+  get sessionKey(): string | null {
+    return this.#socket.sessionKey;
+  }
   /** Ask the bridge itself. Rejects with an `OpFailed` keeping its reason. */
   op(op: Op): Promise<OpResult> {
     const id = callIdOf(this.#id());
