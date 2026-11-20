@@ -72,7 +72,24 @@ impl Event {
                     .is_none()
                     .then(|| GuestNavigation::Committed(GuestAddress::classify(&commit.frame.url))))
             }
-            _ => Ok(None),
+            EventKind::Attached
+            | EventKind::Detached
+            | EventKind::Crashed
+            | EventKind::DocumentOpened
+            | EventKind::WithinDocument
+            | EventKind::Loading
+            | EventKind::Stopped
+            | EventKind::Loaded
+            | EventKind::Screencast
+            | EventKind::Dialog
+            | EventKind::Console
+            | EventKind::Exception
+            | EventKind::Request
+            | EventKind::Response
+            | EventKind::RequestFailed
+            | EventKind::RequestPaused
+            | EventKind::Download
+            | EventKind::Unknown => Ok(None),
         }
     }
 }
