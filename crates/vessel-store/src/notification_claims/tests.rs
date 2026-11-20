@@ -134,6 +134,40 @@ fn foreign_cursors_and_a_missing_or_revoked_device_cannot_admit() {
         Err(StoreError::NotificationDenied)
     ));
 }
+/// A claim names one source by its key and its cursor together: a current
+/// cursor paired with another session's current key names nothing (owed
+/// item 5 of the node review of TRACKER 815), and claims neither source.
+#[test]
+fn a_cursor_with_another_sessions_key_claims_nothing() {
+    let db = database();
+    let first = source(&db);
+    let second = source(&db);
+    assert_ne!(first.key.session, second.key.session);
+    for crossed in [
+        PushAttention {
+            key: second.key,
+            cursor: first.cursor,
+        },
+        PushAttention {
+            key: first.key,
+            cursor: second.cursor,
+        },
+    ] {
+        assert!(!admissible(&db, NotificationAuthority::Owner, crossed).unwrap());
+        assert_eq!(
+            claim(&db, NotificationAuthority::Owner, crossed).unwrap(),
+            LocalAdmission::NoAttention
+        );
+    }
+    for genuine in [first, second] {
+        assert_eq!(
+            claim(&db, NotificationAuthority::Owner, genuine).unwrap(),
+            LocalAdmission::Admitted,
+            "a crossed claim took neither source"
+        );
+    }
+}
+
 #[test]
 fn removing_attention_cascades_its_admission_and_old_sources_never_reappear() {
     let db = database();

@@ -5,7 +5,7 @@
 //! (docs/plans/wp-add-project-flow.md, differences 1 and 9-11).
 
 use super::git_remote;
-use super::model::{CloneProtocol, Machine, Repository};
+use super::model::{CloneProtocol, Machine, Origin, Repository};
 use super::paths::shorten_path;
 
 /// The four ways, in Paseo's order.
@@ -146,6 +146,7 @@ pub fn typed_repositories(query: &str) -> Vec<Repository> {
             name_with_owner: name,
             clone_url: repo.to_owned(),
             protocol: None,
+            origin: Origin::Typed,
         }];
     }
     let Some((owner, name)) = shorthand(repo) else {
@@ -159,6 +160,7 @@ pub fn typed_repositories(query: &str) -> Vec<Repository> {
             name_with_owner: name_with_owner.clone(),
             clone_url: name_with_owner.clone(),
             protocol: Some(protocol),
+            origin: Origin::Typed,
         })
         .collect()
 }

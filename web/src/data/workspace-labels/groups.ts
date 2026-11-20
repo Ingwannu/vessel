@@ -33,6 +33,12 @@ import type { FleetState } from "../fleet";
 import { folderName } from "../format";
 import { nodeLabel } from "../nodes";
 import { activeAt, listed, sessionRow, type SidebarSession } from "../sidebar";
+import {
+  pullOf,
+  sharedBranch,
+  sharedPull,
+  type SharedPull,
+} from "../workspace/diff-stat";
 import { passesLabels } from "./filter";
 import type { LabelsState } from "./hub";
 import { chipsOf } from "./merge";
@@ -48,6 +54,12 @@ export interface SidebarWorkspace {
   title: string;
   /** Its machine's name, for a fleet of several. */
   machine: string;
+  /** The folder the card copies. Null for sessions in no workspace. */
+  folder: { path: string; name: string } | null;
+  /** The branch every session that has one agrees on. */
+  branch: string | null;
+  /** The pull request every summary agrees on. */
+  pull: SharedPull | null;
   pinned: boolean;
   /** The names it carries, in assignment order. */
   labels: readonly string[];
@@ -171,6 +183,9 @@ export function sidebarWorkspaces(
         id: null,
         title: "Other sessions",
         machine,
+        folder: null,
+        branch: null,
+        pull: null,
         pinned: false,
         labels: [],
         chips: [],
@@ -201,6 +216,14 @@ function entry(
     id: workspace.id,
     title: workspace.title ?? folderName(workspace.path) ?? workspace.path,
     machine,
+    folder: {
+      path: workspace.path,
+      name: folderName(workspace.path) ?? workspace.path,
+    },
+    branch: sharedBranch(sessions.map((session) => session.workspace?.branch)),
+    pull: sharedPull(
+      sessions.map((session) => pullOf(session.pull_request?.summary)),
+    ),
     pinned: workspace.pin === "pinned",
     labels: names,
     chips: chipsOf(catalog, names),

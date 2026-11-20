@@ -265,15 +265,17 @@ impl Terminals {
         reservation: Reservation,
         handle: TerminalHandle,
         plan: Option<Arc<Plan>>,
+        activity: Option<&vessel_proto::notifications::TerminalActivitySecret>,
     ) {
         let id = handle.id();
+        let producer = activity.map(|secret| self.producer_for(&handle, secret));
         let changes = handle.watch();
         self.follow_listed(&handle);
         let entry = Entry {
             handle,
             plan,
             owner: reservation.owner.clone(),
-            producer: None,
+            producer,
             size_owner: Arc::default(),
         };
         let mut state = self.state();

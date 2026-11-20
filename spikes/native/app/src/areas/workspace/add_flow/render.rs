@@ -21,6 +21,7 @@ use vessel_app_kit::ui::{
 use vessel_app_view::workspace::add_flow::model::{PageId, PageKind};
 use vessel_app_view::workspace::add_flow::options::join_directory_path;
 use vessel_app_view::workspace::add_flow::paths::shorten_path;
+use vessel_app_view::workspace::add_flow::repositories::Searched;
 use vessel_app_view::workspace::add_flow::rows::{
     Inputs, Row, RowMark, empty, rows, searches_directories,
 };
@@ -28,6 +29,7 @@ use vessel_app_view::workspace::host_folders::offered;
 use vessel_app_view::workspace::projects::ProjectsView;
 use vessel_app_view::workspace::words::add_flow::{AddFlowWords, FileManager};
 
+use super::repositories::shown;
 use super::{Open, reads_tilde};
 use crate::shell::Shell;
 
@@ -89,7 +91,7 @@ fn recent(shell: &Shell, machine: Option<&str>) -> Vec<String> {
         .unwrap_or_default()
 }
 
-fn rows_with(shell: &Shell, open: &Open, found: &Search) -> Vec<Row> {
+fn rows_with(shell: &Shell, open: &Open, found: &Search, github: &Searched) -> Vec<Row> {
     let page = open.flow.page();
     let machine = page.kind.machine();
     let recent = recent(shell, machine);
@@ -110,6 +112,7 @@ fn rows_with(shell: &Shell, open: &Open, found: &Search) -> Vec<Row> {
                 .map(String::as_str)
         }),
         tilde: machine.is_some_and(|machine| reads_tilde(shell.protocol_of(machine))),
+        repositories: &github.repositories,
     })
 }
 
@@ -121,7 +124,7 @@ pub(super) fn rows_of(shell: &Shell) -> Vec<Row> {
         .add_flow
         .open
         .as_ref()
-        .map(|open| rows_with(shell, open, &search(shell, open)))
+        .map(|open| rows_with(shell, open, &search(shell, open), &shown(open)))
         .unwrap_or_default()
 }
 
@@ -184,6 +187,7 @@ fn results(
     let words = shell.t.lang.add_flow();
     let page = open.flow.page();
     let found = search(shell, open);
+    let github = shown(open);
     let mut out: Vec<AnyElement> = Vec::new();
     if let PageKind::NewDirectoryName { parent, .. } = &page.kind
         && !page.field.trim().is_empty()
@@ -202,13 +206,24 @@ fn results(
         out.push(flow_error(words.search_failed, tokens).into_any_element());
         return out;
     }
-    if found.loading {
+    // Paseo's `add-project-flow.tsx:962-983`: the GitHub page keeps its
+    // rows (what was typed) while it searches and under a search error.
+    if let Some(error) = github.error {
+        out.push(flow_error(words.search_error(error), tokens).into_any_element());
+    }
+    if found.loading || github.loading {
         out.push(flow_state(words.loading, tokens).into_any_element());
+    }
+    if found.loading {
         return out;
     }
-    let listed = rows_with(shell, open, &found);
+    let listed = rows_with(shell, open, &found, &github);
     let active = page.active.min(listed.len().saturating_sub(1));
-    if listed.is_empty() && page.kind.id() != PageId::NewDirectoryName {
+    if listed.is_empty()
+        && !github.loading
+        && github.error.is_none()
+        && page.kind.id() != PageId::NewDirectoryName
+    {
         let said = words.empty(empty(page.kind.id(), open.flow.machine()));
         out.push(flow_state(said, tokens).into_any_element());
     }

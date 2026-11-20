@@ -78,7 +78,7 @@ pub(crate) fn refuse_agents(principal: &Principal, method: Method) -> Result<(),
             | Method::ReloadPlugin
             | Method::RemovePlugin
     ) {
-        "plugins run trusted code with the node's access; installing, running and reading them          is a person's administration"
+        "plugins run trusted code with the node's access; installing, running and reading them is a person's administration"
     } else if matches!(method, Method::GetAgentHistory) {
         "an agent's own history holds a person's conversations outside Vessel; an agent works \
          with the node's sessions"

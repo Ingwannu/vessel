@@ -1,6 +1,7 @@
 //! A session's pull request (`pr.get`, `pr.open`, `pr.merge`,
-//! `pr.feedback`, protocol 11): asked and answered on the workspace's
-//! pair, as `session.get` is.
+//! `pr.feedback`, protocol 11; the pane's `pr.timeline` and `pr.check`,
+//! ADR 0088): asked and answered on the workspace's pair, as
+//! `session.get` is.
 //!
 //! [Decision Log]
 //! - Purpose: the git row's pull request actions and the pull request's
@@ -18,8 +19,8 @@ use vessel_app_view::workspace::problem::Problem;
 use vessel_client::NodeClient;
 use vessel_proto::SessionId;
 use vessel_proto::forge::{
-    GetPullRequest, MergeOutcome, MergePullRequest, OpenOutcome, OpenPullRequest, PullRequestView,
-    SessionPullRequest, SetFeedback,
+    CheckDetails, GetCheckDetails, GetPullRequest, GetPullTimeline, MergeOutcome, MergePullRequest,
+    OpenOutcome, OpenPullRequest, PullRequestView, PullTimeline, SessionPullRequest, SetFeedback,
 };
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -37,6 +38,10 @@ pub enum PullAsk {
     /// `pr.feedback`: send its failing checks and reviews to the session,
     /// or stop.
     Feedback(SetFeedback),
+    /// `pr.timeline`: its reviews, comments and threads (the pane).
+    Timeline(GetPullTimeline),
+    /// `pr.check`: one check whole, with its failed jobs' log tails.
+    Check(GetCheckDetails),
 }
 
 /// What the node answered, with what was asked.
@@ -70,6 +75,20 @@ pub enum PullAnswer {
         /// The session's pull request after it.
         result: Result<Box<SessionPullRequest>, Problem>,
     },
+    /// Its activity, or why not.
+    Timeline {
+        /// Which session.
+        session: SessionId,
+        /// The activity.
+        result: Result<Box<PullTimeline>, Problem>,
+    },
+    /// One check whole, or why not.
+    Check {
+        /// What was asked.
+        ask: GetCheckDetails,
+        /// The check.
+        result: Result<Box<CheckDetails>, Problem>,
+    },
 }
 
 /// Run `ask` to its answer.
@@ -92,6 +111,14 @@ pub(super) async fn run(client: &NodeClient, ask: PullAsk) -> PullAnswer {
             result: call(client, ask.clone()).await.map(Box::new),
             ask,
         },
+        PullAsk::Timeline(ask) => PullAnswer::Timeline {
+            session: ask.session,
+            result: call(client, ask).await.map(Box::new),
+        },
+        PullAsk::Check(ask) => PullAnswer::Check {
+            result: call(client, ask.clone()).await.map(Box::new),
+            ask,
+        },
     }
 }
 
@@ -111,6 +138,14 @@ pub(super) fn refused(ask: PullAsk, problem: &Problem) -> PullAnswer {
             result: Err(problem.clone()),
         },
         PullAsk::Feedback(ask) => PullAnswer::Feedback {
+            ask,
+            result: Err(problem.clone()),
+        },
+        PullAsk::Timeline(ask) => PullAnswer::Timeline {
+            session: ask.session,
+            result: Err(problem.clone()),
+        },
+        PullAsk::Check(ask) => PullAnswer::Check {
             ask,
             result: Err(problem.clone()),
         },

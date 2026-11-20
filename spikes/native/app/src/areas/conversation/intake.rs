@@ -8,7 +8,14 @@ use vessel_app_view::timeline::{Folds, Live, Logs, outline};
 use vessel_proto::{EventRecord, SessionId};
 
 use super::ConversationArea;
-use super::area::Followup;
+use super::area::{Followup, LinkSample};
+
+/// One reopen: the last sample was offline, the link is online now, and
+/// the lost line is up. The first sample only records the link. A follow
+/// that fails while the link stays online is not another edge.
+pub(crate) fn follow_edge(sample: LinkSample, online: bool, lost: bool) -> bool {
+    matches!(sample, LinkSample::Offline) && online && lost
+}
 
 impl ConversationArea {
     /// What an act's answer does to the conversation's own state, only
@@ -81,6 +88,24 @@ impl ConversationArea {
             Err(failed) => self.refused = Some((answer.kind, failed.message)),
         }
         Followup::None
+    }
+
+    /// Note this fleet sample of the shown machine's link. The lost line
+    /// clears on one offline→online edge, not on every online read: an
+    /// idle session sends no records, so the link is what clears it, and
+    /// a follow that fails while the link stays online keeps the line.
+    /// Whether this sample is that edge.
+    pub(crate) fn link_edge(&mut self, online: bool) -> bool {
+        let reopen = follow_edge(self.link_sample, online, self.lost.is_some());
+        self.link_sample = if online {
+            LinkSample::Online
+        } else {
+            LinkSample::Offline
+        };
+        if reopen {
+            self.lost = None;
+        }
+        reopen
     }
 
     /// Fold in `records` of `session`, when it is the session shown:
