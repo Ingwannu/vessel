@@ -203,7 +203,10 @@ mod tests {
         );
         assert!(!format!("{address:?}").contains("secret"));
         // `origin` whatever the branch pushes to (ADR 0123 step B).
-        sandbox.run(&repo, &["remote", "add", "fork", "https://example.invalid/f/n.git"]);
+        sandbox.run(
+            &repo,
+            &["remote", "add", "fork", "https://example.invalid/f/n.git"],
+        );
         sandbox.run(&repo, &["config", "branch.topic.remote", "fork"]);
         let (pushes_to, _) = git.remote_address(&repo, &topic).await.unwrap().unwrap();
         assert_eq!(pushes_to.to_string(), "fork");

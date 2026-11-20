@@ -187,7 +187,11 @@ mod tests {
             "https://github.com:443/owner/repo",
             "https://github.com/owner/re%70o",
         ] {
-            assert_eq!(web_of(url), Some(named("github.com", "owner/repo")), "{url}");
+            assert_eq!(
+                web_of(url),
+                Some(named("github.com", "owner/repo")),
+                "{url}"
+            );
         }
         assert_eq!(
             web_of("https://home-git.example.com:60443/team/repo.git"),

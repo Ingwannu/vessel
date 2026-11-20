@@ -11,8 +11,8 @@ use vessel_proto::workspace::{
     PushOutcome, RelPath, RemoteName, RenameOutcome, StashAction, StashList, StashOutcome,
     SwitchOutcome, WorkspaceRoot, WorktreeBase, serves_origin,
 };
-use vessel_workspace::{Git, GitError};
 use vessel_workspace::files::{MAX_BLOB, blob_page};
+use vessel_workspace::{Git, GitError};
 
 use super::roots::Resolved;
 use super::{WorkspaceError, Workspaces};

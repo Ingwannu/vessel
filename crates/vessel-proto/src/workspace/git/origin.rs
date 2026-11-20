@@ -72,7 +72,11 @@ impl GitStatus {
 
     /// As [`for_protocol`](Self::for_protocol), with the field starting at
     /// `since` (tests give it a number while the constant is pending).
-    fn served_since(&self, protocol: ProtocolVersion, since: Option<ProtocolVersion>) -> Option<Self> {
+    fn served_since(
+        &self,
+        protocol: ProtocolVersion,
+        since: Option<ProtocolVersion>,
+    ) -> Option<Self> {
         if self.origin.is_none() || served_from(protocol, since) {
             return None;
         }
@@ -142,8 +146,7 @@ mod tests {
         let json = serde_json::to_value(status(None)).unwrap();
         assert!(json.get("origin").is_none());
         // An older node's status, without the field, still reads.
-        let read: GitStatus =
-            serde_json::from_str(r#"{"files":[],"more":false}"#).unwrap();
+        let read: GitStatus = serde_json::from_str(r#"{"files":[],"more":false}"#).unwrap();
         assert_eq!(read.origin, None);
     }
 }

@@ -920,7 +920,11 @@ async fn git_calls_answer_in_a_worktree_and_follow_its_branch() {
         worktree: worktree.id,
     };
     std::fs::write(worktree.path.join("README.md"), "changed\n").unwrap();
-    let status = fixture.workspaces.git_status(root(), Origin::Skip).await.unwrap();
+    let status = fixture
+        .workspaces
+        .git_status(root(), Origin::Skip)
+        .await
+        .unwrap();
     assert_eq!(status.files.len(), 1);
     assert_eq!(
         status.base.as_ref().map(|base| base.name.as_str()),
@@ -1032,13 +1036,21 @@ async fn a_worktree_redirected_or_replaced_is_not_worked_in() {
     let root = WorkspaceRoot::Worktree {
         worktree: worktree.id,
     };
-    let _clean = fixture.workspaces.git_status(root, Origin::Skip).await.unwrap();
+    let _clean = fixture
+        .workspaces
+        .git_status(root, Origin::Skip)
+        .await
+        .unwrap();
 
     let gitfile = worktree.path.join(".git");
     let original = std::fs::read_to_string(&gitfile).unwrap();
     std::fs::create_dir(worktree.path.join("fake")).unwrap();
     std::fs::write(&gitfile, "gitdir: ./fake\n").unwrap();
-    let refused = fixture.workspaces.git_status(root, Origin::Skip).await.unwrap_err();
+    let refused = fixture
+        .workspaces
+        .git_status(root, Origin::Skip)
+        .await
+        .unwrap_err();
     assert!(
         matches!(refused, WorkspaceError::Conflict(_)),
         "{refused:?}"
