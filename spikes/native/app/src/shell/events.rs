@@ -31,6 +31,7 @@ impl Shell {
             Event::NodeSettings(answer) => self.node_settings_answer(answer),
             Event::Diagnostics(answer) => self.diagnostics_answer(answer),
             Event::Fleet(fleet) => {
+                self.terminal_tabs_on_fleet();
                 // The link reads the fleet every 2 s; a read that changed
                 // nothing draws nothing (an idle window repainted every
                 // 2 s, measured by the coordinator on 0.0.0.0.13).
@@ -114,6 +115,7 @@ impl Shell {
                 }
             }
             Event::Searched(answer) => self.message_searched(answer, cx),
+            Event::Terminals(answer) => self.terminal_tabs_answer(answer, cx),
         }
         cx.notify();
     }

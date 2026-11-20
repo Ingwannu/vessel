@@ -6,14 +6,14 @@ mod body;
 #[cfg(test)]
 #[cfg(target_os = "linux")]
 pub(crate) mod capture;
-mod convert;
+pub(crate) mod convert;
 #[cfg(test)]
 mod convert_tests;
 mod draw;
-mod grid;
+pub(crate) mod grid;
 mod presentation;
-mod replay;
-mod scroll;
+pub(crate) mod replay;
+pub(crate) mod scroll;
 #[cfg(test)]
 mod scroll_tests;
 #[cfg(test)]
@@ -46,7 +46,7 @@ const BLINK: Duration = Duration::from_millis(500);
 /// The measured box must hold before history is reflowed again.
 const SETTLE: Duration = Duration::from_millis(100);
 
-fn font_size() -> Pixels {
+pub(crate) fn font_size() -> Pixels {
     px(vessel_app_kit::fonts::code(12.0))
 }
 

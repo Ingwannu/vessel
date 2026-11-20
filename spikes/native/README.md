@@ -222,6 +222,10 @@ app/src/
     terminal/      terminal-session lifecycle, background replay, appearance and
                    cursor presentation, and the bounded scroll viewport; adapts
                    view's parser/grid to the kit's single terminal_grid renderer
+    terminal_tabs/ a workspace's shells as tabs (TRACKER 481/482): create, follow,
+                   keys/IME/paste through one sender, size claim on focus, Paseo's
+                   states, the close confirm, list reconcile; reuses terminal/'s
+                   grid, colours, replay and wheel (docs/plans/t2-terminal-tabs.md)
     composer/      what the composers share: an agent's lists kept and refreshed
                    (offers.rs), a running session's controls (running.rs, modes.rs),
                    the `/` menu (slash.rs), drafts and recall (drafts.rs), files
@@ -682,8 +686,8 @@ registry used for rebinding and conflicts. It calls `Theme::next` and the
 existing appearance preference setter. The command center suppresses this
 action, including a rebound key; character-preferred input and focused
 composition stand down before shortcut matching. Non-Mac terminal focus is
-excluded by policy, but its actual focus query awaits the terminal surface;
-this integration still has a placeholder there.
+excluded by policy; the focus query covers the terminal session's screen and
+every terminal tab (`Shell::terminal_focused`).
 
 ### Named colour palettes (ADR 0070, staged)
 
