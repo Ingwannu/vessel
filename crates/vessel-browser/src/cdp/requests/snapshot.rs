@@ -24,6 +24,8 @@ pub(crate) struct Frame {
     pub(crate) id: FrameId,
     pub(crate) loader_id: LoaderId,
     url: PageText,
+    // A fragment change can scroll the page without replacing its loader.
+    url_fragment: Option<PageText>,
 }
 
 impl Frame {
@@ -114,6 +116,20 @@ mod tests {
         )
         .unwrap();
         assert!(frame.admitted_url().is_ok());
+    }
+
+    #[test]
+    fn same_loader_fragment_changes_invalidate_a_document_stamp() {
+        let read = |fragment| -> Frame {
+            serde_json::from_value(serde_json::json!({
+                "id": "frame",
+                "loaderId": "loader",
+                "url": "https://fixture.test/",
+                "urlFragment": fragment,
+            }))
+            .unwrap()
+        };
+        assert_ne!(read("#first"), read("#second"));
     }
     #[test]
     fn no_caller_selects_source_or_universal_access_and_context_zero_refuses() {
