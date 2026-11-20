@@ -10,7 +10,7 @@ use vessel_proto::{ProjectId, SessionStatus};
 
 use super::fixture::{fleet, id, machine, session, short};
 use crate::board::{Attention, RunsIn};
-use crate::prefs::{FoldedProjects, SidebarView};
+use crate::prefs::{FoldedProjects, ProjectKey, ProjectOrder, SidebarView};
 use crate::sidebar::tree::{PROJECT_SESSIONS, SidebarTree, TreeState, by_name};
 use crate::workspace::projects::ProjectsView;
 use crate::{Card, Fleet};
@@ -134,6 +134,37 @@ fn names(tree: &SidebarTree<'_>) -> Vec<String> {
 }
 
 #[test]
+fn placed_projects_lead_in_their_order_and_the_rest_follow_by_name() {
+    let (fleet, lists) = book();
+    let folded = FoldedProjects::default();
+    let more = HashSet::new();
+    let plain = TreeState {
+        lists: &lists,
+        folded: &folded,
+        order: &ProjectOrder::default(),
+        unfolded_more: &more,
+        open: None,
+    };
+    let keys: Vec<ProjectKey> = fleet
+        .sidebar_tree(SidebarView::default(), plain)
+        .projects
+        .iter()
+        .map(|project| ProjectKey::new(project.machine, project.project.id))
+        .collect();
+    // site, then Atlas, dropped there (TRACKER 811); docs and shop never
+    // placed, after them by name.
+    let order = ProjectOrder::of(vec![keys[3].clone(), keys[0].clone()]);
+    let state = TreeState {
+        order: &order,
+        ..plain
+    };
+    assert_eq!(
+        names(&fleet.sidebar_tree(SidebarView::default(), state)),
+        ["laptop/site", "gpu-box/Atlas", "laptop/docs", "laptop/shop"]
+    );
+}
+
+#[test]
 fn projects_by_name_hold_their_sessions_and_each_machine_keeps_the_rest() {
     let (fleet, lists) = book();
     let folded = FoldedProjects::default();
@@ -141,6 +172,7 @@ fn projects_by_name_hold_their_sessions_and_each_machine_keeps_the_rest() {
     let state = TreeState {
         lists: &lists,
         folded: &folded,
+        order: &ProjectOrder::default(),
         unfolded_more: &more,
         open: None,
     };
@@ -193,6 +225,7 @@ fn a_folded_project_draws_no_session_and_numbers_skip_it() {
     let state = TreeState {
         lists: &lists,
         folded: &folded,
+        order: &ProjectOrder::default(),
         unfolded_more: &more,
         open: None,
     };
@@ -237,6 +270,7 @@ fn a_project_shows_seven_and_every_one_not_done_then_show_more() {
     let state = TreeState {
         lists: &lists,
         folded: &folded,
+        order: &ProjectOrder::default(),
         unfolded_more: &more,
         open: None,
     };
@@ -256,6 +290,7 @@ fn a_project_shows_seven_and_every_one_not_done_then_show_more() {
     let state = TreeState {
         lists: &lists,
         folded: &folded,
+        order: &ProjectOrder::default(),
         unfolded_more: &more,
         open: None,
     };
@@ -276,6 +311,7 @@ fn the_open_session_past_the_limit_leads_its_project() {
     let state = TreeState {
         lists: &lists,
         folded: &folded,
+        order: &ProjectOrder::default(),
         unfolded_more: &more,
         open: Some(("laptop", id("07"))),
     };
@@ -289,6 +325,7 @@ fn the_open_session_past_the_limit_leads_its_project() {
     let state = TreeState {
         lists: &lists,
         folded: &folded,
+        order: &ProjectOrder::default(),
         unfolded_more: &more,
         open: Some(("laptop", id("08"))),
     };
