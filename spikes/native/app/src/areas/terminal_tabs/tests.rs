@@ -393,7 +393,7 @@ fn close_asks_first_then_closes_the_terminal_on_its_machine(cx: &mut TestAppCont
     let _created = sent(&probe, cx);
     shell.update_in(cx, |shell, window, cx| {
         assert!(shell.run_layout_action(
-            LayoutAction::Close(vessel_app_view::layout::CloseScope::Current),
+            LayoutAction::Close(CloseScope::Current),
             window,
             cx
         ));
@@ -403,7 +403,7 @@ fn close_asks_first_then_closes_the_terminal_on_its_machine(cx: &mut TestAppCont
         assert!(shell.areas.terminal_tabs.confirm.is_none());
         assert_eq!(terminal_tabs(shell), vec![terminal]);
         assert!(shell.run_layout_action(
-            LayoutAction::Close(vessel_app_view::layout::CloseScope::Current),
+            LayoutAction::Close(CloseScope::Current),
             window,
             cx
         ));
