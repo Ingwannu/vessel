@@ -28,6 +28,8 @@
 //!   shortcut is read by both composers ([`apply_composer`]).
 
 mod agents;
+mod anchors;
+pub(crate) use anchors::Anchors;
 mod appearance;
 mod book;
 mod chat;
@@ -58,7 +60,7 @@ pub(crate) use sections::drawn;
 mod sync;
 
 use gpui::AnimationExt as _;
-use vessel_app_kit::select::{self, Anchor};
+use vessel_app_kit::select;
 use vessel_app_kit::ui::{
     AnyElement, App, Context, Div, ElementId, IntoElement as _, ParentElement as _, Styled as _,
     Window, div, px,
@@ -158,34 +160,6 @@ impl SettingsState {
         self.pushed = pushed;
         self.refused = None;
         self.turn = self.turn.saturating_add(1);
-    }
-}
-
-/// Where each trigger was last drawn.
-#[derive(Default)]
-pub(crate) struct Anchors {
-    machine: Anchor,
-    send: Anchor,
-    delivery: Anchor,
-    interface: Anchor,
-    code: Anchor,
-    width: Anchor,
-    display: Anchor,
-    alerts: Anchor,
-}
-
-impl Anchors {
-    pub(crate) const fn of(&self, list: List) -> &Anchor {
-        match list {
-            List::Machine => &self.machine,
-            List::Send => &self.send,
-            List::Delivery => &self.delivery,
-            List::Interface => &self.interface,
-            List::Code => &self.code,
-            List::Width => &self.width,
-            List::Display => &self.display,
-            List::Alerts => &self.alerts,
-        }
     }
 }
 
