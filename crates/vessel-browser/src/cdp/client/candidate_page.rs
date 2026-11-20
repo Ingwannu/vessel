@@ -22,7 +22,8 @@ use vessel_proto::browser::{
 use vessel_proto::conversation::FiniteNumber;
 
 const HTML: &str = r#"<!doctype html><meta charset=utf-8><title>Rust fixture</title>
-<style>body {margin:0; min-height:1200px} #probe {position:absolute; left:20px; top:100px; width:120px; height:24px}</style>
+<style>html {scrollbar-width:none} body {margin:0; min-height:1200px}
+#probe {position:absolute; left:20px; top:100px; width:120px; height:24px}</style>
 <h1>Owned Rust page</h1><label for=probe>Fixture input</label>
 <input id=probe onpointerdown="this.dataset.trusted = event.isTrusted">
 <button>Fixture button</button><p>Owned Rust page ready</p>"#;
@@ -44,9 +45,12 @@ impl FixtureProxy {
         let guard = stop.clone().drop_guard();
         let closing = stop.clone();
         let actor = tokio::spawn(async move {
-            axum::serve(listener, Router::new().fallback(document).with_state(routes))
-                .with_graceful_shutdown(closing.cancelled_owned())
-                .await
+            axum::serve(
+                listener,
+                Router::new().fallback(document).with_state(routes),
+            )
+            .with_graceful_shutdown(closing.cancelled_owned())
+            .await
         });
         Self { stop, guard, actor }
     }

@@ -48,3 +48,9 @@ front proxy forwards only two held loopback destinations to the actual policy
 proxy and checks the 403 responses, while both TCP listeners check for direct
 connections. This isolates the refusal test from external DNS and websites.
 The full policy and profile-reuse gates remain separate.
+
+The first real candidate run on `9c6b81ae` reached trusted input, stale-frame
+refusal, viewport capture and clean owned-process closure. The exact fixture
+failed its full-page width assertion (375 CSS pixels observed vs 390 expected)
+because a vertical scrollbar reduced the content width. The fixture now sets
+its scrollbar width explicitly and retains both dimensions in the assertion.

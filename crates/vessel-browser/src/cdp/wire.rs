@@ -126,7 +126,10 @@ impl Event {
         if self.kind != EventKind::Screencast {
             return Ok(None);
         }
-        self.params.decode().map(Some).map_err(super::CdpError::Json)
+        self.params
+            .decode()
+            .map(Some)
+            .map_err(super::CdpError::Json)
     }
 }
 

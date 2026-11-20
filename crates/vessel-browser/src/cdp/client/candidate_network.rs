@@ -36,7 +36,9 @@ impl Routes {
                 .unwrap();
             page.navigate(url).await?;
             let expected = RequiredInput::try_from(canary.refused.to_owned()).unwrap();
-            let matched = page.wait(WaitFor::Text(expected), WaitBudget::Default).await?;
+            let matched = page
+                .wait(WaitFor::Text(expected), WaitBudget::Default)
+                .await?;
             assert_eq!(matched, WaitMatch::Text);
         }
         Ok(())

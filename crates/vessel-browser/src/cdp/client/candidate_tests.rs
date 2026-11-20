@@ -3,8 +3,8 @@
 //! The exact artifact is run only on the approved host/account. Private fixture
 //! storage stays quarantined at a fresh nonce path; no product profile or engine
 //! admission is released from a leader/accepted-group cleanup receipt.
-use super::*;
 use super::candidate_network::NetworkFixture;
+use super::*;
 use crate::cdp::{requests, transport};
 use crate::launch::{Plan, ProxyEndpoint};
 use crate::preparation::Preparation;
@@ -99,7 +99,8 @@ async fn approved_candidate_uses_real_rust_driver_and_private_child_pipe() {
         let proxy = candidate_page::FixtureProxy::start(listener, routes);
         let spawned = plan.spawn_for_diagnostic().unwrap();
         let run = spawned.child.lifetime();
-        let (client, mut events) = Client::start(transport::Pipe::new(spawned.stdout, spawned.stdin));
+        let (client, mut events) =
+            Client::start(transport::Pipe::new(spawned.stdout, spawned.stdin));
         let mut stderr = spawned.stderr;
         let stderr = tokio::spawn(async move {
             let mut sink = tokio::io::sink();
