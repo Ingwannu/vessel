@@ -56,12 +56,23 @@ pub(crate) enum Settle {
     Say,
 }
 
+/// An agents call the link did not take, as the devices page says it: a
+/// full queue is the page's own "busy, try again", a stopped link the
+/// machine's lost connection.
+const fn agents_error(why: Rejected) -> AgentsError {
+    match why {
+        Rejected::Full => AgentsError::Busy,
+        Rejected::Closed => AgentsError::Disconnected,
+    }
+}
+
 /// How `unsent` settles; `words`, the app's sentence for it, in the
 /// person's language.
 pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
     let said = || words.to_owned();
+    let why = unsent.why;
     let event = match *unsent.command {
-        Command::Usage(ask) => usage_refused(ask, unsent.why),
+        Command::Usage(ask) => usage_refused(ask, why),
         Command::SessionAccess(access) => access.refused(ActFailed {
             code: None,
             message: words.to_owned(),
@@ -75,46 +86,37 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
         Command::Sessions(ask) => {
             Event::Sessions(ask.refused(vessel_app_link::sessions::Failure::Busy))
         }
-        Command::Create(ask) => Event::Creation(ask.refused(creation_failure(unsent.why))),
+        Command::Create(ask) => Event::Creation(ask.refused(creation_failure(why))),
         Command::History(ask) => Event::History(vessel_app_link::history::Answer::refused(
             ask,
             vessel_app_view::history::Problem::Unsent,
         )),
-        Command::Labels(request) => Event::Labels(request.refused(labels_failure(unsent.why))),
+        Command::Labels(request) => Event::Labels(request.refused(labels_failure(why))),
         Command::RetireConnection(_tag) => return Settle::Ignore,
         Command::CodeSource(request) => {
             Event::CodeSource(Box::new(request.refused(Problem::Unsent)))
         }
-        // As the devices page: a full queue is the page's own "busy, try
-        // again", a stopped link the machine's lost connection.
         Command::Agents {
             machine, request, ..
         } => Event::Agents {
             machine,
             request,
-            answer: Err(match unsent.why {
-                Rejected::Full => AgentsError::Busy,
-                Rejected::Closed => AgentsError::Disconnected,
-            }),
+            answer: Err(agents_error(why)),
         },
         Command::Machines(ask) => Event::Machines(ask.refused(Failure::Unsent)),
         Command::Sync { ticket, .. } => Event::Sync(vessel_app_link::sync::Answer {
             ticket,
-            result: Err(vessel_app_link::sync::rejected(unsent.why)),
+            result: Err(vessel_app_link::sync::rejected(why)),
         }),
         Command::Devices {
             context,
             ticket,
             ask,
-        } => Event::Devices(ask.rejected(context, ticket, devices::rejected(unsent.why))),
-        Command::NodeSettings(ask) => Event::NodeSettings(ask.refused(idle_problem(unsent.why))),
-        Command::Diagnostics(ask) => {
-            Event::Diagnostics(ask.refused(diagnostics_problem(unsent.why)))
-        }
-        Command::Plugins(ask) => Event::Plugins(ask.refused(plugins_problem(unsent.why))),
-        Command::PluginCatalog(ask) => {
-            Event::PluginCatalog(ask.refused(plugins_problem(unsent.why)))
-        }
+        } => Event::Devices(ask.rejected(context, ticket, devices::rejected(why))),
+        Command::NodeSettings(ask) => Event::NodeSettings(ask.refused(idle_problem(why))),
+        Command::Diagnostics(ask) => Event::Diagnostics(ask.refused(diagnostics_problem(why))),
+        Command::Plugins(ask) => Event::Plugins(ask.refused(plugins_problem(why))),
+        Command::PluginCatalog(ask) => Event::PluginCatalog(ask.refused(plugins_problem(why))),
         Command::Start { .. } => Event::Failed(said()),
         Command::Options { machine, harness } => Event::Options {
             machine,
