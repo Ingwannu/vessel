@@ -27,7 +27,14 @@ pub(super) fn side_control(
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
-    if !viewer.look.panel.has_preview() || !matches!(viewer.text, Shown::Text { .. }) {
+    // Read: shown read-only (`text`), or in the editor (a desktop's width
+    // reads into the edit and leaves `text` loading).
+    let read = matches!(viewer.text, Shown::Text { .. })
+        || viewer
+            .edit
+            .as_ref()
+            .is_some_and(|editing| editing.model.version().is_some());
+    if !viewer.look.panel.has_preview() || !read {
         return None;
     }
     let words = shell.t.lang.viewers();
@@ -117,6 +124,9 @@ pub(super) fn markdown(
                 .mx_auto()
                 .px(px(spacing::S6))
                 .py(px(spacing::S4))
+                // The document's ink: the kit's Markdown draws in the
+                // colour it is given (the conversation's bubbles set theirs).
+                .text_color(tokens.neutral.foreground)
                 .children(front_matter(&document.front_matter, tokens))
                 .child(body),
         )
@@ -151,9 +161,12 @@ fn front_matter(rows: &[FrontMatterRow], tokens: &Tokens) -> Option<AnyElement> 
                 })
                 .child(
                     div()
-                        .flex_basis(relative(KEY_SHARE))
+                        // A fixed share, as Paseo's basis: every key
+                        // column the same width, a long key wrapping.
+                        .w(relative(KEY_SHARE))
                         .max_w(px(KEY_MAX))
                         .flex_shrink_0()
+                        .min_w(px(spacing::S0))
                         .px(px(spacing::S3))
                         .py(px(spacing::S2))
                         .bg(neutral.surface2)
