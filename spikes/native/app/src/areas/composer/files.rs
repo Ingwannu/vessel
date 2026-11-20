@@ -75,6 +75,7 @@ pub(crate) fn session_card(
             .session_tray_key()
             .and_then(|target| super::context::tray(shell, target, tokens, touch, cx)),
     )
+    .children(super::diff_pill::pill(shell, tokens, cx))
     .child(super::text(shell, tokens, touch, window, cx))
 }
 

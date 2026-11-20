@@ -9,8 +9,8 @@ use vessel_proto::{HarnessKind, NodeId, ProfileName};
 use super::{
     ActionId, AgentDefaults, AgentKind, Alerts, Animations, Bindings, Choices, CodeSize,
     ContentWidth, ConversationDisplay, ExplorerSort, Grouping, InterfaceSize, MAX_ACTIONS,
-    MAX_EDITS, MAX_MACHINES, MachineDefaults, Panel, Preferences, SendKey, SessionSort, Theme,
-    TooMany, TurnDelivery,
+    MAX_EDITS, MAX_MACHINES, MachineDefaults, Panel, Preferences, SendKey, SessionSort,
+    SidebarTrailing, Theme, TooMany, TurnDelivery,
 };
 
 /// One change: the setting it names, and its value.
@@ -62,6 +62,8 @@ pub enum PreferenceChange {
     SidebarSort(SessionSort),
     /// Whether the sidebar lists ended sessions.
     SidebarEnded(bool),
+    /// What a sidebar row shows after its name.
+    SidebarTrailing(SidebarTrailing),
     /// Replace one sidebar navigation band, retaining the other.
     SidebarNavigation {
         /// Header or optional footer rows.
@@ -211,6 +213,7 @@ impl Preferences {
             PreferenceChange::SidebarGroup(group) => self.sidebar.group = *group,
             PreferenceChange::SidebarSort(sort) => self.sidebar.sort = *sort,
             PreferenceChange::SidebarEnded(ended) => self.sidebar.ended = *ended,
+            PreferenceChange::SidebarTrailing(trailing) => self.sidebar.trailing = *trailing,
             PreferenceChange::SidebarNavigation { section, entries } => {
                 self.sidebar_navigation.set(*section, entries.clone());
             }

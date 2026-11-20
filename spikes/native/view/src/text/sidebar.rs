@@ -4,7 +4,7 @@
 
 use super::Lang;
 use crate::attention::Bucket;
-use crate::prefs::{Grouping, SessionSort};
+use crate::prefs::{Grouping, SessionSort, SidebarTrailing};
 use crate::sidebar::SessionMark;
 
 impl Lang {
@@ -49,6 +49,10 @@ pub struct SidebarWords {
     created: &'static str,
     activity: &'static str,
     pub show_ended: &'static str,
+    pub show: &'static str,
+    pub diff_stats: &'static str,
+    /// The composer's diff count (`composer.openChangesTab`).
+    pub open_changes: &'static str,
     // A session row's menu.
     pub copy_path: &'static str,
     /// Its toast (Paseo's `sidebar.workspace.toasts.pathCopied`).
@@ -116,6 +120,17 @@ impl SidebarWords {
             Grouping::Project => self.by_project,
             Grouping::Machine => self.by_machine,
             Grouping::Status => self.by_status,
+        }
+    }
+
+    /// What a row shows after its name, in the Display menu.
+    /// `none` has no words: the menu does not offer it.
+    #[must_use]
+    pub const fn trailing(&self, trailing: SidebarTrailing) -> &'static str {
+        match trailing {
+            SidebarTrailing::Diff => self.diff_stats,
+            SidebarTrailing::Timestamp => self.activity,
+            SidebarTrailing::None => "",
         }
     }
 
@@ -215,6 +230,9 @@ const EN: SidebarWords = SidebarWords {
     created: "Created",
     activity: "Last activity",
     show_ended: "Show ended sessions",
+    show: "Show",
+    diff_stats: "Diff stats",
+    open_changes: "Open Changes tab",
     copy_path: "Copy path",
     path_copied: "Path copied",
     labels: "Labels",
@@ -270,6 +288,9 @@ const KO: SidebarWords = SidebarWords {
     created: "만든 시각",
     activity: "마지막 활동",
     show_ended: "끝난 세션 표시",
+    show: "표시 항목",
+    diff_stats: "Diff 통계",
+    open_changes: "변경사항 탭 열기",
     copy_path: "경로 복사",
     path_copied: "경로가 복사되었습니다",
     labels: "라벨",

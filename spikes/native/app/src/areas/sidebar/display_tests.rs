@@ -94,7 +94,7 @@ fn a_page_opened_by_enter_takes_the_keys_and_escape_leads_back_to_the_list(
 
 #[test]
 fn each_page_has_a_name_and_the_name_leads_back_to_it() {
-    for page in [DisplayPage::Grouping, DisplayPage::Sort] {
+    for page in [DisplayPage::Grouping, DisplayPage::Sort, DisplayPage::Trailing] {
         let id = page_id(page).unwrap();
         assert_eq!(page_named(id), Some(page));
     }

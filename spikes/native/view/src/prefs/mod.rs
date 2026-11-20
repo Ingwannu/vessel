@@ -308,6 +308,20 @@ impl Alerts {
     }
 }
 
+/// What a sidebar row shows after its name (Paseo's Display trailing).
+/// `none` is stored and draws nothing; the menu offers the other two.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SidebarTrailing {
+    /// The workspace's diff stat, when one is served.
+    Diff,
+    /// The row's last activity.
+    #[default]
+    Timestamp,
+    /// The title keeps the width.
+    None,
+}
+
 /// How the sidebar lists sessions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
@@ -322,6 +336,10 @@ pub struct SidebarView {
     /// off; see [`SidebarView::default`]).
     #[serde(deserialize_with = "lenient_on")]
     pub ended: bool,
+    /// What a row shows after its name. Absent on an older file, which
+    /// reads as last activity.
+    #[serde(default, deserialize_with = "lenient")]
+    pub trailing: SidebarTrailing,
 }
 
 /// [Decision Log] Ended sessions are listed by default (2026-11-14, the
@@ -347,6 +365,7 @@ impl Default for SidebarView {
             group: Grouping::default(),
             sort: SessionSort::default(),
             ended: true,
+            trailing: SidebarTrailing::Timestamp,
         }
     }
 }

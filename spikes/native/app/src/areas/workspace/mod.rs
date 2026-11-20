@@ -220,6 +220,11 @@ impl Shell {
             Answer::Log { ask, result } => self.pulls_log_read(machine, &ask, result),
             Answer::Pull(answer) => self.pulls_answered(machine, answer, cx),
             Answer::Saved { root, path, saved } => self.editor_saved(&root, &path, saved, cx),
+            Answer::Workspaces(result) => {
+                if !self.diff_stat_answered(machine, result, cx) {
+                    return false;
+                }
+            }
         }
         cx.notify();
         true

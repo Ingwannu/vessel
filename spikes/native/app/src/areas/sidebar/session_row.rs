@@ -135,6 +135,7 @@ pub(super) fn session_row(
         .items_start()
         .gap(px(spacing::S2))
         .child(title)
+        .children(super::trailing::slot(card, shell, tokens))
         .child(match extras.number {
             Some(number) => shortcut_number(number, tokens),
             None => dots(

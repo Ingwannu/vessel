@@ -29,6 +29,7 @@ pub(super) async fn run(hub: &Hub, client: &NodeClient, reply: &Reply, ask: Ask)
             ended: super::StartEnded::Refused(vessel_app_view::creation::Failure::Unsupported),
         },
         Ask::Pull(ask) => Answer::Pull(super::pulls::run(client, ask).await),
+        Ask::Workspaces(list) => Answer::Workspaces(call(client, list).await),
         Ask::Session(session) => Answer::Session {
             session,
             result: call(client, vessel_proto::GetSession { session })

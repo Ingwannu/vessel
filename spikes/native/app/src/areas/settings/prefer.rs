@@ -75,6 +75,7 @@ impl Shell {
                     | PreferenceChange::SidebarGroup(_)
                     | PreferenceChange::SidebarSort(_)
                     | PreferenceChange::SidebarEnded(_)
+                    | PreferenceChange::SidebarTrailing(_)
                     | PreferenceChange::SidebarNavigation { .. }
                     | PreferenceChange::Shortcuts { .. }
                     | PreferenceChange::ResetShortcuts

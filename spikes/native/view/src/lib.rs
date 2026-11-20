@@ -28,6 +28,7 @@ pub mod creation;
 pub mod desktop;
 pub mod devices;
 pub mod diagnostics;
+pub mod diff_count;
 pub mod effort;
 pub mod extras;
 pub mod files;

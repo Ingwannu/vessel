@@ -277,6 +277,8 @@ pub enum Answer {
     },
     /// A session's pull request.
     Pull(super::PullAnswer),
+    /// `workspace.list`: each workspace and its diff stat (ADR 0120).
+    Workspaces(Result<Vec<vessel_proto::registry::ServedWorkspace>, Problem>),
 }
 
 /// Which form added a project.
@@ -327,6 +329,7 @@ pub(super) fn refused(ask: Ask, problem: &Problem) -> Answer {
             result: no(problem),
         },
         Ask::Pull(ask) => Answer::Pull(super::pulls::refused(ask, problem)),
+        Ask::Workspaces(_) => Answer::Workspaces(no(problem)),
     }
 }
 

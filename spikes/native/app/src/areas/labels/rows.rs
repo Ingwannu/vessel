@@ -134,4 +134,25 @@ impl super::Labels {
             writable: host.state.writable().is_ok(),
         })
     }
+
+    /// The workspace a session row's diff stat belongs to: the registry's
+    /// row, or the card's derived membership. None while the host is not
+    /// followed or the session has no workspace.
+    pub(crate) fn workspace_of(
+        &self,
+        machine: &str,
+        session: vessel_proto::SessionId,
+        project: Option<vessel_proto::ProjectId>,
+    ) -> Option<vessel_proto::WorkspaceId> {
+        let host = self
+            .hosts
+            .iter()
+            .find(|host| host.route.as_str() == machine)?;
+        let connection = host.connection.as_ref()?;
+        let follow = self
+            .follows
+            .iter()
+            .find(|follow| &follow.connection == connection)?;
+        follow.registry.workspace(session, project)
+    }
 }

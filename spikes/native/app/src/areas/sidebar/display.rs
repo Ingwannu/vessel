@@ -144,12 +144,13 @@ const fn page_id(page: DisplayPage) -> Option<&'static str> {
         DisplayPage::Root => None,
         DisplayPage::Grouping => Some("grouping"),
         DisplayPage::Sort => Some("sort"),
+        DisplayPage::Trailing => Some("show"),
     }
 }
 
 /// The page named `id`.
 fn page_named(id: &str) -> Option<DisplayPage> {
-    [DisplayPage::Grouping, DisplayPage::Sort]
+    [DisplayPage::Grouping, DisplayPage::Sort, DisplayPage::Trailing]
         .into_iter()
         .find(|page| page_id(*page) == Some(id))
 }

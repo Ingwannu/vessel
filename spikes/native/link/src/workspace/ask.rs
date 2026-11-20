@@ -36,6 +36,8 @@ pub enum Ask {
     Session(SessionId),
     /// A session's pull request (`pr.get`, `pr.open`).
     Pull(super::PullAsk),
+    /// `workspace.list`: each workspace and its diff stat (ADR 0120).
+    Workspaces(vessel_proto::registry::ListWorkspaces),
 }
 
 /// The project asks.
