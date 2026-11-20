@@ -1,5 +1,5 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { UsageReadFailed } from "./plan-usage";
 
@@ -8,7 +8,7 @@ describe("usage that could not be read (TRACKER 820)", () => {
     const html = renderToStaticMarkup(
       <UsageReadFailed
         message="The node refused: no route"
-        onRetry={() => {}}
+        onRetry={vi.fn()}
       />,
     );
     expect(html).toContain('role="alert"');
