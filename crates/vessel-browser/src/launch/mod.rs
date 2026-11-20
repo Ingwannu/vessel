@@ -9,8 +9,8 @@ mod identity;
 mod tests;
 
 use crate::profile::Profile;
-use identity::{Candidate, NO_DESKTOP_BUS};
 pub(crate) use identity::LaunchError;
+use identity::{Candidate, NO_DESKTOP_BUS};
 use std::ffi::OsString;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use vessel_proc::{Child, CommandDiagnostics, CommandSpec};
@@ -69,7 +69,11 @@ impl Plan {
         let identity = Candidate::inspect()?;
         Self::build(profile, proxy, identity)
     }
-    fn build(profile: Profile, proxy: ProxyEndpoint, identity: Candidate) -> Result<Self, LaunchError> {
+    fn build(
+        profile: Profile,
+        proxy: ProxyEndpoint,
+        identity: Candidate,
+    ) -> Result<Self, LaunchError> {
         let mut directory = OsString::from("--user-data-dir=");
         directory.push(profile.root());
         let command = CommandSpec::new(FIXED_SHELL)

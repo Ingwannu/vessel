@@ -166,7 +166,10 @@ impl Page {
 
     /// Stop a foreign top-level navigation without treating a subframe
     /// navigation as a change to the displayed document.
-    pub(crate) async fn reject_navigation(&mut self, requested: &FrameId) -> Result<bool, PageError> {
+    pub(crate) async fn reject_navigation(
+        &mut self,
+        requested: &FrameId,
+    ) -> Result<bool, PageError> {
         let frame = self.execute(requests::FrameTree {}).await?.frame_tree.frame;
         if &frame.id != requested {
             return Ok(false);

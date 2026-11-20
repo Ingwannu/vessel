@@ -66,12 +66,9 @@ impl FixtureProxy {
             sent_attachment: Arc::clone(&sent_attachment),
         };
         let actor = tokio::spawn(async move {
-            axum::serve(
-                listener,
-                Router::new().fallback(document).with_state(state),
-            )
-            .with_graceful_shutdown(closing.cancelled_owned())
-            .await
+            axum::serve(listener, Router::new().fallback(document).with_state(state))
+                .with_graceful_shutdown(closing.cancelled_owned())
+                .await
         });
         Self {
             stop,
@@ -216,7 +213,9 @@ pub(super) async fn exercise(
     let full_png = page.capture_extent(ScreenshotExtent::Page).await?.size();
     let compositor_png = page.probe_compositor(events).await?.size();
     routes.verify_browser(page).await?;
-    let attachment = format!("http://fixture.test{DOWNLOAD_ROUTE}").parse().unwrap();
+    let attachment = format!("http://fixture.test{DOWNLOAD_ROUTE}")
+        .parse()
+        .unwrap();
     assert!(matches!(
         page.navigate(attachment).await,
         Err(PageError::Navigation)

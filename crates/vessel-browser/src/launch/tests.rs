@@ -41,12 +41,7 @@ fn candidate_argv_never_interpolates_page_data_and_only_explicit_environment_sur
     assert!(
         matches!(command.env_change("DBUS_SESSION_BUS_ADDRESS"),Some(EnvValue::Set(value)) if value==std::ffi::OsStr::new(NO_DESKTOP_BUS))
     );
-    for name in [
-        "SSH_AUTH_SOCK",
-        "HTTP_PROXY",
-        "HTTPS_PROXY",
-        "ALL_PROXY",
-    ] {
+    for name in ["SSH_AUTH_SOCK", "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY"] {
         assert_eq!(command.env_change(name), None);
     }
     // Inspector's refusal on the build VM is expected when the optional exact

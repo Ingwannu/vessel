@@ -8,7 +8,10 @@ impl Page {
         extent: ScreenshotExtent,
     ) -> Result<ScreenshotPng, PageError> {
         match extent {
-            ScreenshotExtent::Viewport => self.viewport_frame().await.map(super::ViewportFrame::into_image),
+            ScreenshotExtent::Viewport => self
+                .viewport_frame()
+                .await
+                .map(super::ViewportFrame::into_image),
             ScreenshotExtent::Page => self.capture_page().await,
         }
     }

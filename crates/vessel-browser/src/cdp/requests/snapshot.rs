@@ -96,11 +96,23 @@ mod tests {
     use super::*;
     #[test]
     fn unsupported_guest_documents_never_authorize_output() {
-        for address in ["about:blank", "mailto:fixture@example.test", "data:text/plain,fixture", "file:///fixture", "javascript:void(0)"] {
-            let frame: Frame = serde_json::from_value(serde_json::json!({"id":"frame","loaderId":"loader","url":address})).unwrap();
+        for address in [
+            "about:blank",
+            "mailto:fixture@example.test",
+            "data:text/plain,fixture",
+            "file:///fixture",
+            "javascript:void(0)",
+        ] {
+            let frame: Frame = serde_json::from_value(
+                serde_json::json!({"id":"frame","loaderId":"loader","url":address}),
+            )
+            .unwrap();
             assert!(frame.admitted_url().is_err());
         }
-        let frame: Frame = serde_json::from_value(serde_json::json!({"id":"frame","loaderId":"loader","url":"https://fixture.test/"})).unwrap();
+        let frame: Frame = serde_json::from_value(
+            serde_json::json!({"id":"frame","loaderId":"loader","url":"https://fixture.test/"}),
+        )
+        .unwrap();
         assert!(frame.admitted_url().is_ok());
     }
     #[test]

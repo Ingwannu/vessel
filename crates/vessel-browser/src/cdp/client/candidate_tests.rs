@@ -115,7 +115,9 @@ async fn approved_candidate_uses_real_rust_driver_and_private_child_pipe() {
         proxy.finish().await;
         scope
             .run(move || {
-                let destination = root.join("home/Downloads").join(candidate_page::DOWNLOAD_NAME);
+                let destination = root
+                    .join("home/Downloads")
+                    .join(candidate_page::DOWNLOAD_NAME);
                 assert!(!destination.exists());
                 assert!(!destination.with_extension("txt.crdownload").exists());
             })
