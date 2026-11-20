@@ -40,7 +40,7 @@ use crate::models::Models;
 use crate::models::proxy::serve as serve_models;
 use crate::probes::Probes;
 use crate::profiles::NodeProfiles;
-use crate::relays::{self, Relays};
+use crate::relays::Relays;
 use crate::secure::{MAX_UNADMITTED, SecureGateway};
 use crate::server::{self, Gateway};
 use crate::service::{NodeService, Parts};

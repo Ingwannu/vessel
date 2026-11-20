@@ -23,7 +23,6 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use vessel_fleet::{BlobStore, Managed, Plan, SkipReason, Target};
-use vessel_harness::Profile;
 use vessel_proto::{BundlePath, HarnessKind, Manifest};
 
 use super::FleetTargets;
@@ -93,7 +92,7 @@ fn profile_targets(profiles: &NodeProfiles) -> Vec<Target> {
                 path.join(part)
             });
         let read = canonical(&read);
-        !filled.iter().any(|root| *root == read)
+        !filled.contains(&read)
     });
     targets
         .into_iter()
@@ -261,6 +260,8 @@ pub fn restore(files: &FleetFiles, path: &Path) -> Result<usize, RestoreError> {
 
 #[cfg(test)]
 mod tests {
+    use vessel_harness::Profile;
+
     use super::*;
 
     /// With the default Claude Code home among the targets, the harness

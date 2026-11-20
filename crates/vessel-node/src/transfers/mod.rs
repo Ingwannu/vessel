@@ -365,6 +365,8 @@ pub(crate) fn check_limits<'a>(
 
 #[cfg(test)]
 mod tests {
+    use vessel_proto::ErrorCode;
+
     use super::*;
 
     fn open_one(transfers: &Transfers, holder: Holder, text: &[u8]) -> (TransferId, BundleFile) {
