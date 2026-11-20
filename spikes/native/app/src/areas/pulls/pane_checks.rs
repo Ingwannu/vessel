@@ -54,14 +54,20 @@ pub(super) fn colour(presentation: Presentation, tokens: &Tokens) -> Hsla {
     }
 }
 
-/// A row's glyph (Paseo's `CheckPresentationIcon`).
-fn mark(presentation: Presentation, tokens: &Tokens) -> AnyElement {
-    let (which, ink) = match presentation {
+/// A presentation's glyph and its ink (Paseo's `CheckPresentationIcon`),
+/// for the pane's rows and the sidebar hover card's counts.
+pub(crate) fn presentation_mark(presentation: Presentation, tokens: &Tokens) -> (Glyph, Hsla) {
+    match presentation {
         Presentation::Failure => (Glyph::CircleX, colour(presentation, tokens)),
         Presentation::Pending => (Glyph::CircleDot, colour(presentation, tokens)),
         Presentation::Success => (Glyph::CircleCheck, colour(presentation, tokens)),
         Presentation::Ignored => (Glyph::CircleSlash, tokens.neutral.foreground_muted),
-    };
+    }
+}
+
+/// A row's glyph.
+fn mark(presentation: Presentation, tokens: &Tokens) -> AnyElement {
+    let (which, ink) = presentation_mark(presentation, tokens);
     glyph(which, 14.0, ink).flex_none().into_any_element()
 }
 
