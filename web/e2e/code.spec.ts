@@ -93,7 +93,9 @@ async function killWorkspaceAgent(page: Page): Promise<void> {
     .click();
 }
 
-/** Device-owned worktree shells survive an agent's Kill and stop on Archive. */
+/** A worktree's shells belong to the worktree (ADR 0121, protocol 40):
+ * they survive an agent's Kill and its Archive, and none is counted by the
+ * archive's confirmation. */
 async function archiveWorktreeAgent(page: Page): Promise<void> {
   const route = page.url();
   const agent = "Review the same worktree";
@@ -106,29 +108,27 @@ async function archiveWorktreeAgent(page: Page): Promise<void> {
     page.getByRole("region", { name: "Session ended" }),
   ).toBeVisible();
 
-  // Keeping the terminal tab still stops it if its owner is archived.
+  // Archiving the agents beside the kept terminal tab ends no terminal.
   const terminalTab = tab(page, "Terminal");
   await terminalTab.click({ button: "right" });
   await page.getByRole("menuitem", { name: "Close other tabs" }).click();
   const bulk = page.getByRole("dialog", { name: "Close other tabs?" });
-  await expect(bulk).toContainText("close 1 terminal(s)");
-  await expect(bulk).toContainText(
-    "Any running process in a closed terminal will be stopped immediately.",
-  );
+  await expect(bulk).toContainText("archive 2 agent(s)");
+  await expect(bulk).not.toContainText("terminal(s)");
   await bulk.getByRole("button", { name: "Cancel" }).click();
 
+  // The ended agent's tab closes (archived) with no word about terminals,
+  // and the worktree's shell stays.
   await openPanelTab(page, "Files");
   await tab(page, agent).hover();
   await page.getByRole("button", { name: `Close · ${agent}` }).click();
-  const archive = page.getByRole("dialog", { name: "Archive agent?" });
-  await expect(archive).toContainText("close 1 terminal(s)");
-  await archive.getByRole("button", { name: "Archive", exact: true }).click();
   await expect(tab(page, agent)).toHaveCount(0);
-  await expect(terminalTab).toHaveCount(0);
+  await expect(terminalTab).toHaveCount(1);
   await expect(page).toHaveURL(route);
+  await closeWorkspaceTerminal(page);
 
-  // The address still names the archived agent. The other live agent
-  // owns the new terminal, so the node accepts it in this worktree.
+  // The address still names the archived agent; the worktree takes a new
+  // shell without any agent hosting it.
   await openPanelTab(page, "Terminal");
   await expect(shell).toBeVisible();
   await closeWorkspaceTerminal(page);
