@@ -125,16 +125,21 @@ impl Gh {
             return protocol;
         }
         let spec = self.spec(&["config", "get", "git_protocol", "--host", host.as_str()]);
-        let protocol = match self.run(&spec).await {
-            Some(ran)
-                if ran.code == Some(0)
-                    && String::from_utf8_lossy(&ran.out)
-                        .trim()
-                        .eq_ignore_ascii_case("ssh") =>
-            {
-                CloneProtocol::Ssh
-            }
-            Some(_) | None => CloneProtocol::Https,
+        // Only an answer `gh` gave is kept: a `gh` that could not start or
+        // ran past its time says nothing about the machine, and keeping
+        // that as `https` would pin https URLs on an ssh machine for a
+        // minute (node review, P1 note 1).
+        let Some(ran) = self.run(&spec).await else {
+            return CloneProtocol::Https;
+        };
+        let protocol = if ran.code == Some(0)
+            && String::from_utf8_lossy(&ran.out)
+                .trim()
+                .eq_ignore_ascii_case("ssh")
+        {
+            CloneProtocol::Ssh
+        } else {
+            CloneProtocol::Https
         };
         let _old = self
             .protocols

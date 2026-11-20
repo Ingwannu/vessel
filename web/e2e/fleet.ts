@@ -270,6 +270,8 @@ export async function startFleet(): Promise<FleetEnv> {
   const base: NodeJS.ProcessEnv = {
     PATH: `${fakes}${process.platform === "win32" ? ";" : ":"}${system}`,
     SYSTEMROOT: process.env["SYSTEMROOT"],
+    // Standalone terminals use an isolated shell, not the VM account shell.
+    SHELL: process.platform === "win32" ? undefined : "/bin/sh",
     RUST_LOG: "info",
   };
   const pids: number[] = [];

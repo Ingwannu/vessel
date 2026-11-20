@@ -1,0 +1,221 @@
+/* Paseo's workspace tab bar and compact switcher use Vessel's kit
+   controls while the pane itself provides a scroll boundary. */
+
+.workspace-tabs {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.workspace-tab-bar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  min-width: 0;
+  min-height: 36px;
+  padding: 0 var(--s-2);
+  border-bottom: 1px solid var(--border-faint);
+  gap: var(--s-1);
+}
+
+.workspace-tab-strip {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.workspace-tab {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  min-width: 0;
+  max-width: 190px;
+  height: 28px;
+  border-radius: var(--r-2);
+}
+
+.workspace-tab[data-selected="true"] {
+  background: var(--bg-active);
+  color: var(--text-primary);
+}
+
+.workspace-tab[data-drop]::after {
+  position: absolute;
+  inset-block: 4px;
+  width: 2px;
+  background: var(--accent);
+  content: "";
+  pointer-events: none;
+}
+
+.workspace-tab[data-drop="before"]::after {
+  inset-inline-start: 0;
+}
+
+.workspace-tab[data-drop="after"]::after {
+  inset-inline-end: 0;
+}
+
+.workspace-tab [role="tab"] {
+  display: flex;
+  justify-content: flex-start;
+  min-width: 0;
+  gap: var(--s-1);
+}
+
+.workspace-tab-name,
+.workspace-current-tab {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-tab-close {
+  flex: none;
+  margin-inline-end: var(--s-1);
+  opacity: 0;
+}
+
+.workspace-tab:hover .workspace-tab-close,
+.workspace-tab:focus-within .workspace-tab-close,
+.workspace-tab[data-selected="true"] .workspace-tab-close {
+  opacity: 1;
+}
+
+.workspace-tab-dirty {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.workspace-tab-bar.compact {
+  padding-inline: var(--s-3);
+}
+
+.workspace-current-tab {
+  flex: 1;
+  font: var(--t-label);
+}
+
+.workspace-tab-count {
+  display: grid;
+  width: 17px;
+  height: 17px;
+  place-items: center;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-1);
+  font: var(--t-meta);
+  font-size: 10px;
+}
+
+.workspace-switcher {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.workspace-switcher-footer {
+  display: flex;
+  gap: var(--s-2);
+  width: 100%;
+}
+
+.workspace-switcher-footer > * {
+  flex: 1;
+}
+
+.workspace-switcher-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 14px auto;
+  align-items: center;
+  border-radius: var(--r-2);
+}
+
+.workspace-switcher-row[data-selected="true"] {
+  background: var(--bg-surface);
+}
+
+.workspace-switcher-check {
+  color: var(--text-secondary);
+}
+
+.workspace-switcher-row > :first-child {
+  justify-content: flex-start;
+}
+
+.workspace-pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+.workspace-pane[hidden] {
+  display: none;
+}
+
+.workspace-pane > .changes,
+.workspace-pane > .files,
+.workspace-pane > .file-view {
+  flex: 1;
+  min-height: 0;
+}
+
+.workspace-terminal {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  background: var(--term-bg);
+}
+
+.workspace-terminal-state {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font: var(--t-meta);
+}
+
+.workspace-terminal-state.loading {
+  background: rgb(0 0 0 / 16%);
+  color: var(--term-fg);
+}
+
+.workspace-launcher {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  gap: var(--s-2);
+  flex: 1;
+  padding: var(--s-4);
+}
+
+.workspace-close-copy {
+  white-space: pre-line;
+}
+
+.workspace-terminal-error {
+  flex: none;
+  padding: var(--s-2) var(--s-3);
+  border-top: 1px solid var(--border-faint);
+  background: var(--bg-surface);
+  color: var(--danger);
+  font: var(--t-meta);
+}

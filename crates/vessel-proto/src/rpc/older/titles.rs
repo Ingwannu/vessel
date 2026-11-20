@@ -17,7 +17,7 @@
 
 use super::templates::changed;
 use crate::inbox::{InboxEntry, InboxPage};
-use crate::registry::{RegistrySnapshot, WorkspaceDescriptor};
+use crate::registry::{DIFF_STAT_PROTOCOL, RegistrySnapshot, ServedWorkspace, WorkspaceDescriptor};
 use crate::scripts::{ScriptList, ScriptRunOutcome};
 use crate::terminals::{TerminalInfo, TerminalList, TerminalSubscribed};
 use crate::{ProtocolVersion, SessionTitle};
@@ -39,10 +39,21 @@ pub(super) fn inbox_page(page: &InboxPage, protocol: ProtocolVersion) -> Option<
 }
 
 /// A terminal with the title a person gave it cut.
+///
+/// Its attention (ADR 0089) is cut too, for a peer before
+/// `ATTENTION_NOTIFICATIONS_PROTOCOL`: every terminal projection (lists,
+/// subscriptions, script runs, nested fleet replies) passes through here,
+/// so both rules apply wherever a terminal travels.
 pub(super) fn terminal(info: &TerminalInfo, protocol: ProtocolVersion) -> Option<TerminalInfo> {
-    let title = SessionTitle::optional_for_protocol(info.title.as_ref(), protocol)?;
-    let mut older = info.clone();
-    older.title = title;
+    let title = SessionTitle::optional_for_protocol(info.title.as_ref(), protocol);
+    let without_attention = info.for_protocol(protocol);
+    if title.is_none() && without_attention.is_none() {
+        return None;
+    }
+    let mut older = without_attention.unwrap_or_else(|| info.clone());
+    if let Some(title) = title {
+        older.title = title;
+    }
     Some(older)
 }
 
@@ -113,6 +124,57 @@ pub(super) fn workspaces(
     protocol: ProtocolVersion,
 ) -> Option<Vec<WorkspaceDescriptor>> {
     changed(list, |descriptor| workspace(descriptor, protocol))
+}
+
+/// A served workspace: its title cut, and its diff stat removed for a peer
+/// that is not served one (ADR 0120).
+pub(super) fn served(
+    workspace: &ServedWorkspace,
+    protocol: ProtocolVersion,
+) -> Option<ServedWorkspace> {
+    served_since(workspace, protocol, DIFF_STAT_PROTOCOL)
+}
+
+/// [`served`] against the version passed in.
+///
+/// The production cut uses [`DIFF_STAT_PROTOCOL`], assigned 38. A test
+/// passes its own version and sees both sides.
+fn served_since(
+    workspace: &ServedWorkspace,
+    protocol: ProtocolVersion,
+    since: Option<ProtocolVersion>,
+) -> Option<ServedWorkspace> {
+    let title = SessionTitle::optional_for_protocol(workspace.workspace.title.as_ref(), protocol);
+    let strip = since.is_none_or(|since| protocol < since)
+        && (workspace.diff_stat.is_some() || workspace.stat_revision.is_some());
+    if title.is_none() && !strip {
+        return None;
+    }
+    let mut older = workspace.clone();
+    if let Some(title) = title {
+        older.workspace.title = title;
+    }
+    if strip {
+        older.diff_stat = None;
+        older.stat_revision = None;
+    }
+    Some(older)
+}
+
+/// The served workspaces, each as [`served`].
+pub(super) fn served_list(
+    list: &[ServedWorkspace],
+    protocol: ProtocolVersion,
+) -> Option<Vec<ServedWorkspace>> {
+    served_list_since(list, protocol, DIFF_STAT_PROTOCOL)
+}
+
+fn served_list_since(
+    list: &[ServedWorkspace],
+    protocol: ProtocolVersion,
+    since: Option<ProtocolVersion>,
+) -> Option<Vec<ServedWorkspace>> {
+    changed(list, |workspace| served_since(workspace, protocol, since))
 }
 
 /// The registry snapshot: its label rule first, then its workspaces'
@@ -266,14 +328,25 @@ mod tests {
             DateTime::UNIX_EPOCH,
         );
         info.title = Some(long());
+        assert!(info.attention.is_some(), "a new terminal reports attention");
         let older_terminal = terminal(&info, older()).unwrap();
         assert_eq!(
             cut(older_terminal.title.as_ref()),
             SessionTitle::LEGACY_MAX_CHARS
         );
-        assert_eq!(terminal(&info, crate::PROTOCOL_VERSION), None);
+        assert_eq!(older_terminal.attention, None, "attention is cut too");
+
+        // A current peer reads the title whole. Its attention is still cut
+        // until the integrator assigns `ATTENTION_NOTIFICATIONS_PROTOCOL`;
+        // a terminal without attention is not copied at all.
+        let current = terminal(&info, crate::PROTOCOL_VERSION).unwrap_or_else(|| info.clone());
+        assert_eq!(current.title, Some(long()));
+        let mut quiet = info.clone();
+        quiet.attention = None;
+        assert_eq!(terminal(&quiet, crate::PROTOCOL_VERSION), None);
         let list = TerminalList {
             terminals: vec![info],
+            revision: 0,
         };
         assert!(terminals(&list, older()).is_some());
     }
@@ -299,6 +372,9 @@ mod tests {
         );
         // `terminal.rename` names a script's run as any terminal.
         info.title = Some(long());
+        // Attention has its own rule (`a_terminal_reaches_an_older_peer_cut`);
+        // without it a current peer gets no copy.
+        info.attention = None;
         info
     }
 
@@ -340,5 +416,48 @@ mod tests {
             );
             assert_eq!(reply.for_protocol(crate::PROTOCOL_VERSION), None);
         }
+    }
+
+    fn served_row() -> ServedWorkspace {
+        ServedWorkspace {
+            workspace: WorkspaceDescriptor {
+                id: crate::WorkspaceId::random(),
+                project: crate::ProjectId::random(),
+                path: "/work/app".into(),
+                title: None,
+                automation: crate::registry::WorkspaceAutomation::Allowed,
+                pin: crate::registry::WorkspacePin::Unpinned,
+                backing: crate::registry::WorkspaceBacking::Local,
+                lifecycle: crate::registry::WorkspaceLifecycle::Active,
+                visibility: crate::registry::WorkspaceVisibility::Foreground,
+                created_at: DateTime::UNIX_EPOCH,
+                revision: crate::registry::RegistryRevision::ZERO,
+            },
+            diff_stat: Some(crate::registry::DiffStat {
+                additions: 3,
+                deletions: 1,
+            }),
+            stat_revision: Some(crate::registry::DiffStatRevision::of(2)),
+        }
+    }
+
+    #[test]
+    fn an_older_peer_loses_the_diff_stat_and_a_current_peer_keeps_it() {
+        let row = served_row();
+        let since = Some(ProtocolVersion::new(37));
+        let below = ProtocolVersion::new(36);
+        let at = ProtocolVersion::new(37);
+        let older = served_since(&row, below, since).unwrap();
+        assert!(older.diff_stat.is_none());
+        assert!(older.stat_revision.is_none());
+        assert_eq!(older.workspace.path, row.workspace.path);
+        assert!(served_since(&row, at, since).is_none());
+        let listed = served_list_since(std::slice::from_ref(&row), below, since).unwrap();
+        assert!(listed[0].diff_stat.is_none());
+        assert!(listed[0].stat_revision.is_none());
+        assert!(served_list_since(std::slice::from_ref(&row), at, since).is_none());
+        let stripped = served(&row, below).unwrap();
+        assert!(stripped.diff_stat.is_none());
+        assert!(stripped.stat_revision.is_none());
     }
 }

@@ -76,6 +76,7 @@ mod inbox;
 mod limits;
 mod node_log;
 mod notices;
+mod notifications;
 mod prompts;
 mod push;
 mod schedule_preview;
@@ -104,6 +105,8 @@ mod dispatch_tests;
 #[derive(Debug)]
 pub(crate) struct NodeService {
     file_panels: file_panels::FilePanelSlots,
+    /// Terminal-mode sessions' size owners (ADR 0116).
+    session_sizes: crate::size_owner::SessionSizes,
     pub(crate) workspace_labels: crate::workspace_labels::Labels,
     pub(crate) lsp: vessel_lsp::Manager,
     pub(crate) lsp_roots: Vec<crate::LspRoot>,
@@ -136,6 +139,8 @@ pub(crate) struct NodeService {
     probes: Probes,
     /// Projects, worktrees, git and files (protocol 10, `workspace`).
     workspaces: Arc<Workspaces>,
+    /// Served diff stats for workspace list and get (ADR 0120).
+    diff_stats: crate::workspace::DiffStats,
     /// Deleting sessions with their worktrees (protocol 10, `tidying`).
     tidying: Arc<Tidying>,
     /// Pull requests (protocol 11, `forge`).
@@ -246,6 +251,7 @@ impl NodeService {
             limits,
             plugins,
         } = parts;
+        let diff_stats = crate::workspace::DiffStats::start(Arc::clone(&workspaces));
         let store = sessions.store().clone();
         let readiness = Arc::new(crate::readiness::Readiness::default());
         let diagnostics = crate::diagnostics::State::new(
@@ -258,6 +264,7 @@ impl NodeService {
         Self {
             usage_reports: crate::usage_reports::Registry::default(),
             file_panels: file_panels::FilePanelSlots::default(),
+            session_sizes: crate::size_owner::SessionSizes::default(),
             workspace_labels,
             lsp,
             lsp_roots,
@@ -277,6 +284,7 @@ impl NodeService {
             waits: Arc::default(),
             probes,
             workspaces,
+            diff_stats,
             tidying,
             forges,
             terminals,
@@ -398,10 +406,6 @@ impl Connection {
     /// context acting for it. A resource the connection owns keeps
     /// `owner()` and `closed()`, never the life: holding the life keeps the
     /// connection's last context from ending it.
-    #[cfg_attr(
-        not(test),
-        expect(dead_code, reason = "A10 exception until D2 Preview or W14 reads it")
-    )]
     pub(crate) const fn life(&self) -> &ConnectionLife {
         &self.life
     }

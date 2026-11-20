@@ -211,7 +211,11 @@ const fn refused(method: Method) -> bool {
         | Method::DisablePlugin
         | Method::ReloadPlugin
         | Method::RemovePlugin
-        | Method::DetachSession => true,
+        | Method::DetachSession
+        | Method::ReadInboxThrough
+        | Method::GetInboxAttention
+        | Method::ClaimNotification
+        | Method::ClearTerminalAttention => true,
         // Orchestration: the projects, and a worktree with its setup's
         // output for a session the agent starts.
         Method::ListProjects
@@ -233,6 +237,9 @@ const fn refused(method: Method) -> bool {
         // pushing (`forge::open`).
         | Method::GetPullRequest
         | Method::OpenPullRequest
+        // The pane's reads (ADR 0088): what `pr.get` shows, in full.
+        | Method::GetPullTimeline
+        | Method::GetCheckDetails
         // Not workspace calls: held to the scopes, ownership and limits
         // every agent is (ADR 0013, `guard`), not to this rule.
         // Schedules (protocol 11) are held to theirs (ADR 0033,
@@ -362,6 +369,7 @@ const fn refused(method: Method) -> bool {
         | Method::ListPorts
         | Method::ListInbox
         | Method::GetInboxEntry
+        | Method::ReportTerminalActivity
         | Method::MarkInbox
         | Method::Diagnostics
         | Method::GetPushKey
@@ -454,6 +462,8 @@ mod tests {
             // the agent may operate (the forge's rule, ADR 0029).
             Method::GetPullRequest,
             Method::OpenPullRequest,
+            Method::GetPullTimeline,
+            Method::GetCheckDetails,
         ] {
             assert!(refuse_agents(&agent, allowed).is_ok(), "{allowed:?}");
         }

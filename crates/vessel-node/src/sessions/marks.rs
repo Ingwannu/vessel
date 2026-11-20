@@ -125,6 +125,58 @@ impl Sessions {
             .map_err(ServiceError::Task)?
     }
 
+    /// Human-only Read-scoped ingress; it cannot perform any general mark.
+    /// Waiting callers retain no node task. Once the common metadata lease is
+    /// acquired, accepted work keeps it through durable and live settlement.
+    /// Both live and durable pending requests veto the shared mark transaction.
+    pub(crate) async fn read_attention(
+        self: &Arc<Self>,
+        id: SessionId,
+        through: EventSeq,
+    ) -> Result<(), ServiceError> {
+        // Admission stays in the caller: abandoning this wait cannot leave a
+        // retained task. Transfer this SAME lease after admission so a dropped
+        // reply cannot split the Store commit from live publication.
+        let order = self.marking_lease().await;
+        let sessions = Arc::clone(self);
+        self.tasks
+            .spawn(async move {
+                let _order = order;
+                let handle = match sessions.find(id).await? {
+                    Found::Live { handle, .. } => {
+                        within_log(id, through, handle.log_end())?;
+                        let current = handle.conversation()?;
+                        if !current.permissions.is_empty() || !current.questions.is_empty() {
+                            return Err(vessel_store::StoreError::AttentionWaiting.into());
+                        }
+                        Some(handle)
+                    }
+                    Found::Stored(info) => {
+                        within_log(id, through, info.next_seq)?;
+                        None
+                    }
+                };
+                // `session.mark`'s residence rule for the mutation clock: a
+                // loaded session's Read does not tick it, a stored one's does.
+                let residence = if handle.is_some() {
+                    Residence::Loaded
+                } else {
+                    Residence::Stored
+                };
+                let committed = sessions
+                    .store
+                    .read_attention(id, through, Utc::now(), residence)
+                    .await?;
+                if let Some(handle) = handle {
+                    let (kept, updated_at) = committed.into_parts();
+                    handle.set_committed_marks(kept, updated_at);
+                }
+                Ok(())
+            })
+            .await
+            .map_err(ServiceError::Task)?
+    }
+
     /// Delete an ended session whole: its log, marks, queue and
     /// attachments, files included. A session that has just ended is
     /// waited for until the store serves it (`HAND_OVER_WAIT`).

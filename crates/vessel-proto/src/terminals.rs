@@ -32,7 +32,17 @@ use crate::terminal::TerminalSize;
 use crate::title::SessionTitle;
 use crate::workspace::{ProjectCommand, RelPath};
 
+mod older;
 mod requests;
+
+use crate::node::ProtocolVersion;
+
+/// Several clients on one node's terminals (ADR 0116): `terminal.list`'s
+/// `changed_from` long poll and its `revision`, and a resize's `intent`
+/// (claim or update) for terminals and terminal-mode sessions alike.
+/// Assigned 37 at its node-line merge, the next free number after the
+/// plugin manager's 36.
+pub const SHARED_TERMINALS_PROTOCOL: Option<ProtocolVersion> = Some(ProtocolVersion::new(37));
 
 pub use requests::{
     CloseTerminal, CreateTerminal, GetTerminal, KillTerminal, ListTerminals, ReadTerminal,
@@ -175,6 +185,9 @@ pub struct TerminalInfo {
     /// Changes with every field but the two sequence numbers, for
     /// `terminal.get`'s `changed_from`.
     pub revision: u64,
+    /// Explicit semantic activity; absent on older nodes (ADR 0089).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub attention: Option<crate::notifications::TerminalAttention>,
 }
 
 impl TerminalInfo {
@@ -187,6 +200,11 @@ impl TerminalInfo {
         kind: TerminalKind,
         created_at: DateTime<Utc>,
     ) -> Self {
+        let activity = if matches!(&kind, TerminalKind::Shell { .. }) {
+            crate::notifications::TerminalActivity::Untracked
+        } else {
+            crate::notifications::TerminalActivity::Unknown
+        };
         Self {
             id,
             place,
@@ -202,6 +220,12 @@ impl TerminalInfo {
             oldest_seq: EventSeq::ZERO,
             next_seq: EventSeq::ZERO,
             revision: 0,
+            attention: Some(crate::notifications::TerminalAttention {
+                terminal: id,
+                revision: crate::notifications::TerminalAttentionRevision::default(),
+                activity,
+                changed_at: created_at,
+            }),
         }
     }
 
@@ -327,6 +351,13 @@ pub enum ServiceFailure {
 pub struct TerminalList {
     /// At most 96 (64 live, 32 ended).
     pub terminals: Vec<TerminalInfo>,
+    /// The node's terminal list as it stood when this answer was read: it
+    /// moves when a terminal starts, ends, is renamed or is forgotten, not
+    /// on a resize or output (ADR 0116). Read before the list, so a change
+    /// in between answers the next `changed_from` at once. 0 from a node
+    /// older than [`SHARED_TERMINALS_PROTOCOL`].
+    #[serde(default)]
+    pub revision: u64,
 }
 
 #[cfg(test)]

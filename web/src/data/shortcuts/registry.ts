@@ -36,6 +36,8 @@ export const SHORTCUT_ACTIONS = [
   "focus-composer",
   "toggle-sidebar",
   "toggle-inspector",
+  "workspace-tab-target-agent",
+  "workspace-terminal-new",
 ] as const;
 
 /** One action the keys can run. */
@@ -130,6 +132,18 @@ export function definition(action: ShortcutAction): ShortcutDefinition {
         label: "Show or hide the summary",
         group: "Panels",
         defaults: ["Mod+Shift+B"],
+      };
+    case "workspace-tab-target-agent":
+      return {
+        label: "New agent tab",
+        group: "Panels",
+        defaults: ["Alt+Shift+A"],
+      };
+    case "workspace-terminal-new":
+      return {
+        label: "New terminal tab",
+        group: "Panels",
+        defaults: ["Alt+Shift+T"],
       };
   }
 }

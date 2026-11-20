@@ -5,6 +5,7 @@ use crate::agent::ContentBlock;
 use crate::agents::HarnessRef;
 use crate::node::ProtocolVersion;
 use crate::session::{SessionInput, SessionMode};
+use crate::terminal::TerminalInput;
 use crate::title::SessionTitle;
 
 use super::Call;
@@ -96,6 +97,19 @@ impl Call {
                     .fold(5, u32::max)
             }),
             Self::ReadEvents(request) => request.wait.map(|_| 6),
+            Self::ReportPushPresence(request) => {
+                let terminal = match request.focus {
+                    crate::push::PushFocus::Terminal { .. } => true,
+                    crate::push::PushFocus::Session { .. }
+                    | crate::push::PushFocus::Elsewhere
+                    | crate::push::PushFocus::Background => false,
+                };
+                if terminal || request.idle_age.is_some() {
+                    Some(crate::notifications::ATTENTION_NOTIFICATIONS_PROTOCOL?.get())
+                } else {
+                    None
+                }
+            }
             // `notify` came in 11: an older node would deliver the prompt
             // and never tell anyone.
             Self::PromptSession(request) => request.notify.then_some(11),
@@ -110,7 +124,31 @@ impl Call {
                 // A cancel naming its turn: an older node would cancel
                 // whatever runs, the next queued prompt included.
                 SessionInput::CancelTurn { turn } => turn.map(|_| 10),
+                // A resize naming its intent (ADR 0116): an older node would
+                // apply another client's update as a claim.
+                SessionInput::Terminal {
+                    input:
+                        TerminalInput::Resize {
+                            intent: Some(_), ..
+                        },
+                } => Some(crate::terminals::SHARED_TERMINALS_PROTOCOL?.get()),
                 SessionInput::Terminal { .. } | SessionInput::AnswerPermission { .. } => None,
+            },
+            // A long poll on the list (ADR 0116): an older node answers at
+            // once, so a client asking again on every answer would spin.
+            Self::ListTerminals(request) => {
+                if request.changed_from.is_some() {
+                    Some(crate::terminals::SHARED_TERMINALS_PROTOCOL?.get())
+                } else {
+                    None
+                }
+            }
+            // As a terminal-mode session's resize above.
+            Self::SendTerminal(request) => match &request.input {
+                TerminalInput::Resize {
+                    intent: Some(_), ..
+                } => Some(crate::terminals::SHARED_TERMINALS_PROTOCOL?.get()),
+                TerminalInput::Resize { intent: None, .. } | TerminalInput::Data { .. } => None,
             },
             // A write guarded by its content came in 11: a protocol 10 node
             // cannot decode it (its guard compared a time instead).
@@ -277,15 +315,15 @@ impl Call {
             | Self::SearchRepositories(_)
             | Self::ListPullRequests(_)
             | Self::GetPullRequest(_)
+            | Self::GetPullTimeline(_)
+            | Self::GetCheckDetails(_)
             | Self::OpenPullRequest(_)
             | Self::MergePullRequest(_)
             | Self::SetFeedback(_)
             | Self::CreateTerminal(_)
-            | Self::ListTerminals(_)
             | Self::GetTerminal(_)
             | Self::ReadTerminal(_)
             | Self::SubscribeTerminal(_)
-            | Self::SendTerminal(_)
             | Self::RenameTerminal(_)
             | Self::KillTerminal(_)
             | Self::CloseTerminal(_)
@@ -322,6 +360,11 @@ impl Call {
             | Self::DeletePrompt(_)
             | Self::ListInbox(_)
             | Self::GetInboxEntry(_)
+            | Self::ReadInboxThrough(_)
+            | Self::GetInboxAttention(_)
+            | Self::ClaimNotification(_)
+            | Self::ClearTerminalAttention(_)
+            | Self::ReportTerminalActivity(_)
             | Self::MarkInbox(_)
             | Self::Diagnostics(_)
             | Self::GetAgentDiagnostic(_)
@@ -329,7 +372,6 @@ impl Call {
             | Self::GetPushKey(_)
             | Self::SubscribePush(_)
             | Self::UnsubscribePush(_)
-            | Self::ReportPushPresence(_)
             | Self::SearchMessages(_)
             | Self::ParkSession(_)
             | Self::WakeSession(_)

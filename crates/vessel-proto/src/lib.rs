@@ -49,6 +49,8 @@ mod name;
 pub mod native_commands;
 mod node;
 pub mod notifications;
+#[cfg(test)]
+mod notifications_tests;
 mod options;
 mod pairing;
 pub mod parking;
@@ -174,7 +176,7 @@ pub use session::{
     SessionStatus,
 };
 pub use session_updated_at::{InvalidSessionUpdatedAt, SESSION_MUTATIONS, SessionUpdatedAt};
-pub use terminal::{TerminalBytes, TerminalInput, TerminalOutput, TerminalSize};
+pub use terminal::{ResizeIntent, TerminalBytes, TerminalInput, TerminalOutput, TerminalSize};
 pub use title::{
     GeneratedTitle, InvalidGeneratedTitle, InvalidTitle, LONG_TITLES_PROTOCOL,
     MAX_GENERATED_TITLE_UNITS, SessionTitle, TitleOrigin,
