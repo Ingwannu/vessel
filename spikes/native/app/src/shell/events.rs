@@ -35,6 +35,7 @@ impl Shell {
             Event::Diagnostics(answer) => self.diagnostics_answer(answer),
             Event::Plugins(answer) => return self.plugins_answer(answer, cx),
             Event::PluginCatalog(answer) => return self.plugin_catalog_answer(answer, cx),
+            Event::ThisComputer(nodes) => return self.add_flow_this_computer(nodes, cx),
             Event::Fleet(fleet) => {
                 if !self.fleet_read(fleet, cx) {
                     return;
@@ -57,16 +58,7 @@ impl Shell {
             Event::PairFailed(why) => self.pair_failed(why),
             Event::BookUnreadable(fault) => self.book_unreadable(&fault),
             Event::SessionLost { session, why } => self.session_lost(session, why),
-            Event::Acted(answer) => {
-                if let Some(answer) = self
-                    .board_acted(answer, cx)
-                    .and_then(|answer| self.option_acted(answer, cx))
-                    .and_then(|answer| self.tab_menu_reload_acted(answer, cx))
-                {
-                    self.acted(answer, cx);
-                }
-                self.refresh_fork_headers();
-            }
+            Event::Acted(answer) => self.on_acted(answer, cx),
             Event::Resumed { session } => self.resumed(session, cx),
             Event::ResumeFailed { session, why } => self.resume_failed(session, why),
             Event::Options {
@@ -132,6 +124,19 @@ impl Shell {
             self.agent_load(false, cx);
         }
         true
+    }
+
+    /// A session act's answer, offered to the board, the options and the
+    /// tab menu in turn (moved out of `on_event` for its length).
+    fn on_acted(&mut self, answer: vessel_app_link::ActAnswer, cx: &mut Context<'_, Self>) {
+        if let Some(answer) = self
+            .board_acted(answer, cx)
+            .and_then(|answer| self.option_acted(answer, cx))
+            .and_then(|answer| self.tab_menu_reload_acted(answer, cx))
+        {
+            self.acted(answer, cx);
+        }
+        self.refresh_fork_headers();
     }
 }
 

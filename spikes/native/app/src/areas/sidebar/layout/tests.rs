@@ -220,6 +220,16 @@ fn actual_sidebar_keeps_foot_and_reaches_the_end_after_unfold(cx: &mut TestAppCo
                 ..ScrollEvent::default()
             });
             cx.run_until_parked();
+            // The pointer now rests on a session row, whose hover card
+            // (TRACKER 810) floats over the sidebar: closed here, as these
+            // frames are the sidebar's own.
+            probe.update(cx, |probe, cx| {
+                probe.shell.update(cx, |shell, cx| {
+                    shell.areas.sidebar.cards.close();
+                    cx.notify();
+                });
+            });
+            cx.run_until_parked();
             fixed(&probe, cx, height);
             probe.read_with(cx, |probe, cx| {
                 assert!(probe.shell.read(cx).areas.sidebar.layout.scroll.offset().y < px(0.0));

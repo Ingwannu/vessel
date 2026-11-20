@@ -46,6 +46,10 @@ pub enum Event {
     Machines(machines::Answer),
     /// Correlated code-source result with original weak delivery validity.
     CodeSource(Box<workspace::code_source::Answer>),
+    /// The nodes that run on this computer (the same hostname and OS,
+    /// `view::this_computer`), sent just before each `Fleet`: where Add
+    /// project's Browse is offered. The browser link never sends it.
+    ThisComputer(Vec<vessel_proto::NodeId>),
     /// The machines and their sessions, read again.
     Fleet(Fleet),
     /// A Devices request answered, with its identity.

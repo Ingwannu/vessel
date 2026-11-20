@@ -148,6 +148,7 @@ mod tests {
         let other = shell(&elsewhere);
         let list = TerminalList {
             terminals: vec![second.clone(), ended, script, other, first.clone()],
+            revision: 0,
         };
         let mut expected = vec![first.id, second.id];
         expected.sort_unstable();

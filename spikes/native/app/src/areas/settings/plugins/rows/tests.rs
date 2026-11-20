@@ -67,14 +67,18 @@ fn opened(shell: &mut Shell) {
     state.open = Some(Open { page, epoch: None });
 }
 
-/// The trigger's accessibility node, as the window's tree says it.
+/// The trigger's accessibility node, as the window's tree says it after a
+/// fresh frame.
 fn trigger_node(cx: &mut gpui::VisualTestContext) -> String {
+    cx.update(|window, _| window.refresh());
+    cx.run_until_parked();
     let json = cx.update(|window, _| window.debug_a11y_tree_json().unwrap());
     let nodes: Vec<String> = json
         .split("\"aria\":")
         .skip(1)
         .filter_map(|rest| rest.split_once('}').map(|(aria, _)| aria.to_owned()))
-        .filter(|aria| aria.contains(r#""label": "Actions for night""#))
+        // Fluent isolates the id in the sentence (U+2068 … U+2069).
+        .filter(|aria| aria.contains("\"label\": \"Actions for \u{2068}night\u{2069}\""))
         .collect();
     assert_eq!(nodes.len(), 1, "one trigger: {json}");
     nodes.into_iter().next().unwrap()
@@ -88,6 +92,9 @@ fn a_rows_trigger_is_a_button_that_takes_a_click_only_while_idle(cx: &mut TestAp
         shell: cx.new(|cx| Shell::with_test_link(window, cx, link)),
     });
     let shell = probe.update(cx, |probe, _cx| probe.shell.clone());
+    let handle = cx.update(|window, _| window.window_handle());
+    assert!(cx.simulate_accessibility_activation(handle));
+    cx.run_until_parked();
     shell.update(cx, |shell, cx| {
         opened(shell);
         cx.notify();

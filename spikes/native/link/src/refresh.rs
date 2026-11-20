@@ -37,6 +37,10 @@ impl State {
             }
         };
         self.reconcile_connections(&book).await;
+        let own = hostname::get()
+            .ok()
+            .and_then(|name| name.into_string().ok());
+        let mut this_computer = Vec::new();
         let mut machines = Vec::with_capacity(book.len());
         for (book_name, entry) in book {
             let name = book_name.as_str().to_owned();
@@ -50,12 +54,22 @@ impl State {
                 reach
             };
             let machine = match reach {
-                Ok(connected) => self.read_sessions(name, connected).await,
+                Ok(connected) => {
+                    let node = connected.client.node();
+                    if own
+                        .as_deref()
+                        .is_some_and(|own| on_this_computer(node, own))
+                    {
+                        this_computer.push(node.id);
+                    }
+                    self.read_sessions(name, connected).await
+                }
                 Err(error) => Machine::unreachable(name, &error.to_string()),
             };
             machines.push(machine);
         }
         self.session_connections_changed();
+        self.emit(Event::ThisComputer(this_computer)).await;
         self.emit(Event::Fleet(Fleet {
             machines,
             read_at: Some(Utc::now()),
@@ -139,4 +153,19 @@ impl State {
             Utc::now(),
         )));
     }
+}
+
+/// Whether `node` runs on this computer, named `own` (TRACKER 816).
+fn on_this_computer(node: &vessel_proto::NodeInfo, own: &str) -> bool {
+    use vessel_app_view::this_computer::{Host, is_this_computer};
+    is_this_computer(
+        Host {
+            hostname: &node.hostname,
+            os: &node.os,
+        },
+        Host {
+            hostname: own,
+            os: std::env::consts::OS,
+        },
+    )
 }
