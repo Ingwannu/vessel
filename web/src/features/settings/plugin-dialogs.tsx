@@ -3,7 +3,13 @@
 // stderr head in the danger colour) and its remove confirmation
 // ("Remove {id}?", the source directory is not deleted).
 
-import { type ReactNode, useCallback, useEffect, useState } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import { useFleet } from "../../context";
 import type { Outcome } from "../../data/outcome";
@@ -30,24 +36,31 @@ export function PluginLogsDialog({
   const fleet = useFleet();
   const [logs, setLogs] = useState<Outcome<PluginLogs> | null>(null);
   const [fetching, setFetching] = useState(false);
+  // Every read is numbered and only the newest answer is kept, so a slow
+  // first read cannot replace a Refresh's newer tail (node review note 8).
+  const asked = useRef(0);
+  const read = useCallback(() => {
+    asked.current += 1;
+    const mine = asked.current;
+    return pluginLogs(fleet, machine, plugin.id).then((outcome) => {
+      if (mine === asked.current) setLogs(outcome);
+    });
+  }, [fleet, machine, plugin.id]);
   const refresh = useCallback(() => {
     setFetching(true);
-    void pluginLogs(fleet, machine, plugin.id).then((outcome) => {
-      setLogs(outcome);
+    void read().then(() => {
       setFetching(false);
     });
-  }, [fleet, machine, plugin.id]);
+  }, [read]);
   // The first read when the dialog opens; Refresh reads again. The state is
-  // set only in the answer's callback, never during the effect itself.
+  // set only in the answer's callback, never during the effect itself; a
+  // closed dialog's answer is dropped.
   useEffect(() => {
-    let current = true;
-    void pluginLogs(fleet, machine, plugin.id).then((outcome) => {
-      if (current) setLogs(outcome);
-    });
+    void read();
     return () => {
-      current = false;
+      asked.current += 1;
     };
-  }, [fleet, machine, plugin.id]);
+  }, [read]);
   let content: ReactNode;
   if (logs === null) {
     content = <p className="plugin-logs-state">{PLUGIN_WORDS.logsLoading}</p>;
@@ -96,7 +109,7 @@ export function PluginLogsDialog({
           size="sm"
           variant="outline"
           onClick={refresh}
-          disabled={fetching}
+          disabled={fetching || logs === null}
         >
           {fetching ? PLUGIN_WORDS.logsRefreshing : PLUGIN_WORDS.logsRefresh}
         </Button>

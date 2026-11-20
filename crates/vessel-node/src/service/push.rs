@@ -25,6 +25,12 @@ impl NodeService {
     pub(crate) const fn push(&self) -> &Arc<crate::push::Push> {
         &self.push
     }
+    /// The terminals, for tests that reach a terminal's own handle and its
+    /// activity capability.
+    #[cfg(test)]
+    pub(crate) const fn terminals(&self) -> &Arc<crate::terminals::Terminals> {
+        &self.terminals
+    }
     pub(crate) async fn get_push_key(
         &self,
         connection: &Connection,

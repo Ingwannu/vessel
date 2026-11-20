@@ -35,7 +35,7 @@ A plugin is a directory holding `vessel-plugin.json`:
 | Field | Meaning (Paseo's field where one exists) |
 |---|---|
 | `id` | default installation id, Paseo's `^[a-z][a-z0-9-]*$` (`PluginId`) |
-| `name?`, `description?` | shown in the list (bounded `Caption` / `ContentText`) |
+| `name?`, `description?` | listed on the wire (bounded `Caption` / `ContentText`); the page's rows show the id and the description, as Paseo 0.15.4's settings page (it never shows the name) |
 | `icon?` | relative PNG path inside the directory (Paseo `icon`; listed, not drawn by Paseo's page) |
 | `requirements?.vessel` | semver range the node's version must meet; unmet = refusal before anything runs (Paseo `requirements.paseo`) |
 | `server?.command` | argv of the helper: a relative path that stays inside the directory after resolving links, a bare program name found on the node's `PATH`, or an absolute path. No shell |
@@ -110,7 +110,7 @@ client data; Paseo's TypeScript entries do not run here." (stated difference).
 | `plugin.inspect` | Admin | `{path}` -> `{id, name?, description?}` |
 | `plugin.install` | Admin | `{source, id?, ref?}` -> `PluginListItem` |
 | `plugin.enable` / `plugin.disable` / `plugin.reload` / `plugin.remove` | Admin | `{plugin}` -> `PluginListItem` (remove -> `Ack`) |
-| `plugin.watch` | Read | `{after: generation}` -> `{generation}` |
+| `plugin.watch` | Read | `{after: generation}` -> generation (a bare number) |
 
 - `PluginListItem`: `id, name?, description?, icon?, path?, source, enabled,
   status, error?`. `path` and `error` only for an Admin caller (ADR 0079:
@@ -128,9 +128,10 @@ client data; Paseo's TypeScript entries do not run here." (stated difference).
   `internal`. An agent principal is refused every Admin call (guard), as
   other node management.
 - `plugin.watch` is a long poll like `fleet.watch` (no new frame type): it
-  answers when the plugin generation passes `after` (any install, status,
-  enable, catalog or settings change) or with the current one after its wait
-  limit. It replaces Paseo's `plugin_catalog_changed` and
+  answers as soon as the plugin generation differs from `after` (any
+  install, status, enable, catalog or settings change), at once when it
+  already does (a client's first ask uses a number the node never has), or
+  with the current one after its wait limit. It replaces Paseo's `plugin_catalog_changed` and
   `plugin_settings_changed` status pushes; clients refetch on a new
   generation.
 - Older peers: every method is unregistered below the protocol, and the

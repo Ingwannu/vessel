@@ -1599,9 +1599,11 @@ project".
   images; a relative link is a button that opens that file here, an image
   under the root is read through the node and drawn from a `data:` URL,
   a web image is its words as a web link. The HTML preview: the file in a
-  frame on white filling the panel, `sandbox` with no permissions and
-  Paseo's preview policy put first, so it fetches nothing and its scripts
-  do not run. Images (`png`, `jpg`, `jpeg`, `gif`, `webp`, `svg`, on a
+  frame on white filling the panel, framed from `vessel ui`'s preview
+  route under Paseo's preview policy and `sandbox="allow-scripts"` (ADR
+  0122), so its scripts run in an opaque origin and it fetches nothing;
+  "Loading file..." while the route answers, and the static `srcdoc` frame
+  without scripts if it cannot. Images (`png`, `jpg`, `jpeg`, `gif`, `webp`, `svg`, on a
   node with the file panels protocol): "Loading file..." with a 16px
   spinner, the node's refusal in the danger ink, or the image fitted and
   centred; the wheel zooms at the cursor, two fingers pinch, a drag pans
@@ -2155,9 +2157,10 @@ control, GOAT), on purpose:
     person's choice.
 34. **The Files tab's previews stay inside the page's policy**
     (`docs/plans/wp-file-viewers.md`, the coordinator's rulings of
-    2026-11-19). An HTML preview's scripts do not run (Paseo's frame
-    allows them; running them needs a separate preview origin, TRACKER
-    814); images are `data:` URLs read through the node, not a file URL;
+    2026-11-19). An HTML preview runs its scripts from `vessel ui`'s
+    preview route (ADR 0122, TRACKER 814), not from a frame the page
+    writes, since such a frame would take the page's policy; images are
+    `data:` URLs read through the node, not a file URL;
     a Markdown image from the web is a link, not loaded; a link or image
     outside the workspace root is not followed (the node serves files
     under the root only). PDF is not built in (Paseo ships it as a

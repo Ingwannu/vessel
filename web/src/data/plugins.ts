@@ -44,7 +44,7 @@ export const PLUGIN_WORDS = {
   sourcePlaceholder: "Directory on this machine, ~/… or /…",
   install: "Install plugin",
   installing: "Installing…",
-  offlineTitle: "Plugin host is offline",
+  offlineTitle: "This machine is offline",
   offlineDescription: "Reconnect to this machine to manage its plugins.",
   updateTitle: "Update this machine to manage plugins",
   loading: "Loading plugins…",
@@ -67,6 +67,7 @@ export const PLUGIN_WORDS = {
   disable: "Disable",
   globalEnabled: "Plugins enabled",
   globalDisabled: "Plugins disabled",
+  switchUnread: "Unable to read the plugin switch",
 } as const;
 
 /** Paseo's `resolvePluginPageState`. */
@@ -162,7 +163,8 @@ export function changedWords(
 
 /** What Paseo shows under a row: the description, then the source. */
 export function pluginSourceLine(plugin: PluginListItem): string | null {
-  return plugin.path === undefined ? null : `Directory: ${plugin.path}`;
+  // Paseo's formatPluginIdentity: a directory reads as its bare path.
+  return plugin.path ?? null;
 }
 
 /** A log entry's head line: its time and stream, as Paseo's sheet. The
