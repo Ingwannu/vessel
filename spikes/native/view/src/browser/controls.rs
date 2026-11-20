@@ -77,9 +77,7 @@ impl GeneralPane {
             NavigationAction::Forward => {
                 BrowserControlCommand::Drive(BrowserCommand::Forward(args))
             }
-            NavigationAction::Reload => {
-                BrowserControlCommand::Drive(BrowserCommand::Reload(args))
-            }
+            NavigationAction::Reload => BrowserControlCommand::Drive(BrowserCommand::Reload(args)),
             NavigationAction::Stop => BrowserControlCommand::Stop {
                 browser_id: args.browser_id,
             },
