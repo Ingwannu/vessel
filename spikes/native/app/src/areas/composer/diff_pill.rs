@@ -20,21 +20,24 @@ pub(super) fn pill(
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> Option<AnyElement> {
-    let open = shell.areas.session.open.as_ref()?;
-    let card = shell
+    let (machine, session) = {
+        let open = shell.areas.session.open.as_ref()?;
+        (open.machine.clone(), open.session)
+    };
+    let project = shell
         .fleet
         .machines
         .iter()
-        .find(|machine| machine.name == open.machine)?
+        .find(|item| item.name == machine)?
         .sessions
         .iter()
-        .find(|card| card.session == open.session)?;
-    let workspace =
-        shell
-            .areas
-            .labels
-            .workspace_of(&open.machine, open.session, card.member_project())?;
-    let stat = shell.diff_stat_of(&open.machine, workspace)?;
+        .find(|card| card.session == session)?
+        .member_project();
+    let workspace = shell
+        .areas
+        .labels
+        .workspace_of(&machine, session, project)?;
+    let stat = shell.diff_stat_of(&machine, workspace)?;
     if stat.additions == 0 && stat.deletions == 0 {
         return None;
     }
