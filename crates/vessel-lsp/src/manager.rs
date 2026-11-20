@@ -15,9 +15,8 @@ use std::time::Duration;
 
 use tokio::sync::{mpsc, oneshot};
 use tokio::task::JoinSet;
-use tokio::time::Instant;
 use tokio_util::sync::CancellationToken;
-use vessel_proto::Reply;
+use vessel_proto::{Reply, lsp::Language};
 
 use crate::error::LspError as Error;
 use crate::query::Query;
