@@ -1363,7 +1363,9 @@ from `view::workspace::pull::card_menu`). Every control is named for
 assistive technology; folds say whether they are open.
 A card shows its number, state and checks under the branch; its hover
 card's checks row (TRACKER 810, 824) leads with the forge's mark and counts
-each state from the summary's tally (`view::sidebar::hover`). The fleet's
+each state from the summary's tally (`view::sidebar::hover`), and the
+row's checks glyph (TRACKER 426) is Paseo's ring: a check, a cross, or a
+pie filled by quarters from the same tally (`CardPull::quarters`). The fleet's
 nodes reach no forge (the remotes are bare repositories), so the screens
 there show why a pull request cannot be opened.
 

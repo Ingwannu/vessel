@@ -6,6 +6,7 @@ use super::Lang;
 use crate::attention::Bucket;
 use crate::prefs::{Grouping, SessionSort};
 use crate::sidebar::SessionMark;
+use crate::workspace::pull::CardChecks;
 use crate::workspace::pull::checks::Presentation;
 
 impl Lang {
@@ -170,6 +171,20 @@ impl SidebarWords {
     #[must_use]
     pub fn checks_said(&self, state: &str) -> String {
         format!("{}: {state}", self.checks)
+    }
+
+    /// A row's checks item, named (Paseo's
+    /// `workspace.git.pr.checksSummary.*Accessible`).
+    #[must_use]
+    pub const fn checks_outcome(&self, checks: CardChecks) -> &'static str {
+        match (self.lang, checks) {
+            (Lang::En, CardChecks::Passed) => "Checks passed",
+            (Lang::En, CardChecks::Failed) => "Checks failed",
+            (Lang::En, CardChecks::Running) => "Checks running",
+            (Lang::Ko, CardChecks::Passed) => "검사 통과",
+            (Lang::Ko, CardChecks::Failed) => "검사 실패",
+            (Lang::Ko, CardChecks::Running) => "검사 진행 중",
+        }
     }
 
     /// One state's count (Paseo's `sidebar.workspace.checks.*`).
