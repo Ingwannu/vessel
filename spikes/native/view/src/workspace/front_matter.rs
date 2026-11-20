@@ -158,7 +158,14 @@ fn parsed(yaml: &str) -> Option<yaml_rust2::yaml::Hash> {
     }
     match documents.pop()? {
         Yaml::Hash(map) => Some(map),
-        _ => None,
+        Yaml::Real(_)
+        | Yaml::Integer(_)
+        | Yaml::String(_)
+        | Yaml::Boolean(_)
+        | Yaml::Array(_)
+        | Yaml::Alias(_)
+        | Yaml::Null
+        | Yaml::BadValue => None,
     }
 }
 

@@ -62,12 +62,13 @@ fn excessive_aliases_leave_the_document_intact() {
 #[test]
 fn nested_aliases_past_the_size_budget_leave_the_document_intact() {
     // Twenty levels, each two aliases of the last: 40 aliases, 2^20 nodes.
-    let mut source = String::from("---\nl0: &l0 [x, x]\n");
-    for level in 1..=20 {
-        let below = level - 1;
-        source.push_str(&format!("l{level}: &l{level} [*l{below}, *l{below}]\n"));
-    }
-    source.push_str("---\nBody\n");
+    let levels: Vec<String> = (1..=20_u32)
+        .map(|level| {
+            let below = level.saturating_sub(1);
+            format!("l{level}: &l{level} [*l{below}, *l{below}]")
+        })
+        .collect();
+    let source = format!("---\nl0: &l0 [x, x]\n{}\n---\nBody\n", levels.join("\n"));
     assert_eq!(markdown_document(&source), intact(&source));
 }
 
