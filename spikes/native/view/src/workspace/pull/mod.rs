@@ -17,6 +17,7 @@
 //!   [`open`] makes `pr.open`'s request; [`facts`] reads what is shown.
 //! - Cost: a newer node's unknown values read as "not known" in each enum.
 
+pub mod attach;
 pub mod bases;
 pub mod card;
 pub mod checks;
