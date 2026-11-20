@@ -15,6 +15,7 @@ export {
   type ButtonVariant,
   IconButton,
 } from "./button";
+export { CheckIndicator } from "./check-indicator";
 export { Checkbox } from "./checkbox";
 export { Collapsible } from "./collapsible";
 export { type Choice } from "./choice";

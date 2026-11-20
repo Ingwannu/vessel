@@ -121,3 +121,32 @@
 .workspace-card-pending {
   color: var(--warn);
 }
+
+/* A row's lead mark that gives way to the outward arrow while its link
+   is hovered (TRACKER 426): the pull request's state glyph in the
+   state's colour, the checks row's forge mark in the row's colour. */
+.workspace-card-mark {
+  display: inline-flex;
+  flex: none;
+}
+
+.workspace-card-out,
+.workspace-card-link:hover .workspace-card-rest {
+  display: none;
+}
+
+.workspace-card-link:hover .workspace-card-out {
+  display: inline-flex;
+}
+
+.workspace-card-rest.tone-open {
+  color: var(--online);
+}
+
+.workspace-card-rest.tone-merged {
+  color: var(--st-merged);
+}
+
+.workspace-card-rest.tone-closed {
+  color: var(--danger);
+}

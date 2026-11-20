@@ -1,6 +1,7 @@
 // The sidebar grouped by workspace (the Display menu's "Workspace";
 // Paseo's sidebar shape inside Vessel's): each machine's registry
-// workspaces, their label chips under the name, a row menu with the
+// workspaces, the line under the name (machine, pull request, checks,
+// labels: workspace-meta.tsx, TRACKER 426), a row menu with the
 // Labels picker, and their sessions under them (data/workspace-labels/
 // groups.ts decides who belongs where and what the filter keeps). On a
 // wide window with a fine pointer, the name opens the workspace card,
@@ -13,6 +14,7 @@ import { useFleetState } from "../../context";
 import { prefs } from "../../data/prefs";
 import { useStore } from "../../data/store";
 import { useWhere } from "../../data/where";
+import { workspaceName } from "../../data/workspace/meta-row";
 import {
   type SidebarWorkspace,
   sidebarWorkspaces,
@@ -22,7 +24,6 @@ import type { DiffStat, WorkspaceId } from "../../wire/proto";
 import { COMPACT } from "../../ui/breakpoints";
 import { HoverCard, Icon, IconButton, Menu } from "../../ui/kit";
 import { BranchChip } from "../workspace/branch-chip";
-import { LabelChips } from "../workspace-labels/chip";
 import { CreateLabelDialog } from "../workspace-labels/create-dialog";
 import { LabelsSubmenu } from "../workspace-labels/picker";
 import { useLabels } from "../workspace-labels/use-labels";
@@ -33,6 +34,7 @@ import { SidebarViewMenu } from "./sidebar-view-menu";
 import { useDiffStats } from "./use-diff-stats";
 import { useMedia } from "./use-media";
 import { WorkspaceCard } from "./workspace-card";
+import { WorkspaceMeta } from "./workspace-meta";
 
 /** A pointer that can hover. A coarse pointer never opens the card. */
 const FINE_POINTER = "(hover: hover) and (pointer: fine)";
@@ -148,8 +150,11 @@ function WorkspaceHead({
   const name = <span className="label">{row.title}</span>;
   const folder = row.folder;
   const anchor = useRef<HTMLDivElement>(null);
+  const machine = several ? row.machine : null;
+  // Paseo's row name (TRACKER 426): title, machine, pull request.
+  const named = workspaceName({ title: row.title, machine, pull: row.pull });
   return (
-    <div className="side-workspace">
+    <div className="side-workspace" role="group" aria-label={named}>
       <div className="nav-item workspace" ref={anchor}>
         <Icon name={workspace === null ? "list" : "folder"} size={16} />
         {cards && folder !== null ? (
@@ -173,7 +178,6 @@ function WorkspaceHead({
         ) : (
           name
         )}
-        {several ? <span className="side-machine">{row.machine}</span> : null}
         {workspace === null ? null : (
           <span className="side-workspace-menu">
             <Menu
@@ -194,11 +198,7 @@ function WorkspaceHead({
           </span>
         )}
       </div>
-      {row.chips.length === 0 ? null : (
-        <div className="side-workspace-meta">
-          <LabelChips labels={row.chips} />
-        </div>
-      )}
+      <WorkspaceMeta machine={machine} pull={row.pull} chips={row.chips} />
     </div>
   );
 }

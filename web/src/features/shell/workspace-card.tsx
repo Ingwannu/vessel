@@ -19,6 +19,7 @@ import {
 import { Icon, type IconName } from "../../ui/kit";
 import { toast } from "../../ui/toasts";
 import type { DiffStat } from "../../wire/proto";
+import { CardPull } from "./workspace-card-pull";
 
 export function WorkspaceCard({
   title,
@@ -38,12 +39,7 @@ export function WorkspaceCard({
   return (
     <div className="workspace-card">
       <p className="workspace-card-title">{title}</p>
-      {pull === null ? null : (
-        <div className="workspace-card-row">
-          <Icon name="git-fork" size={12} />
-          <span>{`#${String(pull.number)}`}</span>
-        </div>
-      )}
+      {pull === null ? null : <CardPull pull={pull} />}
       {stat == null ? null : (
         <div className="workspace-card-row">
           <Icon name="git-compare" size={12} />
@@ -202,8 +198,23 @@ function CountPills({
 }) {
   const name = checksName(counts);
   const href = url === null ? null : checksPage(kind ?? "unknown", url);
+  // Paseo's lead: the forge's mark tinted muted (GitHub's is one colour),
+  // the boxed outward arrow while the row is hovered (TRACKER 426).
   const pills = (
     <>
+      <span className="workspace-card-mark">
+        <span className="workspace-card-rest">
+          <Icon
+            name={kind === "github" ? "github" : "git-pull-request"}
+            size={12}
+          />
+        </span>
+        {href === null ? null : (
+          <span className="workspace-card-out">
+            <Icon name="move" size={12} />
+          </span>
+        )}
+      </span>
       <span>Checks</span>
       <span className="workspace-card-pills">
         <Pill
@@ -218,8 +229,6 @@ function CountPills({
           tone="workspace-card-pending"
         />
       </span>
-      {/* `move` is the arrow that leaves a box: the outward link. */}
-      {href === null ? null : <Icon name="move" size={12} />}
     </>
   );
   if (href === null) {
