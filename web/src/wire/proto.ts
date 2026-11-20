@@ -6998,7 +6998,14 @@ metadata?: MetadataSettings,
  * Whether installed plugins run on this node (ADR 0115, Paseo's
  * `pluginsEnabled`, default off); hidden below `PLUGINS_PROTOCOL`.
  */
-plugins_enabled?: boolean, };
+plugins_enabled?: boolean, 
+/**
+ * Whether the node installs its terminal activity hooks into the
+ * agents' own configuration (ADR 0089, Paseo's
+ * `enableTerminalAgentHooks`, default off); hidden below
+ * `ATTENTION_NOTIFICATIONS_PROTOCOL`, as the feature's other fields are.
+ */
+terminal_agent_hooks?: boolean, };
 
 /**
  * Whether a node is taking new work.
@@ -11465,7 +11472,13 @@ metadata?: MetadataSettings | null,
 /**
  * Turn installed plugins on or off on this node, at once (ADR 0115).
  */
-plugins_enabled?: boolean | null, };
+plugins_enabled?: boolean | null, 
+/**
+ * Install or remove the terminal activity hooks in the agents' own
+ * configuration, at once (ADR 0089). Refused until
+ * `ATTENTION_NOTIFICATIONS_PROTOCOL` is assigned.
+ */
+terminal_agent_hooks?: boolean | null, };
 
 /**
  * `secret.set` (protocol 6): store a value in this node's `secrets.toml`,

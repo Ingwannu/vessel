@@ -11,8 +11,8 @@ use vessel_proto::{HarnessKind, NodeId, ProfileName};
 
 use super::{
     ActionId, Alerts, Bindings, Choices, CodeSize, ContentWidth, ConversationDisplay, ExplorerSort,
-    Grouping, InterfaceSize, Panel, SendKey, SessionSort, ShortcutEdits, Theme, TurnDelivery,
-    UsageDisplay, UsagePins,
+    Grouping, InterfaceSize, Panel, SendKey, SessionSort, ShortcutEdits, SidebarTrailing, Theme,
+    TurnDelivery, UsageDisplay, UsagePins,
 };
 #[cfg(doc)]
 use super::{
@@ -65,6 +65,8 @@ pub enum PreferenceChange {
     },
     /// [`SidebarView::usage`]: the footer's usage summary (ADR 0107).
     SidebarUsage(bool),
+    /// [`SidebarView::trailing`].
+    SidebarTrailing(SidebarTrailing),
     /// [`super::UsagePreferences::display`].
     UsageDisplay(UsageDisplay),
     /// [`super::UsagePreferences::host`]; null follows the active machine.

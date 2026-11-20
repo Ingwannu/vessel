@@ -3,7 +3,7 @@
 import { type ReactNode, useCallback, useState } from "react";
 
 import { sessionName } from "../../data/titles";
-import { WorkspaceChat } from "../workspace/workspace-chat";
+import { OpenChanges, WorkspaceChat } from "../workspace/workspace-chat";
 import type { ProjectsView } from "../../data/workspace/project-store";
 import { tabKey, type WorkspaceTab } from "../../data/workspace/tab-layout";
 import { Button, Dialog, Skeleton } from "../../ui/kit";
@@ -66,7 +66,6 @@ export function Workspace({
   const state = useWorkspace(node, anchor, root, projects, scope, words);
   const { active, actions, lifecycle, layout, markDirty, openFile, select } =
     state;
-
   const items = layout.tabs.map((tab): TabItem => {
     const key = tabKey(tab);
     const dirty = state.dirty.has(key);
@@ -126,7 +125,6 @@ export function Workspace({
       : root.kind === "worktree"
         ? { kind: "worktree", worktree: root.worktree }
         : { kind: "project", project: root.project };
-
   const openChat = () => {
     select({ kind: "agent", id: anchor.id });
   };
@@ -140,7 +138,9 @@ export function Workspace({
           session === undefined ? (
             <Skeleton />
           ) : (
-            agent(session, { summaryOpen, closeSummary, onTitle })
+            <OpenChanges value={openChanges}>
+              {agent(session, { summaryOpen, closeSummary, onTitle })}
+            </OpenChanges>
           )
         ) : null;
       }

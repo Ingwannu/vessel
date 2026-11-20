@@ -114,8 +114,15 @@ Drafted 39; assigned 40 (`WORKSPACE_TERMINALS_PROTOCOL`, `PROTOCOL_VERSION` 40) 
 
 - `TerminalPlace` gains `worktree { worktree }` (the worktree's folder, counted against its project) and
   `folder { path }` (an absolute folder no project or worktree owns; kept canonical; at most 16 live in one folder).
-  Agents still open terminals beside a session only. Archiving or deleting a session ends the terminals beside it
-  only, so a worktree's or a folder's shells outlive every agent in that workspace, as Paseo's do.
+  Archiving or deleting a session ends the terminals beside it only, so a worktree's or a folder's shells outlive
+  every agent in that workspace, as Paseo's do.
+- Amended (TRACKER 832, ADR 0121 amendment 1; no new number, the shapes are 40's): an agent still names a session in
+  `terminal.create { place: session }`, the anchor of its rights, and from this version the node opens the shell in
+  that session's workspace: `worktree` when it runs in one, `project` with its `dir` in a project, otherwise
+  `folder` (its cwd, canonical); a session with no cwd keeps `session`, as the page keeps its shells beside it.
+  The answer's place says which. Such a shell lives
+  with its place, not with the agent: the agent's end takes away its use only. An agent call below 40 keeps
+  `session`, and a peer below 40 does not see the others.
 - `terminal.list { place }` matches the place's kind exactly: a project's list holds its project places, not its
   worktrees' (a worktree is its own workspace); a folder is matched canonical.
 - `worktree.remove` gains `end_terminals` (default false). With it, the live terminals in the worktree end first and
@@ -1175,13 +1182,15 @@ plan's "Track C: contract" (with its review) say why each choice.
 - Limits: 64 live terminals a node, 8 beside a session, 16 in a project;
   32 ended ones kept; a terminal's scrollback 4,096 records and 1 MiB
   (the oldest go, which a reader sees as a pruned range).
-- Agents: `script.*` are `forbidden`. `terminal.create` only beside its
+- Agents: `script.*` are `forbidden`. `terminal.create` only for its
   own session or one it may operate, and only when both that session's
   profile and the agent's own session's set `agent_terminals = true`
   (`profiles.toml`; off for every default profile; the agent's node
   checks its own before forwarding); at most 4 at once; every other call
   and `port.list` only on its own terminals; they end when its session,
-  or the session they are beside, ends.
+  or the session they are beside, ends. From protocol 40 (TRACKER 832)
+  the shell opens in that session's workspace and lives with it; only
+  those beside a session (an older caller's) end with the session.
 - A terminal's environment is the node's without Vessel's credentials
   (`VESSEL_*TOKEN`, `VESSEL_*SECRET`, `VESSEL_AGENT_SESSION`,
   `VESSEL_NODE_SOCKET`, and a model route's variables when the node runs

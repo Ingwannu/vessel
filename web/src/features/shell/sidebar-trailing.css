@@ -1,0 +1,17 @@
+/* Paseo's trailing slot: compact age, or the diff stat, after the title. */
+.side-trailing {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  margin-left: auto;
+  font: var(--t-meta);
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.side-machine + .side-trailing,
+.side-workspace-end .side-trailing {
+  margin-left: 0;
+}

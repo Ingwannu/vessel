@@ -369,8 +369,17 @@
   color: var(--text-primary);
 }
 
-.side-workspace-menu {
+.side-workspace-end {
   margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.side-workspace-end .side-machine,
+.side-workspace-menu {
+  margin-left: 0;
+  padding-left: 0;
 }
 
 @media (hover: hover) and (pointer: fine) {
