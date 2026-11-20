@@ -2,7 +2,8 @@
 // Paseo's sidebar shape inside Vessel's): each machine's registry
 // workspaces, their label chips under the name, a row menu with the
 // Labels picker, and their sessions under them (data/workspace-labels/
-// groups.ts decides who belongs where and what the filter keeps).
+// groups.ts decides who belongs where and what the filter keeps). On a
+// wide window with a fine pointer, the name opens the workspace card.
 
 import { Link } from "@tanstack/react-router";
 import { Fragment, useMemo, useState } from "react";
@@ -16,8 +17,9 @@ import {
   sidebarWorkspaces,
 } from "../../data/workspace-labels/groups";
 import type { NodeKey } from "../../wire/bridge";
-import type { WorkspaceId } from "../../wire/proto";
-import { Icon, IconButton, Menu } from "../../ui/kit";
+import type { DiffStat, WorkspaceId } from "../../wire/proto";
+import { COMPACT } from "../../ui/breakpoints";
+import { HoverCard, Icon, IconButton, Menu } from "../../ui/kit";
 import { BranchChip } from "../workspace/branch-chip";
 import { LabelChips } from "../workspace-labels/chip";
 import { CreateLabelDialog } from "../workspace-labels/create-dialog";
@@ -27,12 +29,20 @@ import { usePruneFilter } from "../workspace-labels/use-prune-filter";
 import { SessionMark } from "./session-mark";
 import { rowClass } from "./sidebar";
 import { SidebarViewMenu } from "./sidebar-view-menu";
+import { useDiffStats } from "./use-diff-stats";
+import { useMedia } from "./use-media";
+import { WorkspaceCard } from "./workspace-card";
+
+/** A pointer that can hover. A coarse pointer never opens the card. */
+const FINE_POINTER = "(hover: hover) and (pointer: fine)";
 
 export function SidebarWorkspaces() {
   const where = useWhere();
   const fleet = useFleetState((value) => value);
   const view = useStore(prefs, (value) => value.values.sidebar);
   const { hub, state } = useLabels();
+  const stats = useDiffStats();
+  const cards = !useMedia(COMPACT) && useMedia(FINE_POINTER);
   usePruneFilter(state, view.labels);
   const rows = useMemo(
     () => sidebarWorkspaces(fleet, state, view, view.labels),
@@ -63,6 +73,12 @@ export function SidebarWorkspaces() {
             <WorkspaceHead
               row={row}
               several={machines > 1}
+              cards={cards}
+              stat={
+                row.id === null
+                  ? undefined
+                  : stats.byNode[row.node]?.[row.id]
+              }
               onCreate={(workspace) => {
                 setCreating({ node: row.node, workspace });
               }}
@@ -117,18 +133,37 @@ export function SidebarWorkspaces() {
 function WorkspaceHead({
   row,
   several,
+  cards,
+  stat,
   onCreate,
 }: {
   row: SidebarWorkspace;
   several: boolean;
+  cards: boolean;
+  stat: DiffStat | null | undefined;
   onCreate: (workspace: WorkspaceId) => void;
 }) {
   const workspace = row.id;
+  const name = <span className="label">{row.title}</span>;
+  const folder = row.folder;
   return (
     <div className="side-workspace">
       <div className="nav-item workspace">
         <Icon name={workspace === null ? "list" : "folder"} size={16} />
-        <span className="label">{row.title}</span>
+        {cards && folder !== null ? (
+          <HoverCard trigger={name} side="right" align="start" width="sm">
+            <WorkspaceCard
+              title={row.title}
+              machine={row.machine}
+              folder={folder}
+              branch={row.branch}
+              pull={row.pull}
+              stat={stat}
+            />
+          </HoverCard>
+        ) : (
+          name
+        )}
         {several ? <span className="side-machine">{row.machine}</span> : null}
         {workspace === null ? null : (
           <span className="side-workspace-menu">

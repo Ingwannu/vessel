@@ -1,0 +1,63 @@
+/* The workspace hover card (TRACKER 819): name, pull request, diff
+   stat, host, copyable branch and folder, checks. Wide windows and a
+   fine pointer only; the compact sheet is where a drag happens, so
+   hiding the card there also keeps it off a drag. */
+
+.workspace-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  min-width: 0;
+}
+
+.workspace-card-title {
+  margin: 0;
+  overflow: hidden;
+  color: var(--text-primary);
+  font: var(--t-body);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-card-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-width: 0;
+  color: var(--text-secondary);
+  font: var(--t-meta);
+}
+
+.workspace-card-row > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-card-diff {
+  display: flex;
+  gap: var(--s-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.workspace-card-add {
+  color: var(--online);
+}
+
+.workspace-card-del {
+  color: var(--danger);
+}
+
+.workspace-card-row .btn {
+  flex: none;
+  margin-left: auto;
+}
+
+.workspace-card-ok {
+  color: var(--online);
+}
+
+.workspace-card-bad {
+  color: var(--danger);
+}
