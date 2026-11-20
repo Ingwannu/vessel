@@ -30,9 +30,9 @@ mod reload;
 
 mod diagnostics;
 
-use std::collections::HashMap;
 use std::collections::hash_map::Entry;
-use std::sync::{Arc, PoisonError, RwLock};
+use std::collections::{HashMap, HashSet};
+use std::sync::{Arc, Mutex, PoisonError, RwLock};
 use std::time::Duration;
 
 use tokio::sync::{mpsc, watch};
@@ -47,7 +47,7 @@ pub(crate) use parts::{ActorStart, Begin};
 
 use crate::attachments::AttachmentLoader;
 use crate::config::RuntimeConfig;
-use crate::error::RemoveError;
+use crate::error::{RemoveError, SessionError};
 use crate::handle::SessionHandle;
 
 /// Runs every session of one node.
@@ -61,7 +61,9 @@ use crate::handle::SessionHandle;
 /// - Choice: a `std` `RwLock` over a map of handles. It is not a shared
 ///   mutable "god object": it only maps ids to handles, entries are added
 ///   once and removed once, all session state stays inside each session's
-///   actor, and the lock is never held across `.await`.
+///   actor, and the lock is never held across `.await`. A caller-chosen id
+///   is reserved in `starting` from that check until the session is in the
+///   map (or creation has failed), so two creations cannot both pass it.
 /// - Lifetime: an ended session stays in the map (and keeps its ring, up to
 ///   `ring_capacity` records) until its owner calls [`remove`](Self::remove);
 ///   `list` reports it until then, as the plan requires. The node removes a
@@ -77,6 +79,10 @@ pub struct SessionRuntime {
     lookup_gate: admission::tests::LookupGateSlot,
     tasks: TaskTracker,
     sessions: RwLock<HashMap<SessionId, SessionHandle>>,
+    /// Ids of sessions being created: taken when the id is checked and
+    /// released once the session is in `sessions` (or its creation
+    /// failed), so two creations with one id cannot both pass the check.
+    starting: Mutex<HashSet<SessionId>>,
     /// The node's attachment loader (protocol 10), which every structured
     /// session asks for its prompts' attachments.
     attachments: Option<AttachmentLoader>,
@@ -93,6 +99,22 @@ pub struct SessionRuntime {
     before_registration: registration::RegistrationGate,
     #[cfg(test)]
     version_control: Arc<drivers::version::VersionControl>,
+}
+
+/// An id held for a session being created; released when dropped.
+struct Reserved<'runtime> {
+    starting: &'runtime Mutex<HashSet<SessionId>>,
+    id: SessionId,
+}
+
+impl Drop for Reserved<'_> {
+    fn drop(&mut self) {
+        let _released = self
+            .starting
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .remove(&self.id);
+    }
 }
 
 /// A session that was just started.
@@ -125,6 +147,7 @@ impl SessionRuntime {
             lookup_gate: admission::tests::LookupGateSlot::default(),
             tasks: TaskTracker::new(),
             sessions: RwLock::new(HashMap::new()),
+            starting: Mutex::new(HashSet::new()),
             attachments: None,
             park_after,
             claims: Arc::new(claims::Claims::default()),
@@ -196,6 +219,19 @@ impl SessionRuntime {
     /// (`RuntimeConfig::private_dir`).
     pub(crate) fn private_dir(&self) -> Option<std::path::PathBuf> {
         self.config.private_dir.clone()
+    }
+
+    /// Hold `id` for a session being created, unless a session has it or
+    /// another creation holds it.
+    fn reserve(&self, id: SessionId) -> Result<Reserved<'_>, SessionError> {
+        let mut starting = self.starting.lock().unwrap_or_else(PoisonError::into_inner);
+        if self.get(id).is_some() || !starting.insert(id) {
+            return Err(SessionError::DuplicateId(id));
+        }
+        Ok(Reserved {
+            starting: &self.starting,
+            id,
+        })
     }
 
     /// A session of this run, live or ended (until [`remove`](Self::remove)d).
