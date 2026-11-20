@@ -18,6 +18,7 @@
 import { CallFailed } from "./failure";
 import * as frames from "./frames";
 import { callIdOf, streamIdOf } from "./ids";
+import { postPreview } from "./preview";
 import { BridgeSocket, type LinkState, socketUrl } from "./socket";
 import type { Credential } from "./token";
 import type {
@@ -133,6 +134,16 @@ export class Bridge {
       });
     }
     return reply.result;
+  }
+
+  /** Keep `document` as the HTML preview of panel `slot`; the address to
+   * frame it from (ADR 0122). Rejects when not connected or refused. */
+  preview(slot: string, document: string): Promise<string> {
+    const key = this.#socket.sessionKey;
+    if (key === null) {
+      return Promise.reject(new Error("Not connected to vessel ui."));
+    }
+    return postPreview(key, slot, document);
   }
 
   /** Ask the bridge itself. Rejects with an `OpFailed` keeping its reason. */
