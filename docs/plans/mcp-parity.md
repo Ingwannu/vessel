@@ -5,24 +5,21 @@ a restart reads. Nothing here widens an agent principal past ADR 0013.
 
 ## Resume point
 
-- Done: ADR 0065 and this plan. Docs only, through the one field
-  `mcp` (class reloadable). No protocol number is registered.
-  `PROTOCOL_VERSION` stays 20. `MCP_PARITY` is set at merge. The ADR
-  stays proposed until acceptance is recorded.
-- This commit: a tool name is decoded once, in
-  `crates/vessel-mcp/src/tools/id.rs`. `call` matches that enum. The
-  modules that already matched a name still receive it as text, so
-  this commit adds no tool and changes no test expectation. A
-  `vessel_lsp_` name that is not one of the ten still reaches the
-  LSP module.
-- Half-done, not compiled in: `crates/vessel-mcp/src/tools/driving.rs`
-  and `crates/vessel-mcp/src/tools/offer.rs`. They still match a
-  tool's name as text and return `serde_json::Value`, and they are
-  not modules. Rewrite both onto the enum, with typed returns, before
-  wiring them. Still to add the same way: `get_schedule` and
-  `update_schedule`.
-- Next: that rewrite, then this slice's one gate. Do not start slice
-  3 until it is green.
+- Done: ADR 0065, still proposed. `PROTOCOL_VERSION` stays 20.
+  `MCP_PARITY` is set at merge. A tool name is decoded once, in
+  `crates/vessel-mcp/src/tools/id.rs`, and a `vessel_lsp_` name that
+  is not one of the ten still reaches the LSP module. Modules that
+  already matched a name still receive it as text.
+- This commit: the nine missing tools (`get_session`, `cancel_turn`,
+  `rename_session`, `set_session_option`, `get_schedule`,
+  `update_schedule`, `list_harnesses`, `list_profiles`,
+  `harness_options`). Each one is a protocol call. The new functions
+  return protocol types; the server encodes them. No new match on a
+  tool's name. `list_pending_permissions` is not added: a session's
+  record does not carry pending permissions, and no existing read
+  lists them for this principal. `model.list` is not wrapped.
+- Next: this slice's one gate. Do not start slice 3 (the denylist,
+  applied at the next session start) until that gate is green.
 
 ## What Paseo does
 

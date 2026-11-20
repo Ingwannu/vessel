@@ -13,7 +13,7 @@ use rmcp::model::{JsonObject, Tool};
 use serde_json::{Value, json};
 use vessel_proto::automation::{
     AfterRun, Cadence, CatchUp, EverySeconds, ListPrompts, MaxRuns, ScheduleDefinition,
-    ScheduleTarget,
+    ScheduleInfo, ScheduleTarget,
 };
 use vessel_proto::{ProjectId, ScheduleId};
 
@@ -27,20 +27,7 @@ impl VesselTools {
     ) -> Result<Value, ToolError> {
         match name {
             "create_schedule" => {
-                let target = match text(args, "session")? {
-                    Some(session) => ScheduleTarget::Session {
-                        session: parse(session, "session")?,
-                    },
-                    None => ScheduleTarget::NewSession {
-                        spec: Box::new(Self::spec(args)?),
-                        after: if flag(args, "keep")? {
-                            AfterRun::Keep
-                        } else {
-                            AfterRun::Archive
-                        },
-                    },
-                };
-                let definition = definition(args, target)?;
+                let definition = definition(args, target_of(args)?)?;
                 Ok(json!(self.client.create_schedule(definition, false).await?))
             }
             "create_heartbeat" => {
@@ -69,6 +56,23 @@ impl VesselTools {
             }
             _ => Err(ToolError::Arguments("unknown schedule tool".into())),
         }
+    }
+
+    pub(super) async fn get_schedule(&self, args: &JsonObject) -> Result<ScheduleInfo, ToolError> {
+        Ok(self.client.schedule(schedule(args)?).await?)
+    }
+
+    pub(super) async fn update_schedule(
+        &self,
+        args: &JsonObject,
+    ) -> Result<ScheduleInfo, ToolError> {
+        let schedule = schedule(args)?;
+        let revision = revision(args)?;
+        let definition = definition(args, target_of(args)?)?;
+        Ok(self
+            .client
+            .update_schedule(schedule, revision, definition)
+            .await?)
     }
 }
 
@@ -133,6 +137,33 @@ fn schedule(args: &JsonObject) -> Result<ScheduleId, ToolError> {
     parse(required(args, "schedule")?, "schedule")
 }
 
+/// Where a schedule's prompt goes, as `create_schedule` already read it.
+/// `update_schedule` replaces the definition whole, so a field left out is
+/// cleared rather than kept.
+fn target_of(args: &JsonObject) -> Result<ScheduleTarget, ToolError> {
+    match text(args, "session")? {
+        Some(session) => Ok(ScheduleTarget::Session {
+            session: parse(session, "session")?,
+        }),
+        None => Ok(ScheduleTarget::NewSession {
+            spec: Box::new(VesselTools::spec(args)?),
+            after: if flag(args, "keep")? {
+                AfterRun::Keep
+            } else {
+                AfterRun::Archive
+            },
+        }),
+    }
+}
+
+fn revision(args: &JsonObject) -> Result<u32, ToolError> {
+    let revision = number(args, "revision")?
+        .ok_or_else(|| ToolError::Arguments("`revision` is required".to_owned()))?;
+    u32::try_from(revision).map_err(|_too_big| {
+        ToolError::Arguments("`revision` does not fit the protocol's counter".to_owned())
+    })
+}
+
 fn parse<T: std::str::FromStr>(text: &str, what: &str) -> Result<T, ToolError>
 where
     T::Err: std::fmt::Display,
@@ -141,39 +172,11 @@ where
         .map_err(|error| ToolError::Arguments(format!("{what}: {error}")))
 }
 
-/// The tools, with their schemas.
+/// The tools, with their schemas. `when` and `record_tools` are separate
+/// so this list stays within the line limit.
 pub(super) fn tools() -> Vec<Tool> {
     let schedule = json!({ "type": "string", "description": "A schedule id." });
-    let when = |extra: Value| {
-        let mut properties = json!({
-            "name": { "type": "string", "description": "What to call it." },
-            "every_secs": {
-                "type": "integer", "minimum": 60,
-                "description": "Run every so many seconds (or give `cron`)."
-            },
-            "cron": {
-                "type": "string",
-                "description": "Five-field cron expression, or `@daily` and its kind."
-            },
-            "tz": {
-                "type": "string",
-                "description": "With `cron`: an IANA time zone, such as Europe/London."
-            },
-            "prompt": { "type": "string", "description": "The prompt each run sends." },
-            "max_runs": { "type": "integer", "minimum": 1, "description": "End after this many." },
-            "ends_at": { "type": "string", "description": "End at this RFC 3339 time." },
-            "catch_up": {
-                "type": "string", "enum": ["once", "skip"],
-                "description": "Due times missed while the node was stopped: one run for the \
-                                latest (if less than a day old), or none."
-            }
-        });
-        if let (Some(all), Value::Object(more)) = (properties.as_object_mut(), extra) {
-            all.extend(more);
-        }
-        properties
-    };
-    vec![
+    let mut listed = vec![
         tool(
             "create_schedule",
             "Prompt a session on a schedule, on this node: a new session each run (`harness`, \
@@ -237,6 +240,73 @@ pub(super) fn tools() -> Vec<Tool> {
                 "project": { "type": "string", "description": "A project id (`list_projects`)." }
             }),
             &[],
+        ),
+    ];
+    listed.extend(record_tools(&schedule));
+    listed
+}
+
+/// The cadence fields shared by creating a schedule and replacing one.
+fn when(extra: Value) -> Value {
+    let mut properties = json!({
+        "name": { "type": "string", "description": "What to call it." },
+        "every_secs": {
+            "type": "integer", "minimum": 60,
+            "description": "Run every so many seconds (or give `cron`)."
+        },
+        "cron": {
+            "type": "string",
+            "description": "Five-field cron expression, or `@daily` and its kind."
+        },
+        "tz": {
+            "type": "string",
+            "description": "With `cron`: an IANA time zone, such as Europe/London."
+        },
+        "prompt": { "type": "string", "description": "The prompt each run sends." },
+        "max_runs": { "type": "integer", "minimum": 1, "description": "End after this many." },
+        "ends_at": { "type": "string", "description": "End at this RFC 3339 time." },
+        "catch_up": {
+            "type": "string", "enum": ["once", "skip"],
+            "description": "Due times missed while the node was stopped: one run for the \
+                            latest (if less than a day old), or none."
+        }
+    });
+    if let (Some(all), Value::Object(more)) = (properties.as_object_mut(), extra) {
+        all.extend(more);
+    }
+    properties
+}
+
+/// Reading one schedule and replacing it. Schemas are MCP's JSON Schema.
+fn record_tools(schedule: &Value) -> Vec<Tool> {
+    vec![
+        tool(
+            "get_schedule",
+            "One schedule on this node: its definition, whether it runs, and its revision.",
+            json!({ "schedule": schedule }),
+            &["schedule"],
+        ),
+        tool(
+            "update_schedule",
+            "Replace one of your schedules, whole, from the `revision` `get_schedule` returned. \
+             A partial change is not a patch: a field you leave out is cleared. Another revision \
+             is refused, so read it again. A delegated call cannot update one.",
+            when(json!({
+                "schedule": schedule,
+                "revision": {
+                    "type": "integer", "minimum": 0,
+                    "description": "The revision this change was made from."
+                },
+                "session": { "type": "string", "description": "A session of yours to prompt." },
+                "harness": { "type": "string", "description": "claude, codex, gemini or opencode." },
+                "profile": { "type": "string", "description": "One of the node's profiles." },
+                "project": { "type": "string", "description": "A project id (`list_projects`)." },
+                "dir": { "type": "string", "description": "With `project`: a folder in it." },
+                "worktree": { "type": "string", "description": "A worktree of yours." },
+                "model": { "type": "string", "description": "A model the agent offers." },
+                "keep": { "type": "boolean", "description": "Keep each run's session." }
+            })),
+            &["schedule", "revision", "prompt"],
         ),
     ]
 }

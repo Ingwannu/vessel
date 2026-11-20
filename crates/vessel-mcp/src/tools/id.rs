@@ -98,6 +98,49 @@ pub(super) enum ToolId {
     LspOutgoingCalls,
     /// `vessel_lsp_diagnostics`.
     LspDiagnostics,
+    /// A tool added for MCP parity. Nested so the catalogue match grows
+    /// by one arm, not one arm per tool.
+    Added(AddedId),
+}
+
+/// A tool this build adds on top of the catalogue it already had.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) enum AddedId {
+    /// `get_session`.
+    GetSession,
+    /// `cancel_turn`.
+    CancelTurn,
+    /// `rename_session`.
+    RenameSession,
+    /// `set_session_option`.
+    SetSessionOption,
+    /// `get_schedule`.
+    GetSchedule,
+    /// `update_schedule`.
+    UpdateSchedule,
+    /// `list_harnesses`.
+    ListHarnesses,
+    /// `list_profiles`.
+    ListProfiles,
+    /// `harness_options`.
+    HarnessOptions,
+}
+
+impl AddedId {
+    /// The name [`ToolId::parse`] accepts for this tool.
+    pub(super) const fn as_str(self) -> &'static str {
+        match self {
+            Self::GetSession => "get_session",
+            Self::CancelTurn => "cancel_turn",
+            Self::RenameSession => "rename_session",
+            Self::SetSessionOption => "set_session_option",
+            Self::GetSchedule => "get_schedule",
+            Self::UpdateSchedule => "update_schedule",
+            Self::ListHarnesses => "list_harnesses",
+            Self::ListProfiles => "list_profiles",
+            Self::HarnessOptions => "harness_options",
+        }
+    }
 }
 
 impl ToolId {
@@ -141,6 +184,15 @@ impl ToolId {
             "resume_schedule" => Self::ResumeSchedule,
             "delete_schedule" => Self::DeleteSchedule,
             "list_saved_prompts" => Self::ListSavedPrompts,
+            "get_session" => Self::Added(AddedId::GetSession),
+            "cancel_turn" => Self::Added(AddedId::CancelTurn),
+            "rename_session" => Self::Added(AddedId::RenameSession),
+            "set_session_option" => Self::Added(AddedId::SetSessionOption),
+            "get_schedule" => Self::Added(AddedId::GetSchedule),
+            "update_schedule" => Self::Added(AddedId::UpdateSchedule),
+            "list_harnesses" => Self::Added(AddedId::ListHarnesses),
+            "list_profiles" => Self::Added(AddedId::ListProfiles),
+            "harness_options" => Self::Added(AddedId::HarnessOptions),
             "vessel_lsp_workspace_symbols" => Self::LspWorkspaceSymbols,
             "vessel_lsp_document_symbols" => Self::LspDocumentSymbols,
             "vessel_lsp_definition" => Self::LspDefinition,
@@ -196,6 +248,7 @@ impl ToolId {
             Self::ResumeSchedule => "resume_schedule",
             Self::DeleteSchedule => "delete_schedule",
             Self::ListSavedPrompts => "list_saved_prompts",
+            Self::Added(tool) => tool.as_str(),
             Self::LspWorkspaceSymbols => "vessel_lsp_workspace_symbols",
             Self::LspDocumentSymbols => "vessel_lsp_document_symbols",
             Self::LspDefinition => "vessel_lsp_definition",
@@ -238,7 +291,15 @@ mod tests {
 
     #[test]
     fn every_tool_parses_back_to_itself_and_an_unknown_name_does_not() {
-        let all = [
+        for tool in every() {
+            assert_eq!(ToolId::parse(tool.as_str()), Some(tool));
+        }
+        assert_eq!(ToolId::parse("speak"), None);
+        assert_eq!(ToolId::parse("vessel_lsp_"), None);
+    }
+
+    fn every() -> Vec<ToolId> {
+        vec![
             ToolId::ListNodes,
             ToolId::ListSessions,
             ToolId::CreateSession,
@@ -284,12 +345,16 @@ mod tests {
             ToolId::LspIncomingCalls,
             ToolId::LspOutgoingCalls,
             ToolId::LspDiagnostics,
-        ];
-        for tool in all {
-            assert_eq!(ToolId::parse(tool.as_str()), Some(tool));
-        }
-        assert_eq!(ToolId::parse("speak"), None);
-        assert_eq!(ToolId::parse("vessel_lsp_"), None);
+            ToolId::Added(super::AddedId::GetSession),
+            ToolId::Added(super::AddedId::CancelTurn),
+            ToolId::Added(super::AddedId::RenameSession),
+            ToolId::Added(super::AddedId::SetSessionOption),
+            ToolId::Added(super::AddedId::GetSchedule),
+            ToolId::Added(super::AddedId::UpdateSchedule),
+            ToolId::Added(super::AddedId::ListHarnesses),
+            ToolId::Added(super::AddedId::ListProfiles),
+            ToolId::Added(super::AddedId::HarnessOptions),
+        ]
     }
 
     #[test]
