@@ -24,9 +24,22 @@
 //!     `OPENCODE_CONFIG_DIR` and `XDG_CONFIG_HOME` for `OpenCode`. Vessel
 //!     does not set those for the `OpenCode` it runs, so the hooks go where
 //!     that `OpenCode` reads.
-//!   - The marker is Vessel's own (`VESSEL_HOOK_CLI` in the command). Paseo's
-//!     marker, `hooks claude`, would match Paseo's own entries in the same
-//!     file and remove them.
+//!   - Vessel's entries are recognised by their exact command: one of the
+//!     forms [`shell_command`] and [`windows_command`] write for one of the
+//!     agent's events, and nothing looser ([`marked`]). A person's command
+//!     that only mentions `vessel hooks` is theirs. If a form ever changes,
+//!     `marked` must keep recognising the old one, or turning the setting off
+//!     would leave the old entries behind.
+//!   - The commands quote the agent and the event (`hooks "claude" "Stop"`).
+//!     Paseo runs beside Vessel on the same machines and writes the same
+//!     files. Its install and uninstall drop every hook command containing
+//!     its marker, `hooks claude` or `hooks codex` (Paseo 0.15.4
+//!     `claude/claude.ts:25`, `codex/codex.ts:26`, and the removal in
+//!     `claude/claude-settings.ts:98-113`, `codex/codex-settings.ts:105-139`).
+//!     Unquoted, Vessel's commands contain it, and every Paseo restart would
+//!     remove Vessel's hooks. Paseo's own installer was run over Vessel's
+//!     entries to check this (`tests/fixtures/agent_hooks/generate.mjs`); the
+//!     unquoted form fails there.
 //! - Rules beyond Paseo (the coordinator, 2026-11-20), because these files
 //!   drive a person's agents:
 //!   - a one-time backup before the first write to an existing file;
@@ -225,9 +238,11 @@ impl Targets {
 
 /// The command a hook runs (Paseo's `agent-hook-installer.js:43-46`): only
 /// inside a Vessel terminal, with `VESSEL_HOOK_CLI` naming another `vessel`.
+/// The agent and event are quoted so the command never contains Paseo's
+/// marker (see the Decision Log).
 fn shell_command(agent: Agent, event: &str) -> String {
     format!(
-        "if [ -n \"${}\" ]; then \"${{{}:-vessel}}\" hooks {} {}; fi",
+        "if [ -n \"${}\" ]; then \"${{{}:-vessel}}\" hooks \"{}\" \"{}\"; fi",
         vessel_proto::notifications::TERMINAL_ACTIVITY_ID_ENV,
         HOOK_CLI_ENV,
         agent.id(),
@@ -238,19 +253,21 @@ fn shell_command(agent: Agent, event: &str) -> String {
 /// The same for `cmd.exe` (Paseo's `agent-hook-installer.js:47-50`).
 fn windows_command(agent: Agent, event: &str) -> String {
     let id = vessel_proto::notifications::TERMINAL_ACTIVITY_ID_ENV;
-    let args = format!("hooks {} {}", agent.id(), event);
+    let args = format!("hooks \"{}\" \"{}\"", agent.id(), event);
     format!(
         "if defined {id} (if defined {HOOK_CLI_ENV} (\"%{HOOK_CLI_ENV}%\" {args}) else (vessel {args})) else (exit /b 0)"
     )
 }
 
 /// What names another `vessel` for the hooks (Paseo's `PASEO_HOOK_CLI`).
-/// Every command Vessel installs names it, so it is also the marker.
 const HOOK_CLI_ENV: &str = "VESSEL_HOOK_CLI";
 
-/// Whether `command` is one Vessel installed for `agent`.
+/// Whether `command` is exactly one Vessel installs for one of `agent`'s
+/// events.
 fn marked(command: &str, agent: Agent) -> bool {
-    command.contains(HOOK_CLI_ENV) && command.contains(&format!("hooks {} ", agent.id()))
+    agent.event_names().any(|event| {
+        command == shell_command(agent, event) || command == windows_command(agent, event)
+    })
 }
 
 #[cfg(test)]

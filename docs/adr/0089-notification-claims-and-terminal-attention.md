@@ -194,8 +194,9 @@ package's `dist/`):
   - OpenCode: `$OPENCODE_CONFIG_DIR` or `$XDG_CONFIG_HOME/opencode` (`~/.config/opencode`), file
     `plugins/<name>.js`, the plugin source that runs `<cli> hooks opencode <event>`.
   - The command (`agent-hook-installer.js:43-50`) is
-    `if [ -n "$VESSEL_TERMINAL_ACTIVITY_ID" ]; then "${VESSEL_HOOK_CLI:-vessel}" hooks <agent> <event>; fi`,
-    with a cmd.exe form. Paseo's marker is `hooks <agent>`.
+    `if [ -n "$VESSEL_TERMINAL_ACTIVITY_ID" ]; then "${VESSEL_HOOK_CLI:-vessel}" hooks "<agent>" "<event>"; fi`,
+    with a cmd.exe form. Paseo's marker is `hooks <agent>`, unquoted (`claude/claude.ts:25`,
+    `codex/codex.ts:26` in the source).
 - **Setting.** "Terminal agent hooks" is off by default, as is `enableTerminalAgentHooks`
   (`server/dist/server/server/config.js:429`). Following `terminal-agent-hook-setting.js`, the node
   installs the hooks when the setting is on at start and when it is turned on, and removes them when it
@@ -209,6 +210,10 @@ Vessel's rules beyond Paseo (coordinator, 2026-11-20):
 - It changes only the entries that carry its marker. An invalid file is left untouched, with one logged
   line; it is never rewritten. Paseo parses an invalid object as `{}` and would rewrite it.
 - Turning the setting off removes exactly the marked entries.
+- The operator's machines run Paseo and Vessel side by side, and Paseo's entries sit in the same files.
+  Vessel's install, reinstall and off leave every Paseo entry byte-identical and in place. Vessel's marker
+  is its exact command form, not a substring. A test proves this on Paseo 0.15.4's own installer output,
+  not on a copy of a real file.
 - No test, capture or gate writes a real `~/.claude*`, `~/.codex` or OpenCode config. Tests use a scratch
   home and config directories, and a guard refuses to run when any of them resolves to the real home.
 
@@ -217,15 +222,40 @@ As built (`vessel-node/src/agent_hooks.rs` and its modules, `vessel-cli/src/hook
 - **Where.** Each agent's home is taken as the node starts it (`HarnessEnv::home`): `$CLAUDE_CONFIG_DIR`
   or `~/.claude`, `$CODEX_HOME` or `~/.codex`, and `~/.config/opencode`. Paseo also honours
   `OPENCODE_CONFIG_DIR` and `XDG_CONFIG_HOME` for OpenCode; Vessel sets neither for the OpenCode it runs.
-- **Marker.** The marker is Vessel's own: `VESSEL_HOOK_CLI` together with `hooks <agent> `. Paseo's
-  marker, `hooks claude`, would also match Paseo's own entries in the same file.
+- **Marker.** An entry is Vessel's when a command is exactly one Vessel writes for one of the agent's
+  events, shell or cmd.exe form. A person's command that only resembles it is theirs. If a form changes,
+  the old one must stay recognised, or off would leave old entries behind.
+- **Beside Paseo.** The commands quote the agent and the event. Paseo's install and uninstall drop every
+  command containing `hooks claude` or `hooks codex` (`claude/claude-settings.ts:98-113`,
+  `codex/codex-settings.ts:105-139`). Unquoted, Vessel's commands contain it, and each Paseo restart
+  would take Vessel's hooks out. `crates/vessel-node/tests/fixtures/agent_hooks/generate.mjs` checks this.
+  It runs Paseo 0.15.4's installer from `@getpaseo/server`, under `env -i`, with `configDir` set to a
+  scratch folder:
+  - it installs Paseo over a person's file;
+  - it adds Vessel's entries;
+  - it installs and uninstalls Paseo again.
+
+  Vessel's entries survive both steps. The unquoted form fails at Paseo's install. The fixtures it writes
+  are what the test
+  `paseo_entries_stay_byte_identical_and_in_place_through_install_reinstall_and_off` reads.
 - **What changes in a file.** The file is read keeping its keys in order and each value's text as written.
-  Only `hooks` and the lists of Vessel's own events are rebuilt, and only marked commands leave them; an
-  entry shared with a person's command keeps that command. Paseo rewrites the whole file, and a file that
-  is not an object becomes `{}`.
-- **What is left alone.** A file that is not JSON, or whose `hooks` or an event list has another shape, is
-  left untouched with one warning. Turning the setting off never creates a file, and removes OpenCode's
-  plugin only when it carries the marker.
+  On writing, every value Vessel did not change is put back as its text. Only `hooks` and the lists of
+  Vessel's own events that changed are laid out again, two-space as Paseo and the agents write. So in a
+  file Paseo wrote:
+  - every other entry keeps its bytes and its place;
+  - Vessel's entry goes last in each of its events;
+  - off after install gives the file back byte for byte.
+
+  While on, an entry already exactly Vessel's stays where it is. Paseo reinstalling its own entries after
+  Vessel's therefore moves nothing back and forth. An entry shared with a person's command keeps that
+  command. Paseo rewrites the whole file, and a file that is not an object becomes `{}`.
+- **What is left alone.** These files are left untouched, with one warning:
+  - a file that is not JSON;
+  - a file with `hooks` or one of Vessel's events twice;
+  - a file whose `hooks` or an event list has another shape.
+
+  Turning the setting off never creates a file. Install and off touch OpenCode's plugin only when its text
+  is exactly Vessel's.
 - **Writes.** Writes are owner-only and atomic (`vessel_fleet::write_private`), after the one-time
   `<file>.vessel-backup`. In test builds every write path refuses the real home's agent configuration.
 - **The setting.** `terminal_agent_hooks` is in `NodeSettings` and `SetNodeSettings`. It is hidden below,

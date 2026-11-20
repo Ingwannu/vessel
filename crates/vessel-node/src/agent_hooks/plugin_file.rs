@@ -10,12 +10,14 @@
 //!     `vessel-terminal-activity.js`);
 //!   - it runs `$VESSEL_HOOK_CLI` when set, as the hook commands of the other
 //!     agents do (Paseo's plugin always runs `paseo`);
-//!   - removing it removes only a file that carries Vessel's marker. Paseo
-//!     removes the file at its path whatever it holds.
+//!   - only Vessel's exact text is Vessel's: installing over another text at
+//!     the same path, or removing one, leaves it as it is, with one logged
+//!     line ([`Outcome::Invalid`]). Paseo replaces or removes the file at its
+//!     path whatever it holds. If the text ever changes, [`ours`] must keep
+//!     recognising the old text, so the new version replaces it.
 
 use std::path::Path;
 
-use super::HOOK_CLI_ENV;
 use super::files::{self, Outcome};
 
 /// The plugin's path under `OpenCode`'s home.
@@ -88,10 +90,9 @@ export default {
 };
 "#;
 
-/// Whether the plugin text is Vessel's: it names `VESSEL_HOOK_CLI` and runs
-/// `hooks opencode`.
+/// Whether the plugin text is exactly Vessel's.
 fn ours(text: &str) -> bool {
-    text.contains(HOOK_CLI_ENV) && text.contains(r#""hooks", "opencode""#)
+    text == SOURCE
 }
 
 /// Install (`on`) or remove the plugin under `home`.
@@ -105,11 +106,11 @@ pub(super) fn apply(home: &Path, on: bool) -> Outcome {
         Err(error) => return Outcome::Failed(path, error),
     };
     match (on, current) {
-        (true, Some(text)) if text == SOURCE => Outcome::Unchanged,
-        (true, _) => files::replace(&path, SOURCE.as_bytes()),
+        (true, None) => files::replace(&path, SOURCE.as_bytes()),
+        (true, Some(text)) if ours(&text) => Outcome::Unchanged,
         (false, None) => Outcome::Unchanged,
         (false, Some(text)) if ours(&text) => files::remove(&path),
-        (false, Some(_)) => Outcome::Invalid(path),
+        (_, Some(_)) => Outcome::Invalid(path),
     }
 }
 
