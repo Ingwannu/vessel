@@ -68,6 +68,26 @@ no runtime to compile. The package that serves the method changes `staged`
 to `pending` in the commit that adds its handler; from then on the guard
 requires the handler, as for every assigned or pending row.
 
+## Version 39 (2026-11-20, milestone 12): the pull request pane's reads (implementer G, TRACKER 431-433, ADR 0088)
+
+Assigned 39 (`PULL_REQUEST_PANE_PROTOCOL`, `PROTOCOL_VERSION` 39) at its node-line merge, after the shared terminals' 37
+and the diff stat's 38. Both methods are unary, forwardable, `read`, open to agents as
+`pr.get`, and held to the caller's ownership of the session (a forge request on demand, as `pr.get`'s refresh).
+
+- `pr.get`'s `Checks` gains `runs` (every check, one per name, by name, at most 100) and `CheckRun` gains `run`,
+  `workflow_run` (ids, 1 to 2^53 - 1), `workflow`, `started_at` and `completed_at`; all optional, so older clients
+  ignore them and older nodes omit them (`failing` keeps its meaning). `PullSummary` gains optional
+  `tally { passed, failed, pending }` (the same counts, absent when none were counted) for a row's check glyph.
+- `pr.timeline { session }` answers `PullTimeline { access, number?, items, truncated }`: reviews (submitted only,
+  `approved | changes_requested | commented`), conversation comments and review threads' comments (with `review`
+  and `thread { thread, path?, line?, start_line?, resolved, outdated }`), oldest first then by id; at most 100 of
+  each kind and 100 comments a thread, `truncated` when a kind had more. `access` is `pr.get`'s.
+- `pr.check { session, run }` answers `CheckDetails { access, report? }`. `run` must be one of the checks the
+  watcher's last read of the session's pull request named; otherwise no report. A `CheckReport` is the run's
+  name, state, pages, output, at most 20 annotations, at most 5 failed jobs of its workflow run each with a
+  `LogTail { text, cut }` (200 lines, 16 KiB), and `truncated`.
+- The job log's one redirect (ADR 0088): one `https` hop without the token, a suffix range, 20 s, never `http`.
+
 ## Version 38 (2026-11-20, milestone 12): a workspace's diff stat (implementer K, TRACKER 819, ADR 0120)
 
 Assigned 38 (`DIFF_STAT_PROTOCOL`, `PROTOCOL_VERSION` 38) after shared terminals took 37. No method is added.

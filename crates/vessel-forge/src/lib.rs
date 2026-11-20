@@ -23,6 +23,6 @@ pub use gh::{CloneProtocol, Gh};
 pub use github::GitHub;
 pub use provider::{
     Answer, Author, Comment, Discussion, FailedCheck, Forge, ForgeError, Found, Fresh, ItemId,
-    Merged, Opened, Opening, Priority, Read, Review, ReviewVerdict, Thread,
+    Merged, Opened, Opening, Priority, Read, Review, ReviewVerdict, Thread, Timeline,
 };
 pub use token::{Credentials, EnvTokens, Found as TokenFound, SIGN_IN_VARIABLES, Token};

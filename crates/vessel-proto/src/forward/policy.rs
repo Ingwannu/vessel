@@ -180,6 +180,8 @@ impl Method {
             | Self::ForgeStatus
             | Self::ListPullRequests
             | Self::GetPullRequest
+            | Self::GetPullTimeline
+            | Self::GetCheckDetails
             | Self::OpenPullRequest
             | Self::MergePullRequest
             | Self::SetFeedback
