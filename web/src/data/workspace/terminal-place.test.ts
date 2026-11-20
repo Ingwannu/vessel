@@ -287,12 +287,32 @@ describe("one tick of the strip (the node reviewer's R1 on TRACKER 829)", () => 
     expect(read.ok).toBe(false);
   });
 
-  it("reads a project's place, or a session's, once a tick", async () => {
+  it("reads a project's shells and those beside its agents in one read a tick", async () => {
     const project: TerminalPlace = { kind: "project", project: PROJECT };
-    const fake = node([{ own: [], all: [] }]);
-    await readStrip(fake.list, project, sessions);
+    const root = terminal("t-root", project, "/w/shop");
+    const web = terminal(
+      "t-web",
+      { kind: "project", project: PROJECT, dir: "web" },
+      "/w/shop/web",
+    );
+    const agentShell = terminal("t-agent", beside, "/w/shop");
+    const fake = node([
+      { own: [], all: [root, web] },
+      { own: [], all: [root, web, agentShell] },
+    ]);
+    const first = await readStrip(fake.list, project, sessions);
+    expect(first.ok ? first.value.map((item) => item.id) : null).toEqual([
+      "t-root",
+    ]);
+    fake.next();
+    // An agent in the project-root workspace opened a shell beside itself.
+    const second = await readStrip(fake.list, project, sessions);
+    expect(second.ok ? second.value.map((item) => item.id) : null).toEqual([
+      "t-root",
+      "t-agent",
+    ]);
     await readStrip(fake.list, beside, sessions);
-    expect(fake.asked).toEqual([project, null]);
+    expect(fake.asked).toEqual([null, null, null]);
   });
 });
 
