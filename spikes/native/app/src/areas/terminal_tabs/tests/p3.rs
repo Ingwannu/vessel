@@ -129,6 +129,38 @@ fn mod_f_is_the_terminals_only_while_a_terminal_has_the_keyboard(cx: &mut TestAp
     });
 }
 
+/// Keys typed in the open bar are the bar's. The bar is drawn inside the
+/// terminal's surface, so its field's Enter, Backspace and arrows bubble up
+/// to the terminal's handler, which leaves them (a capture found Enter
+/// reaching the shell as well as moving to the next match). Once the bar
+/// closes, Enter is the shell's again.
+#[gpui::test]
+fn keys_typed_in_the_find_bar_never_reach_the_shell(cx: &mut TestAppContext) {
+    let (probe, cx) = open(cx);
+    let session = probe.read_with(cx, |probe, _| probe.2);
+    let shell = probe.read_with(cx, |probe, _| probe.0.clone());
+    let key = laptop(super::shell_info(session).id);
+    shell.update_in(cx, |shell, window, cx| {
+        live(shell, &key, b"$ ", cx);
+        shell.terminal_tab_focus(&key, window, cx);
+        shell.terminal_find_open(&key, window, cx);
+        assert!(shell.terminal_find_focused(window, cx));
+        for stroke in ["enter", "backspace", "up"] {
+            shell.terminal_tab_key(&key, &down(stroke), window, cx);
+        }
+    });
+    assert_eq!(
+        drained(&probe, &shell, &key, cx),
+        "",
+        "the bar's keys stay in the bar"
+    );
+    shell.update_in(cx, |shell, window, cx| {
+        shell.terminal_find_close(&key, window, cx);
+        shell.terminal_tab_key(&key, &down("enter"), window, cx);
+    });
+    assert_eq!(drained(&probe, &shell, &key, cx), "\r");
+}
+
 /// Enter and Shift+Enter go round the matches, from the first at or below
 /// the view's top; the counter says which.
 #[gpui::test]

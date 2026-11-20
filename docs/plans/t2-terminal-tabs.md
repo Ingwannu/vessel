@@ -156,7 +156,9 @@ grid (long press, grips, floating Copy and Paste) is the phone app's later
   pane") with the counter inside ("No matches", "N matches", "x of y", the
   total with a "+" at 20,000), previous, next and "Close Find". Enter goes
   to the next match, Shift+Enter to the previous, Escape closes and gives
-  the terminal the keyboard back. Literal, case-insensitive text across soft
+  the terminal the keyboard back. Keys typed in the bar are the bar's (the
+  terminal's handler leaves them while a find field has the keyboard), and
+  a press on the bar never reaches the terminal below it. Literal, case-insensitive text across soft
   wraps, matches not overlapping; other matches bordered in the terminal
   theme's yellow, the current in its blue; the view scrolls to the current
   one, and the bar moves to the bottom when it would cover it. The search

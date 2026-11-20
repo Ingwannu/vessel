@@ -257,6 +257,13 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        // The find bar is drawn inside the surface, so keys typed in its
+        // field bubble up to here: they are the field's (Enter, Backspace,
+        // arrows, a paste), never the shell's. Escape, Shift+Enter and Mod+F
+        // the bar handles and stops itself.
+        if self.terminal_find_focused(window, cx) {
+            return;
+        }
         let stroke = &event.keystroke;
         if is_paste(stroke) {
             self.terminal_tab_paste(key, cx);

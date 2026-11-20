@@ -106,6 +106,9 @@ pub(super) fn bar(
         .border_color(tokens.neutral.border)
         .rounded(px(radius::R2))
         .shadow(popup::shadow_md(tokens))
+        // A press on the bar is the bar's: it must not reach the surface
+        // below, which would take the keyboard and start a selection.
+        .occlude()
         .on_key_down(cx.listener(move |shell, event: &KeyDownEvent, window, cx| {
             bar_key(shell, &keys, event, window, cx);
         }))
