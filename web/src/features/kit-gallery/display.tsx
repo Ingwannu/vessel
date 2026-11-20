@@ -84,7 +84,7 @@ export function Display() {
           <Alert
             size="md"
             variant="info"
-            title="Plugin host is offline"
+            title="This machine is offline"
             description="Reconnect to this machine to manage its plugins."
           />
         </div>
