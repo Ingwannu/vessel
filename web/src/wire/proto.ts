@@ -3262,7 +3262,8 @@ export type EverySeconds = number;
  */
 export type ExportMemory = { 
 /**
- * Whose memory; absent is the harness's default profile.
+ * Whose memory; absent is Claude Code's default profile (the node's
+ * transfer default).
  */
 profile?: ProfileName | null, 
 /**
