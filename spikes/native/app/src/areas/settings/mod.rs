@@ -46,6 +46,7 @@ mod nav;
 mod notifications;
 mod overview;
 pub(crate) mod page;
+mod plugins;
 mod prefer;
 mod prepared_refusal;
 use prepared_refusal::PreparedRefusal;
@@ -104,6 +105,7 @@ pub(crate) struct SettingsState {
     overview: overview::State,
     /// Settings > Terminal's scrollback field.
     terminal: terminal::State,
+    plugins: plugins::State,
     /// The book as read for the machine pages (Overview, Connections).
     book: book::BookRead,
     language: language::State,
@@ -136,6 +138,7 @@ impl SettingsState {
             host_agents: host_agents::State::default(),
             overview: overview::State::new(window, cx),
             terminal: terminal::State::new(window, cx),
+            plugins: plugins::State::new(window, cx),
             book: book::BookRead::default(),
             language: language::State::new(window, cx),
             sync: sync::SyncState::new(),
@@ -386,6 +389,7 @@ pub(crate) fn render(
         .children(devices::dialogs(shell, tokens, window, cx))
         .children(diagnostics::dialogs(shell, tokens, window, cx))
         .children(overview::dialogs(shell, tokens, window, cx))
+        .children(plugins::dialogs(shell, tokens, window, cx))
 }
 
 /// The section shown, as a page: its title, a refused change above its
