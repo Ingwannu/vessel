@@ -195,10 +195,7 @@ struct Placed {
 ///
 /// The session key and the panel are checked before the body is read, so a
 /// caller without the key cannot make the server take in 64 MiB.
-pub(crate) async fn put<S: NodeSource>(
-    State(ui): State<Arc<Ui<S>>>,
-    request: Request,
-) -> Response {
+pub(crate) async fn put<S: NodeSource>(State(ui): State<Arc<Ui<S>>>, request: Request) -> Response {
     let (parts, body) = request.into_parts();
     if !authorized(&ui.auth, &parts.headers) {
         return StatusCode::UNAUTHORIZED.into_response();
