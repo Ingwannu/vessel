@@ -47,6 +47,16 @@ describe("a change applied as the bridge applies it", () => {
     expect(next.appearance).toBe(DEFAULT_PREFERENCES.appearance);
   });
 
+  test("the sidebar's trailing slot defaults to last activity", () => {
+    expect(DEFAULT_PREFERENCES.sidebar.trailing).toBe("timestamp");
+    const next = applyChange(DEFAULT_PREFERENCES, {
+      set: "sidebar_trailing",
+      value: "diff",
+    });
+    expect(next.sidebar.trailing).toBe("diff");
+    expect(next.sidebar.group).toBe(DEFAULT_PREFERENCES.sidebar.group);
+  });
+
   test("the send key and the delivery are the composer's two settings", () => {
     const steer = applyChange(DEFAULT_PREFERENCES, {
       set: "delivery",

@@ -41,6 +41,26 @@
   margin: 0 auto;
 }
 
+/* Paseo's composer diff pill: a side greater than 0, opening Changes. */
+.composer-diff-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  margin: 0 0 8px;
+  padding: 4px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-6);
+  background: var(--btn-secondary-bg);
+  font: var(--t-meta);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.composer-diff-pill:hover {
+  background: var(--btn-secondary-bg-hover);
+}
+
 /* The composer's dock under the log: 16px in, 12px off the frame's foot. */
 .session-dock {
   flex: none;
