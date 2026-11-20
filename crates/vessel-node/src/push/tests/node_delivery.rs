@@ -378,6 +378,8 @@ mod cancellation;
 
 mod restart;
 
+mod presence_renewal;
+
 mod renewed_lease;
 
 mod terminal_delivery;

@@ -5,6 +5,7 @@ mod claims;
 mod crypto;
 mod delivery;
 mod policy;
+mod renewal;
 mod terminal;
 mod vapid;
 mod worker;
@@ -18,6 +19,7 @@ use policy::{Plan, Presence};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, PoisonError};
 use tokio::sync::OnceCell;
+use tokio_util::task::TaskTracker;
 use vessel_proto::push::{PushKey, PushLease, PushSubscription, ReportPushPresence};
 use vessel_proto::{DeviceId, ErrorCode, SessionId, WireError};
 use vessel_store::{DataDir, Store, StoredPush};
@@ -87,6 +89,8 @@ pub(crate) struct Push {
     #[cfg(test)]
     preparation: Option<Arc<Preparation>>,
     presence: Mutex<HashMap<PresenceId, Presence>>,
+    /// When each device's presence next tries to renew its lease.
+    renewals: renewal::Renewals,
     #[cfg(test)]
     test_origin: Option<url::Url>,
 }
@@ -98,7 +102,7 @@ impl Push {
         config: &crate::Config,
         store: Store,
         terminals: Arc<crate::terminals::Terminals>,
-        tasks: &tokio_util::task::TaskTracker,
+        tasks: &TaskTracker,
         stop: tokio_util::sync::CancellationToken,
     ) -> Result<Arc<Self>, vessel_store::StoreError> {
         let push = Self::new(store, config.data_dir.clone());
@@ -123,6 +127,7 @@ impl Push {
             #[cfg(test)]
             preparation: None,
             presence: Mutex::default(),
+            renewals: renewal::Renewals::default(),
             #[cfg(test)]
             test_origin: None,
         }
@@ -198,11 +203,36 @@ impl Push {
                 now,
             )
             .await?;
+        self.renewals.leased(device, expires_at, now);
         Ok(PushLease { expires_at })
     }
-    pub(crate) async fn renew(&self, device: DeviceId) -> Result<(), PushError> {
-        self.store.renew_push(device, Utc::now()).await?;
-        Ok(())
+    /// A paired device reported presence: renew its lease when due, as a
+    /// task on `tasks`, so the report never waits for the store and never
+    /// fails for it (`renewal.rs`).
+    pub(crate) fn renew_soon(self: &Arc<Self>, device: DeviceId, tasks: &TaskTracker) {
+        if !self.renewals.due(device, Utc::now()) {
+            return;
+        }
+        let push = Arc::clone(self);
+        drop(tasks.spawn(async move {
+            match push.store.renew_push(device, Utc::now()).await {
+                Ok(()) => {}
+                Err(vessel_store::StoreError::Closed) => {
+                    tracing::debug!("the node is stopping; a push lease was not renewed");
+                }
+                Err(error) => {
+                    tracing::warn!(
+                        code = ?error.code(),
+                        "a push lease was not renewed; the device's presence tries again within the hour"
+                    );
+                }
+            }
+        }));
+    }
+    /// The store, for tests that make its writes fail.
+    #[cfg(test)]
+    pub(crate) const fn store(&self) -> &Store {
+        &self.store
     }
     pub(crate) async fn unsubscribe(&self, device: DeviceId) -> Result<(), PushError> {
         Ok(self.store.remove_push(device).await?)

@@ -187,6 +187,16 @@ and never resurrects an expired or missing lease. Node-owner and agent/delegated
 origins cannot borrow another device's subscription identity. A renewed expiry
 also prevents a late old 410 from deleting that newer lease.
 
+The renewal runs beside the presence reply, never in it (node review of TRACKER
+815, R1). `push.presence` is live since protocol 22 and answered from memory, so
+a report neither waits for the store's writer nor fails when a write fails
+(closed while the node stops, a disk error); the failure is logged. A device
+tries at most once an hour, and not before a new subscription's half-life
+(`vessel-node/src/push/renewal.rs`). Paseo renews at the first heartbeat past
+the half-life; here it can be up to an hour later, which still leaves the lease
+a day. The renewal is the node's own and not on the wire, so it is not gated by
+the feature constant.
+
 ## Terminal Web Push joins the one worker
 
 Terminal metadata wakes the existing coalescing push worker. Its independent
@@ -277,3 +287,49 @@ Fresh final consumer reads follow asynchronous preparation; an old held WAL
 snapshot is not a freshness guarantee across revocation. The feature remains
 unassigned, and direct Store/lease tests do not imply assigned wire or delivery
 proof. Changed-source checks and the actual drafted regressions are pending.
+
+## Owed before the feature constant is assigned
+
+The node review of TRACKER 815 (2026-11-20, the staging line merged onto the
+node line with the constant still None) accepted the source and listed what must
+be done before a number is assigned:
+
+1. Push flood. An agent may report its own terminal's activity, and a hook can
+   loop Working/Idle. Each Idle makes a new Finished revision, and with no
+   client present the worker pushes once per lease per 250 ms burst, up to
+   about four a second per device. A service that crashes about every 61 s
+   pushes "finished" indefinitely. Throttle per terminal.
+2. Workspace script rows. `WorkspaceScriptRow.terminal`
+   (`vessel-proto/src/workspace_services/row.rs`) does not pass through
+   `titles::terminal` / `TerminalInfo::for_protocol` in its `for_protocol`
+   (`page.rs`, `operation.rs`). If WORKSPACE_SERVICES is assigned first, every
+   peer would get `attention`.
+3. The environment scrub. `terminals/env.rs` `credentials_in` matches
+   `VESSEL_TERMINAL_ACTIVITY_*`. A node started from a Vessel terminal would
+   then strip the user's `ANTHROPIC_BASE_URL`/`AUTH_TOKEN` from its terminals,
+   and the comment still says "a session's process tree".
+4. `create_terminal`: `install_producer(..)?` comes after `register`. A failure
+   skips `watch_for_agents` and `still_placed` and errors for a live terminal.
+   Install the producer before `register`, or log the failure.
+5. Tests weaker than their names:
+   - `terminal_delivery.rs` asserts the client-side `UnassignedProtocol`, so the
+     node is never reached;
+   - nothing drives `ipc::admit` to `admit_producer`, or a producer closed by
+     end or forget;
+   - the push renewal's "revoked" case cannot fail, because `devices::revoke`
+     deletes the subscription first;
+   - no claim pairs a valid cursor with another session's key;
+   - the "one snapshot" badge test uses one session.
+6. The terminal list wake. T2's `terminals/listed.rs` `Shown` compares status,
+   title, service and end, not `attention`, so an attention change does not wake
+   a `terminal.list` poller. Add `attention` to `Shown`.
+
+Recorded, not owed (they fail closed or are allowed by the design):
+- one malformed parentage row fails a whole `pending_push` page through
+  `vessel_has_current_parent`;
+- a data directory made by a staging-line build (claims at schema 22) fails to
+  migrate with "table already exists";
+- the push worker marks terminal revisions seen before its store reads, so a
+  store error loses those pushes silently ("losing an opportunity");
+- `CredentialHash` serves device, agent and terminal secrets without domain
+  separation.

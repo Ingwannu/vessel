@@ -20,6 +20,11 @@ fn device(connection: &Connection) -> Result<DeviceId, WireError> {
     }
 }
 impl NodeService {
+    /// The push service, for tests that reach its store and renewals.
+    #[cfg(test)]
+    pub(crate) const fn push(&self) -> &Arc<crate::push::Push> {
+        &self.push
+    }
     pub(crate) async fn get_push_key(
         &self,
         connection: &Connection,
@@ -51,16 +56,12 @@ impl NodeService {
     }
     /// Watch transport closure once per registered connection, using the
     /// existing subscription tracker so shutdown also releases presence.
-    pub(crate) async fn report_push_presence(
+    pub(crate) fn report_push_presence(
         &self,
         connection: &Connection,
         report: ReportPushPresence,
-    ) -> Result<Ack, WireError> {
-        let ack = self.record_push_presence(connection, report)?;
-        if let Principal::Device { id, .. } = connection.principal() {
-            self.push.renew(*id).await.map_err(|error| error.wire())?;
-        }
-        Ok(ack)
+    ) -> std::future::Ready<Result<Ack, WireError>> {
+        std::future::ready(self.record_push_presence(connection, report))
     }
     fn record_push_presence(
         &self,
@@ -84,6 +85,11 @@ impl NodeService {
                 outbound.closed().await;
                 push.forget(id);
             }));
+        }
+        // ADR 0089: a paired device's presence keeps its lease alive. The
+        // renewal runs beside the reply, so it neither delays nor fails it.
+        if let Principal::Device { id, .. } = connection.principal() {
+            self.push.renew_soon(*id, &self.forwarders);
         }
         Ok(Ack)
     }

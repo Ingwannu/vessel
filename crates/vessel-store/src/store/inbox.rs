@@ -53,6 +53,8 @@ impl Store {
 impl Store {
     /// Coalesced wakeups after committed attention events, not raw output.
     /// Subscribers take their initial snapshot before generating notices.
+    /// The node's push worker is the one subscriber. Marks and `inbox.read`
+    /// wake it too, though they add no entry past its cursor.
     #[must_use]
     pub fn inbox_changes(&self) -> tokio::sync::watch::Receiver<()> {
         self.inbox.clone()

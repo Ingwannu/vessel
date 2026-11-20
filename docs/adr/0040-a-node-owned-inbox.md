@@ -171,5 +171,7 @@ The native badge consumes this rollup, not partial rows or log marks.
 exclusive watermark. It reuses the existing marks transaction/order lock,
 vetoes current live/durable requests, and refuses future watermarks. It grants
 no pin/archive/unread/input operation. Both calls remain pending under ADR 0089's
-single protocol constant. Mark/read changes publish committed inbox wakeups;
-clients refresh authoritative snapshots rather than predicting other devices.
+single protocol constant. Mark/read changes wake the store's inbox watch after
+commit, whose one consumer is the node's push worker; they add nothing past its
+delivery cursor. Clients learn of another device's marks by reading the
+authoritative snapshot again, not from a pushed event.
