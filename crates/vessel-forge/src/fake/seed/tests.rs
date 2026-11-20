@@ -230,7 +230,7 @@ async fn opening_reserves_seeded_numbers_and_capacity_without_overwrite() {
     );
     assert_eq!(
         forge.get(&repo(), preserved.summary.number).unwrap().pull,
-        preserved
+        installed(&preserved)
     );
 }
 
