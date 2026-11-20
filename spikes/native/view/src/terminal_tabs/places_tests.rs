@@ -6,8 +6,8 @@ use chrono::Utc;
 use vessel_proto::terminals::{
     TerminalInfo, TerminalKind, TerminalList, TerminalPlace, WORKSPACE_TERMINALS_PROTOCOL,
 };
-use vessel_proto::workspace::{RelPath, WorktreeId};
-use vessel_proto::{ProjectId, ProtocolVersion, SessionId, TerminalId};
+use vessel_proto::workspace::RelPath;
+use vessel_proto::{ProjectId, ProtocolVersion, SessionId, TerminalId, WorktreeId};
 
 use super::{beside_sessions, in_place, place_for, workspace_places, workspace_sessions};
 use crate::board::{Attention, Card, CardDetail, Phrase, RunsIn};

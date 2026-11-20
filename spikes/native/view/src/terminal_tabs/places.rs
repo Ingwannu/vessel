@@ -30,8 +30,7 @@ use std::path::PathBuf;
 use vessel_proto::terminals::{
     TerminalInfo, TerminalList, TerminalPlace, WORKSPACE_TERMINALS_PROTOCOL,
 };
-use vessel_proto::workspace::WorktreeId;
-use vessel_proto::{ProjectId, ProtocolVersion, SessionId};
+use vessel_proto::{ProjectId, ProtocolVersion, SessionId, WorktreeId};
 
 use super::shows_as_tab;
 use crate::board::Card;

@@ -9,8 +9,8 @@ use vessel_app_link::terminals::{Reply, Request};
 use vessel_app_view::Card;
 use vessel_app_view::board::{Attention, CardDetail, Phrase, RunsIn};
 use vessel_proto::terminals::{TerminalInfo, TerminalKind, TerminalList, TerminalPlace};
-use vessel_proto::workspace::{RelPath, WorktreeId};
-use vessel_proto::{ProjectId, ProtocolVersion, SessionId, TerminalId};
+use vessel_proto::workspace::RelPath;
+use vessel_proto::{ProjectId, ProtocolVersion, SessionId, TerminalId, WorktreeId};
 
 use super::{answer, open, sent};
 use crate::shell::Shell;
