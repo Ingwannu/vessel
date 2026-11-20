@@ -2,20 +2,17 @@
 //!
 //! [Decision Log]
 //! - Purpose: the home turns its instructions file and skills directory
-//!   (`fleet.toml`'s sources) into a manifest and a blob store members
-//!   fetch from.
+//!   (`fleet.toml`'s sources) into a manifest and a blob store members fetch from.
 //! - Skills: each directory under the skills source with a `SKILL.md` is a
 //!   skill, bundled as `skills/<name>/...` with `<name>` from its
 //!   frontmatter. Files at the top of the skills directory are not skills,
 //!   and dot directories there are a harness's own (Codex's `.system`).
 //!   A directory without a usable name, or with a name another directory
-//!   already took (the first in name order wins), is left out and
-//!   reported, never guessed at.
+//!   already took (the first in name order wins), is left out and reported, never guessed at.
 //! - Names are compared as macOS and Windows compare them (ignoring case
 //!   and Unicode normalisation, [`fold`]): two skills, or two entries of
 //!   one directory, that would be one file there are a problem, the first
-//!   in name order bundled. Names ending in `.vessel-incoming` are
-//!   refused: members write incoming versions under them.
+//!   in name order bundled. Names ending in `.vessel-incoming` are refused: members write incoming versions under them.
 //! - Dot entries inside a skill (`.env`, `.git/`, editor swap files) are
 //!   left out and reported: they are rarely meant for every machine and
 //!   easily hold a secret. At the top of the skills directory they are a
@@ -309,7 +306,10 @@ impl Builder<'_> {
     }
 
     fn too_large(&mut self, path: &Path, size: u64) {
-        self.problems.push(SourceProblem::TooLarge { path: path.to_path_buf(), size });
+        self.problems.push(SourceProblem::TooLarge {
+            path: path.to_path_buf(),
+            size,
+        });
     }
 
     /// Bundle the file at `path` (following symlinks only if `follow`).

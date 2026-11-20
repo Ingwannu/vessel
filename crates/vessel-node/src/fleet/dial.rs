@@ -27,7 +27,11 @@ impl Links {
         // By the member device bound to `node`: exactly one, as grants are
         // checked when made. Two can only come from grants kept before
         // that check; neither is trusted.
-        let mut bound = self.grants().await.into_iter().filter(|grant| grant.node == node);
+        let mut bound = self
+            .grants()
+            .await
+            .into_iter()
+            .filter(|grant| grant.node == node);
         let grant = match (bound.next(), bound.next()) {
             (Some(grant), None) => grant,
             (None, _) => {
@@ -72,6 +76,10 @@ impl Links {
     /// Member `node`'s slot, made on first use.
     pub(super) fn member_slot(&self, node: NodeId) -> MemberSlot {
         let mut members = self.members.lock().unwrap_or_else(PoisonError::into_inner);
-        Arc::clone(members.entry(node).or_insert_with(|| Arc::new(tokio::sync::Mutex::new(None))))
+        Arc::clone(
+            members
+                .entry(node)
+                .or_insert_with(|| Arc::new(tokio::sync::Mutex::new(None))),
+        )
     }
 }

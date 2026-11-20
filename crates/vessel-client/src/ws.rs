@@ -117,7 +117,9 @@ pub(crate) async fn connect(
     let config = WebSocketConfig::default()
         .max_message_size(Some(vessel_rpc::MAX_FRAME.get()))
         .max_frame_size(Some(vessel_rpc::MAX_FRAME.get()));
-    match tokio_tungstenite::connect_async_with_config(request, Some(config), false).await {
+    match tokio_tungstenite::connect_async_with_config(request, Some(config), false)
+        .await
+    {
         Ok((stream, _response)) => Ok(WsTransport::new(stream)),
         Err(tungstenite::Error::Http(response))
             if response.status() == StatusCode::UNAUTHORIZED =>
