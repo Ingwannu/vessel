@@ -207,7 +207,7 @@ impl NodeService {
             tasks: runner.tasks.clone(),
         });
         self.terminals
-            .register(reservation, handle.clone(), Some(Arc::clone(&plan)));
+            .register(reservation, handle.clone(), Some(Arc::clone(&plan)), None);
         drop(hold);
         self.still_placed(&handle, &plan.place)
             .await

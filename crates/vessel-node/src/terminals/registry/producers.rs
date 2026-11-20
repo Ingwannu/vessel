@@ -1,6 +1,6 @@
 //! Capability lifetime follows the existing terminal entry and end watch.
 //! Only hashes are retained in the registry; injected values are never logged.
-use super::{Terminals, TerminalsError};
+use super::Terminals;
 use tokio_util::sync::CancellationToken;
 use vessel_proto::TerminalId;
 use vessel_proto::notifications::{
@@ -25,34 +25,27 @@ impl Producer {
     }
 }
 impl Terminals {
-    pub(crate) fn install_producer(
+    /// The activity capability of a terminal about to be registered: part of
+    /// its entry from the start, so registration cannot leave a live terminal
+    /// without the capability its shell was given (owed item 4 of the node
+    /// review of TRACKER 815). It closes when the terminal ends, the node
+    /// stops, or the entry is forgotten.
+    pub(super) fn producer_for(
         &self,
-        id: TerminalId,
+        handle: &TerminalHandle,
         secret: &TerminalActivitySecret,
-    ) -> Result<(), TerminalsError> {
-        let (handle, closing) = {
-            let mut state = self.state();
-            let entry = state
-                .entries
-                .get_mut(&id)
-                .ok_or(TerminalsError::NotFound(id))?;
-            if entry.producer.is_some() {
-                return Err(TerminalsError::Conflict(
-                    "terminal activity credential is already installed".to_owned(),
-                ));
-            }
-            let closing = self.runner.shutdown.child_token();
-            entry.producer = Some(Producer {
-                hash: CredentialHash::of_terminal(secret),
-                closing: closing.clone(),
-            });
-            (entry.handle.clone(), closing)
-        };
+    ) -> Producer {
+        let closing = self.runner.shutdown.child_token();
+        let ended = handle.clone();
+        let close = closing.clone();
         drop(self.runner.tasks.spawn(async move {
-            handle.ended().await;
-            closing.cancel();
+            ended.ended().await;
+            close.cancel();
         }));
-        Ok(())
+        Producer {
+            hash: CredentialHash::of_terminal(secret),
+            closing,
+        }
     }
     pub(crate) fn admit_producer(
         &self,
