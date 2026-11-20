@@ -73,7 +73,7 @@ mod condition;
 mod snapshot;
 pub(crate) use condition::ConditionProbe;
 pub(crate) use pointer::{MouseEvent, PointerState};
-pub(crate) use snapshot::{FrameTree, IsolatedWorld, SnapshotTraversal};
+pub(crate) use snapshot::{Frame, FrameTree, IsolatedWorld, SnapshotTraversal};
 
 macro_rules! empty_requests {
     ($($name:ident => $response:ty,$method:ident,$doc:literal;)+) => {$(

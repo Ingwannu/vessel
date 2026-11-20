@@ -17,7 +17,7 @@ pub(crate) struct FrameTreeResult {
 pub(crate) struct FrameRoot {
     pub(crate) frame: Frame,
 }
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Frame {
     pub(crate) id: FrameId,

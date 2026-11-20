@@ -4,7 +4,7 @@
 //! fixed fixture origin. A successful PNG is transport/geometry evidence;
 //! native decoding, paint, first-frame policy and engine qualification stay separate.
 use super::{Client, SHUTDOWN_TIMEOUT};
-use crate::page::{Page, PageError};
+use crate::page::{Page, PageError, ViewportFrame};
 use axum::{
     Router,
     body::Body,
@@ -107,11 +107,15 @@ pub(super) async fn exercise(client: &Client) -> Result<Observed, PageError> {
         )
         .await?;
     let snapshot = page.snapshot().await?;
-    let png = page
-        .capture_extent(ScreenshotExtent::Viewport)
-        .await?
-        .size();
-    exercise_input(&mut page).await?;
+    let frame = page.viewport_frame().await?;
+    let png = frame.image().size();
+    exercise_input(&mut page, &frame).await?;
+    let changed = page.viewport_frame().await?;
+    assert_ne!(changed.image(), frame.image());
+    assert!(matches!(
+        page.input_from_frame(&frame, HumanInput::ReleaseAll).await,
+        Err(PageError::StaleFrame)
+    ));
     let full_png = page.capture_extent(ScreenshotExtent::Page).await?.size();
     page.close().await?;
     Ok(Observed {
@@ -122,7 +126,7 @@ pub(super) async fn exercise(client: &Client) -> Result<Observed, PageError> {
     })
 }
 
-async fn exercise_input(page: &mut Page) -> Result<(), PageError> {
+async fn exercise_input(page: &mut Page, frame: &ViewportFrame) -> Result<(), PageError> {
     let point = CssPoint {
         x: CssCoordinate::try_from(FiniteNumber::new(INPUT_X).unwrap()).unwrap(),
         y: CssCoordinate::try_from(FiniteNumber::new(INPUT_Y).unwrap()).unwrap(),
@@ -131,16 +135,22 @@ async fn exercise_input(page: &mut Page) -> Result<(), PageError> {
         PointerAction::Press(MouseButton::Left),
         PointerAction::Release(MouseButton::Left),
     ] {
-        page.human_input(HumanInput::Pointer {
-            position: point,
-            action,
-            modifiers: KeyModifiers::default(),
-        })
+        page.input_from_frame(
+            frame,
+            HumanInput::Pointer {
+                position: point,
+                action,
+                modifiers: KeyModifiers::default(),
+            },
+        )
         .await?;
     }
-    page.human_input(HumanInput::Text {
-        text: InputText::try_from(INPUT_TEXT.to_owned()).unwrap(),
-    })
+    page.input_from_frame(
+        frame,
+        HumanInput::Text {
+            text: InputText::try_from(INPUT_TEXT.to_owned()).unwrap(),
+        },
+    )
     .await?;
     let inspect = RequiredInput::try_from(
         "() => { const input = document.querySelector('#probe'); return [input.value, input.dataset.trusted, input === document.activeElement]; }"

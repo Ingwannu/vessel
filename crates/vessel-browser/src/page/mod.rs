@@ -7,6 +7,8 @@
 
 mod capture;
 mod evaluation;
+mod frame;
+pub(crate) use frame::ViewportFrame;
 mod input;
 mod snapshot;
 mod wait;
@@ -33,6 +35,8 @@ pub(crate) enum PageError {
     Destination,
     #[error("browser surface exceeds the raster budget")]
     Surface,
+    #[error("browser input refers to a frame from a different document, viewport or target")]
+    StaleFrame,
     #[error("browser revision namespace is exhausted")]
     Exhausted,
     #[error("browser refused target closure")]
