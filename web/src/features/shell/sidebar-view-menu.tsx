@@ -23,12 +23,10 @@ import {
 import { toast } from "../../ui/toasts";
 import type { PreferenceChange, SidebarTrailing } from "../../wire/bridge";
 import { LabelFilterMenu } from "../workspace-labels/filter-menu";
-import { sidebarWords } from "./sidebar-words";
 
 export function SidebarViewMenu() {
   const fleet = useFleet();
   const view = useStore(prefs, (state) => state.values.sidebar);
-  const words = sidebarWords(navigator.language);
   const change = (next: PreferenceChange) => {
     void prefer(fleet, next).then((outcome) => {
       if (!outcome.ok) {
@@ -86,15 +84,18 @@ export function SidebarViewMenu() {
         />
       </MenuGroup>
       <MenuSeparator />
-      <MenuGroup label={words.show}>
+      {/* English literals, the same source as Grouping, Sort, and
+          "Show ended sessions". A Korean Show group beside those rows
+          was a mixed menu. */}
+      <MenuGroup label="Show">
         <MenuRadioGroup<SidebarTrailing>
           value={view.trailing}
           onChange={(trailing) => {
             change({ set: "sidebar_trailing", value: trailing });
           }}
           options={[
-            { value: "diff", label: words.diffStats },
-            { value: "timestamp", label: words.activity },
+            { value: "diff", label: "Diff stats" },
+            { value: "timestamp", label: "Last activity" },
           ]}
         />
       </MenuGroup>
