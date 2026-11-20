@@ -112,6 +112,11 @@ impl Node {
             clients,
             relaying: relay,
         } = setup::Startup::open(&config).await?;
+        // Bind before `core` starts any task: a socket or address that
+        // cannot be bound then fails the start with nothing left running
+        // (the fleet loop, the LSP manager and the model proxy are spawned
+        // from here on, and only a started node stops them).
+        let (local, tcp) = bind(&config, id).await?;
 
         let Core {
             runtime,
@@ -131,7 +136,6 @@ impl Node {
         let token = Arc::new(token);
         let connections = TaskTracker::new();
 
-        let (local, tcp) = bind(&config, id).await?;
         let local_endpoint = local.endpoint().clone();
         let address = tcp.as_ref().map(|(_, address)| *address);
         service.0.diagnostics.bound(tcp.as_ref());
