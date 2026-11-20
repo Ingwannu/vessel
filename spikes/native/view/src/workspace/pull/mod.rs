@@ -27,6 +27,7 @@ pub mod menu;
 pub mod merge;
 pub mod merge_words;
 pub mod open;
+pub mod timeline;
 pub mod words;
 
 #[cfg(test)]
