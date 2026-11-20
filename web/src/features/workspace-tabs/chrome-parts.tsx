@@ -22,6 +22,7 @@ export interface TabAction {
   danger?: boolean;
   tooltip?: string;
   shortcut?: string;
+  description?: string;
 }
 
 export interface TabChromeProps {
@@ -81,6 +82,9 @@ export function menuRows(actions: readonly TabAction[]) {
       onSelect={action.run}
       disabled={action.disabled ?? false}
       {...(action.shortcut === undefined ? {} : { shortcut: action.shortcut })}
+      {...(action.description === undefined
+        ? {}
+        : { description: action.description })}
       {...(action.tooltip === undefined ? {} : { tooltip: action.tooltip })}
       tone={action.danger === true ? "danger" : "default"}
     >

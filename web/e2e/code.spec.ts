@@ -10,7 +10,7 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
 import { loadEnv } from "./fleet";
 import { choose, newSessionPage } from "./kit";
@@ -20,6 +20,7 @@ import { openPanelTab, panelTab as tab, startInShop } from "./shop";
 test("a session starts in a new worktree once its commands are approved, setup shown as it runs", async ({
   page,
 }) => {
+  test.setTimeout(120_000);
   await openUi(page);
   await startInShop(page, "New worktree", "Work in a worktree");
   // Nothing starts before a person approves the set shown.
@@ -68,7 +69,63 @@ test("a session starts in a new worktree once its commands are approved, setup s
     "aria-selected",
     "true",
   );
+  await archiveWorktreeAgent(page);
 });
+
+/** Device-owned worktree shells survive an agent's Kill and stop on Archive. */
+async function archiveWorktreeAgent(page: Page): Promise<void> {
+  const route = page.url();
+  const agent = "Review the same worktree";
+  await openPanelTab(page, "Terminal");
+  const shell = page.locator(".workspace-terminal .xterm-host");
+  await expect(shell).toBeVisible();
+  await page.getByRole("button", { name: "Session actions" }).click();
+  await page.getByRole("menuitem", { name: "Kill", exact: true }).click();
+  await page
+    .getByRole("dialog", { name: /^Kill / })
+    .getByRole("button", { name: "Kill", exact: true })
+    .click();
+  await tab(page, agent).click();
+  await expect(
+    page.getByRole("region", { name: "Session ended" }),
+  ).toBeVisible();
+
+  // Keeping the terminal tab still stops it if its owner is archived.
+  const terminalTab = tab(page, "Terminal");
+  await terminalTab.click({ button: "right" });
+  await page.getByRole("menuitem", { name: "Close other tabs" }).click();
+  const bulk = page.getByRole("dialog", { name: "Close other tabs?" });
+  await expect(bulk).toContainText("close 1 terminal(s)");
+  await expect(bulk).toContainText(
+    "Any running process in a closed terminal will be stopped immediately.",
+  );
+  await bulk.getByRole("button", { name: "Cancel" }).click();
+
+  await openPanelTab(page, "Files");
+  await tab(page, agent).hover();
+  await page.getByRole("button", { name: `Close · ${agent}` }).click();
+  const archive = page.getByRole("dialog", { name: "Archive agent?" });
+  await expect(archive).toContainText("close 1 terminal(s)");
+  await archive.getByRole("button", { name: "Archive", exact: true }).click();
+  await expect(tab(page, agent)).toHaveCount(0);
+  await expect(terminalTab).toHaveCount(0);
+  await expect(page).toHaveURL(route);
+
+  // The address still names the archived agent. The other live agent
+  // owns the new terminal, so the node accepts it in this worktree.
+  await openPanelTab(page, "Terminal");
+  await expect(shell).toBeVisible();
+  await page.getByRole("button", { name: "Close · Terminal" }).click();
+  await page
+    .getByRole("dialog", { name: "Close terminal?" })
+    .getByRole("button", { name: "Close", exact: true })
+    .last()
+    .click();
+  await expect(terminalTab).toHaveCount(0);
+  await expect(page).toHaveURL(route);
+  await page.reload();
+  await expect(tab(page, agent)).toHaveAttribute("aria-selected", "true");
+}
 
 /** `vessel` as the UI's own user runs it: the same book and data. */
 function cli(args: string[]): string {

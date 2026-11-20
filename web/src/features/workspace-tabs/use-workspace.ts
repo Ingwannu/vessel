@@ -1,6 +1,7 @@
 import { useBlocker, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { isLive } from "../../data/format";
 import { useFleetState } from "../../context";
 import {
   projectAt,
@@ -28,7 +29,7 @@ import type {
   WorkspaceRoot,
 } from "../../wire/proto";
 import type { TabAction } from "./chrome-parts";
-import { childAgent } from "./close-tabs";
+import { childAgent, isLiveTerminal } from "./close-tabs";
 import { useTabLifecycle } from "./lifecycle";
 import { useLaunchShortcuts } from "./launch-shortcuts";
 import { useLayout } from "./use-layout";
@@ -93,12 +94,19 @@ export function useWorkspace(
       ),
     [anchor.id, listed, projects, root],
   );
-  const place = useMemo<TerminalPlace>(
+  const live = (session: SessionInfo) =>
+    isLive(session) && session.marks?.archived_at == null;
+  const liveAnchor = live(anchor)
+    ? anchor.id
+    : (eligible.find(live)?.id ?? null);
+  const place = useMemo<TerminalPlace | null>(
     () =>
       root?.kind === "project"
         ? { kind: "project", project: root.project }
-        : { kind: "session", session: anchor.id },
-    [anchor.id, root],
+        : liveAnchor === null
+          ? null
+          : { kind: "session", session: liveAnchor },
+    [liveAnchor, root],
   );
   const sessionIds = useMemo(
     () => new Set([anchor.id, ...eligible.map((session) => session.id)]),
@@ -117,7 +125,13 @@ export function useWorkspace(
   const ended = terminals.rows
     .filter((terminal) => !isLiveTerminal(terminal))
     .map((terminal) => ({ kind: "terminal" as const, id: terminal.id }));
-  const { layout, update } = useLayout(scope, anchor.id, discovered, ended);
+  const { layout, update } = useLayout(
+    scope,
+    node,
+    anchor.id,
+    discovered,
+    ended,
+  );
   const active = layout.tabs.find((tab) => tabKey(tab) === layout.active);
   const routed = active?.kind === "agent" ? active.id : null;
   const [dirty, setDirty] = useState<ReadonlySet<string>>(() => new Set());
@@ -191,7 +205,8 @@ export function useWorkspace(
     select({ kind: "draft" });
   };
   const newTerminal = () => void launchTerminal();
-  const canCreateTerminal = terminalEnabled && !terminals.creating;
+  const canCreateTerminal =
+    terminalEnabled && !terminals.creating && place !== null;
   const shortcuts = useLaunchShortcuts(
     newAgent,
     newTerminal,
@@ -208,6 +223,7 @@ export function useWorkspace(
       label: words.terminal,
       icon: "terminal",
       disabled: !canCreateTerminal,
+      ...(place === null ? { description: words.terminalNeedsAgent } : {}),
       run: newTerminal,
       ...(shortcuts.terminal === null ? {} : { shortcut: shortcuts.terminal }),
     },
@@ -277,10 +293,4 @@ function useLeaveWorkspace(
     enableBeforeUnload: dirty,
     withResolver: true,
   });
-}
-
-function isLiveTerminal(terminal: TerminalInfo): boolean {
-  return (
-    terminal.status.state === "starting" || terminal.status.state === "running"
-  );
 }

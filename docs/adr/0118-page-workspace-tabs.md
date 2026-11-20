@@ -15,7 +15,9 @@ Persist target identities and selection in local storage for the served
 origin. A different launch origin starts with a fresh layout. A session
 address selects its agent when entered directly or through navigation.
 The last visited session address anchors passive tabs and the launcher.
-Reloading that same address can restore the selected passive tab. Use the
+Reloading that same address can restore the selected passive tab.
+Closing the routed agent clears its saved route marker, so the next
+navigation to that address can reveal the agent again. Use the
 existing session route for agent selection and browser back/forward.
 
 Use one set of tab actions across desktop and compact. Keep the workspace header above the selected pane so the project and
@@ -26,15 +28,26 @@ Only the visible editor observes disk changes. Closing a modified editor
 or leaving the workspace requires confirmation.
 
 Run the existing archive and terminal close calls one by one after a
-single bulk confirmation. Compact confirmations fit the content, so
-the sheet leaves the workspace visible above it. Remove each tab when its action succeeds and
-keep failures available for retry. A child agent's close affects layout
-only. This differs from Paseo's single closeItems call. Project terminals
-belong to the project root. For a worktree or unregistered folder, the
-existing terminal contract uses a session in that location. A successful
-list carrying an ended terminal clears its tab. Failed or incomplete
-lists leave existing targets alone. The page retains its existing xterm
-input policy, which forwards user input and suppresses automatic query
+single bulk confirmation. Compact confirmations fit the content, so the sheet
+leaves the workspace visible above it. Remove a tab after a successful close or
+when the node reports its target missing. Keep failures available for retry.
+A child agent's close affects layout only. This differs from Paseo's single
+`closeItems` call.
+
+Project terminals belong to the project root. The current terminal contract
+uses a live, unarchived session to anchor new terminals in a worktree or an
+unregistered folder. Use another live session in the same workspace when the
+routed session has ended. Disable creation when the workspace has no live
+anchor. Before archiving a session, look up its live shells, scripts and
+services. Count them alongside any terminals explicitly selected for close,
+with one count per terminal. Recheck after confirmation and ask again if the
+scope grew. The list and archive are separate calls, so a concurrently created
+terminal can still appear between them. ADR 0121 covers moving terminal
+ownership to the workspace folder.
+
+A successful list carrying an ended terminal clears its tab. Failed or
+incomplete lists leave existing targets alone. The page retains its existing
+xterm input policy, which forwards user input and suppresses automatic query
 replies.
 
 ## Alternatives and consequences

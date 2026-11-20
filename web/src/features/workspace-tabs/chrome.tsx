@@ -99,6 +99,7 @@ function CompactTabs(props: TabChromeProps) {
               </Button>
               <Button
                 icon="terminal"
+                title={startTerminal?.description}
                 disabled={
                   startTerminal === undefined || startTerminal.disabled === true
                 }

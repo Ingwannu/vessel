@@ -1,8 +1,7 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 
 import { useFleet } from "../../context";
 import { reloadSession, renameSession } from "../../data/calls";
-import { isLive } from "../../data/format";
 import { canReload } from "../../data/reload";
 import type { WorkspaceTab } from "../../data/workspace/tab-layout";
 import { renameWorkspaceTerminal } from "../../data/workspace/terminals";
@@ -15,18 +14,11 @@ import type {
   TerminalInfo,
 } from "../../wire/proto";
 import type { TabAction, TabItem } from "./chrome-parts";
-import { applyClose, childAgent } from "./close-tabs";
+import { useCloseTabs } from "./use-close-tabs";
 import type { TabWords } from "./words";
 
-interface Confirmation {
-  title: string;
-  message: string;
-  label: string;
-  tabs: readonly WorkspaceTab[];
-}
-
 interface TabLifecycle {
-  confirmation: Confirmation | null;
+  confirmation: ReturnType<typeof useCloseTabs>["confirmation"];
   cancel: () => void;
   confirm: () => void;
   askClose: (item: TabItem) => void;
@@ -49,92 +41,8 @@ export function useTabLifecycle(input: {
 }): TabLifecycle {
   const { node, words } = input;
   const fleet = useFleet();
-  const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
+  const closing = useCloseTabs(input);
   const [renaming, setRenaming] = useState<TabItem | null>(null);
-  const closing = useRef(false);
-
-  const closeTabs = async (tabs: readonly WorkspaceTab[]) => {
-    if (closing.current) {
-      return;
-    }
-    closing.current = true;
-    try {
-      await applyClose(fleet, input, tabs);
-    } finally {
-      closing.current = false;
-    }
-  };
-
-  const askClose = (item: TabItem) => {
-    if (closing.current) {
-      return;
-    }
-    const tab = item.tab;
-    if (tab.kind === "terminal") {
-      setConfirmation({
-        title: words.terminalTitle,
-        message: words.terminalBody,
-        label: words.close,
-        tabs: [tab],
-      });
-      return;
-    }
-    if (tab.kind === "agent") {
-      const agent = input.session(tab.id);
-      if (
-        agent === undefined ||
-        (!childAgent(agent) &&
-          isLive(agent) &&
-          agent.marks?.archived_at == null)
-      ) {
-        setConfirmation({
-          title: words.agentTitle,
-          message: words.agentBody,
-          label: words.archive,
-          tabs: [tab],
-        });
-        return;
-      }
-    }
-    if (input.dirty(tab)) {
-      setConfirmation({
-        title: words.fileTitle,
-        message: words.fileBody,
-        label: words.close,
-        tabs: [tab],
-      });
-      return;
-    }
-    void closeTabs([tab]);
-  };
-
-  const bulk = (tabs: readonly WorkspaceTab[], title: string) => {
-    if (closing.current || tabs.length === 0) {
-      return;
-    }
-    const agents = tabs.filter((tab) => {
-      if (tab.kind !== "agent") {
-        return false;
-      }
-      const agent = input.session(tab.id);
-      return (
-        agent === undefined ||
-        (!childAgent(agent) && agent.marks?.archived_at == null)
-      );
-    }).length;
-    const terminals = tabs.filter((tab) => tab.kind === "terminal").length;
-    setConfirmation({
-      title: `${title}?`,
-      label: words.close,
-      message: words.bulk(
-        agents,
-        terminals,
-        tabs.length - agents - terminals,
-        tabs.filter(input.dirty).length,
-      ),
-      tabs,
-    });
-  };
 
   const copy = (text: string, label: string) => {
     void navigator.clipboard.writeText(text).then(
@@ -230,18 +138,15 @@ export function useTabLifecycle(input: {
   };
 
   return {
-    confirmation,
-    cancel: () => {
-      setConfirmation(null);
+    confirmation: closing.confirmation,
+    cancel: closing.cancel,
+    confirm: closing.confirm,
+    askClose: (item) => {
+      closing.close({ kind: "single", tab: item.tab });
     },
-    confirm: () => {
-      if (confirmation !== null) {
-        setConfirmation(null);
-        void closeTabs(confirmation.tabs);
-      }
+    bulk: (tabs, title) => {
+      closing.close({ kind: "bulk", tabs, title });
     },
-    askClose,
-    bulk,
     actions,
     renaming,
     cancelRename: () => {

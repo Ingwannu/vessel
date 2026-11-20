@@ -1,5 +1,7 @@
 // Loads code viewers only after a workspace tab asks for them. Every
 // viewer uses the same root as the composer and keeps its existing RPCs.
+// A lazy chunk avoids loading the lexer and editors for a chat-only reader,
+// while the build pins that chunk in the import map (ADR 0017).
 
 import { useState } from "react";
 

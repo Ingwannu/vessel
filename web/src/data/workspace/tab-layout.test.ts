@@ -29,6 +29,17 @@ describe("workspace tab ordering and routes", () => {
     expect(showTab(another, { kind: "files" }).tabs).toBe(another.tabs);
   });
 
+  it("reveals an agent whose own route is re-entered after closing its tab", () => {
+    const initial = showTab(enterRoute(EMPTY_LAYOUT, first), { kind: "files" });
+    const key = `agent:${first}`;
+    const closed = removeTab(initial, key);
+    expect(closed.active).toBe("files");
+    expect(addDiscovered(closed, [{ kind: "agent", id: first }])).toBe(closed);
+    const reopened = enterRoute(closed, first);
+    expect(reopened.active).toBe(key);
+    expect(reopened.hidden).toEqual([]);
+  });
+
   it("keeps selection while moving, scopes bulk targets, and keeps a closed agent hidden", () => {
     const initial = showTab(enterRoute(EMPTY_LAYOUT, first), { kind: "files" });
     const ready = addDiscovered(initial, [

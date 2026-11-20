@@ -129,6 +129,10 @@ export function removeTab(layout: TabLayout, key: string): TabLayout {
           ? null
           : tabKey(next)
         : layout.active,
+    route:
+      removed.kind === "agent" && removed.id === layout.route
+        ? null
+        : layout.route,
     hidden:
       removed.kind === "agent" ? [...layout.hidden, removed.id] : layout.hidden,
   };

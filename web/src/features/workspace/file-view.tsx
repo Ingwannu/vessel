@@ -1,5 +1,7 @@
 // Owns one file's editor and save guard. The tab keeps it mounted so
 // switching away preserves the original version and any unsaved text.
+// A changed disk view must never replace the version a draft started at.
+// Preview draws that same draft, with Source selected for a line target.
 
 import "./files.css";
 

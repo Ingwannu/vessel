@@ -5,6 +5,8 @@ const en = {
   workspace: "Workspace tabs",
   agent: "Agent",
   terminal: "Terminal",
+  terminalNeedsAgent:
+    "Start a live agent in this workspace to open a terminal.",
   changes: "Changes",
   diff: "Diff",
   files: "Files",
@@ -31,6 +33,7 @@ const en = {
   terminalTitle: "Close terminal?",
   terminalBody:
     "Any running process in this terminal will be stopped immediately.",
+  archiveAgentTitle: "Archive agent?",
   agentTitle: "Archive running agent?",
   agentBody: "The agent is running. Closing this tab will archive the agent.",
   fileTitle: "Close unsaved tab?",
@@ -66,6 +69,7 @@ const ko: typeof en = {
   workspace: "워크스페이스 탭",
   agent: "에이전트",
   terminal: "터미널",
+  terminalNeedsAgent: "터미널을 열려면 워크스페이스에서 에이전트를 실행하세요.",
   changes: "변경 사항",
   diff: "비교",
   files: "파일",
@@ -91,6 +95,7 @@ const ko: typeof en = {
   others: "다른 탭 닫기",
   terminalTitle: "터미널을 닫을까요?",
   terminalBody: "이 터미널에서 실행 중인 프로세스가 즉시 중지됩니다.",
+  archiveAgentTitle: "에이전트를 보관할까요?",
   agentTitle: "실행 중인 에이전트를 보관할까요?",
   agentBody: "에이전트가 실행 중입니다. 이 탭을 닫으면 에이전트가 보관됩니다.",
   fileTitle: "저장하지 않은 탭을 닫을까요?",

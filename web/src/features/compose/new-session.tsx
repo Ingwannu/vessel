@@ -1,4 +1,5 @@
-// The standard composer serves both /new and the workspace's draft.
+// Both launchers use the same composer so placement and editable agent
+// options are validated consistently. A workspace already knows its place.
 import "./new-session.css";
 
 import { useNavigate } from "@tanstack/react-router";
@@ -72,6 +73,7 @@ export function NewSession({
   const saved = useNewSessionDraft(workspace?.onDirtyChange);
   useShortcut("focus-composer", () => focusPage(text.current));
   const [busy, setBusy] = useState(false);
+  // The starter hands these files over after the destination exists.
   const tray = trayOf(workspace?.tray ?? "new");
   const [error, setError] = useState<string | null>(null);
   const text = useRef<HTMLTextAreaElement>(null);
@@ -184,6 +186,7 @@ export function NewSession({
       }
     });
   };
+  // Sending early waits for the current agent options, just as /new does.
   const optionsWait = useOptionsWait(options.kind === "loading", start);
   const send = () => {
     if (!ready.ok || harness === null || machine === null || busy) {

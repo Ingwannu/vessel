@@ -182,7 +182,7 @@ export function StructuredSession({
           session={session}
           timeline={timeline}
         />
-      ) : null}{" "}
+      ) : null}
       {narrow && summaryOpen ? (
         <Sheet side="right" label="Summary" onClose={closeSummary}>
           <Inspector

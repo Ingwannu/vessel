@@ -47,6 +47,40 @@ test("workspace files retain a dirty edit, reorder, and ask once on a bulk close
   await openPanelTab(page, "Diff");
   await page.reload();
   await expect(panelTab(page, "Diff")).toHaveAttribute("aria-selected", "true");
+  // Simulate an old agent tab surviving retention in a saved layout.
+  await page.evaluate(() => {
+    for (const key of Object.keys(localStorage)) {
+      if (!key.startsWith("vessel.workspace-tabs.v1.")) {
+        continue;
+      }
+      const value: unknown = JSON.parse(localStorage.getItem(key) ?? "null");
+      if (
+        typeof value === "object" &&
+        value !== null &&
+        "active" in value &&
+        value.active === "diff" &&
+        "tabs" in value &&
+        Array.isArray(value.tabs)
+      ) {
+        const tabs: readonly unknown[] = value.tabs;
+        const stale = {
+          kind: "agent",
+          id: "00000000-0000-4000-8000-000000000117",
+        };
+        localStorage.setItem(
+          key,
+          JSON.stringify({ ...value, tabs: [...tabs, stale] }),
+        );
+      }
+    }
+  });
+  await page.reload();
+  const stale = panelTab(page, "Agent");
+  await expect(stale).toBeVisible();
+  await stale.hover();
+  await page.getByRole("button", { name: "Close · Agent" }).click();
+  await expect(stale).toHaveCount(0);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
 });
 
 test("a standalone terminal accepts input and closes through the compact switcher", async ({

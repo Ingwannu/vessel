@@ -29,7 +29,7 @@ interface WorkspaceTerminals {
 
 export function useTerminals(
   node: NodeKey,
-  place: TerminalPlace,
+  place: TerminalPlace | null,
   sessionIds: ReadonlySet<SessionId>,
   enabled: boolean,
 ): WorkspaceTerminals {
@@ -51,7 +51,7 @@ export function useTerminals(
       const result = await workspaceTerminals(
         fleet,
         node,
-        place.kind === "project" ? place : null,
+        place?.kind === "project" ? place : null,
       );
       if (!live) {
         return;
@@ -62,7 +62,7 @@ export function useTerminals(
             (terminal) =>
               terminal.kind.kind === "shell" &&
               !closed.current.has(terminal.id) &&
-              (place.kind === "project"
+              (place?.kind === "project"
                 ? terminal.place.kind === "project" &&
                   (terminal.place.dir ?? null) === (place.dir ?? null)
                 : terminal.place.kind === "session" &&
@@ -83,7 +83,7 @@ export function useTerminals(
     rows,
     creating,
     create: async () => {
-      if (!enabled || pending.current) {
+      if (!enabled || place === null || pending.current) {
         return null;
       }
       pending.current = true;
