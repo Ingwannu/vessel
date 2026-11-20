@@ -10,7 +10,7 @@ use vessel_plugin::SharedLogs;
 use vessel_proto::plugins::{LogText, PluginId, PluginListItem, PluginSourceKind, PluginStatus};
 use vessel_store::DataDir;
 
-use super::{PluginError, Plugins, Row, Run, State, manifest, store};
+use super::{PluginError, Plugins, Row, Run, SETTLE_LIMIT, State, manifest, store};
 
 impl Plugins {
     pub(super) async fn set_enabled(
@@ -86,6 +86,15 @@ impl Plugins {
         Ok(self.inner.changes.lock().await)
     }
 
+    /// Wait for the start-up settle, at most [`SETTLE_LIMIT`]: a list or
+    /// catalog read at node start shows the configured helpers as started.
+    pub(super) async fn settled(&self) {
+        let mut settled = self.inner.settled.subscribe();
+        let _settled = tokio::time::timeout(SETTLE_LIMIT, settled.wait_for(|settled| *settled))
+            .await
+            .is_ok_and(|settled| settled.is_ok());
+    }
+
     pub(super) fn bump(&self) {
         self.inner.generation.send_modify(|generation| {
             *generation = generation.next();
@@ -107,7 +116,7 @@ pub(super) fn status(row: &Row, switch: bool) -> PluginStatus {
         return PluginStatus::Disabled;
     }
     match row.run {
-        Run::Client | Run::Helper(_) => PluginStatus::Running,
+        Run::Client { .. } | Run::Helper(_) => PluginStatus::Running,
         Run::Stopped => PluginStatus::Failed,
     }
 }

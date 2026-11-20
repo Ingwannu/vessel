@@ -489,6 +489,10 @@ macro_rules! method_table {
             RemovePlugin / remove_plugin / "plugin.remove" [Admin, (pending $crate::plugins::PLUGINS_PROTOCOL), unary]: $crate::plugins::RemovePlugin => $crate::Ack;
             /// Wait for the plugin generation to move, a long poll as fleet.watch (ADR 0115).
             WatchPlugins / watch_plugins / "plugin.watch" [Read, (pending $crate::plugins::PLUGINS_PROTOCOL), unary]: $crate::plugins::WatchPlugins => $crate::plugins::PluginGeneration;
+            /// The running installations' client declarations, as Paseo's plugin catalog (ADR 0115).
+            GetPluginCatalog / plugin_catalog / "plugin.catalog" [Read, (pending $crate::plugins::PLUGIN_CATALOG_PROTOCOL), unary]: $crate::plugins::GetPluginCatalog => $crate::plugins::PluginCatalog;
+            /// Call a method a running installation declared, as Paseo's plugin RPC (ADR 0115).
+            InvokePlugin / invoke_plugin / "plugin.invoke" [Admin, (pending $crate::plugins::PLUGIN_CATALOG_PROTOCOL), unary]: $crate::plugins::InvokePlugin => $crate::plugins::PluginOutput;
         }
     };
 }

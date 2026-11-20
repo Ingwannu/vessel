@@ -388,6 +388,11 @@ pub const PROTOCOLS: &[(&str, Option<crate::ProtocolVersion>, &str)] = &[
         crate::plugins::PLUGINS_PROTOCOL,
         "The plugin manager: `plugin.*` and the node's plugin switch (ADR 0115).",
     ),
+    (
+        "PLUGIN_CATALOG_PROTOCOL",
+        crate::plugins::PLUGIN_CATALOG_PROTOCOL,
+        "`plugin.catalog` and `plugin.invoke` (ADR 0115, catalog and invoke).",
+    ),
 ];
 
 /// The constants of [`PROTOCOLS`], as the end of the declarations file.

@@ -288,6 +288,8 @@ impl Reply {
             | Self::ReloadPlugin(_)
             | Self::RemovePlugin(_)
             | Self::WatchPlugins(_)
+            | Self::GetPluginCatalog(_)
+            | Self::InvokePlugin(_)
             | Self::ReadFile(_)
             | Self::WriteFile(_)
             | Self::CreateDir(_)

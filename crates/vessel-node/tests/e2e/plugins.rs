@@ -1,13 +1,15 @@
 //! ADR 0115 over the wire: a real node installs a client-only plugin from a
 //! directory under the home, keeps it disabled while plugins are off, runs it
 //! once `node.set_settings` turns them on, and removes it; Paseo's manifest
-//! is refused with its reason; an agent may list but not install.
+//! is refused with its reason; an agent may list but not install; a paired
+//! Read device lists without paths, reads the catalog, and may not install,
+//! read logs or call a method.
 
-use vessel_proto::ErrorCode;
 use vessel_proto::plugins::{
-    InstallPlugin, ListPlugins, PLUGINS_PROTOCOL, PluginGeneration, PluginStatus, RemovePlugin,
-    WatchPlugins,
+    GetPluginCatalog, GetPluginLogs, InstallPlugin, InvokePlugin, ListPlugins, PLUGINS_PROTOCOL,
+    PluginGeneration, PluginStatus, RemovePlugin, WatchPlugins,
 };
+use vessel_proto::{ErrorCode, RawJson, Scope};
 use vessel_proto::settings::SetNodeSettings;
 
 use crate::agents::{as_agent, code, credential, structured, vessel_mcp};
@@ -125,3 +127,64 @@ async fn an_agent_lists_plugins_without_paths_and_cannot_install() {
     })
     .await;
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_read_device_sees_the_catalog_but_not_paths_logs_or_methods() {
+    within(async {
+        let fixture = Fixture::new();
+        plugin(&fixture, "night");
+        let node = fixture.start().await;
+        let owner = fixture.connect(&node).await;
+        let _installed = owner.call(install("~/night")).await.unwrap();
+        let _on = owner
+            .call(SetNodeSettings {
+                plugins_enabled: Some(true),
+                ..SetNodeSettings::default()
+            })
+            .await
+            .unwrap();
+        let reader = crate::side_questions::access::device(&owner, &node, vec![Scope::Read]).await;
+        let listed = reader.call(ListPlugins {}).await.unwrap();
+        assert_eq!(listed.plugins.len(), 1);
+        assert!(
+            listed
+                .plugins
+                .iter()
+                .all(|item| item.path.is_none() && item.error.is_none())
+        );
+        // The catalog is declarative data a Read device draws; the switch
+        // is applied in the background, so wait for the plugin to run.
+        let mut generation = PluginGeneration::new(u64::MAX);
+        let mut catalogued = 0;
+        for _ in 0..20 {
+            let catalog = reader.call(GetPluginCatalog {}).await.unwrap();
+            catalogued = catalog.catalog.installations().len();
+            if catalogued == 1 {
+                break;
+            }
+            generation = reader
+                .call(WatchPlugins { after: generation })
+                .await
+                .unwrap();
+        }
+        assert_eq!(catalogued, 1);
+        let plugin_id = || "night".parse().unwrap();
+        assert_eq!(code(reader.call(install("~/night")).await), ErrorCode::Forbidden);
+        assert_eq!(
+            code(reader.call(GetPluginLogs { plugin: plugin_id() }).await),
+            ErrorCode::Forbidden
+        );
+        let call = InvokePlugin {
+            plugin: plugin_id(),
+            method: "night.read".parse().unwrap(),
+            input: RawJson::empty_object(),
+        };
+        assert_eq!(code(reader.call(call.clone()).await), ErrorCode::Forbidden);
+        // The owner reaches the node, which says a client-only plugin has
+        // no methods.
+        assert_eq!(code(owner.call(call).await), ErrorCode::NotFound);
+        node.stop().await.unwrap();
+    })
+    .await;
+}
+

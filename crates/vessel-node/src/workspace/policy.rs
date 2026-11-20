@@ -77,8 +77,10 @@ pub(crate) fn refuse_agents(principal: &Principal, method: Method) -> Result<(),
             | Method::DisablePlugin
             | Method::ReloadPlugin
             | Method::RemovePlugin
+            | Method::InvokePlugin
     ) {
-        "plugins run trusted code with the node's access; installing, running and reading them is a person's administration"
+        "plugins run trusted code with the node's access; installing, running and reading them \
+         is a person's administration"
     } else if matches!(method, Method::GetAgentHistory) {
         "an agent's own history holds a person's conversations outside Vessel; an agent works \
          with the node's sessions"
@@ -207,6 +209,8 @@ const fn refused(method: Method) -> bool {
         | Method::DisablePlugin
         | Method::ReloadPlugin
         | Method::RemovePlugin
+        // A plugin method runs the plugin's code with the node's access.
+        | Method::InvokePlugin
         | Method::DetachSession => true,
         // Orchestration: the projects, and a worktree with its setup's
         // output for a session the agent starts.
@@ -268,6 +272,8 @@ const fn refused(method: Method) -> bool {
         // `node.settings`; paths and errors are left out for an agent.
         | Method::ListPlugins
         | Method::WatchPlugins
+        // The plugin catalog (ADR 0115): declarations, no paths, no code.
+        | Method::GetPluginCatalog
         // Forking and rewinding a session it may operate (ADR 0052).
         | Method::ForkSession
         | Method::RewindSession

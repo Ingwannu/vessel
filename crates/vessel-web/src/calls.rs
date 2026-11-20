@@ -278,6 +278,10 @@ const fn forwardable(method: Method) -> bool {
         | Method::ReloadPlugin
         | Method::RemovePlugin
         | Method::WatchPlugins
+        // ADR 0115: a machine's plugin catalog and method calls (a call
+        // needs `admin`).
+        | Method::GetPluginCatalog
+        | Method::InvokePlugin
         // Protocol 14: forking and rewinding a session (ADR 0052).
         | Method::ForkSession
         | Method::RewindSession
