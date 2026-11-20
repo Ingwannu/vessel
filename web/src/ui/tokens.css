@@ -75,8 +75,10 @@
 
   /* The read-only quota bar: Paseo's surface3/4 in its default light/dark
      themes. Status/muted fills retain this page's existing palette. */
-  --quota-surface-3: light-dark(#e4e4e7, #434645);
+  --quota-surface-3: var(--surface-3);
   --quota-surface-4: light-dark(#d4d4d8, #595b5b);
+  /* Paseo's surface3, for any quiet fill (a muted status badge too). */
+  --surface-3: light-dark(#e4e4e7, #434645);
   --quota-meter-height: 6px;
   --quota-meter-radius: 3px;
 

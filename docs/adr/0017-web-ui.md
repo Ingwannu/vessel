@@ -127,7 +127,10 @@ Option 3.
   No reusable key is sent by the browser during reconnection.
 - `/api/status` accepts the issued session key as a bearer, never the URL
   code. The UI does not call this HTTP endpoint; it uses only the mutually
-  authenticated websocket. Rust compares proofs/keys in constant time.
+  authenticated websocket. (Since ADR 0122 the UI makes one HTTP call,
+  `POST /api/preview`, with the session key as a bearer and only while its
+  websocket is welcomed; `/preview/<id>` is the one answer with its own
+  content policy.) Rust compares proofs/keys in constant time.
 - **The URL is written to disk on Unix** for the browser handoff, because
   putting it in an opener/browser command line exposes it to process lists.
   The directory is created as 0700 and the file as 0600, atomically, under

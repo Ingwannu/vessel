@@ -1,6 +1,6 @@
 //! Capability lifetime follows the existing terminal entry and end watch.
 //! Only hashes are retained in the registry; injected values are never logged.
-use super::{Terminals, TerminalsError};
+use super::Terminals;
 use tokio_util::sync::CancellationToken;
 use vessel_proto::TerminalId;
 use vessel_proto::notifications::{
@@ -25,40 +25,44 @@ impl Producer {
     }
 }
 impl Terminals {
-    pub(crate) fn install_producer(
+    /// The activity capability of a terminal about to be registered: part of
+    /// its entry from the start, so registration cannot leave a live terminal
+    /// without the capability its shell was given (owed item 4 of the node
+    /// review of TRACKER 815). It closes when the terminal ends, the node
+    /// stops, or the entry is forgotten.
+    pub(super) fn producer_for(
         &self,
-        id: TerminalId,
+        handle: &TerminalHandle,
         secret: &TerminalActivitySecret,
-    ) -> Result<(), TerminalsError> {
-        let (handle, closing) = {
-            let mut state = self.state();
-            let entry = state
-                .entries
-                .get_mut(&id)
-                .ok_or(TerminalsError::NotFound(id))?;
-            if entry.producer.is_some() {
-                return Err(TerminalsError::Conflict(
-                    "terminal activity credential is already installed".to_owned(),
-                ));
-            }
-            let closing = self.runner.shutdown.child_token();
-            entry.producer = Some(Producer {
-                hash: CredentialHash::of_terminal(secret),
-                closing: closing.clone(),
-            });
-            (entry.handle.clone(), closing)
-        };
+    ) -> Producer {
+        let closing = self.runner.shutdown.child_token();
+        let ended = handle.clone();
+        let close = closing.clone();
         drop(self.runner.tasks.spawn(async move {
-            handle.ended().await;
-            closing.cancel();
+            ended.ended().await;
+            close.cancel();
         }));
-        Ok(())
+        Producer {
+            hash: CredentialHash::of_terminal(secret),
+            closing,
+        }
     }
     pub(crate) fn admit_producer(
         &self,
         auth: &TerminalActivityAuth,
     ) -> Option<(TerminalHandle, CancellationToken)> {
         let _assigned = ATTENTION_NOTIFICATIONS_PROTOCOL?;
+        self.admit_assigned(auth)
+    }
+    /// [`admit_producer`](Self::admit_producer)'s checks behind the
+    /// feature's gate: the exact terminal, still running, its own secret,
+    /// and a capability not yet closed. Separate so that tests check them
+    /// while the feature is unassigned (owed item 5 of the node review of
+    /// TRACKER 815); the IPC route's own test needs the assigned protocol.
+    pub(crate) fn admit_assigned(
+        &self,
+        auth: &TerminalActivityAuth,
+    ) -> Option<(TerminalHandle, CancellationToken)> {
         let state = self.state();
         let entry = state.entries.get(&auth.terminal)?;
         let producer = entry.producer.as_ref()?;
@@ -66,6 +70,24 @@ impl Terminals {
             return None;
         }
         Some((entry.handle.clone(), producer.closing.child_token()))
+    }
+}
+impl Terminals {
+    /// Give a registered terminal an activity capability, as `register`
+    /// does once the feature is assigned: the node gives none while it is
+    /// unassigned, and tests check the capability's lifetime anyway.
+    #[cfg(test)]
+    pub(crate) fn give_producer(&self, id: TerminalId, secret: &TerminalActivitySecret) -> bool {
+        let Ok(entry) = self.get(id) else {
+            return false;
+        };
+        let producer = self.producer_for(&entry.handle, secret);
+        let mut state = self.state();
+        let Some(kept) = state.entries.get_mut(&id) else {
+            return false;
+        };
+        kept.producer = Some(producer);
+        true
     }
 }
 #[cfg(test)]

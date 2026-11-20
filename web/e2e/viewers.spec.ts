@@ -3,9 +3,11 @@
 // fleet's `shop` repository for the test and removed after it: a Markdown
 // file opens on its Preview (front matter table, an image read through
 // the node, a relative link that opens the file), Source beside it, and
-// on Source when opened at a line; an HTML file shows in a sandboxed
-// frame whose scripts do not run; an image is drawn, zooms, fits again,
-// and follows the file on disk.
+// on Source when opened at a line; an HTML file's scripts run in a
+// sandboxed frame from `vessel ui`'s preview route (ADR 0122) that cannot
+// reach this page, its storage or the network, and the route opened on its
+// own is sandboxed as well; an image is drawn, zooms, fits again, and
+// follows the file on disk.
 
 import { mkdirSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -41,7 +43,25 @@ See [the notes](../notes/todo.md) first.
 
 const PAGE = `<!doctype html><html><body>
 <h1 id="title">Static page</h1>
-<script>document.getElementById("title").textContent = "Scripts ran";</script>
+<p id="reach"></p>
+<p id="net">waiting</p>
+<script>
+document.getElementById("title").textContent = "Scripts ran";
+const said = [];
+const tried = (name, read) => {
+  try { said.push(name + ":" + String(read())); } catch { said.push(name + ":blocked"); }
+};
+tried("parent", () => window.parent.document.title);
+tried("session", () => window.parent.sessionStorage.getItem("vessel.session"));
+tried("own", () => window.sessionStorage.length);
+tried("cookie", () => document.cookie);
+said.push("origin:" + window.origin);
+document.getElementById("reach").textContent = said.join(" ");
+fetch("/api/status").then(
+  () => { document.getElementById("net").textContent = "fetched"; },
+  () => { document.getElementById("net").textContent = "refused"; },
+);
+</script>
 </body></html>
 `;
 
@@ -137,13 +157,44 @@ test("Markdown, HTML and images open in Paseo's panels, and an image follows the
     await page.getByRole("button", { name: "Search in files" }).click();
     await page.getByRole("searchbox", { name: "Go to file" }).fill("");
 
-    // HTML: the page in a sandboxed frame; its script does not run.
+    // HTML: the page's scripts run, as Paseo's do, in an opaque origin
+    // that reaches neither this page, its storage and session key, nor the
+    // network.
     await openInTree(page, "page.html");
     const frame = page.locator('iframe[aria-label="HTML preview"]');
-    await expect(frame).toHaveAttribute("sandbox", "");
-    await expect(
-      page.frameLocator('iframe[aria-label="HTML preview"]').locator("h1"),
-    ).toHaveText("Static page");
+    await expect(frame).toHaveAttribute("sandbox", "allow-scripts");
+    const inside = page.frameLocator('iframe[aria-label="HTML preview"]');
+    await expect(inside.locator("h1")).toHaveText("Scripts ran");
+    await expect(inside.locator("#reach")).toHaveText(
+      "parent:blocked session:blocked own:blocked cookie:blocked origin:null",
+    );
+    await expect(inside.locator("#net")).toHaveText("refused");
+    // The route opened on its own is sandboxed too (its header), or not
+    // opened at all.
+    const src = await frame.getAttribute("src");
+    expect(src).toMatch(/^\/preview\/[0-9a-f]{32}$/);
+    const alone = await page.context().newPage();
+    const opened = await alone
+      .goto(new URL(src ?? "", page.url()).href)
+      .then(() => true)
+      .catch(() => false);
+    if (opened) {
+      await expect
+        .poll(() =>
+          alone.evaluate(() => {
+            const storage = (() => {
+              try {
+                return String(window.sessionStorage.length);
+              } catch {
+                return "blocked";
+              }
+            })();
+            return `${window.origin} ${storage}`;
+          }),
+        )
+        .toBe("null blocked");
+    }
+    await alone.close();
     await page.getByRole("button", { name: "All files" }).click();
 
     // An image: fitted, zoomed from its corner buttons, fitted again by a

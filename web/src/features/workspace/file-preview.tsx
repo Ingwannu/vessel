@@ -4,12 +4,12 @@
 //   body, the body through the conversation's Markdown renderer; a
 //   relative link opens that file here, an image is read through the node
 //   (`markdown-paths.ts` resolves both from the Markdown file's folder);
-// - HTML (F-F39): the file in a sandboxed `srcdoc` frame under Paseo's
-//   preview policy. The coordinator's ruling: no `allow-scripts` here, and
-//   the frame inherits the page's own policy, so the file's scripts do not
-//   run (plan difference 1; TRACKER 814 is the separate preview origin
-//   that would run them). Its layout, inline styles and `data:` images
-//   show.
+// - HTML (F-F39): the file framed as Paseo frames it, `allow-scripts` in
+//   an opaque origin under Paseo's preview policy. A frame the page writes
+//   would take the page's own policy and refuse the file's scripts, so the
+//   document is framed from `vessel ui`'s preview route (ADR 0122,
+//   TRACKER 814; `use-preview-frame.ts`); if that fails, the static
+//   `srcdoc` frame shows its layout, inline styles and `data:` images.
 // Both draw the text they are given: the file as read, or the edit open.
 
 import "./file-viewers.css";
@@ -23,7 +23,9 @@ import { withPreviewCsp } from "../../data/workspace/html-preview";
 import { markdownTarget } from "../../data/workspace/markdown-paths";
 import type { NodeKey } from "../../wire/bridge";
 import type { RelPath, WorkspaceRoot } from "../../wire/proto";
+import { FileLoading } from "./file-loading";
 import { useImageUrl } from "./use-image-url";
+import { usePreviewFrame } from "./use-preview-frame";
 
 export interface PreviewProps {
   panel: PreviewPanel;
@@ -49,7 +51,22 @@ export function FilePreview(props: PreviewProps) {
 
 function HtmlPreview({ text }: { text: string }) {
   const document = useMemo(() => withPreviewCsp(text), [text]);
-  return (
+  const frame = usePreviewFrame(document);
+  if (frame.status === "loading") return <FileLoading />;
+  return frame.status === "ready" ? (
+    <iframe
+      className="html-frame"
+      aria-label="HTML preview"
+      data-testid="file-html-preview"
+      src={frame.url}
+      // Paseo's one token: scripts run, in an opaque origin that cannot
+      // reach this page, its storage or its session key; no forms, no
+      // popups, no navigating this page. The document's own header
+      // sandboxes it the same way.
+      sandbox="allow-scripts"
+      referrerPolicy="no-referrer"
+    />
+  ) : (
     <iframe
       className="html-frame"
       aria-label="HTML preview"

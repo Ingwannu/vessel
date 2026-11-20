@@ -85,6 +85,12 @@ viewers take from the existing watch. No node change is needed.
    the previewed file is refused whatever the frame's meta says; layout,
    inline styles and `data:` images show. Running scripts would need a
    separate preview origin served by vessel-web (an ADR of its own).
+   Closed by TRACKER 814 (ADR 0122, 2026-11-20): the page posts the
+   document to `vessel ui` and frames it from `/preview/<id>`, whose
+   header carries Paseo's policy with `sandbox allow-scripts`; the
+   scripts run as Paseo's do. The static `srcdoc` frame stays as the
+   fallback when the route cannot be reached. What remains is Paseo's own
+   stated hole: a document may navigate itself.
 2. Native HTML: Source only. The app has no web engine (ADR 0020, Tauri,
    still waits); the Preview|Source control is absent for HTML there.
 3. Images on the page are `data:` URLs (the page CSP allows `data:`, not
@@ -130,7 +136,8 @@ viewers take from the existing watch. No node change is needed.
   display", as Paseo's text panel does (node reviewer's note, 2026-11-19).
 - Tests: unit tests per data module; `web/e2e/viewers.spec.ts` (each
   panel, Source beside Preview, a line target, a relative link, the
-  frame's script not running, zoom and fit, a new image on disk);
+  frame's script running and reaching neither the page, its storage nor
+  the network (TRACKER 814), zoom and fit, a new image on disk);
   `web/e2e/code.spec.ts`'s watch test now starts on the Markdown Preview.
 
 ## Differences found while building
@@ -170,6 +177,8 @@ viewers take from the existing watch. No node change is needed.
    stated difference. Running scripts as Paseo does (its
    `allow-scripts` frame) needs a separate preview origin: TRACKER 814,
    with its own ADR, after this item. The page's CSP is not loosened.
+   (2026-11-20: TRACKER 814 took option A, a preview route on the same
+   `vessel ui` server, sandboxed by its own header; ADR 0122.)
 2. Native HTML: Source only, a stated difference until ADR 0020 (a web
    engine) is decided.
 3. PDF: plugin-only in Paseo, so out of core parity; left for the plugin

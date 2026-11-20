@@ -183,6 +183,31 @@ impl Shell {
         }
     }
 
+    /// A fleet read. The bar's lost line follows the machine's link on
+    /// one offline→online change, and a structured session's follow
+    /// opens again then. A later read while the link stays online does
+    /// not: a follow that failed (the session is gone) keeps its line.
+    /// An idle session sends no record, so the edge is what clears it.
+    pub(crate) fn session_header_follows_link(&mut self, cx: &mut Context<'_, Self>) {
+        let Some(shown) = self.areas.conversation.shown.clone() else {
+            return;
+        };
+        let online = self
+            .fleet
+            .online()
+            .any(|machine| machine.name == shown.machine);
+        if !self.areas.conversation.link_edge(online) {
+            return;
+        }
+        let reopen = self.areas.session.open.as_ref().filter(|open| {
+            open.structured && open.machine == shown.machine && open.session == shown.session
+        });
+        if let Some(open) = reopen {
+            self.command(crate::areas::session::follow_command(open));
+        }
+        cx.notify();
+    }
+
     /// Bring record `seq` of the session shown into view (the inbox
     /// opening a session at what it lists; call it after the session area
     /// opened the session).
