@@ -22,7 +22,7 @@ use vessel_proto::browser::{
 use vessel_proto::conversation::FiniteNumber;
 
 const HTML: &str = r#"<!doctype html><meta charset=utf-8><title>Rust fixture</title>
-<style>html {scrollbar-width:none} body {margin:0; min-height:1200px}
+<style>html {scrollbar-width:none} body {display:flow-root; margin:0; height:1200px}
 #probe {position:absolute; left:20px; top:100px; width:120px; height:24px}</style>
 <h1>Owned Rust page</h1><label for=probe>Fixture input</label>
 <input id=probe onpointerdown="this.dataset.trusted = event.isTrusted">
@@ -205,11 +205,12 @@ impl Observed {
                 .as_str()
                 .contains("Fixture button")
         );
-        assert_eq!(self.png.width().get(), WIDTH);
-        assert_eq!(self.png.height().get(), HEIGHT);
-        assert_eq!(self.full_png.width().get(), WIDTH);
-        assert_eq!(self.full_png.height().get(), FULL_HEIGHT);
-        assert_eq!(self.compositor_png.width().get(), WIDTH);
-        assert_eq!(self.compositor_png.height().get(), HEIGHT);
+        let dimensions = [self.png, self.full_png, self.compositor_png]
+            .map(|image| (image.width().get(), image.height().get()));
+        assert_eq!(
+            dimensions,
+            [(WIDTH, HEIGHT), (WIDTH, FULL_HEIGHT), (WIDTH, HEIGHT)],
+            "viewport, full-page, and compositor PNG dimensions"
+        );
     }
 }

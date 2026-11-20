@@ -54,3 +54,9 @@ refusal, viewport capture and clean owned-process closure. The exact fixture
 failed its full-page width assertion (375 CSS pixels observed vs 390 expected)
 because a vertical scrollbar reduced the content width. The fixture now sets
 its scrollbar width explicitly and retains both dimensions in the assertion.
+The next run on `46e915a3` reached compositor start/ack/stop and both loopback
+refusal checks. The content height was 1221 against the fixture's expected
+1200 because the heading's default top margin collapsed outside the body.
+The fixture defines the body's formatting context and height, and the final
+assertion reports all three capture sizes together. No profile lock was released
+for reuse in either run.
