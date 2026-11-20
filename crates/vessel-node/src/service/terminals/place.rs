@@ -199,7 +199,7 @@ impl NodeService {
         let (Some(_agent), TerminalPlace::Session { session }) = (principal.agent(), asked) else {
             return Ok(asked.clone());
         };
-        if !WORKSPACE_TERMINALS_PROTOCOL.is_some_and(|since| protocol >= since) {
+        if WORKSPACE_TERMINALS_PROTOCOL.is_none_or(|since| protocol < since) {
             return Ok(asked.clone());
         }
         let info = self
