@@ -7,7 +7,10 @@
 //! - Why and cost: ordinary module tooling sees this file, with no include! or
 //!   duplicated dispatcher. The existing exhaustive match is deliberately kept
 //!   intact in this move rather than mixing an event-policy refactor into it.
-use super::{Context, Event, Route, Shell};
+//! - Later: the fleet arm became `fleet_read` when the dispatcher passed
+//!   clippy's 100-line limit; same steps in the same order, its early return
+//!   now a `false` (no frame).
+use super::{Context, Event, Fleet, Route, Shell};
 
 impl Shell {
     pub(super) fn on_event(&mut self, event: Event, cx: &mut Context<'_, Self>) {
@@ -32,40 +35,8 @@ impl Shell {
             Event::Diagnostics(answer) => self.diagnostics_answer(answer),
             Event::Plugins(answer) => return self.plugins_answer(answer, cx),
             Event::Fleet(fleet) => {
-                self.terminal_tabs_on_fleet();
-                // The link reads the fleet every 2 s; a read that changed
-                // nothing draws nothing (an idle window repainted every
-                // 2 s, measured by the coordinator on 0.0.0.0.13).
-                if self.loaded && fleet.machines == self.fleet.machines {
-                    self.fleet.read_at = fleet.read_at;
-                    if self.route == Route::Settings {
-                        self.agent_load(false, cx);
-                    }
+                if !self.fleet_read(fleet, cx) {
                     return;
-                }
-                let earlier = std::mem::replace(&mut self.fleet, fleet);
-                self.notify_fleet(&earlier, cx);
-                self.history_fleet(&earlier);
-                self.devices_fleet();
-                self.offers_fleet(&earlier);
-                if !self.loaded {
-                    self.loaded = true;
-                    // With no machine there is nothing to type to: pairing
-                    // is the first thing to do.
-                    if self.fleet.machines.is_empty() {
-                        self.route_to(Route::Pair);
-                        self.pairing_opened(cx);
-                    }
-                }
-                crate::areas::shortcuts::book_changed(self);
-                self.settle_draft();
-                self.retitle();
-                self.workspace_fleet();
-                self.sessions_fleet_changed();
-                self.labels_fleet(cx);
-                self.refresh_fork_headers();
-                if self.route == Route::Settings {
-                    self.agent_load(false, cx);
                 }
             }
             Event::Agents {
@@ -119,6 +90,46 @@ impl Shell {
             Event::Terminals(answer) => self.terminal_tabs_answer(answer, cx),
         }
         cx.notify();
+    }
+
+    /// A fleet read from the link; whether it asks for a frame.
+    fn fleet_read(&mut self, fleet: Fleet, cx: &mut Context<'_, Self>) -> bool {
+        self.terminal_tabs_on_fleet();
+        // The link reads the fleet every 2 s; a read that changed
+        // nothing draws nothing (an idle window repainted every
+        // 2 s, measured by the coordinator on 0.0.0.0.13).
+        if self.loaded && fleet.machines == self.fleet.machines {
+            self.fleet.read_at = fleet.read_at;
+            if self.route == Route::Settings {
+                self.agent_load(false, cx);
+            }
+            return false;
+        }
+        let earlier = std::mem::replace(&mut self.fleet, fleet);
+        self.notify_fleet(&earlier, cx);
+        self.history_fleet(&earlier);
+        self.devices_fleet();
+        self.offers_fleet(&earlier);
+        if !self.loaded {
+            self.loaded = true;
+            // With no machine there is nothing to type to: pairing
+            // is the first thing to do.
+            if self.fleet.machines.is_empty() {
+                self.route_to(Route::Pair);
+                self.pairing_opened(cx);
+            }
+        }
+        crate::areas::shortcuts::book_changed(self);
+        self.settle_draft();
+        self.retitle();
+        self.workspace_fleet();
+        self.sessions_fleet_changed();
+        self.labels_fleet(cx);
+        self.refresh_fork_headers();
+        if self.route == Route::Settings {
+            self.agent_load(false, cx);
+        }
+        true
     }
 }
 
