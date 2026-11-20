@@ -15,12 +15,19 @@
 //!   the Windows temp/profile ones). No token, pairing link, harness home
 //!   or secret reaches the helper; its identity comes in `initialize`.
 //! - A plugin with only a client document has no process: it runs when its
-//!   document validates.
+//!   document validates, and that document is its catalog entry. A plugin
+//!   with a helper is catalogued by the document its helper declares in
+//!   `ready`; a `client` file beside it is checked but not served.
+//! - The client file is opened only after its real path (links resolved)
+//!   is found inside the plugin's real directory: the manifest's relative
+//!   path is checked as text, and a link inside the directory could still
+//!   point anywhere the node can read (review, 2026-11-20).
 //! - Trust: the helper is unsandboxed code with the node account's access
 //!   (ADR 0079); this is a fault boundary, not a security one.
 
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use tokio_util::sync::CancellationToken;
 use vessel_plugin::{PreparedCommand, RuntimeError, RuntimeState, SharedLogs, Supervisor};
@@ -124,9 +131,14 @@ pub(crate) enum StartError {
 /// What runs for a started installation.
 #[derive(Debug)]
 pub(crate) enum Started {
-    /// A client document that validated, and no process. The catalog
-    /// (ADR 0115, P3) keeps the document; this packet only checks it.
-    Client,
+    /// A client document that validated, and no process: the catalog's
+    /// entry under `address`.
+    Client {
+        /// This run's identity.
+        address: PluginAddress,
+        /// The validated document.
+        document: Arc<ClientDocument>,
+    },
     /// A helper that answered ready.
     Helper(Supervisor),
 }
@@ -141,16 +153,19 @@ pub(crate) async fn start(
     parent: &CancellationToken,
 ) -> Result<Started, StartError> {
     let client = match &manifest.client {
-        Some(path) => Some(read_client(path).await?),
+        Some(path) => Some(read_client(path, directory).await?),
         None => None,
     };
     let Some(command) = &manifest.server else {
-        let _validated: ClientDocument = client.ok_or_else(|| {
+        let document = client.ok_or_else(|| {
             StartError::Manifest(
                 "it names neither a server command nor a client document".to_owned(),
             )
         })?;
-        return Ok(Started::Client);
+        return Ok(Started::Client {
+            address,
+            document: Arc::new(document),
+        });
     };
     let launch = prepare(command, directory, env)?;
     let supervisor = Supervisor::spawn(launch, address, logs.clone(), parent)
@@ -204,19 +219,29 @@ pub(crate) fn reason(error: &RuntimeError) -> String {
     }
 }
 
-/// Read and validate a client document, bounded before it is parsed.
-async fn read_client(path: &Path) -> Result<ClientDocument, StartError> {
+/// Read and validate a client document, bounded before it is parsed; its
+/// real path must be inside `directory`'s.
+async fn read_client(path: &Path, directory: &Path) -> Result<ClientDocument, StartError> {
     let failed = |reason: String| StartError::Client {
         path: path.display().to_string(),
         reason,
     };
-    let metadata = tokio::fs::metadata(path)
+    let real = tokio::fs::canonicalize(path)
+        .await
+        .map_err(|error| failed(error.to_string()))?;
+    let inside = tokio::fs::canonicalize(directory)
+        .await
+        .map_err(|error| failed(error.to_string()))?;
+    if !real.starts_with(&inside) {
+        return Err(failed("it leads outside the plugin directory".to_owned()));
+    }
+    let metadata = tokio::fs::metadata(&real)
         .await
         .map_err(|error| failed(error.to_string()))?;
     if metadata.len() > u64::try_from(MAX_DOCUMENT_BYTES).unwrap_or(u64::MAX) {
         return Err(failed(format!("larger than {MAX_DOCUMENT_BYTES} bytes")));
     }
-    let bytes = tokio::fs::read(path)
+    let bytes = tokio::fs::read(&real)
         .await
         .map_err(|error| failed(error.to_string()))?;
     serde_json::from_slice(&bytes).map_err(|error| failed(error.to_string()))

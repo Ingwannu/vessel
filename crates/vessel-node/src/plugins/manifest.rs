@@ -24,6 +24,10 @@ use vessel_proto::plugins::{Caption, ContentText, PluginId};
 
 /// The manifest's file name.
 pub(crate) const MANIFEST_FILE: &str = "vessel-plugin.json";
+/// The longest asset path (`client`, `icon`) a manifest may name: the
+/// path is listed to clients, so it is bounded as any listed text is.
+const MAX_ASSET_PATH_BYTES: usize = 1024;
+
 /// Paseo's, recognised only to explain the refusal.
 const PASEO_MANIFEST_FILE: &str = "paseo-plugin.json";
 /// A manifest larger than this is not read.
@@ -230,6 +234,7 @@ fn trimmed(text: Option<String>, field: &str) -> Result<Option<String>, Manifest
 /// the plugin directory.
 fn asset(path: &str, field: &str) -> Result<(), ManifestError> {
     let refused = path.is_empty()
+        || path.len() > MAX_ASSET_PATH_BYTES
         || path != path.trim()
         || path.starts_with('/')
         || path.ends_with('/')
@@ -330,6 +335,8 @@ mod tests {
             checked(r#"{"id":"x","client":"c.json","icon":"icon.svg"}"#),
             Err(ManifestError::Invalid(_))
         ));
+        let long = format!(r#"{{"id":"x","client":"{}.json"}}"#, "a".repeat(1024));
+        assert!(matches!(checked(&long), Err(ManifestError::Invalid(_))));
         assert!(matches!(
             checked(r#"{"id":"x","client":"c.json","name":"   "}"#),
             Err(ManifestError::Invalid(_))

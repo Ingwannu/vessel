@@ -4,10 +4,15 @@
 
 import { useStore } from "../../data/store";
 import { keptNote, prefs } from "../../data/prefs";
-import { Banner } from "../../ui/kit";
+import { Alert } from "../../ui/kit";
 
 export function KeptNote() {
   const kept = useStore(prefs, (state) => state.kept);
   const note = keptNote(kept);
-  return note === null ? null : <Banner>{note}</Banner>;
+  return note === null ? null : <KeptNoteView note={note} />;
+}
+
+/** Paseo's settings notices: a warning Alert in the flow (TRACKER 820). */
+export function KeptNoteView({ note }: { note: string }) {
+  return <Alert size="sm" variant="warning" description={note} />;
 }

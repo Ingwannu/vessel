@@ -96,8 +96,10 @@ fn expand_short(value: u32) -> u32 {
 serde_via_text!(HexColor);
 
 /// Determines the core defaults retained for destructive and status colors.
+/// In TypeScript `ThemeAppearance`: the bridge's preferences already have
+/// an `Appearance`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(rename = "ThemeAppearance"))]
 #[serde(rename_all = "snake_case")]
 pub enum Appearance {
     /// Light core semantic defaults.
