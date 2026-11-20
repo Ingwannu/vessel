@@ -27,13 +27,13 @@
 //! The text is known by the edit's revision, or as the read shown, which
 //! a new read drops (`Look::text_read`).
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex, PoisonError};
 
 use gpui::{Image, ImageFormat, ImageSource, SharedUri};
-use vessel_app_kit::ui::{Context, Window};
+use vessel_app_kit::ui::{Bounds, Context, Pixels, Window};
 use vessel_app_link::workspace::{Ask, FileAsk, ImageBytes, ReadImage};
 use vessel_app_view::composer::viewer::Viewport;
 use vessel_app_view::workspace::file_panels::DownloadFailure;
@@ -147,9 +147,7 @@ pub(super) struct ImagePanel {
     /// The last point of a drag.
     pub(super) dragged: Option<vessel_app_view::composer::viewer::Position>,
     /// The panel's bounds as last laid out (the zoom's canvas).
-    pub(super) canvas: std::rc::Rc<
-        std::cell::Cell<Option<vessel_app_kit::ui::Bounds<vessel_app_kit::ui::Pixels>>>,
-    >,
+    pub(super) canvas: Rc<Cell<Option<Bounds<Pixels>>>>,
 }
 
 /// An image's bytes as drawn.
