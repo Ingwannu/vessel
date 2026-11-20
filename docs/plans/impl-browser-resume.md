@@ -61,11 +61,19 @@ Product browser calls, the native pane and agent tool discovery are unavailable.
   peers that independently pass local controls. `74e782dad` passed remote
   format (`impl-browser-node-20261120T045556Z-74e782da`) and strict browser
   Clippy (`impl-browser-node-20261120T045614Z-74e782da`). Export
-  `impl-browser-node-20261120T045637Z-74e782da` is pending in
-  `/tmp/work/m12-claude-wave/browser-b-export-network-ice`.
-- `66c5f9018` adds the subsequent WebSocket case. The Chromium request must
-  reach the actual refusal proxy for both address families and leave both
-  direct canaries untouched. Its format, lint and live run are pending.
+  `impl-browser-node-20261120T045637Z-74e782da` was cancelled before acquiring
+  a slot. The combined fixture uses exactly held synthetic origins.
+- `66c5f9018` adds IPv4/IPv6 WebSocket refusal. `88cc01d0b` revokes watched
+  targets when the real policy proxy stops. `59a744648` adds the independent
+  H3/WebTransport test. Its standalone aioquic positive control passed under
+  UID/GID 1000 with 5 datagrams, one TLS handshake and one CONNECT.
+  `a3ceedc93` adds a system-resolved loopback name with both families held.
+- `569f5e219` passed exact remote format
+  (`impl-browser-node-20261120T051755Z-569f5e21`) and strict browser Clippy
+  (`impl-browser-node-20261120T051811Z-569f5e21`). Combined candidate export
+  `impl-browser-node-20261120T051831Z-569f5e21` was queued in
+  `/tmp/work/m12-claude-wave/browser-b-export-full-net`. The two selected live
+  tests from that export are pending.
 
 ## Review and next work
 
@@ -74,16 +82,18 @@ The coordinator approved the plan and ADR and received the scoped pass for
 ready, the node reviewer precedes the integrator. P2 onward needs the
 coordinator's frames verdict before the native reviewer and lead.
 
-1. Recover and run the exact `74e782dad` export under the approved CfT path
-   and UID/GID 1000. Verify its active network cases, then format, lint and
-   run the WebSocket follow-on. Keep one remote run queued or running at a
-   time. Confirm a fresh focused browser suite before handing over the
-   component.
-2. Finish the General network qualification, including real DNS, proxy
-   failure and QUIC/WebTransport. The browser method rows and `BROWSER_PROTOCOL`
-   are unassigned. Engine availability waits for qualification and
-   integration. Keep the exact whole root gate for package review after
-   P1 reaches the node entry point.
+1. Recover `impl-browser-node-20261120T051831Z-569f5e21` and verify the binary
+   checksums and exact source. Run the actor/network fixture through
+   `/tmp/work/m12-claude-wave/browser-b-runtime-audit.py` under UID/GID 1000.
+   Then run `crates/vessel-browser/tests/fixtures/webtransport.py` in
+   `/tmp/work/m12-claude-wave/browser-b-quic-venv`, with that same runner and
+   export and a separate evidence directory. Check both profile audits and
+   the H3 counters. Confirm the focused browser suite before handing over
+   the component. Keep one remote run queued or running at a time.
+2. Finish the General qualification including real DNS rebinding and the
+   node entry point. The browser method rows and `BROWSER_PROTOCOL` are
+   unassigned. Engine availability waits for qualification and integration.
+   Run the exact whole root gate for package review.
 3. P2 binds the native pane, verified frame transport and profile clear to
    the pane registry. P3 consumes the existing composer and image paths. P4
    delivers the complete tool path and default-off host setting. After P4,
