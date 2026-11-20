@@ -1355,8 +1355,8 @@ Add project is Paseo's sheet (TRACKER 234, docs/plans/wp-add-project-flow.md):
 the sidebar's "+", the composer's "Add project" row and Settings > Projects
 open it over the window (`kit::flow_sheet`, Paseo's panel); its pages are
 the machine (when more than one is online), the methods in Paseo's order
-(Search for directory, Clone from GitHub, New directory; Browse waits on
-TRACKER 816), a directory search, a repository typed as a URL or
+(Search for directory, Browse, Clone from GitHub, New directory), a
+directory search, a repository typed as a URL or
 `owner/repo` and its destination, and a new directory's parent and name
 (`project.create_directory`, ADR 0113). The pages' behaviour is
 `view::workspace::add_flow` (the page's model, same cases); the sheet asks
@@ -1365,7 +1365,12 @@ field asks `folder.suggest` (ADR 0112) 250 ms after the last key, and the
 answer counts only for the machine and text it was asked for; a success
 opens a new chat in the project, a clone Settings > Projects with its
 progress. A machine below protocol 34 gets no `~` paths and New directory
-says to update it. Projects show
+says to update it. Browse (TRACKER 816) is offered on a machine whose node
+reports this computer's hostname and OS (`view::this_computer`, decided by
+the link per fleet read and sent as `Event::ThisComputer`); it opens the
+system folder chooser (`prompt_for_paths`, one folder, folders can be
+created there) and adds the folder from the methods page
+(`app/src/areas/workspace/add_flow/browse.rs`). Projects show
 their own icon (`project.icon`, asked once per project when a machine's
 list first names it), else Paseo's lettered identity square (its ten
 fills keyed by the project's id, `kit::theme::identity::Hue::of_key`, as

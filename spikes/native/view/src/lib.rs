@@ -66,6 +66,7 @@ pub mod terminal_tabs;
 #[cfg(test)]
 mod tests;
 mod text;
+pub mod this_computer;
 pub mod timeline;
 pub mod toasts;
 pub mod updates;
