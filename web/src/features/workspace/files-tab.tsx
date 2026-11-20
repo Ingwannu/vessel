@@ -12,13 +12,11 @@ import { prefer, prefs } from "../../data/prefs";
 import { useStore } from "../../data/store";
 import { nextSort, SORT_WORDS } from "../../data/workspace/file-tree";
 import { hasFilePanels } from "../../data/workspace/files";
-import { rootKey } from "../../data/workspace/root";
 import { Button, Icon, IconButton, TextField, Tooltip } from "../../ui/kit";
 import type { NodeKey } from "../../wire/bridge";
 import type { RelPath, SessionId, WorkspaceRoot } from "../../wire/proto";
 import { FindResults, GrepResults } from "./file-search";
 import { FileTreeView } from "./file-tree-view";
-import { FileView } from "./file-view";
 
 /** The file open in the tab, and the line asked for. */
 export interface Opened {
@@ -31,8 +29,7 @@ export function FilesTab({
   root,
   folder,
   session,
-  opened,
-  onOpened,
+  onOpen,
 }: {
   node: NodeKey;
   root: WorkspaceRoot;
@@ -40,8 +37,7 @@ export function FilesTab({
    * path). */
   folder: string | null;
   session: SessionId;
-  opened: Opened | null;
-  onOpened: (opened: Opened | null) => void;
+  onOpen: (path: RelPath, line: number | null) => void;
 }) {
   const fleet = useFleet();
   const protocol = useFleetState((state) => {
@@ -61,36 +57,6 @@ export function FilesTab({
   // back to the tree as it was; `round` reads them all again (Refresh).
   const [folders, setFolders] = useState<ReadonlySet<RelPath>>(() => new Set());
   const [round, setRound] = useState(0);
-  const [seq, setSeq] = useState(0);
-  const open = (path: RelPath, line: number | null) => {
-    setSeq((value) => value + 1);
-    onOpened({
-      path,
-      goTo: line === null ? null : { line, seq: seq + 1 },
-    });
-  };
-  if (opened !== null) {
-    return (
-      <FileView
-        // One view per root and file: its reads, edit and disk watch
-        // belong to that file only.
-        key={`${rootKey(root)} ${opened.path}`}
-        node={node}
-        root={root}
-        folder={folder}
-        session={session}
-        path={opened.path}
-        goTo={opened.goTo}
-        filePanels={sortable}
-        onBack={() => {
-          onOpened(null);
-        }}
-        onOpenFile={(path) => {
-          open(path, null);
-        }}
-      />
-    );
-  }
   const searching = query.trim();
   return (
     <div className="files">
@@ -174,7 +140,7 @@ export function FilesTab({
           open={folders}
           onOpenChange={setFolders}
           onFile={(path) => {
-            open(path, null);
+            onOpen(path, null);
           }}
         />
       ) : content ? (
@@ -183,10 +149,15 @@ export function FilesTab({
           node={node}
           root={root}
           query={searching}
-          onOpen={open}
+          onOpen={onOpen}
         />
       ) : (
-        <FindResults node={node} root={root} query={searching} onOpen={open} />
+        <FindResults
+          node={node}
+          root={root}
+          query={searching}
+          onOpen={onOpen}
+        />
       )}
     </div>
   );

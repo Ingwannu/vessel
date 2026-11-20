@@ -20,6 +20,11 @@ fn device(connection: &Connection) -> Result<DeviceId, WireError> {
     }
 }
 impl NodeService {
+    /// The push service, for tests that reach its store and renewals.
+    #[cfg(test)]
+    pub(crate) const fn push(&self) -> &Arc<crate::push::Push> {
+        &self.push
+    }
     pub(crate) async fn get_push_key(
         &self,
         connection: &Connection,
@@ -80,6 +85,11 @@ impl NodeService {
                 outbound.closed().await;
                 push.forget(id);
             }));
+        }
+        // ADR 0089: a paired device's presence keeps its lease alive. The
+        // renewal runs beside the reply, so it neither delays nor fails it.
+        if let Principal::Device { id, .. } = connection.principal() {
+            self.push.renew_soon(*id, &self.forwarders);
         }
         Ok(Ack)
     }

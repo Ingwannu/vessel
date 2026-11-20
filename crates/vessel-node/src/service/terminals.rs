@@ -104,13 +104,19 @@ impl NodeService {
         )
         .with_creator(creator(principal))
         .with_title(request.title);
+        let activity = terminals::producer_auth(id).map_err(wire)?;
         let handle = self
-            .start_shell(&shell, info, &folder, size)
+            .start_shell(&shell, info, &folder, size, activity.as_ref())
             .await
             .map_err(wire)?;
         // Registered and watched before anything else is awaited: a caller
         // that stops waiting now leaves a terminal the node still ends.
         self.terminals.register(reservation, handle.clone(), None);
+        if let Some(activity) = &activity {
+            self.terminals
+                .install_producer(id, &activity.secret)
+                .map_err(wire)?;
+        }
         // Registered, it is one of the live terminals a removal reads.
         drop(hold);
         let here = self.links.node();
@@ -129,11 +135,14 @@ impl NodeService {
         info: TerminalInfo,
         folder: &std::path::Path,
         size: TerminalSize,
+        activity: Option<&vessel_proto::notifications::TerminalActivityAuth>,
     ) -> Result<TerminalHandle, TerminalsError> {
         let runner = &self.terminals.runner;
+        let spec = terminals::shell_spec(shell, folder, &runner.config.removed);
+        let spec = terminals::producer_env(spec, activity, runner.endpoint.path());
         start_shell(ShellStart {
             info,
-            spec: terminals::shell_spec(shell, folder, &runner.config.removed),
+            spec,
             size,
             scrollback: runner.config.scrollback,
             shutdown: runner.shutdown.clone(),

@@ -9,7 +9,7 @@ import { useAgents } from "../../context";
 import { agentMark, agentName } from "../../data/agents";
 import { isLive, statusTone, statusWord } from "../../data/format";
 import { sessionName } from "../../data/titles";
-import { Avatar, Badge } from "../../ui/kit";
+import { Avatar, Badge, IconButton } from "../../ui/kit";
 import type { SessionInfo } from "../../wire/proto";
 import { TitleBar } from "../shell/title-bar";
 import { SessionPlaceChip } from "../workspace/branch-chip";
@@ -23,6 +23,7 @@ export function SessionBar({
   session,
   renamed,
   onPlace,
+  onSummary,
 }: {
   node: NodeKey;
   /** The machine's name. */
@@ -32,6 +33,7 @@ export function SessionBar({
   renamed: string | null;
   /** Opens the session's changes from its branch's chip. */
   onPlace?: () => void;
+  onSummary?: () => void;
 }) {
   const live = isLive(session);
   const agents = useAgents(node);
@@ -58,6 +60,15 @@ export function SessionBar({
         </Badge>
       )}
       <span className="session-bar-end">
+        {onSummary === undefined ? null : (
+          <IconButton
+            label="Summary"
+            icon="list"
+            size="sm"
+            variant="ghost"
+            onClick={onSummary}
+          />
+        )}
         <SessionActions node={node} label={label} session={session} />
       </span>
     </TitleBar>

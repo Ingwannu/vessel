@@ -752,6 +752,38 @@ fn the_plugin_methods_know_their_version_scope_and_shape() {
     assert!(refused.is_err());
 }
 
+/// ADR 0088's pane reads, protocol 39 (`PULL_REQUEST_PANE_PROTOCOL`):
+/// reads, as `pr.get`.
+const PULL_REQUEST_PANE_METHODS: &[(&str, Scope)] =
+    &[("pr.timeline", Scope::Read), ("pr.check", Scope::Read)];
+
+#[test]
+fn the_pane_reads_know_their_version_scope_and_shape() {
+    use crate::forge::PULL_REQUEST_PANE_PROTOCOL;
+    let methods: Vec<_> = Method::ALL
+        .iter()
+        .filter(|method| method.since() == PULL_REQUEST_PANE_PROTOCOL)
+        .inspect(|method| {
+            assert_eq!(method.shape(), MethodShape::Unary, "{method:?}");
+            assert!(method.forwardable(), "{method:?}");
+        })
+        .map(|method| {
+            (
+                method.as_str(),
+                method.scope().expect("legacy method requires a scope"),
+            )
+        })
+        .collect();
+    assert_eq!(methods, PULL_REQUEST_PANE_METHODS);
+    assert!(PULL_REQUEST_PANE_PROTOCOL <= Some(crate::PROTOCOL_VERSION));
+    // A check run is a positive number, checked when the request is decoded.
+    let refused = serde_json::from_value::<Call>(serde_json::json!({
+        "method": "pr.check",
+        "params": {"session": crate::SessionId::random(), "run": 0},
+    }));
+    assert!(refused.is_err());
+}
+
 /// ADR 0115's catalog and invoke (`PLUGIN_CATALOG_PROTOCOL`): the catalog
 /// is declarative data a Read device draws; a method call runs plugin code,
 /// so it is an administrator's. Neither crosses a fleet hop.
@@ -947,6 +979,7 @@ const FORWARDABLE: &[&str] = &[
     "agent.list",
     "agent.status",
     "usage.query",
+    // Semantic terminal state can forward; local connection claims cannot.
     // The inbox reads/marks forward; device-scoped push calls never do.
     "inbox.list",
     "inbox.get",
@@ -1001,6 +1034,10 @@ const FORWARDABLE: &[&str] = &[
     "agent.diagnostic",
     "project.create_directory",
     "forge.repos",
+    "terminal.attention_clear",
+    "terminal.activity",
+    "pr.timeline",
+    "pr.check",
 ];
 
 #[test]

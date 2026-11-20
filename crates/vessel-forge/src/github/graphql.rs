@@ -18,7 +18,8 @@ repository(owner:$owner,name:$name){mergeCommitAllowed squashMergeAllowed rebase
 pullRequest(number:$number){number url title state isDraft createdAt updatedAt mergedAt closedAt \
 author{login __typename} headRefName headRefOid baseRefName mergeable mergeStateStatus reviewDecision \
 commits(last:1){nodes{commit{statusCheckRollup{contexts(first:100){totalCount nodes{__typename \
-...on CheckRun{name status conclusion detailsUrl startedAt} \
+...on CheckRun{name status conclusion detailsUrl startedAt completedAt databaseId \
+checkSuite{workflowRun{databaseId workflow{name}}}} \
 ...on StatusContext{context state targetUrl createdAt}}}}}}} \
 latestReviews(first:50){nodes{id state body url author{login __typename} commit{oid}}} \
 reviewThreads(first:50){nodes{id isResolved path line comments(first:20){nodes{id body url \
@@ -126,6 +127,12 @@ enum ContextNode {
         conclusion: Option<String>,
         details_url: Option<String>,
         started_at: Option<String>,
+        #[serde(default)]
+        completed_at: Option<String>,
+        #[serde(default)]
+        database_id: Option<u64>,
+        #[serde(default)]
+        check_suite: Option<CheckSuite>,
     },
     StatusContext {
         context: String,
@@ -135,6 +142,28 @@ enum ContextNode {
     },
     #[serde(other)]
     Other,
+}
+
+/// A check run's suite: its workflow run, for GitHub Actions.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct CheckSuite {
+    #[serde(default)]
+    workflow_run: Option<WorkflowRun>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct WorkflowRun {
+    #[serde(default)]
+    database_id: Option<u64>,
+    #[serde(default)]
+    workflow: Option<Workflow>,
+}
+
+#[derive(Debug, Deserialize)]
+struct Workflow {
+    name: String,
 }
 
 #[derive(Debug, Deserialize)]

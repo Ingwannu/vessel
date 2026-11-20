@@ -10,16 +10,17 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
 import { loadEnv } from "./fleet";
 import { choose, newSessionPage } from "./kit";
 import { openUi } from "./open";
-import { panelTab as tab, startInShop } from "./shop";
+import { openPanelTab, panelTab as tab, startInShop } from "./shop";
 
 test("a session starts in a new worktree once its commands are approved, setup shown as it runs", async ({
   page,
 }) => {
+  test.setTimeout(120_000);
   await openUi(page);
   await startInShop(page, "New worktree", "Work in a worktree");
   // Nothing starts before a person approves the set shown.
@@ -41,10 +42,110 @@ test("a session starts in a new worktree once its commands are approved, setup s
     name: /^Branch vessel\/[0-9a-f]+: show changes$/,
   });
   await expect(chip).toBeVisible();
+  const branch = await chip.getAttribute("aria-label");
   await chip.click();
   await expect(tab(page, "Changes")).toHaveAttribute("aria-selected", "true");
   await expect(page.getByText("No changes against base.")).toBeVisible();
+  const prior = page.url();
+  await page.getByRole("button", { name: "New tab", exact: true }).click();
+  await expect(
+    page
+      .getByRole("menuitem", { name: "Agent", exact: true })
+      .locator(".menu-shortcut"),
+  ).toHaveText("Alt+Shift+A");
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("Alt+Shift+A");
+  await page
+    .getByRole("textbox", { name: "Prompt" })
+    .fill("Review the same worktree");
+  await page.getByRole("button", { name: "Send", exact: true }).click();
+  await expect(page).not.toHaveURL(prior);
+  await expect(
+    page.getByRole("button", {
+      name: branch ?? /^Branch vessel\/[0-9a-f]+: show changes$/,
+    }),
+  ).toBeVisible();
+  await expect(tab(page, "Review the same worktree")).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await archiveWorktreeAgent(page);
+
+  // The other agent is archived. Even after the last live agent exits,
+  // the worktree's launcher can still open a shell beside it.
+  await tab(page, "Work in a worktree").click();
+  await expect(page).toHaveURL(prior);
+  await killWorkspaceAgent(page);
+  await expect(
+    page.getByRole("region", { name: "Session ended" }),
+  ).toBeVisible();
+  await openPanelTab(page, "Terminal");
+  await expect(page.locator(".workspace-terminal .xterm-host")).toBeVisible();
+  await closeWorkspaceTerminal(page);
 });
+
+async function killWorkspaceAgent(page: Page): Promise<void> {
+  await page.getByRole("button", { name: "Session actions" }).click();
+  await page.getByRole("menuitem", { name: "Kill", exact: true }).click();
+  await page
+    .getByRole("dialog", { name: /^Kill / })
+    .getByRole("button", { name: "Kill", exact: true })
+    .click();
+}
+
+/** Device-owned worktree shells survive an agent's Kill and stop on Archive. */
+async function archiveWorktreeAgent(page: Page): Promise<void> {
+  const route = page.url();
+  const agent = "Review the same worktree";
+  await openPanelTab(page, "Terminal");
+  const shell = page.locator(".workspace-terminal .xterm-host");
+  await expect(shell).toBeVisible();
+  await killWorkspaceAgent(page);
+  await tab(page, agent).click();
+  await expect(
+    page.getByRole("region", { name: "Session ended" }),
+  ).toBeVisible();
+
+  // Keeping the terminal tab still stops it if its owner is archived.
+  const terminalTab = tab(page, "Terminal");
+  await terminalTab.click({ button: "right" });
+  await page.getByRole("menuitem", { name: "Close other tabs" }).click();
+  const bulk = page.getByRole("dialog", { name: "Close other tabs?" });
+  await expect(bulk).toContainText("close 1 terminal(s)");
+  await expect(bulk).toContainText(
+    "Any running process in a closed terminal will be stopped immediately.",
+  );
+  await bulk.getByRole("button", { name: "Cancel" }).click();
+
+  await openPanelTab(page, "Files");
+  await tab(page, agent).hover();
+  await page.getByRole("button", { name: `Close · ${agent}` }).click();
+  const archive = page.getByRole("dialog", { name: "Archive agent?" });
+  await expect(archive).toContainText("close 1 terminal(s)");
+  await archive.getByRole("button", { name: "Archive", exact: true }).click();
+  await expect(tab(page, agent)).toHaveCount(0);
+  await expect(terminalTab).toHaveCount(0);
+  await expect(page).toHaveURL(route);
+
+  // The address still names the archived agent. The other live agent
+  // owns the new terminal, so the node accepts it in this worktree.
+  await openPanelTab(page, "Terminal");
+  await expect(shell).toBeVisible();
+  await closeWorkspaceTerminal(page);
+  await expect(page).toHaveURL(route);
+  await page.reload();
+  await expect(tab(page, agent)).toHaveAttribute("aria-selected", "true");
+}
+
+async function closeWorkspaceTerminal(page: Page): Promise<void> {
+  await page.getByRole("button", { name: "Close · Terminal" }).click();
+  await page
+    .getByRole("dialog", { name: "Close terminal?" })
+    .getByRole("button", { name: "Close", exact: true })
+    .last()
+    .click();
+  await expect(tab(page, "Terminal")).toHaveCount(0);
+}
 
 /** `vessel` as the UI's own user runs it: the same book and data. */
 function cli(args: string[]): string {
@@ -117,7 +218,7 @@ test("the Changes tab lists the work, stages it, and says a refusal plainly", as
   await openUi(page);
   await startInShop(page, "Local", "Look at the work");
   await expect(page).toHaveURL(/\/sessions\/[^/]+\/[^/]+$/);
-  await tab(page, "Changes").click();
+  await openPanelTab(page, "Diff");
   const list = page.getByRole("region", { name: "Changed files" });
   for (const name of ["cart.ts", "discount.ts", "prices.ts", "todo.md"]) {
     await expect(list.getByText(name, { exact: true })).toBeVisible();
@@ -151,7 +252,7 @@ test("an edit is saved, and one saved after the file changed on disk shows both 
   await openUi(page);
   await startInShop(page, "Local", "Edit a file");
   await expect(page).toHaveURL(/\/sessions\/[^/]+\/[^/]+$/);
-  await tab(page, "Files").click();
+  await openPanelTab(page, "Files");
   await page.getByRole("searchbox", { name: "Go to file" }).fill("tax");
   await page
     .getByRole("list", { name: "Files found" })
@@ -198,7 +299,7 @@ test("a shown file follows the disk; an open edit keeps its text under Paseo's a
     await openUi(page);
     await startInShop(page, "Local", "Watch a file");
     await expect(page).toHaveURL(/\/sessions\/[^/]+\/[^/]+$/);
-    await tab(page, "Files").click();
+    await openPanelTab(page, "Files");
     await page.getByRole("searchbox", { name: "Go to file" }).fill("todo");
     await page
       .getByRole("list", { name: "Files found" })
@@ -272,7 +373,7 @@ test("lines selected in a diff go into the session's draft as a reference", asyn
   await openUi(page);
   await startInShop(page, "Local", "Read the diff");
   await expect(page).toHaveURL(/\/sessions\/[^/]+\/[^/]+$/);
-  await tab(page, "Changes").click();
+  await openPanelTab(page, "Diff");
   const list = page.getByRole("region", { name: "Changed files" });
   const lines = list.locator('.d-line[data-path="src/cart.ts"]');
   await expect(lines.first()).toBeVisible();

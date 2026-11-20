@@ -26,7 +26,7 @@ fn a_list_poll_needs_the_shared_terminals_protocol() {
     };
     assert_eq!(asked(None).since(), Some(ProtocolVersion::new(11)));
     assert_eq!(asked(Some(4)).since(), SHARED_TERMINALS_PROTOCOL);
-    // At most the newest (the plugin catalog is drafted after it).
+    // Only the newest protocol asserts equality with `PROTOCOL_VERSION`.
     assert!(SHARED_TERMINALS_PROTOCOL <= Some(crate::PROTOCOL_VERSION));
 }
 

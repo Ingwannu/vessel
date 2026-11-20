@@ -8,8 +8,19 @@ import { choose, newSessionPage } from "./kit";
 /** The session panel's tab named `name`. */
 export function panelTab(page: Page, name: string): Locator {
   return page
-    .getByRole("tablist", { name: "Session panel" })
-    .getByRole("tab", { name });
+    .getByRole("tablist", { name: "Workspace tabs" })
+    .getByRole("tab", { name, exact: true });
+}
+
+/** Open an existing workspace tab or add it from the launcher. */
+export async function openPanelTab(page: Page, name: string): Promise<void> {
+  const tab = panelTab(page, name);
+  if ((await tab.count()) > 0) {
+    await tab.click();
+  } else {
+    await page.getByRole("button", { name: "New tab", exact: true }).click();
+    await page.getByRole("menuitem", { name, exact: true }).click();
+  }
 }
 
 /** Start a session on laptop in the project `shop`, `where` it runs. */
