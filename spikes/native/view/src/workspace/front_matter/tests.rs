@@ -144,3 +144,42 @@ fn a_block_at_the_depth_budget_is_read() {
     assert_eq!(document.body, "body\n");
     assert_eq!(document.front_matter.len(), 1);
 }
+
+#[test]
+fn aliases_that_nest_past_the_depth_budget_stay_in_the_body() {
+    // The app review's case: each anchor 62 levels inside the map holds
+    // the one before. Under the node budget, it is about 1,000 levels deep
+    // once the loader copies the aliases.
+    let yaml = (0..17_usize)
+        .map(|level| {
+            let inner = level
+                .checked_sub(1)
+                .map_or_else(|| "1".to_owned(), |before| format!("*a{before}"));
+            format!(
+                "k{level}: &a{level} {}{inner}{}\n",
+                "[".repeat(62),
+                "]".repeat(62)
+            )
+        })
+        .collect::<Vec<_>>()
+        .concat();
+    let source = format!("---\n{yaml}---\n# Body\n");
+    let read = {
+        let source = source.clone();
+        std::thread::Builder::new()
+            .stack_size(256 * 1024)
+            .spawn(move || markdown_document(&source))
+            .expect("a thread")
+            .join()
+            .expect("read without overflowing")
+    };
+    assert_eq!(read, intact(&source));
+}
+
+#[test]
+fn a_shallow_alias_within_the_depth_budget_is_read() {
+    let source = "---\nbase: &base {name: one}\ncopy: *base\n---\nbody\n";
+    let document = markdown_document(source);
+    assert_eq!(document.body, "body\n");
+    assert_eq!(document.front_matter.len(), 2);
+}
