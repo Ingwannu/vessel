@@ -37,8 +37,9 @@
 //!   done included; its kebab a button named "Session actions" (the menu's
 //!   sheet title; Paseo's "Workspace actions", a Vessel row is a session)
 //!   whose Click opens the menu once, as the project row's kebab.
-//! - Differences, named: the hover card (TRACKER 810) is its own item;
-//!   Paseo's "creating" title (92%) has no state here.
+//! - Its hover card (TRACKER 810, `hover_card`): on a wide window with a
+//!   pointer, not while its menu is open.
+//! - Differences, named: Paseo's "creating" title (92%) has no state here.
 
 use gpui::{FontWeight, linear_color_stop, linear_gradient};
 use vessel_app_kit::assets::Glyph;
@@ -161,7 +162,7 @@ pub(super) fn session_row(
             shell,
             tokens,
         ));
-    div()
+    let row = div()
         .id(ElementId::Name(format!("session-{}", card.session).into()))
         .group(group)
         // A button named by its title, selected while open (Paseo's row:
@@ -205,7 +206,8 @@ pub(super) fn session_row(
         )
         .on_click(cx.listener(move |this, _event, window, cx| {
             this.open_session(open.clone(), window, cx);
-        }))
+        }));
+    super::hover_card::on_row(row, card, !touch && !menu_open, shell)
 }
 
 /// Whether `card`'s session is the one on screen (its row selected).
