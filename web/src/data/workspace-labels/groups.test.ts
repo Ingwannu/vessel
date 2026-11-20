@@ -129,6 +129,12 @@ describe("the sidebar grouped by workspace", () => {
       "Other sessions",
     ]);
     expect(rows[1]?.chips).toEqual([{ name: "Blocked", color: "red" }]);
+    expect(rows[1]?.folder).toEqual({
+      path: "/work/app-root",
+      name: "app-root",
+    });
+    expect(rows[1]?.branch).toBeNull();
+    expect(rows[1]?.pull).toBeNull();
     expect(rows[1]?.sessions.map((each) => each.id)).toEqual(["s-new"]);
   });
 
