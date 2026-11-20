@@ -34,9 +34,10 @@ Product browser calls, the native pane and agent tool discovery are unavailable.
   also verified frame delivery, frame invalidation, foreign-workspace refusal
   and target removal after close. The post-run audit again found 247 owned
   private entries, no exact-profile processes and no cleanup signals.
-- The ordinary focused browser suite is
-  `impl-browser-node-20261120T040057Z-0e86fb5c` on the same source. Check the
-  existing receipt rather than enqueueing it again.
+- The ordinary focused browser suite `impl-browser-node-20261120T040057Z-0e86fb5c`
+  passed on the same source with 80 passed, 0 failed and 2 ignored. The approved
+  candidate diagnostic was run separately as recorded above. All of this
+  track's submitted gates reached terminal states by the pause.
 
 ## Review and next work
 
@@ -45,8 +46,8 @@ The coordinator approved the plan and ADR and received the scoped pass for
 ready, the node reviewer precedes the integrator. P2 onward needs the
 coordinator's frames verdict before the native reviewer and lead.
 
-1. Recover the ordinary focused suite result if still pending. Keep the exact
-   whole root gate for package review after P1 reaches the node entry point.
+1. Keep the exact whole root gate for package review after P1 reaches the node
+   entry point. The focused suite and live component receipts are complete.
 2. Finish P1's node actor and real event routing. Consume the prepared child
    and workspace targets through the single bounded dispatcher, and keep
    discrete state/terminal notices separate from the latest frame. Test actual

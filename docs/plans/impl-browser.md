@@ -82,3 +82,7 @@ the retained profile still refused a second owner. The audit found no exact
 profile process after closure and no group or other access across all 247
 created entries. Product routing, profile reuse, per-renderer sandbox
 observation and release qualification are pending.
+
+The follow-up workspace and frame slice at `0e86fb5c8` passed remote format,
+strict browser Clippy, 80 ordinary browser tests (2 ignored) and the separate
+live candidate fixture. [Resume and exact gate receipts](impl-browser-resume.md).
