@@ -30,6 +30,24 @@ export function isLiveTerminal(terminal: TerminalInfo): boolean {
   );
 }
 
+/** The live shells an archive of `agents` ends: only those placed beside
+ * one of them. A worktree's or a folder's shells (ADR 0121, protocol 40)
+ * belong to the workspace and outlive every archive, so the archive
+ * warning never counts them; a project's never were counted. */
+export function endedByArchive(
+  listed: readonly TerminalInfo[],
+  agents: ReadonlyMap<SessionId, SessionInfo>,
+): TerminalId[] {
+  return listed
+    .filter(
+      (terminal) =>
+        terminal.place.kind === "session" &&
+        agents.has(terminal.place.session) &&
+        isLiveTerminal(terminal),
+    )
+    .map((terminal) => terminal.id);
+}
+
 export interface CloseActions {
   node: NodeKey;
   protocol: number | null;
@@ -87,14 +105,8 @@ export async function inspectClose(
       toast(result.problem.message, "error");
       return null;
     }
-    for (const terminal of result.value.terminals) {
-      if (
-        terminal.place.kind === "session" &&
-        agents.has(terminal.place.session) &&
-        isLiveTerminal(terminal)
-      ) {
-        terminals.add(terminal.id);
-      }
+    for (const id of endedByArchive(result.value.terminals, agents)) {
+      terminals.add(id);
     }
   }
   return { agents, terminals, passive };

@@ -352,7 +352,9 @@ move between sections. Compact, the column's padding is 12px.
   state, live sessions, why it was kept; Run setup, Remove…); Snapshots
   (Drop, asked again in place: Keep or "Drop for good"). What the machine
   refuses there (removing a worktree or the project, approving, setup, a
-  drop) is said in a banner until dismissed, not in a toast. A clone's
+  drop) is said in an error Alert in the flow (what did not happen over the
+  reason, Dismiss) until dismissed, not in a toast (TRACKER 820; Paseo says a
+  worktree that was not removed with a toast, a stated difference). A clone's
   progress and failure are the row's ("Receiving objects · 42%", the
   reason in words with git's last lines).
 - **Add project** (TRACKER 234, Paseo's `add-project-flow.tsx` sheet;
@@ -471,8 +473,19 @@ frame's foot. Summary is 340px of sections (plan, files touched, model
 calls, Details). It is visible at 1280px and above and has the
 `⌘⇧B` shortcut. Below 1280px, the Summary button opens a sheet. Above the session, the workspace tab strip holds agent
 views, terminals, Changes, Diff, Files and individual file editors
-(ADR 0118). At widths below 600px, the tab count opens the switcher and
-Changes shows inline diffs. The branch chip opens Changes at any width.
+(ADR 0118). A workspace's terminals belong to its folder, as Paseo's do
+(ADR 0121, protocol 40): a project workspace opens them in the project, a
+worktree workspace in the worktree, a folder outside every project in that
+folder, so "New terminal" needs no agent and archiving an agent ends none of
+them. Below protocol 40 they sit beside the workspace's first live
+unarchived agent (else its first unarchived one, an ended agent still
+hosting a shell), and with every agent archived the action is disabled and
+says so. Shells beside the workspace's agents (agents still open them, as
+do older clients) are read on the same 2 s tick as the place's list, so
+one an agent opens shows within the tick and one that ends leaves the
+strip. At widths below 600px,
+the tab count opens the switcher and Changes shows inline diffs. The branch
+chip opens Changes at any width.
 The log's find bar sits at the top right and the outline on its left
 edge (§6.16).
 
@@ -1107,7 +1120,7 @@ message wraps and scrolls. Padding preserves room for the card's shadow.
 | --- | --- |
 | Empty list | 48px top margin, 16px stroke icon, title 13/600, one sentence secondary, one primary action |
 | Loading | 3 skeleton rows, 12px high, `--bg-hover`, no shimmer under reduced motion; otherwise a 1.2s opacity pulse |
-| Error | banner at the top of main, `--danger` hairline, message from the protocol, Retry |
+| Error | across the top of a pane (the link lost, a session's stream): the kit Banner, `--danger` hairline, message from the protocol, Retry. Inside the flow of a page or a dialog (a list or a read that failed on a settings page, an action that failed, usage): the kit Alert, as Paseo's settings pages draw it: `error`, `sm`, what failed as the title, the reason as the description, an outline Retry or Dismiss under it (TRACKER 820). Where a reason says the node's message and then the page's next step, `withNextStep` (data/outcome.ts) joins them as two sentences: a period goes after the node's words when they do not already end in `.`, `!` or `?`, and the words themselves stay as the node wrote them |
 | Offline node | the node still lists; sessions pane empty-state "gpu-box is offline" with last-seen |
 | Reconnecting | 28px bar under the session header, `--warn`, "Reconnecting to gpu-box · last byte 4s ago". Terminal stays visible, frozen. On resume, the bar becomes a 1.2s "Caught up from seq 1842" status then leaves |
 
@@ -1255,6 +1268,7 @@ Sizes, from the reference: controls 32, 28 and 24px tall (`--h-md`,
 | Spinner | 12, 14 or 16px, a ring with a quarter gap, once a second; still under reduced motion |
 | CommandLine | GOAT's setup command: the command in mono on the field's fill and edge, radius 8, and a ghost "Copy command" button that says "Copied" on itself for 1.5s (a toast would be under a dialog's scrim) |
 | EmptyState, Banner, Skeleton, StatusDot | §6.11 and §4.3 |
+| Alert | Paseo's `components/ui/alert.tsx`: a notice inside the flow of a page (Banner stays the strip across a pane's top). Transparent with a hairline in the variant's accent, the icon and title in the accent, the description under it; variants default, info, success, warning, error; sizes xs, sm, md, lg. An error is `role="alert"`, the others `status`. Where Paseo draws one, the page does (TRACKER 820, §6.11) |
 | Sheet | §6.17: a dialog from the left edge (the sidebar's on a phone), or the right (a session's panel) |
 | TextArea `fill` | fills its container and scrolls inside, without measuring its text on each key (the file editor) |
 | TextField `look="popup"` | the field shell on the popup surface, its edge and shadow (the find bar's, §6.16) |
@@ -1653,7 +1667,15 @@ counts the scripts with setup and teardown.
 snapshot): `Remove "<branch>"?`, one line per reason the node gave ("2
 files with uncommitted changes", "1 commit on no other branch"), then
 "Keep a snapshot and remove" (only when a snapshot keeps all of it) or
-"Discard and remove", which says first what it deletes.
+"Discard and remove", which says first what it deletes. From protocol 40
+(ADR 0121) live terminals in it no longer have to be closed by hand: when
+they keep it and no live session is in it, Paseo's terminal warning with
+their count ("This will close 2 terminal(s). Any running process in a
+closed terminal will be stopped immediately.") sits above the same
+buttons as a kit Alert (sm, warning), and those buttons then ask the node
+to end them first (`end_terminals`).
+Paseo ends a worktree's terminals on archive without a word; Vessel asks.
+A live session in it still keeps it, with no warning and both buttons off.
 
 ---
 
@@ -1744,7 +1766,7 @@ The rest is in a menu at the bar's end, "Session actions":
 | Pin session / Unpin session | protocol 10; `session.mark` `pin`, `unpin` |
 | Mark as unread / Mark as read | protocol 10; `unread`, `read` up to the last record shown |
 | Start again | an ended structured session whose agent can resume (`abilities.resume`, and its own session id is known); `session.resume`, which also unarchives it |
-| Archive session / Unarchive | protocol 10; archiving a live session stops its agent first, so the confirmation says so ("Archiving stops the agent on laptop first."); from protocol 11 it also ends the terminals and services beside it, which the confirmation says too |
+| Archive session / Unarchive | protocol 10; archiving a live session stops its agent first, so the confirmation says so ("Archiving stops the agent on laptop first."); from protocol 11 it also ends the terminals and services beside it, which the confirmation says too. A worktree's or a folder's terminals (ADR 0121, protocol 40) are never beside a session, so the confirmation never counts them; a shell an agent opened beside itself still is, and is counted and ended as before |
 | Delete permanently | protocol 10, an ended session; confirmed ("Delete this session permanently?", what goes and what stays); `session.delete`, and a toast says what became of its worktree (removed, or kept and why) |
 | Move to another profile | a session with a timeline, while live; a dialog listing profiles of the same agent, on the same model route (`session.move_profile`) |
 | Copy agent id | Paseo's row for the agent's id (a Vessel session is its agent); the toast says "Copied Agent ID" (`toast.copied`) |
