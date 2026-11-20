@@ -9,7 +9,10 @@ import { fixtureId } from "../testing/ids";
 const key = "a".repeat(64);
 const address = `/preview/${"0f".repeat(16)}`;
 
-function answering(status: number, body: unknown): {
+function answering(
+  status: number,
+  body: unknown,
+): {
   send: Fetch;
   seen: { input: string; init: RequestInit }[];
 } {
