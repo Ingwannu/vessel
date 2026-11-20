@@ -16,6 +16,7 @@
 //   `socket.ts`; a call's failure and its words are `failure.ts`.
 
 import { CallFailed } from "./failure";
+import { Followers, type FollowTarget, type StreamHandlers } from "./followers";
 import * as frames from "./frames";
 import { callIdOf, streamIdOf } from "./ids";
 import { BridgeSocket, type LinkState, socketUrl } from "./socket";
@@ -28,19 +29,11 @@ import type {
   OpResult,
   PreferencesState,
   ServerFrame,
-  StreamId,
-  StreamState,
 } from "../wire/bridge";
-import type { EventRecord, Reply, SessionId } from "../wire/proto";
+import type { Reply, SessionId, TerminalId } from "../wire/proto";
 
 export { CallFailed, describeFailure } from "./failure";
 export type { LinkState } from "./socket";
-
-/** What a followed session's stream reports. */
-export interface StreamHandlers {
-  record: (record: EventRecord) => void;
-  state: (state: StreamState) => void;
-}
 
 interface Pending {
   resolve: (reply: Reply) => void;
@@ -52,20 +45,12 @@ interface PendingOp {
   reject: (error: Error) => void;
 }
 
-interface Followed {
-  node: NodeKey;
-  session: SessionId;
-  /** The next record wanted. */
-  next: number;
-  handlers: StreamHandlers;
-}
-
 export class Bridge {
   readonly #socket: BridgeSocket;
   #nextId = 1;
   readonly #calls = new Map<CallId, Pending>();
   readonly #ops = new Map<CallId, PendingOp>();
-  readonly #streams = new Map<StreamId, Followed>();
+  readonly #streams = new Followers();
   readonly #statuses = new Map<NodeKey, NodeStatus>();
   readonly #nodeListeners = new Set<
     (node: NodeKey, status: NodeStatus) => void
@@ -158,11 +143,36 @@ export class Bridge {
     from: number,
     handlers: StreamHandlers,
   ): () => void {
+    return this.#follow(node, { type: "follow", session }, from, handlers);
+  }
+
+  /** Follow the standalone terminal registry, sharing session reconnect logic. */
+  followTerminal(
+    node: NodeKey,
+    terminal: TerminalId,
+    from: number,
+    handlers: StreamHandlers,
+  ): () => void {
+    return this.#follow(
+      node,
+      { type: "follow_terminal", terminal },
+      from,
+      handlers,
+    );
+  }
+
+  #follow(
+    node: NodeKey,
+    target: FollowTarget,
+    from: number,
+    handlers: StreamHandlers,
+  ): () => void {
     const stream = streamIdOf(this.#id());
-    this.#streams.set(stream, { node, session, next: from, handlers });
-    this.#socket.send({ type: "follow", stream, node, session, from });
+    this.#socket.send(
+      this.#streams.open(stream, { node, target, next: from, handlers }),
+    );
     return () => {
-      if (this.#streams.delete(stream)) {
+      if (this.#streams.close(stream)) {
         this.#socket.send({ type: "unfollow", stream });
       }
     };
@@ -204,15 +214,9 @@ export class Bridge {
       return;
     }
     // Every stream continues where it was.
-    for (const [stream, followed] of this.#streams) {
-      this.#socket.send({
-        type: "follow",
-        stream,
-        node: followed.node,
-        session: followed.session,
-        from: followed.next,
-      });
-    }
+    this.#streams.rejoin((frame) => {
+      this.#socket.send(frame);
+    });
   }
 
   /** The socket went: calls in flight fail, never retried. */
@@ -264,29 +268,12 @@ export class Bridge {
           listener(frame.node, frame.status);
         }
         return;
-      case "event": {
-        const followed = this.#streams.get(frame.stream);
-        if (followed === undefined || frame.record.seq < followed.next) {
-          return;
-        }
-        followed.next = frame.record.seq + 1;
-        followed.handlers.record(frame.record);
+      case "event":
+        this.#streams.receive(frame.stream, frame.record);
         return;
-      }
-      case "stream": {
-        const followed = this.#streams.get(frame.stream);
-        if (followed === undefined) {
-          return;
-        }
-        if (frame.state.state === "missing") {
-          followed.next = frame.state.resumed_at;
-        }
-        if (frame.state.state === "ended" || frame.state.state === "failed") {
-          this.#streams.delete(frame.stream);
-        }
-        followed.handlers.state(frame.state);
+      case "stream":
+        this.#streams.state(frame.stream, frame.state);
         return;
-      }
       case "preferences":
         for (const listener of this.#preferenceListeners) {
           listener(frame.preferences);

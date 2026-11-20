@@ -144,10 +144,16 @@ async function openOnce(
     const cdp = await context.newCDPSession(page);
     const origin = await openUi(page);
     await page.goto(`${origin}/sessions/${NODE}/${id}`);
-    const tabs = page.getByRole("tablist", { name: "Session panel" });
-    await expect(tabs).toBeVisible();
+    const launcher = page.getByRole("button", { name: "New tab", exact: true });
+    await expect(launcher).toBeVisible();
     const clicked = await page.evaluate(() => performance.now());
-    await tabs.getByRole("tab", { name: tab }).click();
+    await launcher.click();
+    await page
+      .getByRole("menuitem", {
+        name: tab === "Changes" ? "Diff" : tab,
+        exact: true,
+      })
+      .click();
     const first = await waitForMark(page, "first", 120_000);
     if (tab === "Files") {
       await page.getByRole("button", { name: "many" }).click();

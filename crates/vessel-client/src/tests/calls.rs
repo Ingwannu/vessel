@@ -437,3 +437,5 @@ async fn pending_git_comparison_never_reaches_the_peer() {
     );
 }
 mod file_panels;
+
+mod notifications;

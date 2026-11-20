@@ -54,3 +54,34 @@ impl NodeClient {
         .await
     }
 }
+
+impl NodeClient {
+    /// Read authoritative session attention, including entries outside the inbox page.
+    ///
+    /// # Errors
+    /// Pending/older protocol, invalid batch or transport/store failure.
+    pub async fn inbox_attention(
+        &self,
+        sessions: Vec<vessel_proto::SessionId>,
+    ) -> Result<Vec<vessel_proto::inbox_attention::SessionAttention>, CallError> {
+        self.call(vessel_proto::inbox_attention::GetInboxAttention { sessions })
+            .await
+    }
+}
+
+impl NodeClient {
+    /// Mark only actually observed attention read, without Operate scope.
+    ///
+    /// # Errors
+    /// Pending request, agent/delegated identity, future watermark, older
+    /// protocol or transport/store failure. Never queues for reconnect.
+    pub async fn read_inbox_through(
+        &self,
+        session: vessel_proto::SessionId,
+        through: vessel_proto::EventSeq,
+    ) -> Result<(), CallError> {
+        self.call(vessel_proto::inbox_attention::ReadInboxThrough { session, through })
+            .await
+            .map(|_ack| ())
+    }
+}

@@ -327,7 +327,14 @@ impl ScriptRunOutcome {
             Self::NeedsApproval { commands } => commands
                 .for_protocol(protocol)
                 .map(|commands| Self::NeedsApproval { commands }),
-            Self::Started { .. } | Self::Refused { .. } => None,
+            Self::Started { terminal } => {
+                terminal
+                    .for_protocol(protocol)
+                    .map(|terminal| Self::Started {
+                        terminal: Box::new(terminal),
+                    })
+            }
+            Self::Refused { .. } => None,
         }
     }
 }

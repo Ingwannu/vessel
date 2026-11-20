@@ -11,7 +11,7 @@ use super::{
 
 /// Every migration, oldest first. Index `n` takes the schema from version
 /// `n` to `n + 1`.
-pub(in crate::schema) const MIGRATIONS: &[&str; super::super::WORKSPACE_LABELS_SCHEMA] = &[
+pub(in crate::schema) const MIGRATIONS: &[&str; super::super::NOTIFICATION_CLAIMS_SCHEMA] = &[
     V1,
     V2,
     V3,
@@ -35,4 +35,5 @@ pub(in crate::schema) const MIGRATIONS: &[&str; super::super::WORKSPACE_LABELS_S
     super::super::listing::SQL,
     super::super::mutation_time::SQL,
     crate::workspace_labels::MIGRATION,
+    crate::notification_claims::SCHEMA,
 ];

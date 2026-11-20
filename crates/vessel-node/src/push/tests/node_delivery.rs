@@ -269,6 +269,7 @@ async fn disconnected_read_device_receives_only_encrypted_generic_attention_from
             // A connected device's focus change alone is not artificial activity.
             device
                 .report_push_presence(ReportPushPresence {
+                    idle_age: None,
                     focus: PushFocus::Background,
                     activity: PushActivity::Unchanged,
                 })
@@ -377,4 +378,8 @@ mod cancellation;
 
 mod restart;
 
+mod presence_renewal;
+
 mod renewed_lease;
+
+mod terminal_delivery;

@@ -16,7 +16,7 @@ import { expect, type Page, test } from "@playwright/test";
 
 import { loadEnv } from "./fleet";
 import { openUi } from "./open";
-import { panelTab, startInShop } from "./shop";
+import { openPanelTab, startInShop } from "./shop";
 
 /** A 4×2 and a 2×4 PNG, to tell the image's two versions apart. */
 const WIDE = Buffer.from(
@@ -98,7 +98,7 @@ test("Markdown, HTML and images open in Paseo's panels, and an image follows the
     await openUi(page);
     await startInShop(page, "Local", "Look at the viewers");
     await expect(page).toHaveURL(/\/sessions\/[^/]+\/[^/]+$/);
-    await panelTab(page, "Files").click();
+    await openPanelTab(page, "Files");
     await page
       .getByRole("region", { name: "Files" })
       .getByRole("button", { name: "viewers", exact: true })
@@ -109,7 +109,9 @@ test("Markdown, HTML and images open in Paseo's panels, and an image follows the
     await openInTree(page, "guide.md");
     const side = page.getByRole("radiogroup", { name: "File view" });
     await expect(side.getByRole("radio", { name: "Preview" })).toBeChecked();
-    const preview = page.getByTestId("markdown-preview");
+    const preview = page
+      .getByRole("tabpanel", { name: "guide.md" })
+      .getByTestId("markdown-preview");
     const front = page.getByTestId("markdown-front-matter");
     await expect(front.locator("dt")).toHaveText(["name", "allowed-tools"]);
     await expect(front.locator("dd")).toHaveText([
@@ -130,9 +132,11 @@ test("Markdown, HTML and images open in Paseo's panels, and an image follows the
     await side.getByRole("radio", { name: "Preview" }).click();
     // A relative link opens that file here, on its own Preview.
     await preview.getByRole("button", { name: "the notes" }).click();
-    await expect(page.getByTestId("markdown-preview")).toContainText(
-      "pay with a card",
-    );
+    await expect(
+      page
+        .getByRole("tabpanel", { name: "todo.md" })
+        .getByTestId("markdown-preview"),
+    ).toContainText("pay with a card");
     await page.getByRole("button", { name: "All files" }).click();
 
     // Opened at a line (a content search's hit): Source.

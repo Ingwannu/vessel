@@ -26,14 +26,15 @@ export function sendFirst(
   session: SessionId,
   spec: SessionSpec,
   prompt: string,
+  tray = "new",
 ): void {
   if (spec.mode !== "structured") {
     return;
   }
-  if (trayOf("new").items.get().length > 0) {
+  if (trayOf(tray).items.get().length > 0) {
     // Files go once the session's agent can take them: its composer
     // uploads them and sends this prompt.
-    handOver("new", session);
+    handOver(tray, session);
     fleet.drafts.type({ kind: "session", session }, prompt);
     sendWhenReady(session);
     return;

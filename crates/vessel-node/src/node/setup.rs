@@ -158,12 +158,21 @@ pub(super) async fn feature_state(
     config: &Config,
     (node, settings): (NodeId, &Arc<crate::settings::Settings>),
     store: &vessel_store::Store,
+    terminals: &Arc<crate::terminals::Terminals>,
     tasks: &tokio_util::task::TaskTracker,
     stop: &CancellationToken,
 ) -> Result<FeatureState, NodeError> {
-    let push = crate::push::Push::started(config, store.clone(), tasks, stop.clone())
-        .await
-        .map_err(NodeError::Store)?;
+    // ADR 0089: the push worker reads terminal attention as well as the
+    // inbox, so it starts with the node's terminals.
+    let push = crate::push::Push::started(
+        config,
+        store.clone(),
+        Arc::clone(terminals),
+        tasks,
+        stop.clone(),
+    )
+    .await
+    .map_err(NodeError::Store)?;
     // The node-root native DNS budget (ADR 0104). The usage client is its
     // first consumer; NodeLink and dictation must share this one budget when
     // they are wired (move it up to their common owner then, never a second).

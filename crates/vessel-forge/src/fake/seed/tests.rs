@@ -22,23 +22,32 @@ fn document() -> Raw {
     read.pull.checks.state = ChecksState::Failing;
     read.pull.summary.checks = ChecksState::Failing;
     read.pull.checks.failed = 1;
-    read.pull.checks.failing = vec![CheckRun {
-        name: "fixture check".parse().unwrap(),
-        state: CheckState::Failed,
-        url: None,
-    }];
+    read.pull.checks.failing = vec![CheckRun::named(
+        "fixture check".parse().unwrap(),
+        CheckState::Failed,
+        None,
+    )];
     Raw {
         version: Version,
         repositories: vec![Repository {
             repo,
             failure: None,
-            pulls: vec![Pull {
+            pulls: vec![SeededPull {
                 pull: read.pull,
                 merge: Merge::Refused,
+                timeline: Vec::new(),
+                truncated: false,
+                reports: Vec::new(),
             }],
             listing: Listing::default(),
         }],
     }
+}
+/// `pull` as the fake keeps it: the tally counted from its checks.
+fn installed(pull: &PullRequest) -> PullRequest {
+    let mut kept = pull.clone();
+    kept.summary.tally = CheckTally::of(&kept.checks);
+    kept
 }
 fn decode(raw: &Raw) -> Seed {
     Seed::decode(&serde_json::to_vec(raw).unwrap()).unwrap()
@@ -47,7 +56,19 @@ fn decode(raw: &Raw) -> Seed {
 #[tokio::test]
 async fn seeded_facts_conditionals_and_refused_merge_use_real_fake_state() {
     let raw = document();
-    let expected = raw.repositories[0].pulls[0].pull.clone();
+    let mut expected = raw.repositories[0].pulls[0].pull.clone();
+    assert_eq!(
+        expected.summary.tally, None,
+        "the seed leaves its tally out"
+    );
+    expected.summary.tally = CheckTally::of(&expected.checks);
+    assert!(
+        expected
+            .summary
+            .tally
+            .is_some_and(|tally| tally.failed == 1),
+        "the fake counts it from the seed's checks"
+    );
     let forge = decode(&raw).into_forge();
     let repo = repo();
     let read = forge
@@ -185,7 +206,7 @@ async fn opening_reserves_seeded_numbers_and_capacity_without_overwrite() {
     );
     assert_eq!(
         forge.get(&repo(), preserved.summary.number).unwrap().pull,
-        preserved
+        installed(&preserved)
     );
     for number in 1..=MAX_PULLS {
         let mut read = super::super::pull(
@@ -209,7 +230,7 @@ async fn opening_reserves_seeded_numbers_and_capacity_without_overwrite() {
     );
     assert_eq!(
         forge.get(&repo(), preserved.summary.number).unwrap().pull,
-        preserved
+        installed(&preserved)
     );
 }
 
@@ -230,9 +251,12 @@ fn whole_file_rules_and_diagnostics_do_not_expose_values() {
     ));
     let mut raw = document();
     let duplicate = raw.repositories[0].pulls[0].pull.clone();
-    raw.repositories[0].pulls.push(Pull {
+    raw.repositories[0].pulls.push(SeededPull {
         pull: duplicate,
         merge: Merge::Normal,
+        timeline: Vec::new(),
+        truncated: false,
+        reports: Vec::new(),
     });
     assert!(matches!(
         Seed::decode(&serde_json::to_vec(&raw).unwrap()),
@@ -244,6 +268,19 @@ fn whole_file_rules_and_diagnostics_do_not_expose_values() {
         Seed::decode(&serde_json::to_vec(&raw).unwrap()),
         Err(SeedError::Rule(SeedRule::Checks))
     ));
+    let mut raw = document();
+    raw.repositories[0].pulls[0].pull.summary.tally = Some(CheckTally {
+        passed: 3,
+        failed: 0,
+        pending: 0,
+    });
+    assert!(
+        matches!(
+            Seed::decode(&serde_json::to_vec(&raw).unwrap()),
+            Err(SeedError::Rule(SeedRule::Checks))
+        ),
+        "a tally that disagrees with the checks"
+    );
     let empty_v2 = b"{\"version\":2,\"repositories\":[]}";
     assert!(matches!(Seed::decode(empty_v2), Err(SeedError::Format(_))));
 }
@@ -310,7 +347,10 @@ async fn fixture_caches_and_merge_history_remain_bounded() {
     assert!(forge.state().found.is_empty());
     assert!(forge.state().seen.is_empty());
     assert_eq!(forge.merges().len(), MAX_PULLS);
-    assert_eq!(forge.get(&repo(), pull.summary.number).unwrap().pull, pull);
+    assert_eq!(
+        forge.get(&repo(), pull.summary.number).unwrap().pull,
+        installed(&pull)
+    );
 }
 
 #[tokio::test]
@@ -332,7 +372,10 @@ async fn a_seeded_highest_number_cannot_overflow_or_overwrite() {
             what: "a new pull request number"
         })
     ));
-    assert_eq!(forge.get(&repo(), old.summary.number).unwrap().pull, old);
+    assert_eq!(
+        forge.get(&repo(), old.summary.number).unwrap().pull,
+        installed(&old)
+    );
 }
 
 #[test]
