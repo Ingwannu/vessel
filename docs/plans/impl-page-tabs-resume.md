@@ -16,12 +16,14 @@ copy, shows the registered launcher shortcuts, and fits compact close
 sheets to their content. Bulk confirmations carry the question mark and
 the browser suite checks a live terminal count and warning.
 
-The follow-up web gate `impl-page-tabs-20261120T041717Z-3bd1e64c` is
-queued at this checkpoint. After it passes, export the same commit and
-capture the follow-up frames with the browser fixture. Anchor Close
-other tabs on Diff to include the terminal. Send the frame index and
-Paseo source lines to the coordinator for visual review, then follow the
-page review and integration handoff.
+The follow-up web gate `impl-page-tabs-20261120T041717Z-3bd1e64c`
+passed all nine steps for `3bd1e64cf`, with 699 unit tests and 107
+browser tests. Capture export `impl-page-tabs-20261120T044449Z-3bd1e64c`
+provided 80 verified frames. The coordinator gave R2 visual PASS and
+noted that long header titles truncate early at 390.
+
+The web source review is with the node reviewer. Once approved, send
+the exact range to the integrator. The isolated capture fleet has exited.
 
 T2 reviewed the standalone-terminal seam and found no remaining issues
 in this slice. It uses the existing terminal protocol with polling and
