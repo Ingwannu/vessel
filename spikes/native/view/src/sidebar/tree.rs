@@ -18,9 +18,9 @@
 //!   [`PROJECT_SESSIONS`] sessions and every one not done; the open one
 //!   first when it would be hidden; "Show more" when any is hidden, then
 //!   every one ("Show less").
-//! - Order: projects by name as people read them (Paseo's fallback; its
-//!   dragged order is TRACKER 811), sessions as every grouping lists them
-//!   (`listed`: pinned first, the chosen time).
+//! - Order: the projects as last dropped (TRACKER 811, `ProjectOrder`),
+//!   then the ones never placed by name as people read them; sessions as
+//!   every grouping lists them (`listed`: pinned first, the chosen time).
 //! - A trailing group lists its machine's first [`SIDEBAR_SESSIONS`], as
 //!   a machine group does; it is drawn when it has sessions or its machine
 //!   is not reachable.
@@ -36,7 +36,7 @@ use vessel_proto::{ProjectId, SessionId};
 use super::{SIDEBAR_SESSIONS, SidebarMachine, listed};
 use crate::attention::Bucket;
 use crate::board::{Card, Fleet, Reach};
-use crate::prefs::{FoldedProjects, SidebarView};
+use crate::prefs::{FoldedProjects, ProjectOrder, SidebarView};
 use crate::workspace::projects::ProjectsView;
 
 /// How many of a project's sessions show before "Show more" (Paseo's 7).
@@ -49,6 +49,8 @@ pub struct TreeState<'s> {
     pub lists: &'s HashMap<String, ProjectsView>,
     /// The folded projects.
     pub folded: &'s FoldedProjects,
+    /// The projects' order (a drag's own while one is under way).
+    pub order: &'s ProjectOrder,
     /// The projects showing every session ("Show more" pressed).
     pub unfolded_more: &'s HashSet<(String, ProjectId)>,
     /// The session open now, if any.
@@ -79,7 +81,7 @@ pub struct SidebarProject<'a> {
 /// The sidebar grouped by project.
 #[derive(Debug, Clone)]
 pub struct SidebarTree<'a> {
-    /// The projects, by name.
+    /// The projects, placed ones first, then by name.
     pub projects: Vec<SidebarProject<'a>>,
     /// Each machine's sessions in no listed project, in the book's order.
     pub machines: Vec<SidebarMachine<'a>>,
@@ -149,10 +151,16 @@ impl Fleet {
                 });
             }
         }
-        projects.sort_by(|one, two| {
-            by_name(one.project.name.as_str(), two.project.name.as_str())
+        let place = |project: &SidebarProject<'_>| {
+            state.order.place(project.machine, project.project.id)
+        };
+        projects.sort_by(|one, two| match (place(one), place(two)) {
+            (Some(first), Some(second)) => first.cmp(&second),
+            (Some(_), None) => Ordering::Less,
+            (None, Some(_)) => Ordering::Greater,
+            (None, None) => by_name(one.project.name.as_str(), two.project.name.as_str())
                 .then_with(|| one.machine.cmp(two.machine))
-                .then_with(|| one.project.id.cmp(&two.project.id))
+                .then_with(|| one.project.id.cmp(&two.project.id)),
         });
         SidebarTree {
             projects,

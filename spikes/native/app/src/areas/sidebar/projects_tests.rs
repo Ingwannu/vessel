@@ -247,6 +247,7 @@ fn past_seven_sessions_show_more_then_show_less(cx: &mut TestAppContext) {
         let _new = shell
             .areas
             .sidebar
+            .projects
             .shown_all
             .insert(("fixture".to_owned(), project_id(0)));
     });
@@ -284,7 +285,7 @@ fn a_whole_list_drops_the_folds_of_projects_it_no_longer_holds(cx: &mut TestAppC
         shell.fold_project("fixture", project_id(1), cx);
         // shop went on the node: the next list holds docs and notes.
         let _shop = ready(shell).projects.remove(0);
-        shell.folds_listed("fixture");
+        shell.projects_listed("fixture");
         let folds = &shell.prefs.settings.folded_projects;
         assert!(!folds.contains("fixture", project_id(0)));
         assert!(folds.contains("fixture", project_id(1)));
@@ -292,7 +293,7 @@ fn a_whole_list_drops_the_folds_of_projects_it_no_longer_holds(cx: &mut TestAppC
         let cut = ready(shell);
         cut.more = true;
         let _docs = cut.projects.remove(0);
-        shell.folds_listed("fixture");
+        shell.projects_listed("fixture");
         assert!(
             shell
                 .prefs

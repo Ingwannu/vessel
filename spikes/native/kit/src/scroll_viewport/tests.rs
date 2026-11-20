@@ -259,3 +259,16 @@ fn oversized_focus_targets_align_at_the_start_without_oscillating() {
     let moved = Bounds::new(point(px(0.0), px(100.0)), target.size);
     assert_eq!(reveal_offset(viewport, moved, next, maximum), next);
 }
+
+#[test]
+fn scrolling_by_a_delta_stays_within_the_measured_range() {
+    let maximum = point(px(0.0), px(300.0));
+    let start = point(px(0.0), px(-100.0));
+    assert_eq!(scrolled_by(start, px(50.0), maximum).y, px(-150.0));
+    assert_eq!(scrolled_by(start, px(-50.0), maximum).y, px(-50.0));
+    // Past either end: held at the end.
+    assert_eq!(scrolled_by(start, px(500.0), maximum).y, px(-300.0));
+    assert_eq!(scrolled_by(start, px(-500.0), maximum).y, px(0.0));
+    // Nothing to scroll: stays at the start.
+    assert_eq!(scrolled_by(point(px(0.0), px(0.0)), px(20.0), point(px(0.0), px(0.0))).y, px(0.0));
+}

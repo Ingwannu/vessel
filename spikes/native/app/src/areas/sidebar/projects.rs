@@ -21,10 +21,11 @@
 //!   the coordinator's ruling: an unreachable machine stays in sight).
 //! - Show more is not kept across launches (Paseo keeps it in the row's
 //!   state); a fold is (`workspace::sidebar_tree::fold_project`).
-//! - Differences, named: Paseo's dragged project order is TRACKER 811
-//!   (projects sort by name until then); a project on two machines has a
-//!   header on each; the trailing machine groups are Vessel's (Paseo has
-//!   no session outside a workspace).
+//! - Order: as the person dragged the headers (TRACKER 811, `drag`), the
+//!   projects never placed after them by name.
+//! - Differences, named: a project on two machines has a header on each;
+//!   the trailing machine groups are Vessel's (Paseo has no session outside
+//!   a workspace).
 
 use std::collections::HashSet;
 
@@ -32,13 +33,15 @@ use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::status_mark::icon_box;
 use vessel_app_kit::theme::{SidebarSurfaces, spacing};
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, ElementId, FluentBuilder as _, InteractiveElement as _,
-    IntoElement as _, ParentElement as _, SharedString, Stateful, StatefulInteractiveElement as _,
-    Styled as _, div, px, svg,
+    AnyElement, Context, Div, DragMoveEvent, ElementId, FluentBuilder as _,
+    InteractiveElement as _, IntoElement as _, MouseButton, ParentElement as _, SharedString,
+    Stateful, StatefulInteractiveElement as _, Styled as _, div, px, svg,
 };
+use vessel_app_kit::picker::anchor_probe;
+use vessel_app_kit::popup::shadow_md;
 use vessel_app_kit::{Tokens, Type, TypeExt as _};
 use vessel_app_view::Card;
-use vessel_app_view::prefs::SidebarView;
+use vessel_app_view::prefs::{ProjectKey, SidebarView};
 use vessel_app_view::sidebar::tree::{SidebarProject, SidebarTree, TreeState};
 use vessel_proto::ProjectId;
 
@@ -48,6 +51,9 @@ use super::{Numbers, machines};
 use crate::areas::workspace::sidebar_tree;
 use crate::routes::Route;
 use crate::shell::Shell;
+
+mod drag;
+pub(super) use drag::ProjectsKept;
 
 /// The toggle row (Paseo's `SidebarGroupToggleRow`, a session row's box,
 /// `indented` as the rows above it): its least height, then its padding,
@@ -75,10 +81,16 @@ fn tree_state(shell: &Shell) -> TreeState<'_> {
         .as_ref()
         .filter(|_| shell.route == Route::Session)
         .map(|open| (open.machine.as_str(), open.session));
+    let kept = &shell.areas.sidebar.projects;
     TreeState {
         lists: &shell.areas.workspace.projects,
         folded: &shell.prefs.settings.folded_projects,
-        unfolded_more: &shell.areas.sidebar.shown_all,
+        // A drag's own order while one is under way.
+        order: kept
+            .dragging
+            .as_ref()
+            .map_or(&shell.prefs.settings.project_order, |drag| &drag.order),
+        unfolded_more: &kept.shown_all,
         open,
     }
 }
@@ -93,6 +105,15 @@ pub(super) fn order(shell: &Shell) -> Vec<&Card> {
     tree(shell, shell.prefs.settings.sidebar).order()
 }
 
+/// The projects as the tree shows them, top to bottom.
+fn shown_keys(shell: &Shell) -> Vec<ProjectKey> {
+    tree(shell, shell.prefs.settings.sidebar)
+        .projects
+        .iter()
+        .map(|project| ProjectKey::new(project.machine, project.project.id))
+        .collect()
+}
+
 /// The list: the projects' blocks, then the machines' groups.
 pub(super) fn groups(
     view: SidebarView,
@@ -104,7 +125,26 @@ pub(super) fn groups(
     cx: &mut Context<'_, Shell>,
 ) -> Div {
     let tree = tree(shell, view);
-    let mut list = div().flex().flex_col();
+    let sidebar = &shell.areas.sidebar;
+    let dragging = sidebar.projects.dragging.as_ref();
+    let mut list = div()
+        .relative()
+        .flex()
+        .flex_col()
+        .child(anchor_probe(&sidebar.place(drag::LIST)))
+        .on_drag_move::<drag::ProjectDrag>(cx.listener(
+            |shell, event: &DragMoveEvent<drag::ProjectDrag>, _window, cx| {
+                shell.project_drag_moved(event.event.position.y, cx);
+            },
+        ))
+        .on_mouse_up(
+            MouseButton::Left,
+            cx.listener(|shell, _event, _window, cx| shell.project_dropped(cx)),
+        )
+        .on_mouse_up_out(
+            MouseButton::Left,
+            cx.listener(|shell, _event, _window, cx| shell.project_dropped(cx)),
+        );
     let final_project = tree
         .machines
         .is_empty()
@@ -116,10 +156,14 @@ pub(super) fn groups(
             several_machines: tree.several_machines,
             compact,
             touch,
+            lifted: false,
         };
-        let block = block(project, drawn, numbers, shell, tokens, cx);
-        list = list
-            .child(EndTarget::at(index, final_project).wrap(block, &shell.areas.sidebar.layout));
+        // The dragged block's place is a gap of its height (TRACKER 811).
+        let block = match dragging.filter(|drag| drag.key.is(project.machine, project.project.id)) {
+            Some(drag) => div().w_full().h(drag.height).into_any_element(),
+            None => block(project, drawn, numbers, shell, tokens, cx),
+        };
+        list = list.child(EndTarget::at(index, final_project).wrap(block, &sidebar.layout));
     }
     if !tree.machines.is_empty() {
         let mut loose = div().flex().flex_col().gap(px(spacing::S3_5));
@@ -137,6 +181,31 @@ pub(super) fn groups(
         }
         list = list.child(loose.when(!tree.projects.is_empty(), |loose| loose.pt(px(spacing::S3))));
     }
+    // The dragged block itself, over the list at the pointer (TRACKER 811).
+    if let Some(drag) = dragging
+        && let Some((index, project)) = tree
+            .projects
+            .iter()
+            .enumerate()
+            .find(|(_, project)| drag.key.is(project.machine, project.project.id))
+    {
+        let drawn = Block {
+            index,
+            several_machines: tree.several_machines,
+            compact,
+            touch,
+            lifted: true,
+        };
+        list = list.child(
+            div()
+                .absolute()
+                .left_0()
+                .w_full()
+                .top(drag.lifted_top(&sidebar.layout.scroll))
+                .opacity(drag::LIFTED)
+                .child(block(project, drawn, numbers, shell, tokens, cx)),
+        );
+    }
     list
 }
 
@@ -150,6 +219,8 @@ struct Block {
     compact: bool,
     /// The phone's sheet (the session rows).
     touch: bool,
+    /// Drawn lifted, over the list, while dragged (TRACKER 811).
+    lifted: bool,
 }
 
 /// A project's header and what it holds while open (Paseo's
@@ -171,6 +242,16 @@ fn block(
         tokens,
         cx,
     );
+    let header = if drawn.lifted {
+        // Paseo's `projectRowDragging`.
+        header
+            .bg(tokens.neutral.surface2)
+            .border_1()
+            .border_color(tokens.neutral.border)
+            .shadow(shadow_md(tokens))
+    } else {
+        drag::draggable(header, project, shell, cx)
+    };
     let mut held: Vec<AnyElement> = Vec::new();
     if !project.folded {
         if project.total > 0 {
@@ -195,12 +276,17 @@ fn block(
         }
     }
     let name: SharedString = project.project.name.to_string().into();
+    let key = ProjectKey::new(project.machine, project.project.id);
     div()
         .id(ElementId::Name(
             format!("sidebar-tree-{}-{}", project.machine, project.project.id).into(),
         ))
         .role(gpui::Role::Group)
         .aria_label(name)
+        .relative()
+        .when(!drawn.lifted, |block| {
+            block.child(anchor_probe(&shell.areas.sidebar.place(&drag::block_place(&key))))
+        })
         .flex()
         .flex_col()
         .when(!held.is_empty(), |block| block.pb(px(spacing::S3)))
@@ -272,7 +358,7 @@ fn toggle(
         )
         .child(div().min_w_0().truncate().type_(Type::Body).child(label))
         .on_click(cx.listener(move |this, _event, _window, cx| {
-            let shown = &mut this.areas.sidebar.shown_all;
+            let shown = &mut this.areas.sidebar.projects.shown_all;
             if !shown.remove(&key) {
                 let _new = shown.insert(key.clone());
             }

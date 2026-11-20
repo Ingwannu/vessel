@@ -109,8 +109,8 @@ pub(crate) struct SidebarState {
     display: display::DisplayMenu,
     /// A session row's menu.
     rows: row_menu::RowMenu,
-    /// The projects whose Show more was pressed (not kept, as Paseo's).
-    shown_all: projects::ShownAll,
+    /// The project tree's Show more and its drag (TRACKER 811).
+    projects: projects::ProjectsKept,
     /// A session row's hover card (TRACKER 810).
     cards: vessel_app_kit::HoverCards,
     /// Its right edge, dragged to resize it.
@@ -126,7 +126,7 @@ impl SidebarState {
             page_tips: Tooltips::new(),
             display: display::DisplayMenu::new(window, cx),
             rows: row_menu::RowMenu::new(cx),
-            shown_all: projects::ShownAll::new(),
+            projects: projects::ProjectsKept::default(),
             cards: vessel_app_kit::HoverCards::new(),
             edge: PanelEdge::new(),
         }
