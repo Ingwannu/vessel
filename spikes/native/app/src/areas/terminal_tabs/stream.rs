@@ -36,6 +36,9 @@ impl Shell {
             return;
         };
         pane.stage = Stage::Attaching;
+        // An attach claims the size once it is live (Paseo's stream
+        // controller claims on attach).
+        pane.claimed = false;
         let from = pane.log.next();
         self.command(Command::Terminals(Ask {
             machine: key.machine.clone(),
@@ -104,8 +107,12 @@ impl Shell {
             Reply::Created { place, result } => {
                 self.terminal_tab_created(&machine, &place, result, cx);
             }
-            Reply::Listed { place, result } => {
-                self.terminal_tabs_listed(&machine, &place, result.as_ref().ok());
+            Reply::Listed {
+                place,
+                result,
+                waits,
+            } => {
+                self.terminal_tabs_listed(&machine, &place, result.as_ref().ok(), waits);
             }
             Reply::Following(info) => {
                 let key = key(info.id);
