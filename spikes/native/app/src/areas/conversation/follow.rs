@@ -199,14 +199,11 @@ impl Shell {
         if !self.areas.conversation.link_edge(online) {
             return;
         }
-        let reopen = self.areas.session.open.as_ref().is_some_and(|open| {
+        let reopen = self.areas.session.open.as_ref().filter(|open| {
             open.structured && open.machine == shown.machine && open.session == shown.session
         });
-        if reopen {
-            self.command(Command::Open {
-                machine: shown.machine,
-                session: shown.session,
-            });
+        if let Some(open) = reopen {
+            self.command(crate::areas::session::follow_command(open));
         }
         cx.notify();
     }
