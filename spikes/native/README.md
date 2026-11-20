@@ -118,7 +118,9 @@ app/src/
                    column (at most 820 wide, 16 from the edges), permissions, stop
     composer/      what the composers share: an agent's lists kept and refreshed
                    (offers.rs), a running session's controls (running.rs, modes.rs),
-                   the `/` menu (slash.rs), drafts and recall (drafts.rs)
+                   the `/` menu (slash.rs), drafts and recall (drafts.rs), files
+                   attached and sent (attach.rs, files.rs), sent images' pictures
+                   in the conversation (sent.rs)
     about.rs       About as Paseo's settings section: the version, the app's updates
                    (Paseo's words), automatic updates (a switch), the log file; and the
                    note shown once after an update

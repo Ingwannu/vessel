@@ -55,6 +55,8 @@ pub(super) struct Paint<'a> {
     pub(super) fleet: &'a vessel_app_view::Fleet,
     /// What a fork's first line has above or under it (`origin`).
     pub(super) above: super::origin::Above<'a>,
+    /// A message's files as they are drawn (track P's).
+    pub(super) files: crate::areas::composer::SentFiles<'a>,
 }
 
 /// Entry `index` as its row.

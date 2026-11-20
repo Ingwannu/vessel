@@ -329,6 +329,7 @@ impl Shell {
             })
             .collect();
         if let Readiness::Ready(attachments) = tray.readiness() {
+            super::sent::seed(&composer.sent, &waiting.machine, session, tray);
             tray.clear();
             drop(composer.sends.remove(&session));
             commands.push(Command::Files(Files::Prompt(WithFiles {

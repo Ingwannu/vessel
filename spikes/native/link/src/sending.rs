@@ -77,6 +77,13 @@ impl State {
                 self.start(&machine, harness, folder, None, options).await;
             }
             attachments::Files::Prompt(prompt) => self.prompt_files(prompt).await,
+            attachments::Files::Read(sent) => {
+                let client = self
+                    .client(&sent.machine)
+                    .cloned()
+                    .map_err(|error| error.to_string());
+                attachments::spawn_read(client, sent, self.events.clone());
+            }
         }
     }
 

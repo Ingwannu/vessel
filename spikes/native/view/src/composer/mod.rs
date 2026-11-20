@@ -2,8 +2,9 @@
 //! controls of a running session (its model, effort, permissions and other
 //! options changed while it runs), the agent's `/` commands (`slash`,
 //! ranked by `matching`), what was typed and not sent, kept per session
-//! (`drafts`), Up and Down through the messages sent (`recall`), and the
-//! files attached to the next message (`attach`'s rules, `tray`'s state).
+//! (`drafts`), Up and Down through the messages sent (`recall`), the
+//! files attached to the next message (`attach`'s rules, `tray`'s state),
+//! and the pictures of the images sent (`sent`).
 //! The `@` files join here as their slice lands.
 //!
 //! The drawing is the app's (`app/src/areas/composer/`); the rules are
@@ -17,6 +18,7 @@ pub mod modes;
 pub mod recall;
 pub mod reveal;
 pub mod running;
+pub mod sent;
 pub mod slash;
 pub mod tray;
 pub mod trays;

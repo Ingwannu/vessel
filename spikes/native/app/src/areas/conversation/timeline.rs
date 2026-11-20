@@ -131,6 +131,7 @@ fn paint<'a>(
             .then_some((&area.timeline, &area.forking)),
         fleet: &shell.fleet,
         above: area.above(),
+        files: area.sent_files(shell),
     }
 }
 

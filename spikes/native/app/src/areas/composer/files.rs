@@ -381,18 +381,21 @@ fn body(shell: &Shell, item: &Item) -> Body {
     if item.kind == AttachmentKind::Image && trouble.is_none() {
         return Body::Image(Some(picture(shell, &item.origin, &item.mime)));
     }
-    let words = shell.words.composer();
-    let subtitle = trouble.unwrap_or_else(|| {
-        item.name.as_str().rsplit_once('.').map_or_else(
-            || words.file().to_owned(),
-            |(_, extension)| extension.to_uppercase(),
-        )
-    });
+    let subtitle = trouble.unwrap_or_else(|| kind_line(shell, item.name.as_str()));
     Body::Label {
         icon: Glyph::FileText,
         title: SharedString::from(item.name.as_str().to_owned()),
         subtitle: SharedString::from(subtitle),
     }
+}
+
+/// A file's second line: its extension, or the word for a file (Paseo's
+/// file pill).
+pub(super) fn kind_line(shell: &Shell, name: &str) -> String {
+    name.rsplit_once('.').map_or_else(
+        || shell.words.composer().file().to_owned(),
+        |(_, extension)| extension.to_uppercase(),
+    )
 }
 
 /// Why a file cannot go, in the person's words.
@@ -435,7 +438,8 @@ fn picture(
     }
 }
 
-/// Pasted images' pictures, kept while a tray holds their bytes.
+/// Pasted and sent images' pictures, kept while a tray or the sent store
+/// holds their bytes.
 #[derive(Default)]
 pub(crate) struct Pictures(std::cell::RefCell<Vec<(Arc<[u8]>, ImageSource)>>);
 
@@ -446,9 +450,10 @@ impl std::fmt::Debug for Pictures {
 }
 
 impl Pictures {
-    fn of(&self, bytes: &Arc<[u8]>, mime: &str) -> ImageSource {
+    pub(super) fn of(&self, bytes: &Arc<[u8]>, mime: &str) -> ImageSource {
         let mut kept = self.0.borrow_mut();
-        // A picture whose bytes no tray holds any more goes.
+        // A picture whose bytes no tray, and no sent store, holds any more
+        // goes.
         kept.retain(|(held, _)| Arc::strong_count(held) > 1);
         if let Some((_, source)) = kept.iter().find(|(held, _)| Arc::ptr_eq(held, bytes)) {
             return source.clone();

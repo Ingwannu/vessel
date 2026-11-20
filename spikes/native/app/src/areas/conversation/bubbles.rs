@@ -40,23 +40,8 @@ pub(super) fn person(
     corner: Option<String>,
 ) -> AnyElement {
     let corner = corner.or_else(|| prompt.replayed.then(|| paint.words.prompt_corner(true, 0)));
-    let files = (!prompt.attachments.is_empty()).then(|| {
-        div()
-            .flex()
-            .flex_wrap()
-            .gap(px(4.0))
-            .children(prompt.attachments.iter().map(|file| {
-                div()
-                    .px(px(8.0))
-                    .py(px(2.0))
-                    .rounded(px(6.0))
-                    .border_1()
-                    .border_color(paint.look.border)
-                    .type_(Type::Meta)
-                    .text_color(paint.look.secondary)
-                    .child(file.name.to_string())
-            }))
-    });
+    // Its files as Paseo's user message shows them (track P's `SentFiles`).
+    let files = (paint.files).block(&prompt.attachments, !prompt.text.is_empty(), paint.tokens);
     div()
         .flex()
         .flex_col()

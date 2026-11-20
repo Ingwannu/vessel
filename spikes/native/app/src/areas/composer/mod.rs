@@ -16,6 +16,7 @@ mod files;
 pub(crate) mod modes;
 pub(crate) mod offers;
 pub(crate) mod running;
+mod sent;
 mod slash;
 
 use std::cell::{OnceCell, RefCell};
@@ -25,12 +26,14 @@ use std::time::Instant;
 pub(crate) use drafts::keep_drafts;
 pub(crate) use files::{attach_button, draft_card, session_card};
 pub(crate) use running::ControlsTarget;
+pub(crate) use sent::SentFiles;
 pub(crate) use slash::{draft_menu, draft_text, menu, text};
 use vessel_app_kit::MenuState;
 use vessel_app_kit::ui::App;
 use vessel_app_view::composer::drafts::Drafts;
 use vessel_app_view::composer::recall::Recall;
 use vessel_app_view::composer::running::InFlight;
+use vessel_app_view::composer::sent::Pictures as SentPictures;
 use vessel_app_view::composer::trays::Trays;
 use vessel_app_view::offers::Offers;
 use vessel_proto::SessionId;
@@ -67,8 +70,11 @@ pub(crate) struct ComposerArea {
     /// Whether the attach menu is open for the new chat (else the open
     /// session).
     pub(crate) attach_for: Option<bool>,
-    /// Pasted images' pictures.
+    /// Pasted and sent images' pictures, decoded.
     pub(crate) pictures: files::Pictures,
+    /// Sent images' bytes: read back when a message showing them is drawn
+    /// (which reads the shell only), or kept from the composer.
+    pub(crate) sent: RefCell<SentPictures>,
 }
 
 impl ComposerArea {
@@ -89,6 +95,7 @@ impl ComposerArea {
             attach_menu: MenuState::new(cx),
             attach_for: None,
             pictures: files::Pictures::default(),
+            sent: RefCell::new(SentPictures::default()),
         }
     }
 

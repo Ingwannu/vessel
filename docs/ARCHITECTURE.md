@@ -1127,6 +1127,19 @@ not read is set aside, never overwritten). Up and Down in an empty session
 composer walk the messages sent in it (`view::composer::recall`, Paseo's
 `ComposerRecall`); a recalled message is not a draft until it is edited.
 
+A composer's files (track P's row c) are its tray (`view::composer::tray`,
+one per composer in `trays`): checked against the session's agent and the
+node's limits as they come, uploaded at Send two at a time by the link
+(`link::attachments`, `attachment.begin`/`write`/`finish`, each step
+answered `Event::Files`), and the prompt goes once every file is in; the new
+chat first starts its session without the prompt (`Files::Create`). A sent
+message's images are read back with `attachment.read` when the message is
+drawn (`Files::Read`), by the page's rules (`view::composer::sent`: two at a
+time, at most 48 pictures or 64 MiB, an image pasted here kept from its
+bytes); the conversation's rows draw them through `SentFiles`, which their
+`Paint` carries. `docs/plans/backend-m12-composer.md` has the rules and
+what was followed from Paseo.
+
 ## Protocol 13: schedule preview (N3)
 
 `NodeInfo.timezone` carries the startup-detected system IANA name; unknown

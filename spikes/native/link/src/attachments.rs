@@ -1,7 +1,8 @@
 //! A composer's file sent to its session (track P's row c): begun, written
 //! a piece at a time from what the node says it has, finished, and each
-//! step told to the app (`Event::Upload`). Runs beside the link's other
-//! commands, as a 50 MiB file takes a while.
+//! step told to the app (`Event::Files`, `Answer::Upload`). Runs beside the
+//! link's other commands, as a 50 MiB file takes a while. A sent image is
+//! read back the same way, a piece at a time (`read`, `Answer::Read`).
 //!
 //! [Decision Log]
 //! - Purpose: the composer's attached files reach the node before the
@@ -20,14 +21,21 @@
 //!   be tried again (`Again`).
 //! - Cost: one round trip a piece.
 
+use std::sync::Arc;
+
+use vessel_app_view::composer::sent::Sent;
 use vessel_app_view::composer::tray::{Again, Begun, ItemKey, Origin, Problem};
 use vessel_proto::conversation::MimeType;
 use vessel_proto::{AttachmentName, AttachmentRef, Delivery, HarnessRef, OptionChoice, SessionId};
 
-// The task needs tokio's files and the node's connection, which a browser
+// The tasks need tokio's files and the node's connection, which a browser
 // has not.
 #[cfg(not(target_arch = "wasm32"))]
+mod read;
+#[cfg(not(target_arch = "wasm32"))]
 mod send;
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) use read::spawn as spawn_read;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) use send::{content, spawn};
 
@@ -36,13 +44,38 @@ pub(crate) use send::{content, spawn};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Files {
     /// Send a file to its session beside the other commands; each step
-    /// answered `Event::Upload`.
+    /// answered `Answer::Upload`.
     Send(Attach),
     /// Start a conversation without its first prompt, which follows once
     /// its files are in; answered `Event::Started` (or `Event::Failed`).
     Create(Create),
     /// A prompt with the files already sent for it.
     Prompt(WithFiles),
+    /// Read a sent image back from its node beside the other commands;
+    /// answered `Answer::Read`.
+    Read(Sent),
+}
+
+/// What the link says of the files (`Event::Files`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Answer {
+    /// A step of a composer's file on its way to its session.
+    Upload {
+        /// The session.
+        session: SessionId,
+        /// The file's place in the composer's tray.
+        key: ItemKey,
+        /// What happened.
+        step: Step,
+    },
+    /// A sent image read back: its bytes, or `None` when it could not be
+    /// read (the log says why).
+    Read {
+        /// Which image.
+        sent: Sent,
+        /// Its bytes.
+        bytes: Option<Arc<[u8]>>,
+    },
 }
 
 /// A conversation to start whose first prompt waits for its files.
