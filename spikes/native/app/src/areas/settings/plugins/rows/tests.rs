@@ -77,7 +77,8 @@ fn trigger_node(cx: &mut gpui::VisualTestContext) -> String {
         .split("\"aria\":")
         .skip(1)
         .filter_map(|rest| rest.split_once('}').map(|(aria, _)| aria.to_owned()))
-        .filter(|aria| aria.contains(r#""label": "Actions for night""#))
+        // Fluent isolates the id in the sentence (U+2068 … U+2069).
+        .filter(|aria| aria.contains("\"label\": \"Actions for \u{2068}night\u{2069}\""))
         .collect();
     assert_eq!(nodes.len(), 1, "one trigger: {json}");
     nodes.into_iter().next().unwrap()
