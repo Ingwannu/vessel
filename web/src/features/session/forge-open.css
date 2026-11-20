@@ -1,11 +1,10 @@
 /* "Open on <forge>" on a session's bar (forge-open.tsx): Paseo's split
    button with its one target, a bordered square holding the forge's mark
-   in the muted colour (open-in-editor/button.tsx, mutedColorMapping). */
+   in the muted ink in every state (open-in-editor/button.tsx:54
+   `mutedColorMapping` = `foregroundMuted`, used for the forge's icon at
+   :57); hovering changes only the background (`surface2`), as the kit's
+   edged button does. */
 
 .btn.forge-open {
   color: var(--text-secondary);
-}
-
-.btn.forge-open:hover {
-  color: var(--text-primary);
 }
