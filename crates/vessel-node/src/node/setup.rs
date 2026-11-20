@@ -93,6 +93,9 @@ pub(super) async fn model_proxy(models: Models) -> Result<(Arc<Models>, TcpListe
     Ok((Arc::new(models), listener))
 }
 
+/// The client model calls go out with: the operating system's roots, or
+/// none (with a warning) on a machine that has none, where only `http`
+/// providers (a local server) can then be reached.
 pub(super) fn model_client() -> Result<vessel_llm::client::Client, NodeError> {
     let limits = vessel_llm::client::Limits::default();
     vessel_llm::client::Client::new(limits)
