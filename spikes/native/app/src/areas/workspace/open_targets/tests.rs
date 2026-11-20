@@ -346,12 +346,20 @@ fn the_header_s_open_and_its_caret_are_named_buttons(cx: &mut TestAppContext) {
     // and where, the caret is "Choose editor", collapsed.
     let shown = arias(fixture.cx);
     let open = node(&shown, "Open workspace in Zed");
-    assert!(open.contains(r#""Button""#) && open.contains(r#""Click""#), "{open}");
+    assert!(
+        open.contains(r#""Button""#) && open.contains(r#""Click""#),
+        "{open}"
+    );
     let caret = node(&shown, "Choose editor");
-    assert!(caret.contains(r#""Button""#) && caret.contains(r#""expanded": false"#), "{caret}");
+    assert!(
+        caret.contains(r#""Button""#) && caret.contains(r#""expanded": false"#),
+        "{caret}"
+    );
     // The primary's press opens the workspace in Zed.
     let primary = fixture.cx.debug_bounds("open-in-editor-primary").unwrap();
-    fixture.cx.simulate_click(primary.center(), gpui::Modifiers::none());
+    fixture
+        .cx
+        .simulate_click(primary.center(), gpui::Modifiers::none());
     fixture.cx.run_until_parked();
     assert_eq!(
         fixture.launched.asked(),
@@ -359,7 +367,9 @@ fn the_header_s_open_and_its_caret_are_named_buttons(cx: &mut TestAppContext) {
     );
     // The caret's press opens the list: expanded.
     let chevron = fixture.cx.debug_bounds("open-in-editor-caret").unwrap();
-    fixture.cx.simulate_click(chevron.center(), gpui::Modifiers::none());
+    fixture
+        .cx
+        .simulate_click(chevron.center(), gpui::Modifiers::none());
     fixture.cx.run_until_parked();
     let caret = node(&arias(fixture.cx), "Choose editor");
     assert!(caret.contains(r#""expanded": true"#), "{caret}");

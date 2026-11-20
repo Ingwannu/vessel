@@ -401,6 +401,7 @@ fn relative_path_folders_and_folders_named_like_a_command_are_not_commands() {
         .entries
         .insert(PathBuf::from("/usr/bin/code"), Vec::new());
     assert_eq!(list(&fake, None), [TargetId::FileManager]);
-    let windows = Fake::on(Platform::Windows, r"tools;C:\bin").with(&[r"tools/zed.exe", r"C:\bin/code.cmd"]);
+    let windows =
+        Fake::on(Platform::Windows, r"tools;C:\bin").with(&[r"tools/zed.exe", r"C:\bin/code.cmd"]);
     assert_eq!(list(&windows, None), [TargetId::VsCode, TargetId::Explorer]);
 }

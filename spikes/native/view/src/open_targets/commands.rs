@@ -235,7 +235,9 @@ fn absolute(platform: Platform, folder: &str) -> bool {
         return folder.starts_with('/');
     }
     let mut chars = folder.chars();
-    let drive = chars.next().is_some_and(|letter| letter.is_ascii_alphabetic())
+    let drive = chars
+        .next()
+        .is_some_and(|letter| letter.is_ascii_alphabetic())
         && chars.next() == Some(':')
         && matches!(chars.next(), Some('\\' | '/'));
     drive || folder.starts_with(r"\\")
