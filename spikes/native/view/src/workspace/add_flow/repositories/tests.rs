@@ -23,7 +23,7 @@ fn host() -> vessel_proto::forge::ForgeHost {
 fn only_a_node_with_forge_repos_is_searched() {
     let needs = REPOSITORY_SEARCH_PROTOCOL.unwrap();
     assert!(can_search(Some(needs)));
-    assert!(!can_search(Some(ProtocolVersion::new(needs.get() - 1))));
+    assert!(!can_search(Some(ProtocolVersion::new(needs.get().saturating_sub(1)))));
     assert!(!can_search(None), "a machine not read yet");
 }
 
