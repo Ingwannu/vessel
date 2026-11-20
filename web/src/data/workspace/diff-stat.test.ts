@@ -89,10 +89,10 @@ describe("the served diff stat (ADR 0120)", () => {
       updated_at: "2026-11-20T00:00:00Z",
     };
     expect(pullOf(summary)?.counts).toBeNull();
-    const counted = {
+    const counted: PullSummary = {
       ...summary,
       tally: { passed: 3, failed: 1, pending: 2 },
-    } as PullSummary;
+    };
     expect(pullOf(counted)?.counts).toEqual({
       passed: 3,
       failed: 1,

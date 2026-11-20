@@ -132,31 +132,17 @@ export interface SharedPull {
   url: string | null;
 }
 
-/** Protocol 39 adds `tally` to the summary. This tree's declaration
- * does not have the field, so it is read only when a node sent it. */
+/** A node before protocol 39 omits `tally`. None stays the summary word. */
 function countsOf(summary: PullSummary): CheckCounts | null {
-  const raw: unknown = summary;
-  if (typeof raw !== "object" || raw === null || !("tally" in raw)) {
+  const tally = summary.tally;
+  if (tally == null) {
     return null;
   }
-  const tally = raw.tally;
-  if (typeof tally !== "object" || tally === null) {
-    return null;
-  }
-  const counts = tally as {
-    passed?: unknown;
-    failed?: unknown;
-    pending?: unknown;
+  return {
+    passed: tally.passed,
+    failed: tally.failed,
+    pending: tally.pending,
   };
-  const { passed, failed, pending } = counts;
-  if (
-    typeof passed !== "number" ||
-    typeof failed !== "number" ||
-    typeof pending !== "number"
-  ) {
-    return null;
-  }
-  return { passed, failed, pending };
 }
 
 /** The pull request every summary agrees on, or null.
