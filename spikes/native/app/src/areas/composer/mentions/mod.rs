@@ -73,7 +73,7 @@ impl Shell {
             ),
         }
     }
-    pub(super) fn composer_context_scope(&self, target: DraftKey) -> Option<ContextScope> {
+    pub(crate) fn composer_context_scope(&self, target: DraftKey) -> Option<ContextScope> {
         match target {
             DraftKey::Workspace {
                 node,

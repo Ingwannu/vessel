@@ -28,6 +28,7 @@ mod link;
 mod merge;
 mod pane;
 mod pane_activity;
+mod pane_attach;
 mod pane_cards;
 mod pane_checks;
 mod pane_skeleton;
@@ -121,6 +122,7 @@ pub(crate) struct Facts {
     pub(crate) seen: Option<vessel_proto::forge::PullSummary>,
     /// Its activity (`pr.timeline`).
     pub(crate) timeline: pane_timeline::TimelineRead,
+    pub(crate) adding: pane_attach::Adding,
     pub(crate) choices: Choices,
 }
 
@@ -413,8 +415,7 @@ impl Shell {
             PullAnswer::Timeline { session, result } => {
                 self.pulls_timeline(machine, session, result);
             }
-            // Nothing asks one before "Add logs to chat" (packet P3c).
-            PullAnswer::Check { .. } => {}
+            PullAnswer::Check { ask, result } => self.pulls_check_answered(machine, &ask, result),
         }
         cx.notify();
     }

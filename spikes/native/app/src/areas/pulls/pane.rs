@@ -109,6 +109,7 @@ impl Shell {
                 refreshing: false,
                 seen: card,
                 timeline: super::pane_timeline::TimelineRead::default(),
+                adding: super::pane_attach::Adding::default(),
                 choices: super::Choices::default(),
             });
         }
@@ -153,6 +154,10 @@ pub(crate) fn pane(
             .as_ref()
             .filter(|facts| facts.subject.machine == machine && facts.subject.session == session)
     });
+    // An answer's "Add to chat" waits for a frame with the window.
+    if facts.is_some_and(|facts| !facts.adding.pending.is_empty()) {
+        cx.defer_in(window, Shell::pulls_attach_pending);
+    }
     let body = match facts.map(|facts| (&facts.read, facts)) {
         None | Some((FactsRead::Loading, _)) => super::pane_skeleton::skeleton(shell, tokens),
         Some((FactsRead::Failed(_), _)) => failed(shell, tokens, cx),

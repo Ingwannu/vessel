@@ -14,12 +14,12 @@
 //!   the counts and the failing rows, as the facts dialog drew them. The
 //!   ring is painted (GPUI draws no SVG built at run time), as the context
 //!   meter's.
-//! - Differences: "Add to chat" on a failing row comes with `pr.check`
-//!   (packet P3c); the arcs end square (Paseo's are round).
+//! - A failed row's "Add to chat" reads the check whole first
+//!   (`pane_attach`). Difference: the arcs end square (Paseo's are round).
 
 use std::collections::HashSet;
 
-use gpui::{Bounds, PathBuilder, Pixels, Point, canvas, point};
+use gpui::{Bounds, MouseButton, PathBuilder, Pixels, Point, canvas, point};
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::picker::glyph;
 use vessel_app_kit::theme::SidebarSurfaces;
@@ -33,9 +33,11 @@ use vessel_app_view::workspace::pull::checks::{
     timing,
 };
 use vessel_app_view::workspace::pull::{ChecksOutcome, check_counts};
+use vessel_app_view::workspace::pull::attach::can_add_check;
 use vessel_proto::forge::{CheckRun, ForgeUrl, PullRequest};
 
 use super::Facts;
+use super::pane_attach::check_key;
 use crate::shell::Shell;
 
 /// Paseo's list: roughly eight rows, then its own scroll.
@@ -297,7 +299,6 @@ fn groups(
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let neutral = tokens.neutral;
-    let now = chrono::Utc::now();
     let mut list = div()
         .id("pr-pane-checks-list")
         .flex()
@@ -350,8 +351,7 @@ fn groups(
                 group
                     .checks
                     .iter()
-                    .enumerate()
-                    .map(|(index, run)| row(shell, run, presentation, index, fallback, now, tokens)),
+                    .map(|run| row(shell, run, presentation, fallback, tokens, cx)),
             );
         }
     }
@@ -364,19 +364,45 @@ fn row(
     shell: &Shell,
     run: &CheckRun,
     presentation: Presentation,
-    index: usize,
     fallback: &ForgeUrl,
-    now: chrono::DateTime<chrono::Utc>,
     tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let neutral = tokens.neutral;
     let hover = SidebarSurfaces::of(tokens).hover;
     let url = run.url.clone().unwrap_or_else(|| fallback.clone());
-    let time = timing(run, now).map(|timing| timing.words(shell.words));
+    let time = timing(run, chrono::Utc::now()).map(|timing| timing.words(shell.words));
+    let key = check_key(run);
+    let add = (shell.pulls_can_attach() && can_add_check(run)).then(|| {
+        let adding = shell
+            .areas
+            .pulls
+            .facts
+            .as_ref()
+            .is_some_and(|facts| facts.adding.checks.contains(&key));
+        let run = run.clone();
+        let words = shell.words.pulls();
+        let label = if adding {
+            words.adding_to_chat()
+        } else {
+            words.add_to_chat()
+        };
+        add_button(
+            SharedString::from(format!("pr-pane-check-add-{key}")),
+            label,
+            adding,
+            tokens,
+        )
+        .on_mouse_down(MouseButton::Left, |_event, _window, cx| cx.stop_propagation())
+        .when(!adding, |button| {
+            button.on_click(cx.listener(move |shell, _event, window, cx| {
+                cx.stop_propagation();
+                shell.pulls_add_check(&run, window, cx);
+            }))
+        })
+    });
     div()
-        .id(SharedString::from(format!(
-            "pr-pane-check-row-{presentation:?}-{index}"
-        )))
+        .id(SharedString::from(format!("pr-pane-check-row-{key}")))
         .flex()
         .flex_row()
         .items_center()
@@ -409,12 +435,58 @@ fn row(
         .child(
             div()
                 .ml_auto()
+                .flex()
+                .flex_row()
                 .flex_none()
-                .type_(Type::Meta)
-                .text_color(neutral.foreground_muted)
-                .children(time),
+                .items_center()
+                .gap(px(8.0))
+                .children(add)
+                .child(
+                    div()
+                        .type_(Type::Meta)
+                        .text_color(neutral.foreground_muted)
+                        .children(time),
+                ),
         )
         .into_any_element()
+}
+
+/// Paseo's ghost "Add to chat" button (`MessageSquarePlus`, 4 across),
+/// labelled `label`; a spinner for the mark while `adding`.
+pub(super) fn add_button(
+    id: SharedString,
+    label: &str,
+    adding: bool,
+    tokens: &Tokens,
+) -> gpui::Stateful<gpui::Div> {
+    let neutral = tokens.neutral;
+    let hover = SidebarSurfaces::of(tokens).hover;
+    let icon: AnyElement = if adding {
+        vessel_app_kit::slider::spinner(
+            SharedString::from(format!("{id}-spinner")),
+            12.0,
+            neutral.foreground_muted,
+        )
+    } else {
+        glyph(Glyph::MessagePlus, 12.0, neutral.foreground_muted).into_any_element()
+    };
+    div()
+        .id(id)
+        .flex()
+        .flex_row()
+        .flex_none()
+        .items_center()
+        .gap(px(4.0))
+        .h(px(24.0))
+        .px(px(4.0))
+        .rounded(px(4.0))
+        .type_(Type::Meta)
+        .text_color(neutral.foreground)
+        .when(!adding, |button| {
+            button.cursor_pointer().hover(move |style| style.bg(hover))
+        })
+        .child(icon)
+        .child(label.to_owned())
 }
 
 /// An older node's failing checks, as the facts dialog listed them.
