@@ -53,8 +53,9 @@ mod start;
 
 #[cfg(not(target_arch = "wasm32"))]
 use std::collections::HashMap;
+use std::sync::Arc;
 #[cfg(not(target_arch = "wasm32"))]
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 
 #[cfg(not(target_arch = "wasm32"))]
 use tokio::sync::mpsc;
@@ -73,9 +74,19 @@ pub use answer::{Answer, Form, GitWritten};
 pub use ask::{
     Ask, Download, FileAsk, GitAsk, GitWrite, PathChange, ProjectAsk, ReadImage, Save, WorktreeAsk,
 };
-pub use image_bytes::ImageBytes;
 pub use pulls::{PullAnswer, PullAsk};
 pub use start::{StartAnswer, StartAsk, StartEnded, StartKey};
+
+/// An image's bytes and the version they are (`file.read_bytes`, checked
+/// whole against its hash). Here, not in `image_bytes` (which reads them
+/// and is native only), because every target's `Answer` carries it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ImageBytes {
+    /// The file's bytes.
+    pub bytes: Arc<[u8]>,
+    /// Their version.
+    pub revision: vessel_proto::workspace::panel_files::FileRevision,
+}
 
 #[cfg(not(target_arch = "wasm32"))]
 use crate::Event;

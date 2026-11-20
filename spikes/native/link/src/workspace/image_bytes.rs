@@ -26,18 +26,8 @@ use vessel_client::{ChunkSink, NodeClient};
 use vessel_proto::workspace::ContentHash;
 use vessel_proto::workspace::panel_files::FileRevision;
 
-use super::ReadImage;
 use super::download::failure;
-
-/// An image's bytes and the version they are (`file.read_bytes`, checked
-/// whole against its hash).
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ImageBytes {
-    /// The file's bytes.
-    pub bytes: Arc<[u8]>,
-    /// Their version.
-    pub revision: FileRevision,
-}
+use super::{ImageBytes, ReadImage};
 
 /// Fetch the image `ask` names into memory.
 pub(super) async fn fetch(
