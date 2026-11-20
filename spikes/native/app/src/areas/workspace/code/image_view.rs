@@ -16,8 +16,8 @@ use vessel_app_kit::theme::spacing;
 use vessel_app_kit::toolbar_button::{ToolbarButton, ToolbarConfig};
 use vessel_app_kit::ui::{
     AnyElement, Bounds, Context, InteractiveElement as _, IntoElement as _, MouseButton,
-    ParentElement as _, Pixels, StatefulInteractiveElement as _, Styled as _, Window, canvas,
-    div, px,
+    ParentElement as _, Pixels, StatefulInteractiveElement as _, Styled as _, Window, canvas, div,
+    px,
 };
 use vessel_app_kit::{ButtonState, ControlSizing, Tokens};
 use vessel_app_view::composer::viewer::{
