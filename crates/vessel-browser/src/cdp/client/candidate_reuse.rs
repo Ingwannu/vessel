@@ -80,7 +80,9 @@ fn observe_quiet(fixture: &Path, group: u32) -> io::Result<()> {
     let marker = fixture.as_os_str().as_encoded_bytes();
     let uid = nix::unistd::geteuid().as_raw();
     for (index, entry) in fs::read_dir("/proc")?.enumerate() {
-        assert!(index < MAX_PROCESSES);
+        if index >= MAX_PROCESSES {
+            return Err(io::Error::other("process observation exceeded its bound"));
+        }
         let entry = entry?;
         let path = entry.path();
         if entry.file_name().to_string_lossy().parse::<u32>().is_err() {
@@ -104,10 +106,9 @@ fn observe_process(path: &Path, marker: &[u8], group: u32, uid: u32) -> io::Resu
     if matches!(state, "Z" | "X") {
         return Ok(());
     }
-    assert!(
-        !owned_group,
-        "the first browser still has a live group member"
-    );
+    if owned_group {
+        return Err(io::Error::other("the first browser still has a live group member"));
+    }
     if path.metadata()?.uid() != uid
         || !fs::read_to_string(path.join("comm"))?.starts_with("chrome")
     {
@@ -120,11 +121,8 @@ fn observe_process(path: &Path, marker: &[u8], group: u32, uid: u32) -> io::Resu
     if !u64::try_from(read).is_ok_and(|length| length <= MAX_ARG_BYTES) {
         return Err(io::ErrorKind::InvalidData.into());
     }
-    assert!(
-        !arguments
-            .windows(marker.len())
-            .any(|window| window == marker),
-        "the first browser still has a live profile process"
-    );
+    if arguments.windows(marker.len()).any(|part| part == marker) {
+        return Err(io::Error::other("the first browser still has a live profile process"));
+    }
     Ok(())
 }
