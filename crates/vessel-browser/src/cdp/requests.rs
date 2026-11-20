@@ -78,7 +78,7 @@ mod screencast;
 mod snapshot;
 pub(crate) use condition::ConditionProbe;
 pub(crate) use pointer::{MouseEvent, PointerState};
-pub(crate) use screencast::{ScreencastAck, ScreencastFrame, StartScreencast};
+pub(crate) use screencast::{ScreencastFrame, StartScreencast};
 pub(crate) use snapshot::{Frame, FrameTree, IsolatedWorld, SnapshotTraversal};
 
 macro_rules! empty_requests {
