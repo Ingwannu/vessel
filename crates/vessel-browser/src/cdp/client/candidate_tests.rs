@@ -96,7 +96,12 @@ async fn approved_candidate_uses_real_rust_driver_and_private_child_pipe() {
         let previous_root = root.clone();
         let previous_temporary = temporary.clone();
         let held = scope
-            .run(move || matches!(Profile::prepare(&previous_root, &previous_temporary), Err(ProfileError::Busy)))
+            .run(move || {
+                matches!(
+                    Profile::prepare(&previous_root, &previous_temporary),
+                    Err(ProfileError::Busy)
+                )
+            })
             .await
             .unwrap();
         readiness.unwrap();

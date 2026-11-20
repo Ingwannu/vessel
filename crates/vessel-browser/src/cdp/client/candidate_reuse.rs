@@ -5,7 +5,9 @@ use std::io::{self, Read as _};
 use std::os::unix::fs::MetadataExt as _;
 use std::path::{Path, PathBuf};
 
-use vessel_proto::browser::{RequiredInput, ViewportSide, ViewportSize, WaitBudget, WaitFor, WaitMatch};
+use vessel_proto::browser::{
+    RequiredInput, ViewportSide, ViewportSize, WaitBudget, WaitFor, WaitMatch,
+};
 
 use super::actor::Shutdown;
 use super::candidate_page::{PERSISTED_MARKER, PERSISTED_ROUTE};
@@ -32,10 +34,17 @@ pub(super) async fn relaunch(
     let fixture = root.parent().unwrap().to_owned();
     // Release only the isolated fixture after the original run has a close
     // receipt and a fresh read-only absence observation.
-    scope.run(move || observe_quiet(&fixture, group)).await.unwrap().unwrap();
+    scope
+        .run(move || observe_quiet(&fixture, group))
+        .await
+        .unwrap()
+        .unwrap();
     drop(first);
-    let plan = scope.run(move || Plan::inspect(Profile::prepare(&root, &temporary).unwrap(), proxy))
-        .await.unwrap().unwrap();
+    let plan = scope
+        .run(move || Plan::inspect(Profile::prepare(&root, &temporary).unwrap(), proxy))
+        .await
+        .unwrap()
+        .unwrap();
     let owner = Owner::spawn(plan).unwrap();
     let run = owner.lifetime();
     let (mut owner, readiness) = owner.attest(scope).await.unwrap();
@@ -54,10 +63,15 @@ pub(super) async fn relaunch(
 
 async fn read_marker(client: &super::Client) -> Result<(), crate::page::PageError> {
     let side = ViewportSide::try_from(390).unwrap();
-    let viewport = ViewportSize { width: side, height: side };
+    let viewport = ViewportSize {
+        width: side,
+        height: side,
+    };
     let mut page = Page::open(client.clone(), PERSISTED_ROUTE.parse().unwrap(), viewport).await?;
     let expected = RequiredInput::try_from(PERSISTED_MARKER.to_owned()).unwrap();
-    let receipt = page.wait(WaitFor::Text(expected), WaitBudget::Default).await?;
+    let receipt = page
+        .wait(WaitFor::Text(expected), WaitBudget::Default)
+        .await?;
     assert_eq!(receipt, WaitMatch::Text);
     page.close().await
 }
@@ -73,8 +87,8 @@ fn observe_quiet(fixture: &Path, group: u32) -> io::Result<()> {
             continue;
         }
         match observe_process(&path, marker, group, uid) {
-            Ok(()) => {},
-            Err(error) if error.kind() == io::ErrorKind::NotFound => {},
+            Ok(()) => {}
+            Err(error) if error.kind() == io::ErrorKind::NotFound => {}
             Err(error) => return Err(error),
         }
     }
@@ -90,15 +104,27 @@ fn observe_process(path: &Path, marker: &[u8], group: u32, uid: u32) -> io::Resu
     if matches!(state, "Z" | "X") {
         return Ok(());
     }
-    assert!(!owned_group, "the first browser still has a live group member");
-    if path.metadata()?.uid() != uid || !fs::read_to_string(path.join("comm"))?.starts_with("chrome") {
+    assert!(
+        !owned_group,
+        "the first browser still has a live group member"
+    );
+    if path.metadata()?.uid() != uid
+        || !fs::read_to_string(path.join("comm"))?.starts_with("chrome")
+    {
         return Ok(());
     }
     let mut arguments = Vec::new();
-    let read = File::open(path.join("cmdline"))?.take(MAX_ARG_BYTES.saturating_add(1)).read_to_end(&mut arguments)?;
+    let read = File::open(path.join("cmdline"))?
+        .take(MAX_ARG_BYTES.saturating_add(1))
+        .read_to_end(&mut arguments)?;
     if !u64::try_from(read).is_ok_and(|length| length <= MAX_ARG_BYTES) {
         return Err(io::ErrorKind::InvalidData.into());
     }
-    assert!(!arguments.windows(marker.len()).any(|window| window == marker), "the first browser still has a live profile process");
+    assert!(
+        !arguments
+            .windows(marker.len())
+            .any(|window| window == marker),
+        "the first browser still has a live profile process"
+    );
     Ok(())
 }

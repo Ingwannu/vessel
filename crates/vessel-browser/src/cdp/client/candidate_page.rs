@@ -89,8 +89,15 @@ async fn document(State(routes): State<Routes>, request: Request<Body>) -> Respo
         return StatusCode::NO_CONTENT.into_response();
     }
     if parts.uri.path() == "/profile-marker" {
-        let received = parts.headers.get(header::COOKIE).and_then(|entry| entry.to_str().ok());
-        return if received.is_some_and(|cookies| cookies.split(';').any(|cookie| cookie.trim() == FIXTURE_COOKIE)) {
+        let received = parts
+            .headers
+            .get(header::COOKIE)
+            .and_then(|entry| entry.to_str().ok());
+        return if received.is_some_and(|cookies| {
+            cookies
+                .split(';')
+                .any(|cookie| cookie.trim() == FIXTURE_COOKIE)
+        }) {
             ([(header::CACHE_CONTROL, "no-store")], PERSISTED_MARKER).into_response()
         } else {
             StatusCode::PRECONDITION_FAILED.into_response()
