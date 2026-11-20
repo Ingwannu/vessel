@@ -476,9 +476,12 @@ views, terminals, Changes, Diff, Files and individual file editors
 worktree workspace in the worktree, a folder outside every project in that
 folder, so "New terminal" needs no agent and archiving an agent ends none of
 them. Below protocol 40 they sit beside the workspace's first live
-unarchived agent, and with none the action is disabled and says so. Shells
-opened beside an agent before the upgrade are found by one read when the
-workspace opens and stay in the strip until closed. At widths below 600px,
+unarchived agent (else its first unarchived one, an ended agent still
+hosting a shell), and with every agent archived the action is disabled and
+says so. Shells beside the workspace's agents (agents still open them, as
+do older clients) are read on the same 2 s tick as the place's list, so
+one an agent opens shows within the tick and one that ends leaves the
+strip. At widths below 600px,
 the tab count opens the switcher and Changes shows inline diffs. The branch
 chip opens Changes at any width.
 The log's find bar sits at the top right and the outline on its left
@@ -1760,7 +1763,7 @@ The rest is in a menu at the bar's end, "Session actions":
 | Pin session / Unpin session | protocol 10; `session.mark` `pin`, `unpin` |
 | Mark as unread / Mark as read | protocol 10; `unread`, `read` up to the last record shown |
 | Start again | an ended structured session whose agent can resume (`abilities.resume`, and its own session id is known); `session.resume`, which also unarchives it |
-| Archive session / Unarchive | protocol 10; archiving a live session stops its agent first, so the confirmation says so ("Archiving stops the agent on laptop first."); from protocol 11 it also ends the terminals and services beside it, which the confirmation says too. A worktree's or a folder's terminals (ADR 0121, protocol 40) are never beside a session, so the confirmation never counts them |
+| Archive session / Unarchive | protocol 10; archiving a live session stops its agent first, so the confirmation says so ("Archiving stops the agent on laptop first."); from protocol 11 it also ends the terminals and services beside it, which the confirmation says too. A worktree's or a folder's terminals (ADR 0121, protocol 40) are never beside a session, so the confirmation never counts them; a shell an agent opened beside itself still is, and is counted and ended as before |
 | Delete permanently | protocol 10, an ended session; confirmed ("Delete this session permanently?", what goes and what stays); `session.delete`, and a toast says what became of its worktree (removed, or kept and why) |
 | Move to another profile | a session with a timeline, while live; a dialog listing profiles of the same agent, on the same model route (`session.move_profile`) |
 | Copy agent id | Paseo's row for the agent's id (a Vessel session is its agent); the toast says "Copied Agent ID" (`toast.copied`) |

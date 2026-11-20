@@ -2,21 +2,20 @@
 // resurrect a shell that just closed or outrun the create response.
 //
 // From protocol 40 (ADR 0121) a worktree or folder workspace lists its
-// place by itself; the node matches it. Shells opened there before the
-// upgrade sit beside a session instead: one read when the workspace opens
-// finds them (the coordinator's ruling on TRACKER 829, Q1: no poll, since
-// no new ones are made), and they stay in the strip until closed.
+// place by itself, the node matching it, and on the same tick reads the
+// shells beside its sessions: agents still open those (`create_terminal`
+// asks for `Session`), and the place's list leaves them out. One tick
+// replaces the strip's list, so a new shell shows within it and an ended
+// one leaves (`readStrip`).
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { Outcome } from "../../data/outcome";
 import { useFleet } from "../../context";
 import {
-  olderShells,
+  readStrip,
   sessionHost,
-  shellOf,
   speaksWorkspacePlaces,
-  stripShells,
   workspaceTerminalPlace,
 } from "../../data/workspace/terminal-place";
 import {
@@ -74,7 +73,6 @@ export function useTerminals(
 ): WorkspaceTerminals {
   const fleet = useFleet();
   const [rows, setRows] = useState<readonly TerminalInfo[]>([]);
-  const [older, setOlder] = useState<readonly TerminalInfo[]>([]);
   const [creating, setCreating] = useState(false);
   const pending = useRef(false);
   const revision = useRef(0);
@@ -88,22 +86,21 @@ export function useTerminals(
     let timer: number | undefined;
     const read = async () => {
       const since = revision.current;
-      const result = await workspaceTerminals(
-        fleet,
-        node,
-        place === null || place.kind === "session" ? null : place,
-      );
+      // No place (below 40, every agent archived): an empty strip, as before.
+      const result =
+        place === null
+          ? { ok: true as const, value: [] }
+          : await readStrip(
+              (asked) => workspaceTerminals(fleet, node, asked),
+              place,
+              sessionIds,
+            );
       if (!live) {
         return;
       }
       if (result.ok && !pending.current && since === revision.current) {
         setRows(
-          result.value.terminals.filter(
-            (terminal) =>
-              place !== null &&
-              !closed.current.has(terminal.id) &&
-              shellOf(place, terminal, sessionIds),
-          ),
+          result.value.filter((terminal) => !closed.current.has(terminal.id)),
         );
       }
       timer = window.setTimeout(() => void read(), LIST_INTERVAL_MS);
@@ -115,40 +112,8 @@ export function useTerminals(
     };
   }, [enabled, fleet, node, place, sessionIds]);
 
-  // Keyed by the place, not the session set: the set changes with every
-  // session update, and this read is once per workspace opened.
-  const opened =
-    place?.kind === "worktree"
-      ? `worktree:${place.worktree}`
-      : place?.kind === "folder"
-        ? `folder:${place.path}`
-        : null;
-  const sessionsNow = useRef(sessionIds);
-  useEffect(() => {
-    sessionsNow.current = sessionIds;
-  }, [sessionIds]);
-  useEffect(() => {
-    if (!enabled || opened === null) {
-      return undefined;
-    }
-    let live = true;
-    void workspaceTerminals(fleet, node, null).then((result) => {
-      if (live && result.ok) {
-        setOlder(
-          olderShells(result.value.terminals, sessionsNow.current).filter(
-            (terminal) => !closed.current.has(terminal.id),
-          ),
-        );
-      }
-    });
-    return () => {
-      live = false;
-      setOlder([]);
-    };
-  }, [enabled, fleet, node, opened]);
-
   return {
-    rows: stripShells(rows, older),
+    rows,
     creating,
     create: async () => {
       if (!enabled || place === null || pending.current) {
@@ -173,15 +138,11 @@ export function useTerminals(
       setRows((items) =>
         items.map((item) => (item.id === terminal.id ? terminal : item)),
       );
-      setOlder((items) =>
-        items.map((item) => (item.id === terminal.id ? terminal : item)),
-      );
     },
     forget: (id: TerminalId) => {
       revision.current += 1;
       closed.current.add(id);
       setRows((items) => items.filter((item) => item.id !== id));
-      setOlder((items) => items.filter((item) => item.id !== id));
     },
   };
 }

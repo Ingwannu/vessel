@@ -4,15 +4,19 @@ import { fixtureId } from "../../testing/ids";
 import type {
   SessionInfo,
   TerminalInfo,
+  TerminalList,
   TerminalPlace,
 } from "../../wire/proto";
+import type { Outcome } from "../outcome";
 import {
+  besideSessions,
   liveTerminalsIn,
   mayEndTerminals,
-  olderShells,
+  readStrip,
+  removalState,
   sessionHost,
+  sessionInWorktree,
   shellOf,
-  stripShells,
   workspaceTerminalPlace,
 } from "./terminal-place";
 import { closesTerminals } from "./worktree-words";
@@ -165,7 +169,7 @@ describe("which listed shells are the workspace's", () => {
     ).toBe(false);
   });
 
-  it("finds the shells opened beside the workspace's agents before the upgrade", () => {
+  it("finds the shells beside the workspace's agents, and only theirs", () => {
     const beside: TerminalPlace = {
       kind: "session",
       session: fixtureId("SessionId", "s-1"),
@@ -174,46 +178,121 @@ describe("which listed shells are the workspace's", () => {
       kind: "session",
       session: fixtureId("SessionId", "s-9"),
     };
-    const found = olderShells(
+    const found = besideSessions(
       [
-        terminal("t-old", beside, "/work/notes"),
+        terminal("t-agent", beside, "/work/notes"),
         terminal("t-other", elsewhere, "/work/other"),
         terminal(
-          "t-new",
+          "t-own",
           { kind: "folder", path: "/work/notes" },
           "/work/notes",
         ),
       ],
       sessions,
     );
-    expect(found.map((item) => item.id)).toEqual(["t-old"]);
+    expect(found.map((item) => item.id)).toEqual(["t-agent"]);
   });
+});
 
-  it("adds the older shells the opening read found to the strip", () => {
-    const folder: TerminalPlace = { kind: "folder", path: "/work/notes" };
-    const shown = terminal("t-new", folder, "/work/notes");
-    const placed = [shown];
-    const older = [
-      terminal(
-        "t-old",
-        { kind: "session", session: fixtureId("SessionId", "s-1") },
-        "/work/notes",
-      ),
-    ];
-    expect(stripShells(placed, older).map((item) => item.id)).toEqual([
-      "t-new",
-      "t-old",
+/** A node whose lists change from one tick to the next: `ticks[n]` answers
+ * the n-th tick's place read and its read of every terminal. */
+function node(ticks: readonly { own: TerminalInfo[]; all: TerminalInfo[] }[]): {
+  list: (place: TerminalPlace | null) => Promise<Outcome<TerminalList>>;
+  next: () => void;
+  asked: (TerminalPlace | null)[];
+} {
+  let tick = 0;
+  const asked: (TerminalPlace | null)[] = [];
+  return {
+    asked,
+    next: () => {
+      tick += 1;
+    },
+    list: (place) => {
+      asked.push(place);
+      const now = ticks[Math.min(tick, ticks.length - 1)];
+      const terminals =
+        now === undefined ? [] : place === null ? now.all : now.own;
+      return Promise.resolve({ ok: true, value: { terminals, revision: 1 } });
+    },
+  };
+}
+
+describe("one tick of the strip (the node reviewer's R1 on TRACKER 829)", () => {
+  const sessions = new Set([fixtureId("SessionId", "s-1")]);
+  const worktree: TerminalPlace = { kind: "worktree", worktree: WORKTREE };
+  const beside: TerminalPlace = {
+    kind: "session",
+    session: fixtureId("SessionId", "s-1"),
+  };
+  const own = terminal("t-own", worktree, "/w/fix");
+
+  it("shows a shell an agent opens after the workspace opened, on the next tick", async () => {
+    const agentShell = terminal("t-agent", beside, "/w/fix");
+    const fake = node([
+      { own: [own], all: [own] },
+      { own: [own], all: [own, agentShell] },
     ]);
-    // Listed by the place too (renamed, say), it is shown once.
-    expect(
-      stripShells(placed, [shown, ...older]).map((item) => item.id),
-    ).toEqual(["t-new", "t-old"]);
+    const first = await readStrip(fake.list, worktree, sessions);
+    expect(first.ok ? first.value.map((item) => item.id) : null).toEqual([
+      "t-own",
+    ]);
+    fake.next();
+    const second = await readStrip(fake.list, worktree, sessions);
+    expect(second.ok ? second.value.map((item) => item.id) : null).toEqual([
+      "t-own",
+      "t-agent",
+    ]);
+    // Each tick reads the place and every terminal, side by side.
+    expect(fake.asked).toEqual([worktree, null, worktree, null]);
   });
 
-  it("is the place's list alone when the opening read found none", () => {
-    const folder: TerminalPlace = { kind: "folder", path: "/work/notes" };
-    const placed = [terminal("t-new", folder, "/work/notes")];
-    expect(stripShells(placed, [])).toBe(placed);
+  it("carries a shell that ended as ended, and drops one that is gone", async () => {
+    const running = terminal("t-agent", beside, "/w/fix");
+    const ended = terminal("t-agent", beside, "/w/fix", false);
+    const fake = node([
+      { own: [own], all: [own, running] },
+      { own: [own], all: [own, ended] },
+      { own: [own], all: [own] },
+    ]);
+    await readStrip(fake.list, worktree, sessions);
+    fake.next();
+    const second = await readStrip(fake.list, worktree, sessions);
+    // The strip keeps live shells as tabs and closes the ended ones'
+    // (use-workspace: `isLiveTerminal`), so the ended state must come
+    // through.
+    expect(
+      second.ok
+        ? second.value.find((item) => item.id === "t-agent")?.status.state
+        : null,
+    ).toBe("exited");
+    fake.next();
+    const third = await readStrip(fake.list, worktree, sessions);
+    expect(third.ok ? third.value.map((item) => item.id) : null).toEqual([
+      "t-own",
+    ]);
+  });
+
+  it("keeps the last list when either read fails", async () => {
+    const failing = (place: TerminalPlace | null) =>
+      Promise.resolve<Outcome<TerminalList>>(
+        place === null
+          ? {
+              ok: false,
+              problem: { from: "op", reason: "busy", message: "busy" },
+            }
+          : { ok: true, value: { terminals: [own], revision: 1 } },
+      );
+    const read = await readStrip(failing, worktree, sessions);
+    expect(read.ok).toBe(false);
+  });
+
+  it("reads a project's place, or a session's, once a tick", async () => {
+    const project: TerminalPlace = { kind: "project", project: PROJECT };
+    const fake = node([{ own: [], all: [] }]);
+    await readStrip(fake.list, project, sessions);
+    await readStrip(fake.list, beside, sessions);
+    expect(fake.asked).toEqual([project, null]);
   });
 });
 
@@ -249,6 +328,63 @@ describe("a worktree's removal and its terminals (ADR 0121)", () => {
     expect(mayEndTerminals({ ...asked, liveTerminals: 0 })).toBe(false);
     expect(mayEndTerminals({ ...asked, inUse: false })).toBe(false);
     expect(mayEndTerminals({ ...asked, protocol: 39 })).toBe(false);
+  });
+
+  it("finds a live session in the worktree as the node does, by folder too", () => {
+    const at = (
+      cwd: string,
+      live: boolean,
+      inWorktree = false,
+    ): SessionInfo => ({
+      ...session("s-cli", live),
+      spec: { harness: "claude-code", mode: "structured", cwd },
+      ...(inWorktree
+        ? { workspace: { project: PROJECT, worktree: WORKTREE } }
+        : {}),
+    });
+    const fix = { id: WORKTREE, path: "/w/fix" };
+    // Started by folder (the CLI's --cwd), with no workspace on it.
+    expect(sessionInWorktree([at("/w/fix/web", true)], fix)).toBe(true);
+    expect(sessionInWorktree([at("/w/fix", true)], fix)).toBe(true);
+    expect(sessionInWorktree([at("/w/fix2", true)], fix)).toBe(false);
+    expect(sessionInWorktree([at("/w/fix", false)], fix)).toBe(false);
+    expect(sessionInWorktree([at("/elsewhere", true, true)], fix)).toBe(true);
+  });
+
+  it("decides what the dialog offers while counting, and after", () => {
+    const base = { protocol: 40, inUse: true, sessionInIt: false };
+    // Still counting: nothing said yet, the buttons wait.
+    expect(removalState({ ...base, liveTerminals: null })).toEqual({
+      checking: true,
+      endTerminals: false,
+      blocked: true,
+    });
+    // Counted: the buttons end them first.
+    expect(removalState({ ...base, liveTerminals: 2 })).toEqual({
+      checking: false,
+      endTerminals: true,
+      blocked: false,
+    });
+    // None counted: in_use is setup or a session; held as today.
+    expect(removalState({ ...base, liveTerminals: 0 })).toEqual({
+      checking: false,
+      endTerminals: false,
+      blocked: true,
+    });
+    // A live session in it: held, whatever was counted.
+    expect(
+      removalState({ ...base, sessionInIt: true, liveTerminals: 2 }),
+    ).toEqual({ checking: false, endTerminals: false, blocked: true });
+    // Below 40: as before 0121.
+    expect(
+      removalState({ ...base, protocol: 39, liveTerminals: null }),
+    ).toEqual({ checking: false, endTerminals: false, blocked: true });
+    // Nothing in use: nothing to hold or end.
+    expect(removalState({ ...base, inUse: false, liveTerminals: 0 })).toEqual({
+      checking: false,
+      endTerminals: false,
+      blocked: false,
+    });
   });
 
   it("says Paseo's terminal warning with the count", () => {

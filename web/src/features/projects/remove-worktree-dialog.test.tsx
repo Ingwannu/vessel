@@ -35,6 +35,7 @@ const IN_USE: KeptReason = { kind: "in_use" };
 function view(props: {
   kept: readonly KeptReason[];
   blocked: boolean;
+  checking?: boolean;
   snapshotable: boolean;
   closing: number | null;
 }): string {
@@ -45,6 +46,7 @@ function view(props: {
       error={null}
       onClose={vi.fn()}
       onRemove={vi.fn()}
+      checking={false}
       {...props}
     />,
   );
@@ -89,6 +91,20 @@ describe("removing a worktree its terminals keep (ADR 0121, TRACKER 829)", () =>
     });
     expect(html).toContain("End the session in it");
     expect(html).not.toContain("terminal(s)");
+    expect(enabled(html, "Discard and remove")).toBe(false);
+    expect(enabled(html, "Keep a snapshot and remove")).toBe(false);
+  });
+
+  it("says nothing about terminals or a session while it counts them", () => {
+    const html = view({
+      kept: [IN_USE],
+      blocked: true,
+      checking: true,
+      snapshotable: false,
+      closing: null,
+    });
+    expect(html).not.toContain("terminal(s)");
+    expect(html).not.toContain("End the session in it");
     expect(enabled(html, "Discard and remove")).toBe(false);
     expect(enabled(html, "Keep a snapshot and remove")).toBe(false);
   });

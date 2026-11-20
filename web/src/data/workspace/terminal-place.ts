@@ -18,14 +18,17 @@
 //   never compares paths itself.
 
 import { isLive } from "../format";
+import type { Outcome } from "../outcome";
 import { isArchived } from "../marks";
 import {
   WORKSPACE_TERMINALS_PROTOCOL,
   type SessionId,
   type SessionInfo,
   type TerminalInfo,
+  type TerminalList,
   type TerminalPlace,
   type WorkspaceRoot,
+  type WorktreeId,
 } from "../../wire/proto";
 
 /** Whether a node at `protocol` takes the workspace places of ADR 0121. */
@@ -101,10 +104,13 @@ export function shellOf(
   }
 }
 
-/** The shells opened beside the workspace's sessions before its node took
- * the workspace places (ADR 0121): still running, still ended by their
- * session's archive, so still shown and counted. */
-export function olderShells(
+/** The shells beside the workspace's sessions (a `Session` place). From
+ * protocol 40 the page opens none, but agents still do: the MCP
+ * `create_terminal` always asks for `Session` (ADR 0121: agents keep it),
+ * as do clients below 40 and shells opened before the upgrade. The
+ * node's `Worktree` and `Folder` lists leave them out, so the strip reads
+ * them on its own every tick (the node reviewer's R1 on TRACKER 829). */
+export function besideSessions(
   listed: readonly TerminalInfo[],
   sessions: ReadonlySet<SessionId>,
 ): TerminalInfo[] {
@@ -116,6 +122,13 @@ export function olderShells(
   );
 }
 
+/** Whether `path` is `folder` or inside it: the node's own test for what
+ * is in a worktree (`Path::starts_with`, by whole components). */
+function inFolder(path: string, folder: string): boolean {
+  const inside = folder.endsWith("/") ? folder : `${folder}/`;
+  return path === folder || path.startsWith(inside);
+}
+
 /** The live terminals a worktree's removal would end (`end_terminals`):
  * every live one whose folder is the worktree's or inside it, whatever its
  * place, since the node ends them by folder (`Terminals::end_in`). */
@@ -123,13 +136,28 @@ export function liveTerminalsIn(
   listed: readonly TerminalInfo[],
   folder: string,
 ): number {
-  const inside = folder.endsWith("/") ? folder : `${folder}/`;
   return listed.filter(
     (terminal) =>
       (terminal.status.state === "starting" ||
         terminal.status.state === "running") &&
-      (terminal.folder === folder || terminal.folder.startsWith(inside)),
+      inFolder(terminal.folder, folder),
   ).length;
+}
+
+/** Whether a live session works in `worktree`, by the node's test: its
+ * folder is the worktree's or inside it (`worktree.remove` checks every
+ * live session's `cwd` that way), so a session started there by folder
+ * (the CLI's `--cwd`) counts as much as one placed in the worktree. */
+export function sessionInWorktree(
+  sessions: readonly SessionInfo[],
+  worktree: { id: WorktreeId; path: string },
+): boolean {
+  return sessions.some(
+    (session) =>
+      isLive(session) &&
+      (session.workspace?.worktree === worktree.id ||
+        inFolder(session.spec.cwd ?? "", worktree.path)),
+  );
 }
 
 /** Whether a removal kept `in_use` may ask the node to end the terminals
@@ -150,16 +178,69 @@ export function mayEndTerminals(input: {
   );
 }
 
-/** The strip's shells: the place's, then the older ones the one read at
- * opening found and the place's list does not hold. With none found the
- * strip is the place's list alone. (What was closed here has already left
- * both: `forget` drops it from each.) */
-export function stripShells(
-  placed: readonly TerminalInfo[],
-  older: readonly TerminalInfo[],
-): readonly TerminalInfo[] {
-  const extra = older.filter(
+/** What the removal dialog offers, from what the node said and what the
+ * page counted.
+ * - `checking`: the count is still being read (or could not be read), so
+ *   neither the warning nor "end the session" is said yet and the buttons
+ *   wait.
+ * - `endTerminals`: the buttons end the counted terminals first.
+ * - `blocked`: `in_use` holds and cannot be lifted here (a live session,
+ *   setup, or a node below 40). */
+export function removalState(input: {
+  protocol: number | null;
+  inUse: boolean;
+  /** `null` until counted. */
+  liveTerminals: number | null;
+  sessionInIt: boolean;
+}): { checking: boolean; endTerminals: boolean; blocked: boolean } {
+  const checking =
+    speaksWorkspacePlaces(input.protocol) &&
+    input.inUse &&
+    !input.sessionInIt &&
+    input.liveTerminals === null;
+  const endTerminals = mayEndTerminals({
+    ...input,
+    liveTerminals: input.liveTerminals ?? 0,
+  });
+  return { checking, endTerminals, blocked: input.inUse && !endTerminals };
+}
+
+/** One tick of the strip's list: the workspace's shells as the node lists
+ * them now. A `Worktree` or `Folder` place is read by itself (the node
+ * matches it) and, alongside it, every terminal for the shells beside the
+ * workspace's sessions; a `Project` place is read by itself; a `Session`
+ * place reads every terminal. Each tick replaces the last, so a shell an
+ * agent opens shows within a tick and one that ends shows ended (the
+ * strip then drops its tab). Either read failing fails the tick, which
+ * keeps the last list rather than one with half its shells missing. */
+export async function readStrip(
+  list: (place: TerminalPlace | null) => Promise<Outcome<TerminalList>>,
+  place: TerminalPlace,
+  sessions: ReadonlySet<SessionId>,
+): Promise<Outcome<readonly TerminalInfo[]>> {
+  if (place.kind === "session" || place.kind === "project") {
+    const read = await list(place.kind === "project" ? place : null);
+    return read.ok
+      ? {
+          ok: true,
+          value: read.value.terminals.filter((terminal) =>
+            shellOf(place, terminal, sessions),
+          ),
+        }
+      : read;
+  }
+  const [own, all] = await Promise.all([list(place), list(null)]);
+  if (!own.ok) {
+    return own;
+  }
+  if (!all.ok) {
+    return all;
+  }
+  const placed = own.value.terminals.filter((terminal) =>
+    shellOf(place, terminal, sessions),
+  );
+  const beside = besideSessions(all.value.terminals, sessions).filter(
     (terminal) => !placed.some((row) => row.id === terminal.id),
   );
-  return extra.length === 0 ? placed : [...placed, ...extra];
+  return { ok: true, value: [...placed, ...beside] };
 }

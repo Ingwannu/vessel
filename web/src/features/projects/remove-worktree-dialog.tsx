@@ -11,13 +11,13 @@
 // end them first (`end_terminals`). Paseo ends a worktree's terminals on
 // archive without a word; Vessel asks (the ADR's ruling 2).
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { useFleet, useFleetState } from "../../context";
-import { isLive } from "../../data/format";
 import {
   liveTerminalsIn,
-  mayEndTerminals,
+  removalState,
+  sessionInWorktree,
   speaksWorkspacePlaces,
 } from "../../data/workspace/terminal-place";
 import { workspaceTerminals } from "../../data/workspace/terminals";
@@ -39,17 +39,38 @@ import type {
 
 const NO_SESSIONS: readonly SessionInfo[] = [];
 
-/** How many live terminals are in the worktree, read when the dialog
- * opens and after each answer (`null` until read, or below 40). */
+interface Count {
+  /** The live terminals in the worktree; `null` until read, after a failed
+   * read, or below 40. */
+  count: number | null;
+  /** Why the last read failed. */
+  problem: string | null;
+  /** Read it again now; the fresh count, or `null` when the read failed. */
+  recount: () => Promise<number | null>;
+}
+
+/** How many live terminals are in the worktree: read when the dialog opens,
+ * after each answer, and again on a press that would end them, so the
+ * count said is the count ended (as the tab close re-checks its impact). */
 function useLiveTerminals(
   node: NodeKey,
   worktree: WorktreeInfo,
   protocol: number | null,
   asked: number,
-): number | null {
+): Count {
   const fleet = useFleet();
   const [count, setCount] = useState<number | null>(null);
+  const [problem, setProblem] = useState<string | null>(null);
   const speaks = speaksWorkspacePlaces(protocol);
+  const read = useCallback(async (): Promise<number | null> => {
+    const result = await workspaceTerminals(fleet, node, null);
+    const fresh = result.ok
+      ? liveTerminalsIn(result.value.terminals, worktree.path)
+      : null;
+    setCount(fresh);
+    setProblem(result.ok ? null : result.problem.message);
+    return fresh;
+  }, [fleet, node, worktree.path]);
   useEffect(() => {
     if (!speaks) {
       return undefined;
@@ -62,13 +83,18 @@ function useLiveTerminals(
             ? liveTerminalsIn(result.value.terminals, worktree.path)
             : null,
         );
+        setProblem(result.ok ? null : result.problem.message);
       }
     });
     return () => {
       live = false;
     };
   }, [fleet, node, speaks, worktree.path, asked]);
-  return speaks ? count : null;
+  return {
+    count: speaks ? count : null,
+    problem: speaks ? problem : null,
+    recount: read,
+  };
 }
 
 export function RemoveWorktreeDialog({
@@ -97,61 +123,80 @@ export function RemoveWorktreeDialog({
   const [kept, setKept] = useState<readonly KeptReason[]>(reasons);
   const [error, setError] = useState<string | null>(null);
   const [asked, setAsked] = useState(0);
-  const liveTerminals = useLiveTerminals(node, worktree, protocol, asked);
+  const live = useLiveTerminals(node, worktree, protocol, asked);
   const branch = worktree.branch ?? worktree.created_branch ?? "this worktree";
   const inUse = kept.some((reason) => reason.kind === "in_use");
-  const sessionInIt = sessions.some(
-    (session) => session.workspace?.worktree === worktree.id && isLive(session),
-  );
-  const endTerminals = mayEndTerminals({
+  const state = removalState({
     protocol,
     inUse,
-    liveTerminals: liveTerminals ?? 0,
-    sessionInIt,
+    liveTerminals: live.count,
+    sessionInIt: sessionInWorktree(sessions, worktree),
   });
-  // With the terminals ended first, `in_use` no longer holds the removal.
-  const blocked = inUse && !endTerminals;
+  // A failed count is said, and holds the buttons as "checking" would.
+  const checking = state.checking && live.problem === null;
   const others = kept.filter((reason) => reason.kind !== "in_use");
-  const snapshotable = !blocked && others.every(snapshotCovers);
+  const snapshotable = !state.blocked && others.every(snapshotCovers);
+  const send = (ifLost: IfLost) => {
+    void removeWorktree(
+      fleet,
+      node,
+      worktree.id,
+      ifLost,
+      state.endTerminals,
+    ).then((outcome) => {
+      setBusy(null);
+      setAsked((count) => count + 1);
+      if (!outcome.ok) {
+        setError(outcome.problem.message);
+        return;
+      }
+      if (outcome.value.outcome === "kept") {
+        setKept(outcome.value.reasons);
+        setError(
+          ifLost === "snapshot"
+            ? "The snapshot was refused, so nothing was removed."
+            : "Nothing was removed.",
+        );
+        return;
+      }
+      const snapshot = outcome.value.snapshot ?? null;
+      toast(
+        snapshot === null
+          ? `Removed ${branch}`
+          : `Removed ${branch}; its work is kept in snapshot ${snapshot.commit.slice(0, 7)}`,
+      );
+      onRemoved();
+    });
+  };
   const remove = (ifLost: IfLost) => {
     setBusy(ifLost);
     setError(null);
-    void removeWorktree(fleet, node, worktree.id, ifLost, endTerminals).then(
-      (outcome) => {
+    if (!state.endTerminals) {
+      send(ifLost);
+      return;
+    }
+    // The count said must be the count ended: a terminal opened since
+    // the dialog said it stops the press, and the warning says the new
+    // count for the person to press again.
+    const said = live.count;
+    void live.recount().then((fresh) => {
+      if (fresh === null || fresh !== said) {
         setBusy(null);
-        setAsked((count) => count + 1);
-        if (!outcome.ok) {
-          setError(outcome.problem.message);
-          return;
-        }
-        if (outcome.value.outcome === "kept") {
-          setKept(outcome.value.reasons);
-          setError(
-            ifLost === "snapshot"
-              ? "The snapshot was refused, so nothing was removed."
-              : "Nothing was removed.",
-          );
-          return;
-        }
-        const snapshot = outcome.value.snapshot ?? null;
-        toast(
-          snapshot === null
-            ? `Removed ${branch}`
-            : `Removed ${branch}; its work is kept in snapshot ${snapshot.commit.slice(0, 7)}`,
-        );
-        onRemoved();
-      },
-    );
+        return;
+      }
+      send(ifLost);
+    });
   };
   return (
     <RemoveWorktreeView
       worktree={worktree}
       kept={kept}
       busy={busy}
-      error={error}
-      blocked={blocked}
+      error={error ?? live.problem}
+      blocked={state.blocked}
+      checking={checking}
       snapshotable={snapshotable}
-      closing={endTerminals ? liveTerminals : null}
+      closing={state.endTerminals ? live.count : null}
       onClose={onClose}
       onRemove={remove}
     />
@@ -167,6 +212,7 @@ export function RemoveWorktreeView({
   busy,
   error,
   blocked,
+  checking,
   snapshotable,
   closing,
   onClose,
@@ -177,6 +223,9 @@ export function RemoveWorktreeView({
   busy: IfLost | null;
   error: string | null;
   blocked: boolean;
+  /** The terminals are still being counted: nothing is said about them
+   * or about a session yet. */
+  checking: boolean;
   snapshotable: boolean;
   closing: number | null;
   onClose: () => void;
@@ -221,7 +270,7 @@ export function RemoveWorktreeView({
           <li key={index}>{keptReasonWords(reason)}</li>
         ))}
       </ul>
-      {blocked ? (
+      {checking ? null : blocked ? (
         <p className="dialog-copy">
           End the session in it (or wait for setup) before removing it.
         </p>
