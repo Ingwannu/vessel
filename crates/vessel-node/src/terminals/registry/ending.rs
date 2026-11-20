@@ -32,6 +32,11 @@ impl Terminals {
     /// End every live terminal whose folder is in `folder` and keep them,
     /// with their output (a worktree removed with its terminals, ADR 0121).
     /// Waits for their ends.
+    ///
+    /// Folders are compared as stored, without resolving links: the same
+    /// test as the removal's own "in use" check (`cwd.starts_with(path)`),
+    /// so what this misses under another spelling does not hold the
+    /// removal either. Keep the two tests the same.
     pub(crate) async fn end_in(&self, folder: &std::path::Path) {
         let handles = self.handles(|info| info.is_live() && info.folder.starts_with(folder));
         self.end_all(&handles, false).await;
