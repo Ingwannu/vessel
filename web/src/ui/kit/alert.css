@@ -1,7 +1,10 @@
 /* Alert (kit/alert.tsx): Paseo's alert.tsx with its control-geometry
    sizes. Transparent, bordered, rounded; the accent colours the icon, the
    title and (at half strength) the border, except success and default,
-   which keep the plain border. */
+   which keep the plain border.
+   Stated difference (TRACKER 827): Paseo draws info in blue[300] in both
+   themes, 1.7:1 on the light page; here info's words and mark use
+   --info-ink (AA in light), and its edge keeps Paseo's blue. */
 
 .alert {
   --alert-accent: var(--text-primary);
@@ -44,7 +47,9 @@
 }
 
 .alert-info {
-  --alert-accent: var(--info);
+  /* The words and the mark meet AA in light (tokens.css --info-ink); the
+     edge is Paseo's blue at half strength. */
+  --alert-accent: var(--info-ink);
   border-color: color-mix(in srgb, var(--info) 50%, transparent);
 }
 
