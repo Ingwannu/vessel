@@ -67,6 +67,11 @@ and close clear the previous context's pixels. The eventual node watch keeps
 descriptor and terminal notices separate so a lagging frame consumer can skip
 intermediate pixels while still detecting state changes.
 
+The runtime inventory generates a browser ID for a successfully created
+target, binds it to the admitted workspace, caps resident targets and retains
+the target on an uncertain close. The live fixture checks foreign-workspace
+refusal and removes the binding only after the actual target acknowledges close.
+
 The immutable Linux fixture on `41682f25` passed in 6.75 s under UID/GID 1000.
 Remote format, strict browser Clippy and the test export passed. The live test
 observed a trusted click, committed text, stale-input refusal, viewport and

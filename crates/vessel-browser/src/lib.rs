@@ -35,3 +35,6 @@ mod input_lane;
 
 #[cfg(test)]
 mod evaluation;
+
+#[cfg(test)]
+mod targets;

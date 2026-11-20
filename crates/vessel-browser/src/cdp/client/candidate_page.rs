@@ -5,6 +5,7 @@
 //! native decoding, paint, first-frame policy and engine qualification stay separate.
 use super::{Client, Events, SHUTDOWN_TIMEOUT, candidate_network::Routes};
 use crate::page::{Page, PageError, ViewportFrame};
+use crate::targets::{TargetError, Targets};
 use axum::{
     Router,
     body::Body,
@@ -14,6 +15,7 @@ use axum::{
 };
 use tokio::net::TcpListener;
 use tokio_util::sync::{CancellationToken, DropGuard};
+use vessel_proto::WorkspaceId;
 use vessel_proto::browser::{
     CssCoordinate, CssPoint, HumanInput, ImageSize, InputText, KeyModifiers, MouseButton,
     PointerAction, RequiredInput, ScreenshotExtent, TextCompleteness, ViewportSide, ViewportSize,
@@ -104,17 +106,26 @@ pub(super) async fn exercise(
     client: &Client,
     events: &mut Events,
     routes: Routes,
-) -> Result<Observed, PageError> {
+) -> Result<Observed, TargetError> {
     let viewport = ViewportSize {
         width: ViewportSide::try_from(WIDTH).unwrap(),
         height: ViewportSide::try_from(HEIGHT).unwrap(),
     };
-    let mut page = Page::open(
-        client.clone(),
-        "http://fixture.test/".parse().unwrap(),
-        viewport,
-    )
-    .await?;
+    let workspace = WorkspaceId::random();
+    let mut targets = Targets::default();
+    let browser = targets
+        .open(
+            client,
+            workspace,
+            "http://fixture.test/".parse().unwrap(),
+            viewport,
+        )
+        .await?;
+    assert!(matches!(
+        targets.owned(WorkspaceId::random(), &browser),
+        Err(TargetError::Missing)
+    ));
+    let page = targets.owned(workspace, &browser)?;
     // The final marker follows the controls, so a partially parsed document is
     // not mistaken for a ready snapshot/capture fixture. This is not paint proof.
     let matched = page
@@ -128,7 +139,7 @@ pub(super) async fn exercise(
     page.refresh_visible_frame().await?;
     let frame = frames.borrow_and_update().clone().unwrap();
     let png = frame.image().size();
-    exercise_input(&mut page, &frame).await?;
+    exercise_input(page, &frame).await?;
     assert!(
         frames.borrow().is_none(),
         "old document generation stayed visible"
@@ -141,8 +152,12 @@ pub(super) async fn exercise(
     ));
     let full_png = page.capture_extent(ScreenshotExtent::Page).await?.size();
     let compositor_png = page.probe_compositor(events).await?.size();
-    routes.verify_browser(&mut page).await?;
-    page.close().await?;
+    routes.verify_browser(page).await?;
+    targets.close(workspace, &browser).await?;
+    assert!(matches!(
+        targets.owned(workspace, &browser),
+        Err(TargetError::Missing)
+    ));
     Ok(Observed {
         matched,
         snapshot,
