@@ -227,3 +227,24 @@ pulls-group-skipped = { NUMBER($count) ->
     }
 # A running check's time so far. $duration is short, such as "2m" or "1m 30s".
 pulls-check-running = running { $duration }
+# The pane's Activity when the pull request has none.
+pulls-no-activity = No activity yet
+# What a person did, after their name in an activity card. Lowercase, as Paseo writes it.
+pulls-verb-commented = commented
+pulls-verb-approved = approved
+pulls-verb-changes-requested = requested changes
+pulls-verb-reviewed = reviewed
+# A review thread with no file, in its header.
+pulls-thread-discussion = Discussion thread
+# A thread's badges. Keep short.
+pulls-thread-resolved = Resolved
+pulls-thread-outdated = Outdated
+# How long ago an activity card was written. $count is a whole number.
+pulls-age-now = just now
+pulls-age-minutes = { NUMBER($count) }m ago
+pulls-age-hours = { NUMBER($count) }h ago
+pulls-age-days = { NUMBER($count) }d ago
+pulls-age-months = { NUMBER($count) }mo ago
+pulls-age-years = { NUMBER($count) }y ago
+# A card whose author the forge did not name.
+pulls-unknown-author = unknown

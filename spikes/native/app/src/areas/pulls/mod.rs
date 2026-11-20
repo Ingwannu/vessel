@@ -28,8 +28,10 @@ mod link;
 mod merge;
 mod pane;
 mod pane_activity;
+mod pane_cards;
 mod pane_checks;
 mod pane_skeleton;
+mod pane_timeline;
 
 use std::collections::HashSet;
 
@@ -117,6 +119,8 @@ pub(crate) struct Facts {
     pub(crate) refreshing: bool,
     /// The card's summary when it was asked: a newer one reads it again.
     pub(crate) seen: Option<vessel_proto::forge::PullSummary>,
+    /// Its activity (`pr.timeline`).
+    pub(crate) timeline: pane_timeline::TimelineRead,
     pub(crate) choices: Choices,
 }
 
@@ -127,6 +131,9 @@ pub(crate) struct Choices {
     pub(crate) checks_closed: bool,
     pub(crate) collapsed: HashSet<Presentation>,
     pub(crate) activity_closed: bool,
+    /// Activity entries folded, and those unfolded that start folded.
+    pub(crate) folded: HashSet<String>,
+    pub(crate) unfolded: HashSet<String>,
 }
 
 pub(crate) struct PullsArea {
@@ -403,6 +410,11 @@ impl Shell {
             PullAnswer::Feedback { ask, result } => {
                 self.pulls_feedback_answered(&ask, result, cx);
             }
+            PullAnswer::Timeline { session, result } => {
+                self.pulls_timeline(machine, session, result);
+            }
+            // Nothing asks one before "Add logs to chat" (packet P3c).
+            PullAnswer::Check { .. } => {}
         }
         cx.notify();
     }
@@ -442,6 +454,11 @@ impl Shell {
                 FactsRead::Loading | FactsRead::Failed(_) => FactsRead::Failed(problem),
             },
         };
+        // A pull request read: its activity follows (Paseo refetches the
+        // timeline when the status changes).
+        if matches!(&facts.read, FactsRead::Ready(view) if view.pull_request.is_some()) {
+            self.pulls_ask_timeline(machine, session);
+        }
     }
 
     fn pulls_opened(

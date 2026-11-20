@@ -108,6 +108,7 @@ impl Shell {
                 read: FactsRead::Loading,
                 refreshing: false,
                 seen: card,
+                timeline: super::pane_timeline::TimelineRead::default(),
                 choices: super::Choices::default(),
             });
         }
