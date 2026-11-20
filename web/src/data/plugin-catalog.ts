@@ -201,7 +201,7 @@ export function pluginSlashCommands(
   place: PluginPlace,
 ): PluginSlashCommand[] {
   const held = catalogs.get(node);
-  if (held === undefined || !held.catalog.may_invoke) return [];
+  if (held?.catalog.may_invoke !== true) return [];
   const commands: PluginSlashCommand[] = [];
   for (const installation of held.catalog.catalog.installations) {
     for (const item of installation.document.contributions) {
