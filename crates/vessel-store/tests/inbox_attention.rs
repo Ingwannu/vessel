@@ -179,13 +179,13 @@ async fn two_sessions_are_read_from_one_snapshot() {
     while !writer.is_finished() || samples == 0 {
         for order in [vec![one, two], vec![two, one]] {
             let state = store.inbox_attention(order).await.unwrap();
-            let waiting = |session| {
+            let requests_of = |session| {
                 state
                     .iter()
                     .find(|row| row.session == session)
                     .map_or(0, |row| row.waiting.get())
             };
-            let (ahead, behind) = (waiting(one), waiting(two));
+            let (ahead, behind) = (requests_of(one), requests_of(two));
             assert!(
                 ahead == behind || ahead == behind.saturating_add(1),
                 "one snapshot: the first session has {ahead} waiting, the second {behind}"
