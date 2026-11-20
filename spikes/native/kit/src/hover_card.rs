@@ -297,7 +297,10 @@ fn escape(state: Rc<RefCell<State>>) -> impl IntoElement {
         move |_bounds, (), window, _cx| {
             let state = Rc::clone(&state);
             window.on_key_event(move |event: &KeyDownEvent, phase, window, _cx| {
-                if phase.bubble() && event.keystroke.key == "escape" {
+                // Capture: seen before the focused element's own Escape
+                // (a field clearing, a dialog closing) can stop it; the
+                // card does not stop it in turn.
+                if phase.capture() && event.keystroke.key == "escape" {
                     close_now(&state);
                     window.refresh();
                 }

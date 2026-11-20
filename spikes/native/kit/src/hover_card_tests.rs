@@ -7,6 +7,8 @@ use crate::{Scheme, Tokens};
 use gpui::{Context, Modifiers, MouseButton, Render, TestAppContext, VisualTestContext};
 
 struct Probe {
+    /// Whatever has the keys (the app always has a focused element).
+    focus: gpui::FocusHandle,
     cards: HoverCards,
     a: Place,
     b: Place,
@@ -29,6 +31,7 @@ impl Render for Probe {
         let tokens = Tokens::of(Scheme::Dark);
         let content = div().h(px(80.0)).child("details");
         div()
+            .track_focus(&self.focus)
             .size_full()
             .p(px(40.0))
             .flex()
@@ -45,12 +48,15 @@ impl Render for Probe {
 
 fn setup(cx: &mut TestAppContext, enabled: bool) -> (gpui::Entity<Probe>, &mut VisualTestContext) {
     cx.update(|cx| crate::init(cx, crate::SchemeChoice::Fixed(Scheme::Dark)).unwrap());
-    cx.add_window_view(move |_, _| Probe {
+    let (view, cx) = cx.add_window_view(move |_, cx| Probe {
+        focus: cx.focus_handle(),
         cards: HoverCards::new(),
         a: Place::default(),
         b: Place::default(),
         enabled,
-    })
+    });
+    view.update_in(cx, |probe, window, cx| probe.focus.focus(window, cx));
+    (view, cx)
 }
 
 fn move_to(cx: &mut VisualTestContext, at: gpui::Point<gpui::Pixels>) {
