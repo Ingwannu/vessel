@@ -91,7 +91,12 @@ fn summary_pills(
             comments,
         } = counts(&shown(&timeline.items));
         return [
-            (Glyph::CircleCheck, 12.0, status.success.foreground, approvals),
+            (
+                Glyph::CircleCheck,
+                12.0,
+                status.success.foreground,
+                approvals,
+            ),
             (Glyph::CircleX, 12.0, status.error.foreground, changes),
             (Glyph::Message, 11.0, muted, comments),
         ]
