@@ -98,7 +98,9 @@ async fn terminal_attention_uses_the_same_encrypted_generic_delivery_after_assig
                 .get(terminal.id)
                 .unwrap()
                 .handle;
-            let start = terminal.attention.unwrap();
+            // The created terminal's reply has its attention cut, as every
+            // peer's has while unassigned; the node's own handle holds it.
+            let start = handle.info().attention.unwrap();
             let working = handle
                 .report_activity(start.revision, TerminalActivitySignal::Working)
                 .unwrap();
