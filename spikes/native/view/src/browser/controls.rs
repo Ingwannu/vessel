@@ -9,6 +9,7 @@ use vessel_proto::browser::{
 use super::{History, LoadState, Navigation, NavigationAction, Viewport};
 
 /// An admitted General tab and the revision that supplies its displayed facts.
+#[derive(Debug)]
 pub struct GeneralPane {
     tab: BrowserTab,
     revision: BrowserRevision,
