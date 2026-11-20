@@ -219,7 +219,14 @@ assigned at merge).
   worktree); a call from a run that has since been
   replaced answers `conflict` ("read it again"). The helper receives
   `{input, context}`, the context objects Paseo's `onSelect` and `onSubmit`
-  get. The supervisor's actor checks
+  get. The node passes the context as the caller stated it and does not
+  check that the project, worktree or session exists: the caller already
+  holds `admin`, whose scopes are node-wide, so naming another project
+  grants nothing the credential lacks. A plugin treats the context as
+  caller input, as it treats `input`. A call is refused
+  (`unavailable`) from the moment plugins are switched off or the
+  installation is disabled, though its helper stops a moment later. The
+  supervisor's actor checks
   that the running generation declared the method (`not_found` otherwise),
   admits the input within the helper payload budget (1 MiB, `invalid_request`
   over it), and keeps its own deadline. A helper's failure reaches the

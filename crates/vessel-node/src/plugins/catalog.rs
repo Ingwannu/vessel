@@ -15,7 +15,11 @@
 //! - Choice: the catalog is built from the rows under the plain lock: a
 //!   client-only installation's document from its start, a helper's from
 //!   its runtime state. Not running (stopped, failed, plugins off) is not
-//!   in the catalog. It waits for the start-up settle as the list does, so
+//!   in the catalog. Plugins switched off or one disabled counts from the
+//!   moment the owner says so: the switch as asked (`wanted_switch`) and
+//!   the saved row are read, not only the runs, which stop a moment later
+//!   (`apply_switch` runs in the background; `disable` saves, then stops).
+//!   A call in that moment is refused rather than run (node review note 3). It waits for the start-up settle as the list does, so
 //!   a client reading at node start does not see an empty catalog first.
 //! - Invoke checks that the installation runs a helper whose current run is
 //!   the one the caller's catalog named (ADR 0079: an action carries its
@@ -45,12 +49,14 @@ impl Plugins {
     pub(crate) async fn catalog(&self, may_invoke: bool) -> Result<PluginCatalog, PluginError> {
         self.settled().await;
         let generation = *self.inner.generation.borrow();
+        let wanted = *self.inner.wanted_switch.borrow();
         let installations = {
             let state = self.state();
-            if state.switch {
+            if wanted && state.switch {
                 state
                     .rows
                     .values()
+                    .filter(|row| row.saved.enabled)
                     .filter_map(|row| entry(&row.run))
                     .collect::<Vec<_>>()
             } else {
@@ -85,12 +91,18 @@ impl Plugins {
             context,
         } = request;
         let plugin = &plugin;
+        let wanted = *self.inner.wanted_switch.borrow();
         let (handle, address) = {
             let state = self.state();
             let row = state
                 .rows
                 .get(plugin)
                 .ok_or_else(|| PluginError::NotInstalled(plugin.clone()))?;
+            // Switched off or disabled, even while the stop is still on its
+            // way: the owner said no plugin code runs.
+            if !(wanted && state.switch && row.saved.enabled) {
+                return Err(PluginError::NotRunning(plugin.clone()));
+            }
             match &row.run {
                 Run::Helper(supervisor) => {
                     let handle = supervisor.handle();
