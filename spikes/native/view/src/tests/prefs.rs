@@ -13,7 +13,7 @@ use crate::prefs::{
     ActionId, AgentKind, Bindings, Choices, ContentWidth, ExplorerSort, Grouping, InvalidActionId,
     InvalidKeyBinding, Kept, KeyBinding, LaunchOnly, MAX_ACTIONS, MAX_MACHINES, MachineDefaults,
     Panel, PreferenceChange, Preferences, Refused, SendKey, ShortcutEdit, ShortcutTarget,
-    SidebarView, Theme, TurnDelivery,
+    SidebarView, TerminalPreferences, Theme, TurnDelivery,
 };
 
 /// The page/bridge defaults, byte for byte the bridge's `defaults_are_the_contracts`
@@ -542,4 +542,39 @@ fn folds_follow_the_lists_and_the_book() {
     assert!(folds.forget_machine("gpu-box"));
     assert!(!folds.contains("gpu-box", shop));
     assert!(!folds.forget_machine("gpu-box"));
+}
+
+/// Settings > Terminal's scrollback (P3): written only once changed, read
+/// as Paseo's schema reads it (clamped into 0 through 1,000,000, a fraction
+/// floored, anything else the default).
+#[test]
+fn the_terminal_scrollback_is_written_once_changed_and_read_clamped() {
+    use crate::terminal::ScrollbackLines;
+    let changed = Preferences {
+        terminal: TerminalPreferences {
+            scrollback: ScrollbackLines::clamped(500),
+        },
+        ..Preferences::default()
+    };
+    let written = serde_json::to_string(&changed).unwrap();
+    assert!(
+        written.ends_with(r#","terminal":{"scrollback":500}}"#),
+        "{written}"
+    );
+    assert_eq!(
+        serde_json::from_str::<Preferences>(&written).unwrap(),
+        changed
+    );
+    let read = |stored: &str| {
+        let text = format!(r#"{{"terminal":{{"scrollback":{stored}}}}}"#);
+        serde_json::from_str::<Preferences>(&text)
+            .unwrap()
+            .terminal
+            .scrollback
+            .get()
+    };
+    assert_eq!(read("2000000"), 1_000_000);
+    assert_eq!(read("12.9"), 12);
+    assert_eq!(read("-5"), 0);
+    assert_eq!(read(r#""many""#), 10_000);
 }

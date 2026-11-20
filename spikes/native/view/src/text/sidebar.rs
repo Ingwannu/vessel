@@ -6,6 +6,7 @@ use super::Lang;
 use crate::attention::Bucket;
 use crate::prefs::{Grouping, SessionSort};
 use crate::sidebar::SessionMark;
+use crate::workspace::pull::checks::Presentation;
 
 impl Lang {
     /// The sidebar's words in this language.
@@ -169,6 +170,35 @@ impl SidebarWords {
     #[must_use]
     pub fn checks_said(&self, state: &str) -> String {
         format!("{}: {state}", self.checks)
+    }
+
+    /// One state's count (Paseo's `sidebar.workspace.checks.*`).
+    #[must_use]
+    pub fn check_count(&self, presentation: Presentation, count: u32) -> String {
+        let (en, ko) = match presentation {
+            Presentation::Success => ("Passed", "통과"),
+            Presentation::Failure => ("Failed", "실패"),
+            Presentation::Pending => ("Pending", "대기 중"),
+            Presentation::Ignored => ("Skipped", "건너뜀"),
+        };
+        match self.lang {
+            Lang::En => format!("{en}: {count}"),
+            Lang::Ko => format!("{ko}: {count}개"),
+        }
+    }
+
+    /// The checks' row, said as a link with its counts (Paseo's
+    /// `formatCheckPresentationCountsLabel`: the heading, then each count).
+    #[must_use]
+    pub fn checks_counted(&self, counts: &[(Presentation, u32)]) -> String {
+        std::iter::once(self.checks.to_owned())
+            .chain(
+                counts
+                    .iter()
+                    .map(|&(presentation, count)| self.check_count(presentation, count)),
+            )
+            .collect::<Vec<_>>()
+            .join(", ")
     }
 
     /// The plus's name (`sidebar.workspace.actions.createWorkspaceFor`).

@@ -58,6 +58,7 @@ pub(crate) fn row(row: &PaintedRow) -> GridRow {
                 ink: ink(run.ink),
             })
             .collect(),
+        outlines: Vec::new(),
     }
 }
 

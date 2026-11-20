@@ -30,3 +30,39 @@ terminal-tabs-close = Close
 
 # Close confirmation's dismiss button (Paseo's workspace.tabs.confirmations.cancel). Keep short.
 terminal-tabs-cancel = Cancel
+
+# Find bar's field placeholder and its accessible name (Paseo's paneFind.placeholder).
+terminal-tabs-find-placeholder = Find in pane
+
+# Find bar's previous match button (Paseo's paneFind.previous). Keep short.
+terminal-tabs-find-previous = Previous match
+
+# Find bar's next match button (Paseo's paneFind.next). Keep short.
+terminal-tabs-find-next = Next match
+
+# Find bar's close button (Paseo's paneFind.close). Keep short.
+terminal-tabs-find-close = Close Find
+
+# Find bar's counter when nothing matches (Paseo's paneFind.noMatches).
+terminal-tabs-find-none = No matches
+
+# Find bar's counter with matches and none current (Paseo's paneFind.matches); total may end in "+".
+terminal-tabs-find-total = { $total } matches
+
+# Find bar's counter: the current match of all (Paseo's paneFind.position); total may end in "+".
+terminal-tabs-find-position = { $current } of { $total }
+
+# Accessible name of the find bar's counter (Paseo's paneFind.results).
+terminal-tabs-find-matches = Find matches
+
+# Accessible name of the terminal's keyboard input (Paseo's native terminal input label).
+terminal-tabs-input = Terminal input
+
+# Settings > Terminal: the scrollback row's label (Paseo's settings.terminal.scrollback.label).
+terminal-tabs-scrollback = Terminal scrollback
+
+# Settings > Terminal: the scrollback row's description (Paseo's settings.terminal.scrollback.description).
+terminal-tabs-scrollback-hint = Lines kept in the built-in terminal buffer
+
+# Settings > Terminal: the scrollback field's accessible name (Paseo's settings.terminal.scrollback.accessibilityLabel).
+terminal-tabs-scrollback-label = Terminal scrollback lines
