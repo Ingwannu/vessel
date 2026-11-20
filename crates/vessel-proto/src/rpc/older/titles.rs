@@ -126,8 +126,8 @@ pub(super) fn served(
 
 /// [`served`] against the version passed in.
 ///
-/// The production cut uses [`DIFF_STAT_PROTOCOL`], which stays unassigned
-/// until merge. A test passes its own version and sees both sides.
+/// The production cut uses [`DIFF_STAT_PROTOCOL`], assigned 38. A test
+/// passes its own version and sees both sides.
 fn served_since(
     workspace: &ServedWorkspace,
     protocol: ProtocolVersion,

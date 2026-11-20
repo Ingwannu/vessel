@@ -9,9 +9,9 @@ use crate::ProtocolVersion;
 
 /// `workspace.list` / `workspace.get` diff stat (ADR 0120).
 ///
-/// Drafted 37. `None` until the integrator assigns the number at merge;
-/// until then the node does not serve the fields.
-pub const DIFF_STAT_PROTOCOL: Option<ProtocolVersion> = None;
+/// Assigned 38, after shared terminals took 37. A peer below it is not
+/// served the fields.
+pub const DIFF_STAT_PROTOCOL: Option<ProtocolVersion> = Some(ProtocolVersion::new(38));
 
 /// Whether `protocol` is served the diff stat.
 #[must_use]
@@ -51,8 +51,8 @@ pub struct ServedWorkspace {
 }
 
 impl ServedWorkspace {
-    /// The descriptor with no diff stat, which is what every peer sees
-    /// until the protocol is assigned.
+    /// The descriptor with no diff stat, which is what a peer below
+    /// [`DIFF_STAT_PROTOCOL`] sees.
     #[must_use]
     pub fn bare(workspace: WorkspaceDescriptor) -> Self {
         Self {
@@ -70,9 +70,11 @@ mod tests {
     use crate::registry::workspace::{DiffStatRevision, ListWorkspaces};
 
     #[test]
-    fn the_diff_stat_stays_off_the_wire_until_assigned() {
-        assert!(DIFF_STAT_PROTOCOL.is_none());
-        assert!(!serves_diff_stat(ProtocolVersion::new(36)));
+    fn the_diff_stat_is_the_current_protocol() {
+        assert_eq!(DIFF_STAT_PROTOCOL, Some(ProtocolVersion::new(38)));
+        assert_eq!(DIFF_STAT_PROTOCOL, Some(crate::PROTOCOL_VERSION));
+        assert!(!serves_diff_stat(ProtocolVersion::new(37)));
+        assert!(serves_diff_stat(crate::PROTOCOL_VERSION));
     }
 
     #[test]

@@ -5,10 +5,10 @@ assigned 0120 and approved the plan, then ruled on the node review that
 a folder is recounted every 15 seconds while a client is interested,
 with no recursive OS watch. The count is served, not stored on the
 registry row. The comparison is Paseo's, including `origin/<branch>`
-while the checkout is already on the base. The protocol is drafted 37
-(`DIFF_STAT_PROTOCOL` in `vessel_proto::registry`). The constant stays
-`None` until the integrator assigns the number at merge. This record
-does not add a protocol version section.
+while the checkout is already on the base. The node integrator assigned
+38 on 2026-11-20, after shared terminals took 37 (`DIFF_STAT_PROTOCOL`,
+`PROTOCOL_VERSION` 38). The integrator confirms the number when this
+branch merges.
 
 ## Context
 
@@ -52,10 +52,9 @@ on a timer. An empty list still carries the generation, so the next
 call can wait even though that answer had no row to hang the number
 on.
 
-While `DIFF_STAT_PROTOCOL` is `None`, list and get do not attach the
-fields, do not wait, and do not count. `Reply::for_protocol` also
-strips the fields for a peer below the assigned version, so assigning
-the constant is what turns the feature on.
+A peer below 38 is not served the fields. List and get do not attach
+them, do not wait, and do not count for that peer. `Reply::for_protocol`
+strips the fields, so the constant is what turns the feature on.
 
 A folder is counted when a served client lists or gets it, and again
 every 15 seconds while that interest lasts. Interest ends 60 seconds
