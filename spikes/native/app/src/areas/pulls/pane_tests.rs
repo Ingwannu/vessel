@@ -218,7 +218,14 @@ fn named<'a>(arias: &'a [String], label: &str) -> &'a str {
         .iter()
         .filter(|aria| aria.contains(&format!(r#""label": "{label}""#)))
         .collect();
-    assert_eq!(found.len(), 1, "one control named {label}");
+    let names: Vec<&str> = arias
+        .iter()
+        .filter_map(|aria| {
+            let (_, rest) = aria.split_once(r#""label": ""#)?;
+            rest.split_once('"').map(|(name, _)| name)
+        })
+        .collect();
+    assert_eq!(found.len(), 1, "one control named {label}; named: {names:?}");
     found.first().copied().unwrap()
 }
 
