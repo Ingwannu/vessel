@@ -17,11 +17,11 @@ import {
 } from "../../data/agent-status";
 import { probeOptions } from "../../data/calls";
 import { controlsOf } from "../../data/options";
-import { nextStep, type Outcome } from "../../data/outcome";
+import { withNextStep, type Outcome } from "../../data/outcome";
 import type { NodeKey } from "../../wire/bridge";
 import { agentKey } from "../../data/agents";
 import type { HarnessOptions, HarnessRef } from "../../wire/proto";
-import { Badge, Banner, Row, RowList, Skeleton } from "../../ui/kit";
+import { Alert, Badge, Row, RowList, Skeleton } from "../../ui/kit";
 import { AgentDiagnosticButton } from "../diagnostics/agent-diagnostic";
 import { FactValue, SettingsSection } from "../settings/settings-page";
 
@@ -130,11 +130,15 @@ function Offer({
   if (!answer.ok) {
     return (
       <SettingsSection title="What it offers">
-        <Banner tone="error">
-          {nodeError(answer.problem) === "conflict"
-            ? refusedStart(agent, agents)
-            : `${name} did not say: ${answer.problem.message} ${nextStep(answer.problem)}`}
-        </Banner>
+        <OffersFailure
+          name={name}
+          refused={
+            nodeError(answer.problem) === "conflict"
+              ? refusedStart(agent, agents)
+              : null
+          }
+          reason={withNextStep(answer.problem)}
+        />
       </SettingsSection>
     );
   }
@@ -165,5 +169,29 @@ function Offer({
         </RowList>
       )}
     </SettingsSection>
+  );
+}
+
+/** Paseo's settings pages: a read that failed is an error Alert in the flow
+ * (TRACKER 820). A refused start (`refused`) says it all in one line; any
+ * other failure is what did not happen over the node's reason. */
+export function OffersFailure({
+  name,
+  refused,
+  reason,
+}: {
+  name: string;
+  refused: string | null;
+  reason: string;
+}) {
+  return refused === null ? (
+    <Alert
+      size="sm"
+      variant="error"
+      title={`${name} did not say what it offers`}
+      description={reason}
+    />
+  ) : (
+    <Alert size="sm" variant="error" description={refused} />
   );
 }

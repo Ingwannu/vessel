@@ -36,8 +36,8 @@ fn shell(place: TerminalPlace) -> TerminalInfo {
 
 #[test]
 fn a_workspace_place_and_ending_a_worktrees_terminals_need_their_protocol() {
-    // The newest protocol until the next one lands.
-    assert_eq!(WORKSPACE_TERMINALS_PROTOCOL, Some(crate::PROTOCOL_VERSION));
+    // At most the newest (the plugin catalog is drafted after it).
+    assert!(WORKSPACE_TERMINALS_PROTOCOL <= Some(crate::PROTOCOL_VERSION));
     let create = |place| {
         CreateTerminal {
             place,

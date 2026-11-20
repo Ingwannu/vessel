@@ -1,12 +1,14 @@
 //! Plugin identity and native declarative contracts (ADR 0079).
 //!
 //! These values perform no I/O and grant no authority. The manager calls
-//! (ADR 0115, `manage`) are registered at [`PLUGINS_PROTOCOL`]; the helper
+//! (ADR 0115, `manage`) are registered at [`PLUGINS_PROTOCOL`], the catalog
+//! and method calls (`calls`) at [`PLUGIN_CATALOG_PROTOCOL`]; the helper
 //! frames stay private to the node.
 
 mod address;
 mod attachment;
 mod budget;
+mod calls;
 mod catalog;
 mod declarations;
 mod document;
@@ -27,6 +29,7 @@ pub use attachment::{
     AttachmentError, AttachmentItem, AttachmentItemId, AttachmentItemKey, AttachmentSearchResult,
     AttachmentSourceAddress, AttachmentUrl, ContextAttachment, MAX_ATTACHMENT_ITEMS,
 };
+pub use calls::{GetPluginCatalog, InvokeContext, InvokePlugin, PluginCatalog, PluginOutput};
 pub use identity::{
     Caption, ContentText, ContributionId, FileExtension, FileNamePattern, InvalidPluginValue,
     PluginId, RpcName, ThemeName,
@@ -49,6 +52,12 @@ pub use theme::{Appearance, HexColor, ThemeColors, ThemeContribution};
 /// `plugins_enabled`. Drafted as 35; assigned 36 at its node-line merge,
 /// after ADR 0088's `forge.repos` took 35.
 pub const PLUGINS_PROTOCOL: Option<crate::ProtocolVersion> = Some(crate::ProtocolVersion::new(36));
+
+/// A node's plugin catalog and plugin method calls (ADR 0115, "Catalog and
+/// invoke"): `plugin.catalog` and `plugin.invoke`. Assigned 41 at its node-line
+/// merge, the next after the workspace-folder terminals' 40.
+pub const PLUGIN_CATALOG_PROTOCOL: Option<crate::ProtocolVersion> =
+    Some(crate::ProtocolVersion::new(41));
 
 pub use declarations::{
     Action, Availability, Button, ButtonBehavior, ChoiceOption, CommandContext, Contribution,
