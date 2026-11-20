@@ -133,7 +133,10 @@ async fn a_read_device_sees_the_catalog_but_not_paths_logs_or_methods() {
     within(async {
         let fixture = Fixture::new();
         plugin(&fixture, "night");
-        let node = fixture.start().await;
+        // A device invitation needs a pairing route on the node.
+        let node = fixture
+            .start_with(crate::secure::advertise_placeholder_route)
+            .await;
         let owner = fixture.connect(&node).await;
         let _installed = owner.call(install("~/night")).await.unwrap();
         let _on = owner
