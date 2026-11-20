@@ -189,7 +189,13 @@ impl Call {
                     Some(_) => Some(crate::plugins::PLUGINS_PROTOCOL?.get()),
                     None => None,
                 };
-                let base = drivers.max(plugins);
+                // The terminal agent hooks switch (ADR 0089) needs the
+                // attention protocol: one number carries the whole feature.
+                let hooks = match request.terminal_agent_hooks {
+                    Some(_) => Some(crate::notifications::ATTENTION_NOTIFICATIONS_PROTOCOL?.get()),
+                    None => None,
+                };
+                let base = drivers.max(plugins).max(hooks);
                 if request.metadata.is_some() {
                     Some(crate::GENERATED_NAMES?.get()).max(base)
                 } else {

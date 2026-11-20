@@ -76,9 +76,9 @@ export function workspaceTerminalPlace(input: {
 }
 
 /** Whether `terminal`, listed for `place`, is a shell of the workspace.
- * A `Project` list holds every project place of the project (the root and
- * its folders), so the folder must match too; `Worktree` and `Folder`
- * lists are already exactly the place. */
+ * A project's workspace holds every project place of the project, its
+ * root and its subfolders; `Worktree` and `Folder` lists are already
+ * exactly the place. */
 export function shellOf(
   place: TerminalPlace,
   terminal: TerminalInfo,
@@ -90,11 +90,11 @@ export function shellOf(
   const at = terminal.place;
   switch (place.kind) {
     case "project":
-      return (
-        at.kind === "project" &&
-        at.project === place.project &&
-        (at.dir ?? null) === (place.dir ?? null)
-      );
+      // Every project place of the project, whatever its folder: from
+      // protocol 40 an agent working in a subfolder gets its shell at
+      // `Project {dir: sub}` (TRACKER 832), and it belongs to the project's
+      // workspace as much as one at its root.
+      return at.kind === "project" && at.project === place.project;
     case "worktree":
       return at.kind === "worktree" && at.worktree === place.worktree;
     case "folder":
@@ -208,8 +208,8 @@ export function removalState(input: {
 /** One tick of the strip's list: the workspace's shells as the node lists
  * them now. A `Worktree` or `Folder` place is read by itself (the node
  * matches it) and, alongside it, every terminal for the shells beside the
- * workspace's sessions; a `Project` place is read by itself; a `Session`
- * place reads every terminal. Each tick replaces the last, so a shell an
+ * workspace's sessions; a `Project` or `Session` place reads every
+ * terminal once, which holds both. Each tick replaces the last, so a shell an
  * agent opens shows within a tick and one that ends shows ended (the
  * strip then drops its tab). Either read failing fails the tick, which
  * keeps the last list rather than one with half its shells missing. */
@@ -219,15 +219,24 @@ export async function readStrip(
   sessions: ReadonlySet<SessionId>,
 ): Promise<Outcome<readonly TerminalInfo[]>> {
   if (place.kind === "session" || place.kind === "project") {
-    const read = await list(place.kind === "project" ? place : null);
-    return read.ok
-      ? {
-          ok: true,
-          value: read.value.terminals.filter((terminal) =>
-            shellOf(place, terminal, sessions),
-          ),
-        }
-      : read;
+    // One read of every terminal holds both a project's own places (with
+    // their folders) and the shells beside its sessions: an agent in a
+    // project-root workspace opens the latter too (the node reviewer's
+    // follow-up to R1; 817 read the project's place alone).
+    const read = await list(null);
+    if (!read.ok) {
+      return read;
+    }
+    const placed = read.value.terminals.filter((terminal) =>
+      shellOf(place, terminal, sessions),
+    );
+    const beside =
+      place.kind === "project"
+        ? besideSessions(read.value.terminals, sessions).filter(
+            (terminal) => !placed.some((row) => row.id === terminal.id),
+          )
+        : [];
+    return { ok: true, value: [...placed, ...beside] };
   }
   const [own, all] = await Promise.all([list(place), list(null)]);
   if (!own.ok) {

@@ -605,6 +605,7 @@ sits on. A token change must re-measure its pairs in the same change.
 | light `--st-needs-you` | 5.1 | 4.9 | |
 | light `--st-merged` | 5.4 | 5.2 | |
 | light `--danger` | 8.6 | 8.3 | 7.8 |
+| light `--info-ink` (an alert's info words and mark) | 5.2 | 5.0 | 4.7 |
 | light primary button, white on `#1F1F1F` | 16.5 | | |
 | light solid danger button, white on `--danger` | 8.6 | | |
 | dark `--text-primary` | 14.6 | 16.3 | 17.2 |
@@ -612,6 +613,7 @@ sits on. A token change must re-measure its pairs in the same change.
 | dark `--text-tertiary` | 4.9 | 5.5 | 5.8 |
 | dark lane colours and needs-you | ≥ 5.0 | ≥ 5.6 | |
 | dark `--danger` | 4.6 | 5.2 | 5.4 |
+| dark `--info-ink` | 8.8 | 9.8 | 10.4 |
 | dark solid danger button, `#181818` on `--danger` | 5.2 | | |
 | terminal `--term-fg` on `--term-bg` | 16.0 | | |
 | terminal `--term-dim` on `--term-bg` / `--term-frame` | 5.8 | 5.1 | |
@@ -2184,6 +2186,13 @@ control, GOAT), on purpose:
     outside the workspace root is not followed (the node serves files
     under the root only). PDF is not built in (Paseo ships it as a
     plugin).
+35. **An alert's info words and mark are darker blue in light**
+    (TRACKER 827, coordinator 2026-11-20). Paseo draws the info alert's
+    title and icon in `palette.blue[300]` (#93c5fd) in both themes
+    (`components/ui/alert.tsx`), which is 1.7:1 on the light page. Here
+    they use `--info-ink`, `light-dark(#2563eb, #93c5fd)`: 4.95:1 on
+    #fafafa in light, Paseo's own blue in dark (9.8:1). The alert's edge
+    stays Paseo's blue (`--info` at half strength): a border is not text.
 
 
 ### Shared quota meter

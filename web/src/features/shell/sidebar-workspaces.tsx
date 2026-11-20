@@ -19,7 +19,7 @@ import {
   type SidebarWorkspace,
   sidebarWorkspaces,
 } from "../../data/workspace-labels/groups";
-import type { NodeKey } from "../../wire/bridge";
+import type { NodeKey, SidebarTrailing } from "../../wire/bridge";
 import type { DiffStat, WorkspaceId } from "../../wire/proto";
 import { COMPACT } from "../../ui/breakpoints";
 import { HoverCard, Icon, IconButton, Menu } from "../../ui/kit";
@@ -29,6 +29,7 @@ import { LabelsSubmenu } from "../workspace-labels/picker";
 import { useLabels } from "../workspace-labels/use-labels";
 import { usePruneFilter } from "../workspace-labels/use-prune-filter";
 import { SessionMark } from "./session-mark";
+import { SidebarTrailingSlot } from "./sidebar-trailing";
 import { rowClass } from "./sidebar";
 import { SidebarViewMenu } from "./sidebar-view-menu";
 import { useDiffStats } from "./use-diff-stats";
@@ -79,6 +80,7 @@ export function SidebarWorkspaces() {
               row={row}
               several={machines > 1}
               cards={cards}
+              trailing={view.trailing}
               stat={
                 row.id === null ? undefined : stats.byNode[row.node]?.[row.id]
               }
@@ -103,6 +105,15 @@ export function SidebarWorkspaces() {
                 </span>
                 <span className="label">{session.title}</span>
                 <BranchChip branch={session.branch} />
+                <SidebarTrailingSlot
+                  trailing={view.trailing}
+                  activity={session.activity}
+                  stat={
+                    row.id === null
+                      ? undefined
+                      : stats.byNode[row.node]?.[row.id]
+                  }
+                />
               </Link>
             ))}
             {row.more > 0 ? (
@@ -131,18 +142,21 @@ export function SidebarWorkspaces() {
   );
 }
 
-/** A workspace's row: its folder, its name, its machine in a fleet of
- * several, its row menu, and its chips under the name. */
+/** A workspace's row: its folder, its name, its trailing slot and row
+ * menu, and its line under the name (the machine in a fleet of several,
+ * its pull request, checks and labels: workspace-meta.tsx). */
 function WorkspaceHead({
   row,
   several,
   cards,
+  trailing,
   stat,
   onCreate,
 }: {
   row: SidebarWorkspace;
   several: boolean;
   cards: boolean;
+  trailing: SidebarTrailing;
   stat: DiffStat | null | undefined;
   onCreate: (workspace: WorkspaceId) => void;
 }) {
@@ -178,25 +192,32 @@ function WorkspaceHead({
         ) : (
           name
         )}
-        {workspace === null ? null : (
-          <span className="side-workspace-menu">
-            <Menu
-              align="end"
-              trigger={
-                <IconButton label="Workspace actions" icon="more" size="xs" />
-              }
-            >
-              <LabelsSubmenu
-                node={row.node}
-                workspace={workspace}
-                assigned={row.labels}
-                onCreate={() => {
-                  onCreate(workspace);
-                }}
-              />
-            </Menu>
-          </span>
-        )}
+        <span className="side-workspace-end">
+          <SidebarTrailingSlot
+            trailing={trailing}
+            activity={row.activity}
+            stat={stat}
+          />
+          {workspace === null ? null : (
+            <span className="side-workspace-menu">
+              <Menu
+                align="end"
+                trigger={
+                  <IconButton label="Workspace actions" icon="more" size="xs" />
+                }
+              >
+                <LabelsSubmenu
+                  node={row.node}
+                  workspace={workspace}
+                  assigned={row.labels}
+                  onCreate={() => {
+                    onCreate(workspace);
+                  }}
+                />
+              </Menu>
+            </span>
+          )}
+        </span>
       </div>
       <WorkspaceMeta machine={machine} pull={row.pull} chips={row.chips} />
     </div>
