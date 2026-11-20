@@ -112,10 +112,6 @@ impl Node {
             clients,
             relaying: relay,
         } = setup::Startup::open(&config).await?;
-        // Bind before `core` starts any task: a socket or address that
-        // cannot be bound then fails the start with nothing left running
-        // (the fleet loop, the LSP manager and the model proxy are spawned
-        // from here on, and only a started node stops them).
         let (local, tcp) = bind(&config, id).await?;
 
         let Core {

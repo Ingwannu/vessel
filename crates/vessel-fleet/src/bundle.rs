@@ -308,6 +308,10 @@ impl Builder<'_> {
         self.skip.iter().any(|glob| glob.matches(name))
     }
 
+    fn too_large(&mut self, path: &Path, size: u64) {
+        self.problems.push(SourceProblem::TooLarge { path: path.to_path_buf(), size });
+    }
+
     /// Bundle the file at `path` (following symlinks only if `follow`).
     fn add_file(
         &mut self,
@@ -322,14 +326,9 @@ impl Builder<'_> {
         }
         .map_err(|source| read_error(path, source))?;
         if metadata.len() > MAX_FILE {
-            self.problems.push(SourceProblem::TooLarge {
-                path: path.to_path_buf(),
-                size: metadata.len(),
-            });
+            self.too_large(path, metadata.len());
             return Ok(());
         }
-        // The size above is only a first look: the file may grow before it
-        // is copied, so the copy is bounded too.
         let read = |source: io::Error| {
             if source.kind() == io::ErrorKind::NotFound
                 || source.kind() == io::ErrorKind::PermissionDenied
@@ -341,10 +340,7 @@ impl Builder<'_> {
         };
         let file = fs::File::open(path).map_err(|source| read_error(path, source))?;
         let Some((hash, size)) = self.blobs.insert_limited(file, MAX_FILE).map_err(read)? else {
-            self.problems.push(SourceProblem::TooLarge {
-                path: path.to_path_buf(),
-                size: metadata.len().max(MAX_FILE.saturating_add(1)),
-            });
+            self.too_large(path, metadata.len().max(MAX_FILE.saturating_add(1)));
             return Ok(());
         };
         let _previous = self.files.insert(

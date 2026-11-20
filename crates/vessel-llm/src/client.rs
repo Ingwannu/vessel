@@ -22,9 +22,8 @@
 //!   mid-answer ends the call instead of holding it.
 //! - Retries happen only here, before the response's headers, which is
 //!   before the proxy has written anything to the harness: on a connection
-//!   failure, a timeout (the client's own, or a 408 or 504), 429, or any
-//!   other 5xx (529 included), waiting as the provider's `Retry-After`
-//!   says (capped) or backing off. After the
+//!   failure, a timeout (own, 408 or 504), 429 or any other 5xx, waiting as the
+//!   provider's `Retry-After` says (capped) or backing off. After the
 //!   headers, a failure goes to the harness, whose own retry takes over.
 //! - Error bodies are read bounded, stripped of the key and cut short
 //!   before anything else sees them (a provider may echo it back).
