@@ -479,10 +479,7 @@ impl Cards<'_> {
                     .min_h(px(32.0))
                     .child(self.header_row(item, 16.0, None)),
             )
-            .children(
-                Self::markdown(item)
-                    .map(|text| div().px(px(12.0)).pt(px(8.0)).child(text)),
-            )
+            .children(Self::markdown(item).map(|text| div().px(px(12.0)).pt(px(8.0)).child(text)))
             .into_any_element()
     }
 }
