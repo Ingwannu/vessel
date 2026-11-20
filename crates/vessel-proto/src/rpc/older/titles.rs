@@ -134,7 +134,7 @@ fn served_since(
     since: Option<ProtocolVersion>,
 ) -> Option<ServedWorkspace> {
     let title = SessionTitle::optional_for_protocol(workspace.workspace.title.as_ref(), protocol);
-    let strip = !since.is_some_and(|since| protocol >= since)
+    let strip = since.is_none_or(|since| protocol < since)
         && (workspace.diff_stat.is_some() || workspace.stat_revision.is_some());
     if title.is_none() && !strip {
         return None;
@@ -422,16 +422,16 @@ mod tests {
         let since = Some(ProtocolVersion::new(37));
         let below = ProtocolVersion::new(36);
         let at = ProtocolVersion::new(37);
-        let older = super::served_since(&row, below, since).unwrap();
+        let older = served_since(&row, below, since).unwrap();
         assert!(older.diff_stat.is_none());
         assert!(older.stat_revision.is_none());
         assert_eq!(older.workspace.path, row.workspace.path);
-        assert!(super::served_since(&row, at, since).is_none());
-        let listed = super::served_list_since(std::slice::from_ref(&row), below, since).unwrap();
+        assert!(served_since(&row, at, since).is_none());
+        let listed = served_list_since(std::slice::from_ref(&row), below, since).unwrap();
         assert!(listed[0].diff_stat.is_none());
         assert!(listed[0].stat_revision.is_none());
-        assert!(super::served_list_since(std::slice::from_ref(&row), at, since).is_none());
-        let stripped = super::served(&row, below).unwrap();
+        assert!(served_list_since(std::slice::from_ref(&row), at, since).is_none());
+        let stripped = served(&row, below).unwrap();
         assert!(stripped.diff_stat.is_none());
         assert!(stripped.stat_revision.is_none());
     }
