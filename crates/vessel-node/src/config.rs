@@ -117,6 +117,10 @@ pub struct Config {
     pub(crate) push_test_origin: Option<url::Url>,
     #[cfg(test)]
     pub(crate) push_preparation: Option<std::sync::Arc<crate::push::Preparation>>,
+    /// Explicit quota backend; the library default accesses no saved sign-in.
+    pub limits: vessel_harness::LimitProbe,
+    /// Nonsecret inherited route facts captured only by the binaries.
+    pub limit_environment: vessel_harness::LimitEnvironment,
 }
 
 /// A command that runs `vessel mcp` ([`Config::vessel_mcp`]).
@@ -189,6 +193,8 @@ impl Config {
             push_test_origin: None,
             #[cfg(test)]
             push_preparation: None,
+            limits: vessel_harness::LimitProbe::Disabled,
+            limit_environment: vessel_harness::LimitEnvironment::new(),
         }
     }
 }

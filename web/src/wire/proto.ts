@@ -3,6 +3,31 @@
 // generates this file rewrites it, and CI fails while it differs.
 
 /**
+ * Refresh state, separate from the successful observation's age.
+ */
+export type AccountLimitState = { "state": "off" } | { "state": "not_requested" } | { "state": "refreshing", 
+/**
+ * Last safe response, if any.
+ */
+retained: LimitSnapshot | null, } | { "state": "ready", 
+/**
+ * Latest successful observation.
+ */
+snapshot: LimitSnapshot, } | { "state": "failed", 
+/**
+ * Safe action category.
+ */
+reason: LimitFailure, 
+/**
+ * Previous same-login response only.
+ */
+retained: LimitSnapshot | null, 
+/**
+ * Actual cooldown when known.
+ */
+retry_at: string | null, };
+
+/**
  * Empty success.
  */
 export type Ack = null;
@@ -1978,6 +2003,16 @@ session: SessionId,
 force?: boolean, };
 
 /**
+ * Permission for this node to use configured agents' saved sign-ins locally.
+ */
+export type ExternalLookup = "off" | "on";
+
+/**
+ * Whether the provider explicitly enabled additional paid use.
+ */
+export type ExtraUsage = "enabled" | "disabled";
+
+/**
  * `git.fetch`.
  */
 export type Fetch = { 
@@ -2815,6 +2850,19 @@ terminal: TerminalId,
  * Wait (at most 30 s) until its `revision` differs from this one.
  */
 changed_from?: number | null, };
+
+/**
+ * usage.limits: read cached facts; operate additionally permits refresh.
+ */
+export type GetUsageLimits = { 
+/**
+ * Selected saved login, never a path or endpoint.
+ */
+scope: LimitsScope, 
+/**
+ * Whether to request a bounded refresh.
+ */
+refresh: LimitRefresh, };
 
 /**
  * What looking for the machine's `gh` found.
@@ -3697,6 +3745,204 @@ export type Language = "rust" | "type_script" | "python" | "go" | "cpp";
  * Leave this node's fleet. Applied files stay; already left is success.
  */
 export type LeaveFleet = Record<symbol, never>;
+
+/**
+ * One configured login; an omitted profile means the configured default,
+ * unlike usage.query's all-history profile selector.
+ */
+export type LimitAccount = { 
+/**
+ * Which agent runs here.
+ */
+harness: HarnessRef, 
+/**
+ * Selected configured profile; None is the default.
+ */
+profile: ProfileName | null, };
+
+/**
+ * Reported credits, without assigning a currency or estimating a price.
+ */
+export type LimitCredits = { 
+/**
+ * Reported balance, withheld without operate permission.
+ */
+balance: FiniteNumber | null, 
+/**
+ * Provider's reported eligibility, never inferred from a balance.
+ */
+has_credits: boolean | null, 
+/**
+ * Whether the provider reported unlimited credits.
+ */
+unlimited: boolean | null, };
+
+/**
+ * Safe failure categories; raw credential/API errors never cross the wire.
+ */
+export type LimitFailure = "no_login" | "expired" | "rejected" | "unreachable" | "changed_response" | "unsupported" | "unsafe_login_store" | "different_route" | "unassociated" | "rate_limited" | "busy";
+
+/**
+ * Provider's stable quota identity, bounded to 512 bytes. Punctuation
+ * remains significant: model ids `fable-pro` and `fable_pro` differ.
+ */
+export type LimitKey = string;
+
+/**
+ * Saved login source, for a precise credential-use disclosure.
+ */
+export type LimitLoginStore = "claude_code" | "codex" | "open_code";
+
+/**
+ * Provider's human label, bounded to 256 bytes; UI text may wrap it.
+ */
+export type LimitName = string;
+
+/**
+ * Facts a session notice can draw; not proof why a turn stopped.
+ */
+export type LimitNotice = { 
+/**
+ * Reported full general windows, identified in the successful snapshot.
+ */
+reported_full: Array<LimitKey>, 
+/**
+ * Latest reset only when all selected full windows have future resets.
+ */
+latest_reported_reset: string | null, };
+
+/**
+ * Finite vendor-reported percentage; drawing clamps belong to consumers.
+ */
+export type LimitPercent = FiniteNumber;
+
+/**
+ * Only a reported length identifies a period; slot position never does.
+ */
+export type LimitPeriod = { "kind": "five_hour" } | { "kind": "weekly" } | { "kind": "other", 
+/**
+ * Vendor-supplied duration.
+ */
+duration: DurationMs, } | { "kind": "unknown" };
+
+/**
+ * Cached read or explicitly requested vendor refresh.
+ */
+export type LimitRefresh = "cached" | "refresh";
+
+/**
+ * Independent operation a quota applies to; scoped windows are not summed.
+ */
+export type LimitScope = { "kind": "general" } | { "kind": "model", 
+/**
+ * Verbatim vendor identity when supplied.
+ */
+id: LimitKey | null, 
+/**
+ * Bounded presentation name.
+ */
+name: LimitName, } | { "kind": "surface", 
+/**
+ * Verbatim vendor identity when supplied.
+ */
+id: LimitKey | null, 
+/**
+ * Bounded presentation name.
+ */
+name: LimitName, } | { "kind": "feature", 
+/**
+ * Verbatim feature identity.
+ */
+id: LimitKey, 
+/**
+ * Bounded presentation name.
+ */
+name: LimitName, } | { "kind": "code_review" };
+
+/**
+ * Position identifies an unknown window without inventing its duration.
+ */
+export type LimitSlot = "only" | "primary" | "secondary";
+
+/**
+ * Last successful sanitized response; at most 128 windows.
+ */
+export type LimitSnapshot = { 
+/**
+ * Observation time stays unchanged on a failed refresh.
+ */
+at: string, 
+/**
+ * Recognized vendor subscription label.
+ */
+plan: LimitName | null, 
+/**
+ * Independent allowances, never a combined percentage.
+ */
+windows: Array<LimitWindow>, 
+/**
+ * Optional provider credit facts.
+ */
+credits: LimitCredits | null, 
+/**
+ * Optional paid-use switch reported by Claude.
+ */
+extra_usage: ExtraUsage | null, 
+/**
+ * Optional explicit provider permission to continue.
+ */
+allowed: boolean | null, 
+/**
+ * Optional explicit provider exhaustion flag.
+ */
+limit_reached: boolean | null, 
+/**
+ * Some entries were malformed or exceeded the bounded representation.
+ */
+incomplete: boolean, };
+
+/**
+ * One independent reported allowance.
+ */
+export type LimitWindow = { 
+/**
+ * Stable identity in this response.
+ */
+id: LimitKey, 
+/**
+ * Only vendor-reported duration is classified.
+ */
+period: LimitPeriod, 
+/**
+ * Distinguishes slots when length is missing.
+ */
+slot: LimitSlot, 
+/**
+ * Which work it meters.
+ */
+scope: LimitScope, 
+/**
+ * None is unknown, distinct from a reported zero.
+ */
+used: LimitPercent | null, 
+/**
+ * Only the vendor's reset; no inferred reset from a slot.
+ */
+resets_at: string | null, };
+
+/**
+ * A saved account or the saved login of a session's selected profile.
+ * This does not prove what credential an already-running process remembers.
+ */
+export type LimitsScope = { "kind": "account", 
+/**
+ * Selected configured binding.
+ */
+account: LimitAccount, } | { "kind": "session", 
+/**
+ * Session whose selected profile is inspected.
+ */
+session: SessionId, };
 
 /**
  * What a line of a hunk is.
@@ -7609,6 +7855,15 @@ session: SessionId,
 choice: OptionChoice, };
 
 /**
+ * usage.lookup: administrators alone change the machine credential-use policy.
+ */
+export type SetUsageLookup = { 
+/**
+ * Explicit policy, persisted before acknowledgement.
+ */
+policy: ExternalLookup, };
+
+/**
  * Whether a new worktree runs the project's setup commands.
  */
 export type SetupChoice = "run" | "skip";
@@ -8754,6 +9009,35 @@ chunk: number, };
  * the caller that began it may write to it or finish it.
  */
 export type UploadId = string & { readonly __brand: "UploadId" };
+
+/**
+ * One saved account's bounded facts and explicit credential-use policy.
+ */
+export type UsageLimits = { 
+/**
+ * Administrator's machine-wide choice.
+ */
+policy: ExternalLookup, 
+/**
+ * The selected configured binding.
+ */
+account: LimitAccount, 
+/**
+ * Intended saved-login store for disclosure, never a credential path.
+ */
+source: LimitLoginStore | null, 
+/**
+ * Latest safe state; never a claim about a running process's in-memory login.
+ */
+state: AccountLimitState, 
+/**
+ * Visibility of monetary/credit balances.
+ */
+cost_visibility: CostVisibility, 
+/**
+ * Optional factual full-window notice for a matching selected route.
+ */
+notice: LimitNotice | null, };
 
 /**
  * The runtime's observation boundary, independent of the vendor's numbers.

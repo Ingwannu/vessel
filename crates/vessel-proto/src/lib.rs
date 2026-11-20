@@ -29,6 +29,7 @@ pub mod history;
 mod id;
 pub mod inbox;
 mod key;
+pub mod limits;
 pub mod lsp;
 mod model;
 mod name;

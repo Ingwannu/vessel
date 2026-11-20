@@ -387,7 +387,7 @@ rpc_methods! {
     /// A page of an install's output (protocol 11).
     ReadInstall / install_output / "agent.install_output" [Admin, 11]: crate::agents::ReadInstall => crate::agents::InstallOutput;
     /// Reported tokens and permitted costs (protocol 21, ADR 0042).
-    QueryUsage / query_usage / "usage.query" [Read, 21]: crate::usage::QueryUsage => crate::usage::UsageReport;
+    QueryUsage / query_usage / "usage.query" [Read, crate::usage::USAGE_PROTOCOL_VERSION.get()]: crate::usage::QueryUsage => crate::usage::UsageReport;
     /// Device-scoped push.key (protocol 22, ADR 0041).
     GetPushKey / get_push_key / "push.key" [Read, 22]: crate::push::GetPushKey => crate::push::PushKey;
     /// Device-scoped push.subscribe (protocol 22, ADR 0041).
@@ -402,6 +402,10 @@ rpc_methods! {
     GetInboxEntry / get_inbox_entry / "inbox.get" [Read, 22]: crate::inbox::GetInboxEntry => Option<crate::inbox::InboxEntry>;
     /// Mark current attention read or unread without answering it (protocol 22).
     MarkInbox / mark_inbox / "inbox.mark" [Read, 22]: crate::inbox::MarkInbox => Ack;
+    /// Latest saved-sign-in limits (protocol 23, ADR 0042); explicit refresh additionally needs operate.
+    GetUsageLimits / get_usage_limits / "usage.limits" [Read, crate::limits::LIMITS_PROTOCOL_VERSION.get()]: crate::limits::GetUsageLimits => crate::limits::UsageLimits;
+    /// Persist this machine's credential-use policy (protocol 23); administrator only.
+    SetUsageLookup / set_usage_lookup / "usage.lookup" [Admin, crate::limits::LIMITS_PROTOCOL_VERSION.get()]: crate::limits::SetUsageLookup => crate::limits::ExternalLookup;
     // Protocol 11, track D (ADR 0033): schedules and saved prompts.
     /// Compute a bounded schedule preview without saving or starting work.
     PreviewSchedule / preview_schedule / "schedule.preview" [Read, 13]: crate::automation::PreviewSchedule => crate::automation::SchedulePreview;

@@ -280,4 +280,57 @@ fn usage_envelopes(call: Call, node: NodeId) -> [Call; 4] {
         .into_call(),
     ]
 }
+
+#[tokio::test]
+async fn forced_limit_policy_and_reads_are_refused_before_old_server_dispatch() {
+    use vessel_proto::limits::*;
+    let needed = GetUsageLimits::METHOD.since();
+    assert_eq!(needed, SetUsageLookup::METHOD.since());
+    let previous = needed.get().checked_sub(1).unwrap();
+    let (mut client, mut served, target) = raw_client_with_node(previous).await;
+    let query = GetUsageLimits {
+        scope: LimitsScope::Account {
+            account: LimitAccount {
+                harness: HarnessKind::Codex.into(),
+                profile: None,
+            },
+        },
+        refresh: LimitRefresh::Refresh,
+    };
+    for inner in [
+        query.into_call(),
+        SetUsageLookup {
+            policy: ExternalLookup::On,
+        }
+        .into_call(),
+    ] {
+        for wrapped in usage_envelopes(inner, target) {
+            let expected = WireError::new(
+                ErrorCode::Unsupported,
+                format!(
+                    "`{}` as sent needs protocol {}; this connection speaks {}",
+                    wrapped.method().as_str(),
+                    needed,
+                    previous
+                ),
+            );
+            assert_eq!(refusal(&call_raw(&mut client, 1, wrapped).await), expected);
+            assert!(
+                served.seen.try_recv().is_err(),
+                "an unsupported limit call reached dispatch"
+            );
+        }
+    }
+    for supported in usage_envelopes(GetNode.into_call(), target)
+        .into_iter()
+        .skip(1)
+    {
+        assert_eq!(
+            refusal(&call_raw(&mut client, 1, supported.clone()).await),
+            WireError::new(ErrorCode::Unsupported, "not in this fake")
+        );
+        assert_eq!(served.seen.recv().await.unwrap(), supported);
+    }
+}
+
 mod inbox;

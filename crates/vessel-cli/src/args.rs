@@ -33,7 +33,7 @@ pub(crate) use node::{DevicesCommand, Install, NodeCommand, Source, Update};
 pub(crate) use nodes::{FromStdin, NodesCommand};
 pub(crate) use search::Search;
 pub(crate) use terminals::{OpenShell, Ports, ScriptCommand, ScriptPlaceArgs, Shell, ShellCommand};
-pub(crate) use usage::{Period, UsageCommand};
+pub(crate) use usage::{LookupChoice, Period, UsageCommand};
 pub(crate) use workspace::{ProjectCommand, WorktreeCommand};
 
 /// Vessel: drive agent harnesses on this and other machines.
