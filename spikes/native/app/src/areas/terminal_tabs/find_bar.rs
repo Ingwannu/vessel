@@ -7,14 +7,12 @@
 use gpui::{AnyElement, Context, KeyDownEvent, Window};
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::theme::radius;
+use vessel_app_kit::toolbar_button::{ToolbarButton, ToolbarConfig, ToolbarIcon, ToolbarInk};
 use vessel_app_kit::ui::{
-    FluentBuilder as _, InteractiveElement as _, IntoElement as _, ParentElement as _, Styled as _,
-    div, px,
+    ElementId, FluentBuilder as _, InteractiveElement as _, IntoElement as _, ParentElement as _,
+    StatefulInteractiveElement as _, Styled as _, div, px,
 };
-use vessel_app_kit::{
-    ButtonState, ControlSizing, Tokens, ToolbarButton, ToolbarConfig, ToolbarIcon, ToolbarInk,
-    Type, TypeExt as _, popup,
-};
+use vessel_app_kit::{ButtonState, ControlSizing, Tokens, Type, TypeExt as _, popup};
 
 use super::PaneKey;
 use super::find::Count;
@@ -99,7 +97,7 @@ pub(super) fn bar(
         .child(div().flex_1().min_w_0().child(find.field.input(tokens, cx)))
         .child(
             div()
-                .id(("terminal-find-count", key_id(key)))
+                .id(element("terminal-find-count", key))
                 .role(gpui::Role::Status)
                 .aria_label(words.find_matches().to_owned())
                 .flex_none()
@@ -144,7 +142,7 @@ pub(super) fn bar(
         .child(field)
         .child(
             ToolbarButton::new(
-                ("terminal-find-previous", key_id(key)),
+                element("terminal-find-previous", key),
                 words.find_previous().to_owned(),
                 ToolbarIcon::new(Glyph::ArrowUp, ToolbarInk::Muted),
                 config,
@@ -156,7 +154,7 @@ pub(super) fn bar(
         )
         .child(
             ToolbarButton::new(
-                ("terminal-find-next", key_id(key)),
+                element("terminal-find-next", key),
                 words.find_next().to_owned(),
                 ToolbarIcon::new(Glyph::ArrowDown, ToolbarInk::Muted),
                 config,
@@ -168,7 +166,7 @@ pub(super) fn bar(
         )
         .child(
             ToolbarButton::new(
-                ("terminal-find-close", key_id(key)),
+                element("terminal-find-close", key),
                 words.find_close().to_owned(),
                 ToolbarIcon::new(Glyph::Close, ToolbarInk::Muted),
                 close_config,
@@ -205,7 +203,7 @@ fn listen(
     }
 }
 
-/// An element id's part naming the pane.
-fn key_id(key: &PaneKey) -> gpui::SharedString {
-    format!("{}-{}", key.machine, key.terminal).into()
+/// An element id naming `part` of `key`'s bar.
+fn element(part: &str, key: &PaneKey) -> ElementId {
+    ElementId::Name(format!("{part}-{}-{}", key.machine, key.terminal).into())
 }

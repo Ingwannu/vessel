@@ -14,16 +14,14 @@ use super::super::{Pane, PaneKey, Stage};
 use super::{answer, open, sent};
 use crate::shell::Shell;
 
-/// The platform's Mod+`key` (Cmd on macOS, Ctrl elsewhere).
-fn chord(key: &str) -> String {
-    if cfg!(target_os = "macos") {
-        format!("cmd-{key}")
-    } else {
-        format!("ctrl-{key}")
-    }
-}
+/// The platform's Mod+F (Cmd on macOS, Ctrl elsewhere).
+const MOD_F: &str = if cfg!(target_os = "macos") {
+    "cmd-f"
+} else {
+    "ctrl-f"
+};
 
-fn down(stroke: &str) -> KeyDownEvent {
+fn down(stroke: &'static str) -> KeyDownEvent {
     KeyDownEvent {
         keystroke: Keystroke::parse(stroke).unwrap(),
         is_held: false,
@@ -105,7 +103,7 @@ fn mod_f_is_the_terminals_only_while_a_terminal_has_the_keyboard(cx: &mut TestAp
         // The terminal has the keyboard: its own bar opens.
         shell.terminal_tab_focus(&key, window, cx);
         assert!(shell.find_goes_to_terminal(window, cx));
-        shell.terminal_tab_key(&key, &down(&chord("f")), window, cx);
+        shell.terminal_tab_key(&key, &down(MOD_F), window, cx);
         assert!(
             shell
                 .areas
