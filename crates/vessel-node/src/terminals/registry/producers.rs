@@ -52,6 +52,17 @@ impl Terminals {
         auth: &TerminalActivityAuth,
     ) -> Option<(TerminalHandle, CancellationToken)> {
         let _assigned = ATTENTION_NOTIFICATIONS_PROTOCOL?;
+        self.admit_assigned(auth)
+    }
+    /// [`admit_producer`](Self::admit_producer)'s checks behind the
+    /// feature's gate: the exact terminal, still running, its own secret,
+    /// and a capability not yet closed. Separate so that tests check them
+    /// while the feature is unassigned (owed item 5 of the node review of
+    /// TRACKER 815); the IPC route's own test needs the assigned protocol.
+    pub(crate) fn admit_assigned(
+        &self,
+        auth: &TerminalActivityAuth,
+    ) -> Option<(TerminalHandle, CancellationToken)> {
         let state = self.state();
         let entry = state.entries.get(&auth.terminal)?;
         let producer = entry.producer.as_ref()?;
@@ -59,6 +70,24 @@ impl Terminals {
             return None;
         }
         Some((entry.handle.clone(), producer.closing.child_token()))
+    }
+}
+impl Terminals {
+    /// Give a registered terminal an activity capability, as `register`
+    /// does once the feature is assigned: the node gives none while it is
+    /// unassigned, and tests check the capability's lifetime anyway.
+    #[cfg(test)]
+    pub(crate) fn give_producer(&self, id: TerminalId, secret: &TerminalActivitySecret) -> bool {
+        let Ok(entry) = self.get(id) else {
+            return false;
+        };
+        let producer = self.producer_for(&entry.handle, secret);
+        let mut state = self.state();
+        let Some(kept) = state.entries.get_mut(&id) else {
+            return false;
+        };
+        kept.producer = Some(producer);
+        true
     }
 }
 #[cfg(test)]

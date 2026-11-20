@@ -171,7 +171,11 @@ fn activity_renews_at_half_life_and_stale_410_cannot_remove_the_renewal() {
 }
 #[test]
 fn activity_cannot_resurrect_revoked_readless_or_expired_push_leases() {
-    for state in 0..3 {
+    // 0 revoked (its transaction deletes the subscription), 1 without Read,
+    // 2 expired, 3 revoked with the subscription row still there: only the
+    // renewal's own revocation check can refuse that one (owed item 5 of
+    // the node review of TRACKER 815).
+    for state in 0..4 {
         let db = database();
         let lease = stored(device(&db, vec![Scope::Read]));
         subscribe(&db, &lease, now()).unwrap();
@@ -186,6 +190,14 @@ fn activity_cannot_resurrect_revoked_readless_or_expired_push_leases() {
                 let _changed = db
                     .execute(
                         "UPDATE devices SET scopes='[]' WHERE id=?1",
+                        [lease.device.to_string()],
+                    )
+                    .unwrap();
+            }
+            3 => {
+                let _changed = db
+                    .execute(
+                        "UPDATE devices SET revoked_at=1 WHERE id=?1",
                         [lease.device.to_string()],
                     )
                     .unwrap();
