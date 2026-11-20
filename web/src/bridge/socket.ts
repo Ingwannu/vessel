@@ -80,6 +80,15 @@ export class BridgeSocket {
     return this.#link;
   }
 
+  /** The session key, only while a welcomed socket has just proved this
+   * is our server: the HTML preview's post carries it as a bearer (ADR
+   * 0122), so it is never sent to a server that has not proved itself. */
+  get sessionKey(): string | null {
+    return this.#link.kind === "open" && this.#credential.kind === "session"
+      ? this.#credential.key
+      : null;
+  }
+
   /** Open the socket (and keep it open). */
   start(): void {
     this.#stopped = false;

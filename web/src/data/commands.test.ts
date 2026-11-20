@@ -146,6 +146,7 @@ describe("paletteEntries", () => {
       "Settings: Devices",
       "Settings: Usage",
       "Settings: Sync",
+      "Settings: Plugins",
       "Settings: Diagnostics",
       "Settings: About",
     ]);

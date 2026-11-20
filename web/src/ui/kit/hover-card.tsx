@@ -6,7 +6,7 @@ import "./popup.css";
 import "./popover.css";
 
 import { PreviewCard as Base } from "@base-ui/react/preview-card";
-import type { ReactElement, ReactNode } from "react";
+import type { ReactElement, ReactNode, RefObject } from "react";
 
 import type { PopoverWidth } from "./popover";
 
@@ -16,6 +16,8 @@ export function HoverCard({
   width = "lg",
   side = "top",
   align = "end",
+  sideOffset = 6,
+  anchor,
 }: {
   /** The element it describes; Base UI adds its handlers and ARIA. */
   trigger: ReactElement;
@@ -23,6 +25,10 @@ export function HoverCard({
   width?: PopoverWidth;
   side?: "bottom" | "top" | "right" | "left";
   align?: "start" | "center" | "end";
+  /** Gap between the anchor and the card. Paseo's row card uses 4. */
+  sideOffset?: number;
+  /** Sit beside this element. Absent, the card sits beside the trigger. */
+  anchor?: RefObject<Element | null>;
 }) {
   return (
     <Base.Root>
@@ -31,9 +37,10 @@ export function HoverCard({
       <Base.Portal>
         <Base.Positioner
           className="popup-positioner"
+          anchor={anchor}
           side={side}
           align={align}
-          sideOffset={6}
+          sideOffset={sideOffset}
           collisionPadding={8}
         >
           <Base.Popup className={`popup popover ${width}`}>

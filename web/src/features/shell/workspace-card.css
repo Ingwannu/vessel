@@ -1,0 +1,123 @@
+/* The workspace hover card (TRACKER 819): name, pull request, diff
+   stat, host, copyable branch and folder, checks. Wide windows and a
+   fine pointer only; the compact sheet is where a drag happens, so
+   hiding the card there also keeps it off a drag. */
+
+.workspace-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  min-width: 0;
+}
+
+.workspace-card-title {
+  margin: 0;
+  overflow: hidden;
+  color: var(--text-primary);
+  font: var(--t-body);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-card-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-width: 0;
+  color: var(--text-secondary);
+  font: var(--t-meta);
+}
+
+.workspace-card-row > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-card-row > .ico {
+  flex: none;
+}
+
+.workspace-card-diff {
+  display: flex;
+  gap: var(--s-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.workspace-card-add {
+  color: var(--online);
+}
+
+.workspace-card-del {
+  color: var(--danger);
+}
+
+.workspace-card-copy,
+.workspace-card-link {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.workspace-card-copy:hover,
+.workspace-card-copy[data-copied="true"],
+.workspace-card-link:hover {
+  color: var(--text-primary);
+}
+
+.workspace-card-copy:focus {
+  outline: none;
+}
+
+.workspace-card-copy:focus-visible,
+.workspace-card-link:focus-visible {
+  outline: var(--focus);
+  outline-offset: 2px;
+}
+
+.workspace-card-checks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.workspace-card-rule {
+  height: 1px;
+  background: var(--border-subtle);
+}
+
+.workspace-card-pills {
+  display: flex;
+  flex: none;
+  gap: var(--s-2);
+  margin-left: auto;
+  overflow: visible;
+}
+
+.workspace-card-pill {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 3px;
+  font-variant-numeric: tabular-nums;
+}
+
+.workspace-card-ok {
+  color: var(--online);
+}
+
+.workspace-card-bad {
+  color: var(--danger);
+}
+
+.workspace-card-pending {
+  color: var(--warn);
+}

@@ -4,6 +4,7 @@
 
 export { Avatar } from "./avatar";
 export { Badge, type BadgeLook, type Tone } from "./badge";
+export { Alert, type AlertSize, type AlertVariant } from "./alert";
 export { Banner } from "./banner";
 export { BrandMark } from "./brand-mark";
 export {
