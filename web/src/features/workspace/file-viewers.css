@@ -54,11 +54,13 @@
   overflow: hidden;
 }
 
+/* Paseo's cells: 14/20 text, key and value alike, scaled with the
+   interface's font size as the body is. */
 .md-front dt,
 .md-front dd {
   margin: 0;
   padding: 8px 12px;
-  line-height: 20px;
+  line-height: calc(20px * var(--ui-scale));
   white-space: pre-wrap;
 }
 
@@ -67,7 +69,8 @@
 .md-front dt {
   background: var(--bg-well);
   color: var(--text-secondary);
-  font: 400 14px / 20px var(--font-mono);
+  font: 400 calc(14px * var(--ui-scale)) / calc(20px * var(--ui-scale))
+    var(--font-mono);
 }
 
 .md-front dt:not(:first-of-type),
@@ -86,18 +89,18 @@
 }
 
 .md-doc h1 {
-  font-size: 22px;
-  line-height: 28px;
+  font-size: calc(22px * var(--ui-scale));
+  line-height: calc(28px * var(--ui-scale));
 }
 
 .md-doc h2 {
-  font-size: 18px;
-  line-height: 24px;
+  font-size: calc(18px * var(--ui-scale));
+  line-height: calc(24px * var(--ui-scale));
 }
 
 .md-doc :is(h3, h4, h5, h6) {
-  font-size: 14px;
-  line-height: 20px;
+  font-size: calc(14px * var(--ui-scale));
+  line-height: calc(20px * var(--ui-scale));
 }
 
 .md-doc p {
