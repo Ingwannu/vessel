@@ -197,7 +197,9 @@ fn setup(cx: &mut TestAppContext) -> (Entity<Shell>, &mut VisualTestContext) {
     (shell, cx)
 }
 
-/// Every `aria` object of GPUI's real snapshot, as text.
+/// Every `aria` object of GPUI's real snapshot, as text, without the
+/// isolation marks Fluent puts around an argument (U+2068, U+2069), which
+/// assistive technology does not read.
 fn arias(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> Vec<String> {
     let handle = cx.update(|window, _| window.window_handle());
     assert!(cx.simulate_accessibility_activation(handle));
@@ -209,6 +211,7 @@ fn arias(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> Vec<String> {
     json.split("\"aria\":")
         .skip(1)
         .filter_map(|rest| rest.split_once('}').map(|(aria, _)| aria.to_owned()))
+        .map(|aria| aria.replace(['\u{2068}', '\u{2069}'], ""))
         .collect()
 }
 
