@@ -14,6 +14,7 @@ use super::scripts::Plan;
 use super::{MAX_ENDED, MAX_LIVE, MAX_PER_AGENT, MAX_PER_PROJECT, MAX_PER_SESSION, Runner};
 
 mod ending;
+mod listed;
 use crate::workspace::Occupant;
 
 /// What a terminal counts against.
@@ -37,6 +38,8 @@ pub(crate) struct Entry {
     /// session in a project counts against the project too, which its
     /// place alone does not say).
     pub(crate) owner: Owner,
+    /// The connection whose pane sizes it (ADR 0116, `crate::size_owner`).
+    pub(crate) size_owner: crate::size_owner::Slot,
 }
 
 /// A start to count before it runs.
@@ -122,6 +125,8 @@ pub(crate) struct Terminals {
     /// The sessions whose end is watched for agents' terminals, one task
     /// each however many terminals.
     watching: Mutex<HashSet<SessionId>>,
+    /// `terminal.list`'s revision (ADR 0116, `listed`).
+    listed: Arc<tokio::sync::watch::Sender<u64>>,
 }
 
 /// A start counted against the limits until it is registered or dropped.
@@ -154,6 +159,7 @@ impl Terminals {
             runner,
             state: Arc::default(),
             watching: Mutex::default(),
+            listed: Arc::new(tokio::sync::watch::channel(0).0),
         })
     }
 
@@ -243,10 +249,12 @@ impl Terminals {
         plan: Option<Arc<Plan>>,
     ) {
         let id = handle.id();
+        self.follow_listed(&handle);
         let entry = Entry {
             handle,
             plan,
             owner: reservation.owner.clone(),
+            size_owner: Arc::default(),
         };
         let mut state = self.state();
         drop(state.entries.insert(id, entry));
@@ -268,6 +276,7 @@ impl Terminals {
         }
         drop(state);
         drop(reservation);
+        self.list_moved();
     }
 
     /// One terminal.
@@ -281,7 +290,10 @@ impl Terminals {
 
     /// Forget one (it has ended, or is being closed).
     pub(crate) fn forget(&self, id: TerminalId) {
-        drop(self.state().entries.remove(&id));
+        let forgotten = self.state().entries.remove(&id);
+        if forgotten.is_some() {
+            self.list_moved();
+        }
     }
 
     /// Every terminal `keep` lets through: live ones first, then ended
@@ -372,9 +384,16 @@ impl Terminals {
     /// Forget the ended terminals placed in `project` (its removal; a live
     /// one refuses the removal first).
     pub(crate) fn forget_project(&self, project: ProjectId) {
-        self.state().entries.retain(|_, entry| {
+        let mut state = self.state();
+        let before = state.entries.len();
+        state.entries.retain(|_, entry| {
             let info = entry.handle.info();
             info.is_live() || info.place.project() != Some(project)
         });
+        let forgot = state.entries.len() != before;
+        drop(state);
+        if forgot {
+            self.list_moved();
+        }
     }
 }

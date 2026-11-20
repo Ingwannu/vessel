@@ -426,6 +426,7 @@ fn a_list_adds_the_places_shells_and_drops_ended_ones(cx: &mut TestAppContext) {
                 place: place.clone(),
                 result: Ok(TerminalList {
                     terminals: vec![first.clone(), second.clone()],
+                    revision: 1,
                 }),
             },
             cx,
@@ -447,6 +448,7 @@ fn a_list_adds_the_places_shells_and_drops_ended_ones(cx: &mut TestAppContext) {
                 place: place.clone(),
                 result: Ok(TerminalList {
                     terminals: vec![first.clone(), ended],
+                    revision: 2,
                 }),
             },
             cx,

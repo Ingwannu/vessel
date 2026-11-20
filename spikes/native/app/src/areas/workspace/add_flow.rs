@@ -14,11 +14,13 @@
 //!   (the node review of the page's R2), and the move after a success
 //!   kept until the next frame, when the sheet's render defers it with
 //!   the window (the timeline's rewind and fork do the same).
-//! - Differences (docs/plans/wp-add-project-flow.md): Browse is hidden
-//!   until the app knows which machine is this computer (TRACKER 816); a
-//!   clone closes the sheet when the node answers `cloning` and its
-//!   progress is its row in Settings > Projects (difference 7).
+//! - Differences (docs/plans/wp-add-project-flow.md): Browse is offered
+//!   on the machines whose node runs on this computer (TRACKER 816,
+//!   `browse.rs`); a clone closes the sheet when the node answers
+//!   `cloning` and its progress is its row in Settings > Projects
+//!   (difference 7).
 
+mod browse;
 mod calls;
 mod render;
 
@@ -91,6 +93,11 @@ pub(crate) struct AddFlowSheet {
     /// `lastCloneParentByHost`, for the app's life).
     last_clone_parent: HashMap<String, String>,
     after: Option<After>,
+    /// The nodes that run on this computer (the link's `ThisComputer`):
+    /// Browse is offered on their machines.
+    this_computer: Vec<vessel_proto::NodeId>,
+    /// The folder chooser is open (Paseo's `browseInFlightRef`).
+    browsing: bool,
 }
 
 impl AddFlowSheet {
@@ -108,6 +115,8 @@ impl AddFlowSheet {
             prior: ReturnFocus::default(),
             last_clone_parent: HashMap::new(),
             after: None,
+            this_computer: Vec::new(),
+            browsing: false,
         }
     }
 
@@ -138,8 +147,7 @@ impl Shell {
                 name: machine.name.clone(),
                 label: machine.name.clone(),
                 can_add_project: true,
-                // TRACKER 816: on once the app knows its own machine.
-                can_browse: false,
+                can_browse: self.on_this_computer(machine.node),
                 can_clone: can_clone(self.areas.workspace.projects.get(&machine.name)),
                 can_search_github: false,
                 can_create_directory: reads_tilde(machine.protocol),
@@ -410,8 +418,10 @@ impl Shell {
                 Method::DirectorySearch => open.flow.open_directory_search(&machine),
                 Method::Github => open.flow.open_github_search(&machine),
                 Method::NewDirectory => open.flow.open_new_directory_parent(&machine),
-                // Hidden until TRACKER 816.
-                Method::Browse => return,
+                Method::Browse => {
+                    self.add_flow_browse(machine, cx);
+                    return;
+                }
             },
             (RowAction::Repository(repository), Some(machine)) => {
                 open.flow.open_github_location(&machine, repository);
