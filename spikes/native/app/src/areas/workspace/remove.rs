@@ -54,6 +54,24 @@ pub(crate) struct Removing {
     pub(super) recount: Option<usize>,
 }
 
+impl Removing {
+    /// A removal the node kept, its terminals not counted yet.
+    pub(super) const fn new(
+        worktree: WorktreeInfo,
+        reasons: Vec<KeptReason>,
+        error: Option<String>,
+    ) -> Self {
+        Self {
+            worktree,
+            reasons,
+            busy: None,
+            error,
+            terminals: None,
+            recount: None,
+        }
+    }
+}
+
 /// A worktree's branch, in words.
 pub(super) fn branch_name(worktree: &WorktreeInfo, detached: &str) -> String {
     worktree
@@ -91,9 +109,16 @@ impl Shell {
         cx.notify();
     }
 
-    /// After `kept { in_use }`: count the live terminals in the worktree's
+    /// After a removal's answer: when the node kept the worktree in use and
+    /// its terminals are not counted yet, count the live terminals in its
     /// folder, from a node at protocol 40 or later.
     pub(super) fn removal_count_terminals(&mut self, machine: &str) {
+        let uncounted = self.removing_mut().is_some_and(|removing| {
+            in_use(&removing.reasons) && removing.terminals.is_none() && removing.recount.is_none()
+        });
+        if !uncounted {
+            return;
+        }
         let protocol = self
             .fleet
             .machines

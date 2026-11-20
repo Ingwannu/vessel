@@ -254,7 +254,6 @@ impl Shell {
             .as_ref()
             .map_or_else(String::new, |info| branch_name(info, labels.detached));
         let mut notice = None;
-        let mut count_terminals = false;
         match result {
             Ok(RemoveWorktreeOutcome::Removed { snapshot, .. }) => {
                 detail.removing = None;
@@ -270,15 +269,7 @@ impl Shell {
                     IfLost::Discard => Some(labels.nothing_removed.to_owned()),
                 };
                 if let Some(worktree) = info {
-                    count_terminals = vessel_app_view::workspace::worktrees::in_use(&reasons);
-                    detail.removing = Some(Removing {
-                        worktree,
-                        reasons,
-                        busy: None,
-                        error,
-                        terminals: None,
-                        recount: None,
-                    });
+                    detail.removing = Some(Removing::new(worktree, reasons, error));
                 }
             }
             Err(problem) => {
@@ -295,9 +286,7 @@ impl Shell {
         if notice.is_some() {
             self.notice = notice;
         }
-        if count_terminals {
-            self.removal_count_terminals(machine);
-        }
+        self.removal_count_terminals(machine);
         self.ask(
             machine,
             Ask::Worktree(WorktreeAsk::List(ListWorktrees {
