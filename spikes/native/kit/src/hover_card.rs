@@ -16,7 +16,8 @@
 //!     owned timer does this; dropping it cancels it, as the tooltip's
 //!     does.
 //!   - A press on the trigger closes it, so the trigger's own click and
-//!     menu win. Escape closes it.
+//!     menu win. Escape closes it, whatever has the keys (an app-wide
+//!     interceptor that does not consume the key).
 //!   - The screen draws [`HoverCards::render`] with what the card holds.
 //!     It sits right of the trigger, centred on its height, 4 away
 //!     (Paseo's `placement="right"`, `alignment="center"`, `offset={4}`),
@@ -36,8 +37,8 @@ use std::time::Duration;
 
 use gpui::prelude::*;
 use gpui::{
-    AnyElement, App, BoxShadow, KeyDownEvent, MouseButton, SharedString, Stateful, Task, Window,
-    anchored, canvas, deferred, div, point, px,
+    AnyElement, App, BoxShadow, MouseButton, SharedString, Stateful, Subscription, Task, Window,
+    anchored, deferred, div, point, px,
 };
 
 use crate::picker::anchor_probe;
@@ -71,6 +72,8 @@ struct State {
     on_card: bool,
     // Ownership is cancellation: GPUI's `Task` cancels when dropped.
     closing: Option<Task<()>>,
+    /// Escape's interceptor (`listen_for_escape`).
+    escape: Option<Subscription>,
 }
 
 impl std::fmt::Debug for State {
@@ -80,6 +83,7 @@ impl std::fmt::Debug for State {
             .field("on_trigger", &self.on_trigger)
             .field("on_card", &self.on_card)
             .field("closing", &self.closing.is_some())
+            .field("escape", &self.escape.is_some())
             .finish()
     }
 }
@@ -134,6 +138,7 @@ impl HoverCards {
             .on_hover(move |hovered, window, cx| {
                 if *hovered {
                     open(&hovering, key.clone(), Rc::clone(&hover_place));
+                    listen_for_escape(&hovering, cx);
                 } else {
                     {
                         let mut state = hovering.borrow_mut();
@@ -180,7 +185,6 @@ impl HoverCards {
         let bounds = shown.place.get()?;
         let surfaces = Surfaces::of(tokens);
         let hovering = Rc::clone(&self.state);
-        let escaping = Rc::clone(&self.state);
         let card = div()
             .id(gpui::ElementId::NamedChild(
                 std::sync::Arc::new(gpui::ElementId::Name(shown.key.clone())),
@@ -207,7 +211,6 @@ impl HoverCards {
                     close_soon(&hovering, window, cx);
                 }
             })
-            .child(escape(escaping))
             .child(content);
         Some(
             deferred(
@@ -290,25 +293,29 @@ fn close_soon(state: &Rc<RefCell<State>>, window: &Window, cx: &App) {
 }
 
 /// Escape closes the card shown, whatever has the keys (Paseo's
-/// `keyPressed`): a listener for the frame the card is drawn in.
-fn escape(state: Rc<RefCell<State>>) -> impl IntoElement {
-    canvas(
-        |_bounds, _window, _cx| {},
-        move |_bounds, (), window, _cx| {
-            let state = Rc::clone(&state);
-            window.on_key_event(move |event: &KeyDownEvent, phase, window, _cx| {
-                // Capture: seen before the focused element's own Escape
-                // (a field clearing, a dialog closing) can stop it; the
-                // card does not stop it in turn.
-                if phase.capture() && event.keystroke.key == "escape" {
-                    close_now(&state);
-                    window.refresh();
-                }
-            });
-        },
-    )
-    .absolute()
-    .size_0()
+/// `keyPressed` on the document). A listener painted with the card would
+/// only hear keys bound for its own branch (it never holds focus), so the
+/// screen's cards hold one app-wide interceptor, made when a card first
+/// opens and kept while the cards live; it never consumes the key.
+fn listen_for_escape(state: &Rc<RefCell<State>>, cx: &mut App) {
+    if state.borrow().escape.is_some() {
+        return;
+    }
+    let weak = Rc::downgrade(state);
+    let escape = cx.intercept_keystrokes(move |event, window, _cx| {
+        if event.keystroke.key != "escape" {
+            return;
+        }
+        let Some(state) = weak.upgrade() else {
+            return;
+        };
+        let shown = state.borrow().shown.is_some();
+        if shown {
+            close_now(&state);
+            window.refresh();
+        }
+    });
+    state.borrow_mut().escape = Some(escape);
 }
 
 #[cfg(test)]
