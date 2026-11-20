@@ -165,3 +165,72 @@ none to done, or to a stated difference, without waiting on the node.
 - **Browser link.** `web.rs` `answer` is split by kind of request into `web/refuse.rs`. A source test
   (`link/src/web_dispatch_tests.rs`) keeps every `Command`, `Files` and mentions `Ask` named, with no
   catch-all.
+
+## Presence (2026-11-20, the claims follow-up's first row)
+
+[Decision Log]
+
+**Purpose and intent.** The first of the claims rows (the coordinator's plan, 2026-11-20): both clients
+report presence (`push.presence`, live since protocol 22). A machine then knows whether a person is here
+before it sends a Web Push, and which window to tell.
+
+**Existing implementation and constraints.**
+- The node already decides from presence with Paseo's policy (`push/policy.rs`, Paseo's
+  `agent-attention-policy.ts:3,42-76`):
+  - present means real input within 180 s;
+  - only a present, visible window focused on the target suppresses;
+  - otherwise the most recently active present window is the one told;
+  - otherwise the machine pushes.
+- Neither client reported presence, so every Web Push went out even while the person used Vessel.
+- The protocol has no client timestamps: `Active` is stamped by the node at receipt (ADR 0089).
+
+**Alternatives considered.**
+- Wait for the claims protocol and send presence with it. That leaves pushes going to people at their
+  screen until then, and presence does not need it.
+- Send presence only while notifications are wanted. Paseo always sends it, and the node uses it for Web
+  Push too.
+
+**Choice: Paseo's client tracker, copied** (`~/refs/paseo-latest/packages/app/src/hooks/client-activity-tracker.ts`
+and `use-client-activity.ts`).
+- Timing:
+  - a heartbeat every 15 s while connected, and one at once on connecting (`:1`, `:125-148`);
+  - an immediate heartbeat on input at most every 5 s (`:2`, `:63-73`).
+- Input and visibility:
+  - window focus, a pointer press, a key, a wheel and a touch are input; opening counts as input (`:43`);
+  - a new shown session is input and sends at once (`:78-89`);
+  - becoming visible is input; becoming hidden waits for the next heartbeat (`:90-105`).
+- Focus:
+  - `session` on the machine whose session the window shows, when visible;
+  - `elsewhere` on every other machine;
+  - `background` while hidden.
+- Visible is the document's visibility on the page (Paseo's), and the window's visibility on native
+  (`observe_window_visibility`). A visible window that is not focused still shows its session, as in
+  Paseo.
+- Where it lives:
+  - page: `web/src/data/presence.ts` (the tracker), `features/notifications/use-presence.ts` (the wiring);
+  - native: `view/src/presence.rs` (the tracker and `Told`), `link/src/presence.rs` (a report per machine
+    connection), `app/src/areas/presence.rs` (input observed at the root in the capture phase, keystrokes,
+    activation, visibility, the 15 s timer).
+
+**Why this over the alternatives.** It is the reference's behaviour, value for value, and the node's
+policy is already Paseo's. Each difference is stated below.
+
+**Pros, cons and impact.**
+- **This changes Web Push today.** A machine sends no push while a window of the page or the app had real
+  input in the last 180 s. It suppresses a session's push entirely while a visible window shows that
+  session. A window that goes quiet stops counting 180 s after the report that carried its last input,
+  and pushes resume.
+- Difference, by the protocol: Paseo sends the input's own time. Vessel's report says `active` and the
+  machine stamps it. Input that waits for a heartbeat keeps presence up to 15 s longer than Paseo's. A
+  machine that connects hears `active` only for input in the last 15 s, the same bound.
+- Difference: no OS idle time (`idle_age` is pending under ADR 0089's constant, and native has no idle
+  API).
+- A machine refusing presence (older than 22, or a device it takes none from) is not asked again by the
+  page until it reconnects. The app's link tries each heartbeat; an older machine is refused by the client
+  before the wire.
+- Tests:
+  - page: `data/presence.test.ts`;
+  - native: `view/src/presence/tests.rs` and `link/src/presence/tests.rs`;
+  - both run the node's 180 s rule over the reports: a window that goes stale lets push resume, a hidden
+    tab is present but never suppresses, and the latest input wins.
+

@@ -115,6 +115,11 @@ impl Shell {
         shell
     }
 
+    /// Whether the link started (a command has someone to go to).
+    pub(crate) const fn linked(&self) -> bool {
+        self.link.is_some()
+    }
+
     /// Send `command`; one the link does not take settles on the next
     /// update, after the caller's own code, through the handler its
     /// answer would reach (`crate::unsent`: callers that set what waits
@@ -306,6 +311,7 @@ impl Render for Shell {
     fn render(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
         let started = crate::region::begin(self, cx);
         areas::notify::retitle(self, window);
+        self.presence_shown();
         if std::mem::take(&mut self.arrive_pending) {
             routes::arrive(self.route, self, window, cx);
         }
@@ -354,6 +360,7 @@ impl Render for Shell {
             .on_modifiers_changed(cx.listener(Self::shortcut_modifiers_changed))
             .bg(tokens.bg_shell)
             .text_color(tokens.text_primary)
+            .child(areas::presence::observer(cx))
             .child(chrome::title_bar(self, &tokens, window, cx))
             .child(
                 div()

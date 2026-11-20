@@ -51,6 +51,7 @@ fn make_state(
         sync_calls: crate::sync::Hub::default(),
         session_navigation: crate::sessions::Hub::default(),
         terminal_hub: crate::terminals::Hub::default(),
+        presence_hub: crate::presence::Hub::default(),
         offers: std::sync::Arc::default(),
     }
 }

@@ -124,6 +124,10 @@ pub enum Command {
     /// Keep the composers' drafts on this device (written on the blocking
     /// pool; nothing is answered). A browser keeps none.
     SaveDrafts(vessel_app_view::composer::drafts::Drafts),
+    /// This window's presence, for every connected machine's
+    /// `push.presence` (`presence`): sent on input, on a change of shown
+    /// session or visibility, and every 15 s.
+    Presence(vessel_app_view::presence::Snapshot),
     /// What a composer's files ask (track P's row c): a file sent, a
     /// conversation started for them, the prompt that names them.
     Files(attachments::Files),

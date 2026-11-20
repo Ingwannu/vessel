@@ -17,6 +17,7 @@ import { labelManager } from "../../data/workspace-labels/hub";
 import { Banner, Button, Sheet } from "../../ui/kit";
 import { Toasts } from "../../ui/toasts";
 import { useNotices } from "../notifications/use-notices";
+import { usePresence } from "../notifications/use-presence";
 import { PaletteHost } from "../palette/palette";
 import { AddProjectFlowHost } from "../projects/add-project-flow";
 import { useShortcutListener } from "../shortcuts/listener";
@@ -43,6 +44,7 @@ export function Shell(): ReactElement {
   useShortcutListener();
   useShellShortcuts();
   useNotices();
+  usePresence();
   useNewSessionEntry();
   return (
     <>

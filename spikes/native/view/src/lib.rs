@@ -51,6 +51,7 @@ pub mod palette;
 pub mod panels;
 pub mod plugins;
 pub mod prefs;
+pub mod presence;
 pub mod requests;
 pub mod rewind;
 pub mod search;

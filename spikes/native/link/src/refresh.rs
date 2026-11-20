@@ -44,6 +44,7 @@ impl State {
         let mut machines = Vec::with_capacity(book.len());
         for (book_name, entry) in book {
             let name = book_name.as_str().to_owned();
+            let fresh = !self.clients.contains_key(&name);
             let reach = if let Some(connected) = self.clients.get(&name) {
                 Ok(connected.clone())
             } else {
@@ -62,7 +63,11 @@ impl State {
                     {
                         this_computer.push(node.id);
                     }
-                    self.read_sessions(name, connected).await
+                    let machine = self.read_sessions(name, connected).await;
+                    if fresh {
+                        self.presence_connected(book_name.as_str());
+                    }
+                    machine
                 }
                 Err(error) => Machine::unreachable(name, &error.to_string()),
             };

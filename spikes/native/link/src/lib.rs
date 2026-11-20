@@ -57,6 +57,8 @@ pub mod attachments;
 mod pairing;
 mod prefs;
 #[cfg(not(target_arch = "wasm32"))]
+mod presence;
+#[cfg(not(target_arch = "wasm32"))]
 mod refresh;
 #[cfg(not(target_arch = "wasm32"))]
 mod sending;
@@ -228,6 +230,7 @@ impl Link {
             usage_calls: usage::Hub::default(),
             session_navigation: sessions::Hub::default(),
             terminal_hub: terminals::Hub::default(),
+            presence_hub: presence::Hub::default(),
             offers: std::sync::Arc::default(),
         };
         drop(runtime.spawn(state.run(inbox)));
@@ -301,6 +304,8 @@ struct State {
     session_navigation: sessions::Hub,
     /// The terminal tabs' follows (`terminals`).
     terminal_hub: terminals::Hub,
+    /// This window's presence to each machine (`presence`).
+    presence_hub: presence::Hub,
     /// The agents' lists kept between runs, by node: read before the first
     /// connection, written when an answer differs (on the blocking pool;
     /// the lock is held only there and for a lookup at connect).

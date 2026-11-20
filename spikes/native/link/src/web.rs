@@ -128,6 +128,7 @@ impl Link {
             | Command::SavePrefs(_)
             | Command::KeepCommands { .. }
             | Command::SaveDrafts(_)
+            | Command::Presence(_)
             | Command::RetireConnection(_) => {}
             Command::CodeSource(request) => self.emit(refuse::code_source(request)),
             Command::Usage(ask) => self.emit(refuse::usage(ask)),

@@ -152,6 +152,8 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
             }),
         }),
         Command::Terminals(ask) => return settle_terminals(ask),
+        // Presence is a heartbeat; the next one carries it.
+        Command::Presence(_) => return Settle::Ignore,
         Command::Prompt { session, text, .. } => return Settle::Prompt { session, text },
         Command::Files(command) => return settle_files(command, words),
         Command::Open { .. }

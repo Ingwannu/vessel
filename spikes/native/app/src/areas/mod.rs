@@ -24,6 +24,7 @@ pub(crate) mod layout;
 pub(crate) mod notify;
 pub(crate) mod pair;
 pub(crate) mod palette;
+pub(crate) mod presence;
 pub(crate) mod pulls;
 pub(crate) mod session;
 #[cfg(test)]
@@ -81,6 +82,8 @@ pub(crate) struct Areas {
     /// The system's notifications, the notice sound and the title's
     /// count (ADR 0114).
     pub(crate) notify: notify::NotifyArea,
+    /// This window's presence on every machine (`push.presence`).
+    pub(crate) presence: presence::PresenceArea,
 }
 
 impl Areas {
@@ -135,6 +138,7 @@ impl Areas {
             terminal: terminal::TerminalArea::new(cx),
             terminal_tabs: terminal_tabs::TerminalTabs::new(cx),
             notify: notify::NotifyArea::new(window, cx),
+            presence: presence::PresenceArea::new(window, cx),
         };
         // Track P: the composers' drafts read back, and kept as typed.
         composer::keep_drafts(&mut areas, drafts, window, cx);
