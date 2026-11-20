@@ -74,6 +74,7 @@ pub(crate) fn refuse_agents(principal: &Principal, method: Method) -> Result<(),
     } else if matches!(
         method,
         Method::ForgeStatus
+            | Method::SearchRepositories
             | Method::ListPullRequests
             | Method::MergePullRequest
             | Method::SetFeedback
@@ -168,6 +169,9 @@ const fn refused(method: Method) -> bool {
         // is a person's to decide, as is what is sent into a session; the
         // node's sign-in and the whole list are a person's view.
         | Method::ForgeStatus
+        // The account's GitHub repositories (ADR 0088): the node's sign-in
+        // is a person's, as `forge.status`.
+        | Method::SearchRepositories
         | Method::ListPullRequests
         | Method::MergePullRequest
         | Method::SetFeedback
@@ -209,6 +213,9 @@ const fn refused(method: Method) -> bool {
         // pushing (`forge::open`).
         | Method::GetPullRequest
         | Method::OpenPullRequest
+        // The pane's reads (ADR 0088): what `pr.get` shows, in full.
+        | Method::GetPullTimeline
+        | Method::GetCheckDetails
         // Not workspace calls: held to the scopes, ownership and limits
         // every agent is (ADR 0013, `guard`), not to this rule.
         // Schedules (protocol 11) are held to theirs (ADR 0033,
@@ -426,6 +433,8 @@ mod tests {
             // the agent may operate (the forge's rule, ADR 0029).
             Method::GetPullRequest,
             Method::OpenPullRequest,
+            Method::GetPullTimeline,
+            Method::GetCheckDetails,
         ] {
             assert!(refuse_agents(&agent, allowed).is_ok(), "{allowed:?}");
         }
@@ -441,6 +450,7 @@ mod tests {
             Method::RunScript,
             Method::RestartScript,
             Method::ForgeStatus,
+            Method::SearchRepositories,
             Method::ListPullRequests,
             Method::MergePullRequest,
             Method::SetFeedback,

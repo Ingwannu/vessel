@@ -3,6 +3,8 @@
 //! and the calls that read, open and merge one.
 //! ADR 0061's project-page values are also defined here, without a
 //! registered project-list call until its protocol admission is ready.
+//! ADR 0088 adds GitHub repository search (`forge.repos`, `repos`) and the
+//! pull request pane's reads (`pr.timeline`, `pr.check`, `pane`).
 //!
 //! [Decision Log]
 //! - Purpose: agent-orchestrator, GOAT and Paseo all follow a session's
@@ -23,8 +25,10 @@
 mod access;
 mod calls;
 mod names;
+mod pane;
 mod project;
 mod pull;
+mod repos;
 
 pub use access::{
     ForgeAccess, ForgeStatus, GhState, HostStatus, PullRequestList, PullRequestView, RefusedReason,
@@ -35,16 +39,25 @@ pub use calls::{
     OpenOutcome, OpenPullRequest, OpenRefusal, SetFeedback,
 };
 pub use names::{
-    CheckName, ForgeHost, ForgeLogin, ForgeUrl, InvalidForgeValue, PullBody, PullNumber, PullTitle,
-    RepoPath, is_format,
+    CheckName, ForgeHost, ForgeItemId, ForgeLogin, ForgePath, ForgeUrl, InvalidForgeValue,
+    PullBody, PullNumber, PullTitle, RepoDescription, RepoPath, RepoQuery, is_format,
+};
+pub use pane::{
+    Annotation, AnnotationLevel, CheckDetails, CheckOutput, CheckReport, FailedJob,
+    GetCheckDetails, GetPullTimeline, LogTail, PULL_REQUEST_PANE_PROTOCOL, PullTimeline,
+    ReviewState, RunId, ThreadPlace, TimelineItem,
 };
 pub use project::{
     InvalidOpenPullPage, InvalidPullCursor, OpenPullPage, PROJECT_PULL_REQUESTS, ProjectPullCursor,
     PullCursor,
 };
 pub use pull::{
-    CheckRun, CheckState, Checks, ChecksState, ForgeKind, MergeMethod, Mergeable, PullRequest,
-    PullState, PullSummary, RepoRef, ReviewDecision, Reviews,
+    CheckRun, CheckState, CheckTally, Checks, ChecksState, ForgeKind, MergeMethod, Mergeable,
+    PullRequest, PullState, PullSummary, RepoRef, ReviewDecision, Reviews,
+};
+pub use repos::{
+    REPOSITORY_SEARCH_PROTOCOL, RepoLimit, Repository, RepositoryList, SearchRepositories,
+    Visibility,
 };
 
 #[cfg(test)]

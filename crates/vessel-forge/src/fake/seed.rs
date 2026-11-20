@@ -6,8 +6,12 @@ use std::io::Read as _;
 use std::path::Path;
 use std::sync::Arc;
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use vessel_proto::forge::{Checks, ForgeKind, MergeMethod, PullRequest, RepoRef};
+use vessel_proto::forge::{
+    CheckReport, CheckTally, Checks, ForgeKind, MergeMethod, PullRequest, RepoDescription, RepoRef,
+    TimelineItem, Visibility,
+};
 
 use super::{Failure, FakeForge};
 
@@ -95,14 +99,37 @@ struct Repository {
     repo: RepoRef,
     #[serde(default)]
     failure: Option<Failure>,
-    pulls: Vec<Pull>,
+    pulls: Vec<SeededPull>,
+    /// How `forge.repos` lists it (ADR 0088); every seeded repository is
+    /// listed, public and with no description unless said.
+    #[serde(default)]
+    listing: Listing,
+}
+#[derive(Debug, Default, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Listing {
+    #[serde(default)]
+    description: Option<RepoDescription>,
+    #[serde(default)]
+    visibility: Option<Visibility>,
+    #[serde(default)]
+    updated_at: Option<DateTime<Utc>>,
 }
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-struct Pull {
+struct SeededPull {
     pull: PullRequest,
     #[serde(default)]
     merge: Merge,
+    /// What `pr.timeline` answers (ADR 0088), oldest first.
+    #[serde(default)]
+    timeline: Vec<TimelineItem>,
+    /// Whether the timeline had more than one read takes.
+    #[serde(default)]
+    truncated: bool,
+    /// What `pr.check` answers for these runs (ADR 0088).
+    #[serde(default)]
+    reports: Vec<CheckReport>,
 }
 #[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -141,6 +168,10 @@ impl Seed {
                 }
                 if pull.summary.checks != pull.checks.state
                     || pull.checks.failing.len() > Checks::MAX_FAILING
+                    || pull
+                        .summary
+                        .tally
+                        .is_some_and(|tally| Some(tally) != CheckTally::of(&pull.checks))
                 {
                     return Err(SeedRule::Checks);
                 }
@@ -209,15 +240,32 @@ impl Seed {
             .collect();
         let forge = FakeForge::fixture(known);
         for entry in self.repositories {
+            if let Some(listed) = listed(&entry) {
+                forge.list_repository(listed);
+            }
             forge.fail_repository(entry.repo.clone(), entry.failure);
             for item in entry.pulls {
                 if matches!(item.merge, Merge::Refused) {
                     forge.refuse_merge(entry.repo.clone(), item.pull.summary.number);
                 }
+                forge.put_timeline(
+                    entry.repo.clone(),
+                    item.pull.summary.number,
+                    crate::Timeline {
+                        items: item.timeline,
+                        truncated: item.truncated,
+                    },
+                );
+                for report in item.reports {
+                    forge.put_check(entry.repo.clone(), report);
+                }
+                // A seed may leave the tally out: it is its checks' counts.
+                let mut pull = item.pull;
+                pull.summary.tally = CheckTally::of(&pull.checks);
                 forge.put(
-                    item.pull.head_branch.clone(),
+                    pull.head_branch.clone(),
                     crate::Read {
-                        pull: item.pull,
+                        pull,
                         // Discussion/feedback content is deliberately outside
                         // this fixture format; production tests cover it.
                         discussion: crate::Discussion::default(),
@@ -227,6 +275,19 @@ impl Seed {
         }
         forge
     }
+}
+
+/// How `forge.repos` lists a seeded repository: cloned over `https` from
+/// its own host; `None` when that makes no clone URL.
+fn listed(entry: &Repository) -> Option<vessel_proto::forge::Repository> {
+    let url = format!("https://{}/{}", entry.repo.host, entry.repo.path);
+    Some(vessel_proto::forge::Repository {
+        path: entry.repo.path.clone(),
+        description: entry.listing.description.clone(),
+        visibility: entry.listing.visibility.unwrap_or(Visibility::Public),
+        updated_at: entry.listing.updated_at.unwrap_or(DateTime::UNIX_EPOCH),
+        clone_url: url.parse().ok()?,
+    })
 }
 
 #[cfg(test)]

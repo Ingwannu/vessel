@@ -164,6 +164,8 @@ impl Method {
             | Self::SuggestFolders
             | Self::ProjectIcon
             | Self::CreateProjectDirectory
+            // Add project's GitHub search, on the machine that clones (ADR 0088).
+            | Self::SearchRepositories
             | Self::ReadFile
             | Self::WriteFile
             | Self::CreateDir
@@ -176,6 +178,8 @@ impl Method {
             | Self::ForgeStatus
             | Self::ListPullRequests
             | Self::GetPullRequest
+            | Self::GetPullTimeline
+            | Self::GetCheckDetails
             | Self::OpenPullRequest
             | Self::MergePullRequest
             | Self::SetFeedback

@@ -20,6 +20,7 @@
 //!   (an error body may quote a token); the token is a sensitive header.
 
 mod limits;
+mod logs;
 
 use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
@@ -32,7 +33,7 @@ use tokio::sync::Semaphore;
 use vessel_proto::forge::{ForgeHost, RefusedReason};
 
 pub(crate) use self::limits::Resource;
-use self::limits::{Admit, Limits, is_limit, sso};
+use self::limits::{Admit, Hold, Limits, is_limit, sso};
 use crate::provider::{ForgeError, Priority};
 use crate::token::Token;
 
@@ -65,6 +66,23 @@ pub(crate) struct Call<'a> {
     pub(crate) json: Option<Vec<u8>>,
 }
 
+/// What [`Http::exchange`] answered: the reply, and where a redirect it
+/// did not follow points.
+#[derive(Debug)]
+struct Answered {
+    reply: Reply,
+    location: Option<String>,
+}
+
+impl Answered {
+    const fn of(reply: Reply) -> Self {
+        Self {
+            reply,
+            location: None,
+        }
+    }
+}
+
 /// What a request answered.
 #[derive(Debug)]
 pub(crate) enum Reply {
@@ -85,6 +103,9 @@ struct State {
 #[derive(Debug, Clone)]
 pub(crate) struct Http {
     client: reqwest::Client,
+    /// For the one redirect a job's log takes off GitHub (ADR 0088): no
+    /// token is ever given to it, and it follows no redirect.
+    bare: reqwest::Client,
     slots: Arc<Semaphore>,
     background: Arc<Semaphore>,
     state: Arc<Mutex<State>>,
@@ -103,6 +124,15 @@ impl Http {
             .with_root_certificates(roots)
             .with_no_client_auth();
         tls.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
+        let bare = reqwest::Client::builder()
+            .use_preconfigured_tls(tls.clone())
+            .redirect(reqwest::redirect::Policy::none())
+            .no_proxy()
+            .connect_timeout(CONNECT)
+            .timeout(logs::TIME)
+            .user_agent("vessel")
+            .build()
+            .map_err(|error| ForgeError::Unreachable(error.without_url()))?;
         let client = reqwest::Client::builder()
             .use_preconfigured_tls(tls)
             .redirect(reqwest::redirect::Policy::custom(same_origin))
@@ -114,6 +144,7 @@ impl Http {
             .map_err(ForgeError::Unreachable)?;
         Ok(Self {
             client,
+            bare,
             slots: Arc::new(Semaphore::new(SLOTS)),
             background: Arc::new(Semaphore::new(BACKGROUND_SLOTS)),
             state: Arc::new(Mutex::new(State::default())),
@@ -128,6 +159,12 @@ impl Http {
     /// [`ForgeError::Refused`] for 401 and a 403 that is not a limit;
     /// [`ForgeError::Server`] for 5xx; [`ForgeError::Unreachable`].
     pub(crate) async fn send(&self, call: Call<'_>) -> Result<Reply, ForgeError> {
+        self.exchange(call).await.map(|answered| answered.reply)
+    }
+
+    /// [`Self::send`], keeping where a redirect it did not follow points
+    /// (a job's log, `logs`).
+    async fn exchange(&self, call: Call<'_>) -> Result<Answered, ForgeError> {
         self.admit(&call).await?;
         let _background = match call.priority {
             Priority::Background => Some(
@@ -161,13 +198,24 @@ impl Http {
                 .header("content-type", "application/json")
                 .body(json);
         }
-        let response = request.send().await.map_err(ForgeError::Unreachable)?;
+        let response = request
+            .send()
+            .await
+            .map_err(|error| ForgeError::Unreachable(error.without_url()))?;
         let status = response.status();
         let headers = response.headers().clone();
         self.state().limits.note(call.host, call.resource, &headers);
         if status == StatusCode::NOT_MODIFIED {
-            return Ok(Reply::NotModified);
+            return Ok(Answered::of(Reply::NotModified));
         }
+        let location = if status.is_redirection() {
+            headers
+                .get("location")
+                .and_then(|value| value.to_str().ok())
+                .map(str::to_owned)
+        } else {
+            None
+        };
         let body = read_bounded(response).await?;
         if status.is_success() {
             self.state().limits.cooled(call.host, Utc::now());
@@ -176,13 +224,14 @@ impl Http {
             {
                 self.keep_etag(key, etag.clone());
             }
-            return Ok(Reply::Body { status, body });
+            return Ok(Answered::of(Reply::Body { status, body }));
         }
         if is_limit(status, &headers, &body) {
+            let hold = Hold::of(call.resource, &headers);
             let until = self
                 .state()
                 .limits
-                .cool_down(call.host, &headers, Utc::now());
+                .cool_down_for(call.host, hold, &headers, Utc::now());
             return Err(ForgeError::RateLimited { until });
         }
         match status {
@@ -195,7 +244,10 @@ impl Http {
             status if status.is_server_error() => Err(ForgeError::Server {
                 status: status.as_u16(),
             }),
-            status => Ok(Reply::Body { status, body }),
+            status => Ok(Answered {
+                reply: Reply::Body { status, body },
+                location,
+            }),
         }
     }
 

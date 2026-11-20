@@ -51,7 +51,18 @@ export function AddProjectResults({
     page.kind === "new-directory-name" && page.name.trim() !== ""
       ? joinDirectoryPath(page.parentPath, page.name.trim())
       : null;
-  const showRows = !submitting && !loading && queryError === null;
+  // Paseo's `add-project-flow.tsx:962-983`: the GitHub page keeps its rows
+  // (the typed choices) while it searches and under a search error; the
+  // other pages show rows once loaded and without an error.
+  const github = page.kind === "github-search";
+  const showRows =
+    !submitting && (!loading || github) && (queryError === null || github);
+  const showEmpty =
+    !submitting &&
+    !loading &&
+    queryError === null &&
+    rows.length === 0 &&
+    page.kind !== "new-directory-name";
   return (
     <>
       {preview === null ? null : (
@@ -96,7 +107,7 @@ export function AddProjectResults({
             </button>
           ))
         : null}
-      {showRows && rows.length === 0 && page.kind !== "new-directory-name" ? (
+      {showEmpty ? (
         <p className="add-project-state">{emptyText(page, machine)}</p>
       ) : null}
     </>

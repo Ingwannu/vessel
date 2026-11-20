@@ -14,7 +14,6 @@ import {
   addProjectMethodEmptyText,
   buildAddProjectMethods,
   buildCloneLocationOptions,
-  buildManualGithubRepositoryChoices,
   buildSuggestedParentDirectories,
   filterAddProjectMachines,
   pathBaseName,
@@ -24,6 +23,7 @@ import {
   type DirectoryOption,
   shortenPath,
 } from "./paths";
+import { githubChoices } from "./repositories";
 
 /** The mark a row draws (Paseo's lucide icons; `drive` is its HardDrive). */
 export type RowMark =
@@ -64,6 +64,9 @@ export interface RowInputs {
   recentPaths: readonly string[];
   /** The machine's `folder.suggest` answer for the field as it is. */
   machinePaths: readonly string[];
+  /** The machine's `forge.repos` answer for the field as it is (ADR
+   * 0088); none below its protocol. */
+  repositories?: readonly GithubRepositoryChoice[];
   /** The node's `~` form of each answered path. */
   shown: ReadonlyMap<string, string>;
   /** Where the last clone on this machine went. */
@@ -154,7 +157,7 @@ export function buildRows(input: RowInputs): FlowRow[] {
         };
       });
     case "github-search":
-      return buildManualGithubRepositoryChoices(page.query).map(
+      return githubChoices(page.query, input.repositories ?? []).map(
         (repository) => ({
           id: repository.id,
           title:

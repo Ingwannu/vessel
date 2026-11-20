@@ -4,7 +4,11 @@
 
 use std::collections::HashMap;
 
-use vessel_proto::forge::{CheckRun, CheckState, Checks, ChecksState, Mergeable, ReviewDecision};
+use chrono::{DateTime, Utc};
+use vessel_proto::forge::{
+    CheckName, CheckRun, CheckState, Checks, ChecksState, ForgeUrl, Mergeable, ReviewDecision,
+    RunId,
+};
 
 /// One check as GitHub's rollup lists it.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -17,6 +21,14 @@ pub(crate) struct Context {
     pub(crate) at: Option<String>,
     /// Its page.
     pub(crate) url: Option<String>,
+    /// A check run's id (a status has none).
+    pub(crate) run: Option<u64>,
+    /// Its workflow run's id.
+    pub(crate) workflow_run: Option<u64>,
+    /// Its workflow's name.
+    pub(crate) workflow: Option<String>,
+    /// When it ended.
+    pub(crate) completed_at: Option<String>,
 }
 
 /// A check run's `status` and `conclusion`.
@@ -85,18 +97,16 @@ pub(crate) fn checks(contexts: &[Context], truncated: bool) -> Checks {
     } else {
         ChecksState::Passing
     };
-    let failing = names
+    let runs: Vec<CheckRun> = names
         .iter()
-        .filter(|context| context.state == CheckState::Failed)
+        .take(Checks::MAX_RUNS)
+        .map(|context| check_run_of(context))
+        .collect();
+    let failing = runs
+        .iter()
+        .filter(|run| run.state == CheckState::Failed)
         .take(Checks::MAX_FAILING)
-        .map(|context| CheckRun {
-            name: vessel_proto::forge::CheckName::lossy(&context.name),
-            state: context.state,
-            url: context
-                .url
-                .as_deref()
-                .and_then(vessel_proto::forge::ForgeUrl::lossy),
-        })
+        .cloned()
         .collect();
     Checks {
         state,
@@ -105,6 +115,30 @@ pub(crate) fn checks(contexts: &[Context], truncated: bool) -> Checks {
         pending,
         truncated,
         failing,
+        runs,
+    }
+}
+
+/// A context as the wire's check: its run, workflow and times kept when
+/// the forge gave valid ones (ADR 0088).
+fn check_run_of(context: &Context) -> CheckRun {
+    let time = |text: Option<&str>| {
+        text.and_then(|text| DateTime::parse_from_rfc3339(text).ok())
+            .map(|time| time.with_timezone(&Utc))
+    };
+    CheckRun {
+        name: CheckName::lossy(&context.name),
+        state: context.state,
+        url: context.url.as_deref().and_then(ForgeUrl::lossy),
+        run: context.run.and_then(|id| RunId::new(id).ok()),
+        workflow_run: context.workflow_run.and_then(|id| RunId::new(id).ok()),
+        workflow: context
+            .workflow
+            .as_deref()
+            .filter(|name| !name.trim().is_empty())
+            .map(CheckName::lossy),
+        started_at: time(context.at.as_deref()).filter(|_| context.run.is_some()),
+        completed_at: time(context.completed_at.as_deref()),
     }
 }
 
@@ -173,7 +207,34 @@ mod tests {
             state,
             at: Some(at.to_owned()),
             url: None,
+            run: None,
+            workflow_run: None,
+            workflow: None,
+            completed_at: None,
         }
+    }
+
+    #[test]
+    fn every_check_is_listed_with_its_run_workflow_and_times() {
+        let mut test = context("test", CheckState::Failed, "2026-01-02T00:00:00Z");
+        test.run = Some(11);
+        test.workflow_run = Some(22);
+        test.workflow = Some("CI".to_owned());
+        test.completed_at = Some("2026-01-02T00:02:05Z".to_owned());
+        let lint = context("lint", CheckState::Passed, "2026-01-02T00:00:00Z");
+        let checks = checks(&[test, lint], false);
+        let names: Vec<_> = checks.runs.iter().map(|run| run.name.as_str()).collect();
+        assert_eq!(names, ["lint", "test"], "every check, by name");
+        let run = &checks.runs[1];
+        assert_eq!(run.run.map(RunId::get), Some(11));
+        assert_eq!(run.workflow_run.map(RunId::get), Some(22));
+        assert_eq!(run.workflow.as_ref().map(CheckName::as_str), Some("CI"));
+        assert!(run.started_at.is_some() && run.completed_at.is_some());
+        assert!(
+            checks.runs[0].started_at.is_none(),
+            "a status context's time is when it was made, not a start"
+        );
+        assert_eq!(checks.failing, [run.clone()]);
     }
 
     #[test]

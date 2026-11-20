@@ -22,20 +22,24 @@ fn document() -> Raw {
     read.pull.checks.state = ChecksState::Failing;
     read.pull.summary.checks = ChecksState::Failing;
     read.pull.checks.failed = 1;
-    read.pull.checks.failing = vec![CheckRun {
-        name: "fixture check".parse().unwrap(),
-        state: CheckState::Failed,
-        url: None,
-    }];
+    read.pull.checks.failing = vec![CheckRun::named(
+        "fixture check".parse().unwrap(),
+        CheckState::Failed,
+        None,
+    )];
     Raw {
         version: Version,
         repositories: vec![Repository {
             repo,
             failure: None,
-            pulls: vec![Pull {
+            pulls: vec![SeededPull {
                 pull: read.pull,
                 merge: Merge::Refused,
+                timeline: Vec::new(),
+                truncated: false,
+                reports: Vec::new(),
             }],
+            listing: Listing::default(),
         }],
     }
 }
@@ -46,7 +50,19 @@ fn decode(raw: &Raw) -> Seed {
 #[tokio::test]
 async fn seeded_facts_conditionals_and_refused_merge_use_real_fake_state() {
     let raw = document();
-    let expected = raw.repositories[0].pulls[0].pull.clone();
+    let mut expected = raw.repositories[0].pulls[0].pull.clone();
+    assert_eq!(
+        expected.summary.tally, None,
+        "the seed leaves its tally out"
+    );
+    expected.summary.tally = CheckTally::of(&expected.checks);
+    assert!(
+        expected
+            .summary
+            .tally
+            .is_some_and(|tally| tally.failed == 1),
+        "the fake counts it from the seed's checks"
+    );
     let forge = decode(&raw).into_forge();
     let repo = repo();
     let read = forge
@@ -229,9 +245,12 @@ fn whole_file_rules_and_diagnostics_do_not_expose_values() {
     ));
     let mut raw = document();
     let duplicate = raw.repositories[0].pulls[0].pull.clone();
-    raw.repositories[0].pulls.push(Pull {
+    raw.repositories[0].pulls.push(SeededPull {
         pull: duplicate,
         merge: Merge::Normal,
+        timeline: Vec::new(),
+        truncated: false,
+        reports: Vec::new(),
     });
     assert!(matches!(
         Seed::decode(&serde_json::to_vec(&raw).unwrap()),
@@ -243,6 +262,19 @@ fn whole_file_rules_and_diagnostics_do_not_expose_values() {
         Seed::decode(&serde_json::to_vec(&raw).unwrap()),
         Err(SeedError::Rule(SeedRule::Checks))
     ));
+    let mut raw = document();
+    raw.repositories[0].pulls[0].pull.summary.tally = Some(CheckTally {
+        passed: 3,
+        failed: 0,
+        pending: 0,
+    });
+    assert!(
+        matches!(
+            Seed::decode(&serde_json::to_vec(&raw).unwrap()),
+            Err(SeedError::Rule(SeedRule::Checks))
+        ),
+        "a tally that disagrees with the checks"
+    );
     let empty_v2 = b"{\"version\":2,\"repositories\":[]}";
     assert!(matches!(Seed::decode(empty_v2), Err(SeedError::Format(_))));
 }
@@ -381,3 +413,4 @@ fn complete_seed_bounds_reject_excess_without_partial_loading() {
 }
 
 mod concurrency;
+mod listing;

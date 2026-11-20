@@ -18,10 +18,13 @@
 //!   the host; any other host is `https://<host>/api/v3` and
 //!   `/api/graphql` (GitHub Enterprise Server), as GOAT reaches them.
 
+mod checks;
 mod facts;
 mod graphql;
 mod reads;
+mod repos;
 mod rest;
+mod timeline;
 mod writes;
 
 use std::sync::Arc;
@@ -29,13 +32,14 @@ use std::sync::Arc;
 use reqwest::{Method, StatusCode, Url};
 use serde::de::DeserializeOwned;
 use vessel_proto::forge::{
-    ForgeHost, ForgeKind, ForgeLogin, MergeMethod, PullNumber, RefusedReason, RepoRef,
+    CheckReport, ForgeHost, ForgeKind, ForgeLogin, MergeMethod, PullNumber, RefusedReason,
+    RepoLimit, RepoRef, Repository, RunId,
 };
 use vessel_proto::workspace::{BranchName, CommitId};
 
 use crate::http::{Call, Http, Reply, Resource};
 use crate::provider::{
-    Answer, Forge, ForgeError, Found, Fresh, Merged, Opened, Opening, Priority, Read,
+    Answer, Forge, ForgeError, Found, Fresh, Merged, Opened, Opening, Priority, Read, Timeline,
 };
 use crate::token::{Credentials, Found as TokenFound, Token};
 
@@ -295,6 +299,28 @@ impl Forge for GitHub {
 
     fn can_write<'a>(&'a self, repo: &'a RepoRef, login: &'a ForgeLogin) -> Answer<'a, bool> {
         Box::pin(self.writes_to(repo, login))
+    }
+
+    fn repositories<'a>(
+        &'a self,
+        host: &'a ForgeHost,
+        query: &'a str,
+        limit: RepoLimit,
+    ) -> Answer<'a, Vec<Repository>> {
+        Box::pin(self.repos_of(host, query, limit))
+    }
+
+    fn timeline<'a>(&'a self, repo: &'a RepoRef, number: PullNumber) -> Answer<'a, Timeline> {
+        Box::pin(self.activity(repo, number))
+    }
+
+    fn check<'a>(
+        &'a self,
+        repo: &'a RepoRef,
+        run: RunId,
+        workflow_run: Option<RunId>,
+    ) -> Answer<'a, CheckReport> {
+        Box::pin(self.check_report(repo, run, workflow_run))
     }
 }
 

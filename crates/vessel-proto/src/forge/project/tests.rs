@@ -29,6 +29,7 @@ fn pull(number: usize) -> PullSummary {
         review: ReviewDecision::ChangesRequested,
         mergeable: Mergeable::Blocked,
         updated_at: DateTime::<Utc>::UNIX_EPOCH,
+        tally: None,
     }
 }
 

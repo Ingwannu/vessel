@@ -14,14 +14,15 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use chrono::Utc;
 use vessel_proto::forge::{
-    Checks, ChecksState, ForgeHost, ForgeKind, ForgeLogin, ForgeUrl, MergeMethod, Mergeable,
-    PullNumber, PullRequest, PullState, PullSummary, PullTitle, RefusedReason, RepoRef,
-    ReviewDecision, Reviews,
+    CheckReport, Checks, ChecksState, ForgeHost, ForgeKind, ForgeLogin, ForgeUrl, MergeMethod,
+    Mergeable, PullNumber, PullRequest, PullState, PullSummary, PullTitle, RefusedReason,
+    RepoLimit, RepoRef, Repository, ReviewDecision, Reviews, RunId,
 };
 use vessel_proto::workspace::{BranchName, CommitId};
 
 use crate::provider::{
     Answer, Discussion, Forge, ForgeError, Found, Fresh, Merged, Opened, Opening, Priority, Read,
+    Timeline,
 };
 
 /// How the fake fails, when told to.
@@ -62,6 +63,12 @@ struct State {
     merged: VecDeque<(PullNumber, MergeMethod, CommitId)>,
     /// What the forge has each branch at (`pushed`).
     heads: HashMap<BranchName, CommitId>,
+    /// What `forge.repos` lists (ADR 0088), newest first when asked.
+    repositories: Vec<Repository>,
+    /// Each pull request's activity (`pr.timeline`).
+    timelines: HashMap<(RepoRef, PullNumber), Timeline>,
+    /// Check runs read whole (`pr.check`).
+    reports: HashMap<(RepoRef, RunId), CheckReport>,
 }
 
 impl State {
@@ -125,6 +132,26 @@ impl FakeForge {
                 let _old = state.repo_failures.remove(&repo);
             }
         }
+    }
+
+    /// List `repository` in the account's repositories and in searches
+    /// (ADR 0088); the same path again replaces it.
+    pub fn list_repository(&self, repository: Repository) {
+        let mut state = self.state();
+        state
+            .repositories
+            .retain(|known| known.path != repository.path);
+        state.repositories.push(repository);
+    }
+
+    /// `number`'s activity, as `pr.timeline` reads it (ADR 0088).
+    pub fn put_timeline(&self, repo: RepoRef, number: PullNumber, timeline: Timeline) {
+        let _old = self.state().timelines.insert((repo, number), timeline);
+    }
+
+    /// A check run read whole, as `pr.check` reads it (ADR 0088).
+    pub fn put_check(&self, repo: RepoRef, report: CheckReport) {
+        let _old = self.state().reports.insert((repo, report.run), report);
     }
 
     /// Refuse a correctly pinned merge of this pull request, without
@@ -258,6 +285,7 @@ pub fn pull(
                 review: ReviewDecision::None,
                 mergeable: Mergeable::Unknown,
                 updated_at: now,
+                tally: None,
             },
             author: None,
             head_branch: branch.clone(),

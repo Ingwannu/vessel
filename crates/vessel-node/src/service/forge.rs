@@ -5,10 +5,11 @@
 //! `pr.feedback`, the caller's ownership of the session; `pr.get`'s
 //! refresh is held to ownership here.
 
+use vessel_proto::forge::{CheckDetails, GetCheckDetails, GetPullTimeline, PullTimeline};
 use vessel_proto::forge::{
     ForgeAccess, ForgeStatus, GetForgeStatus, GetPullRequest, ListPullRequests, MergeOutcome,
     MergePullRequest, OpenOutcome, OpenPullRequest, PullRequestList, PullRequestView,
-    SessionPullRequest, SetFeedback,
+    RepositoryList, SearchRepositories, SessionPullRequest, SetFeedback,
 };
 use vessel_proto::{ErrorCode, SessionId, SessionMode, WireError};
 use vessel_session::SessionHandle;
@@ -25,6 +26,19 @@ impl NodeService {
         _: GetForgeStatus,
     ) -> Result<ForgeStatus, WireError> {
         Ok(self.forges.status().await)
+    }
+
+    /// `forge.repos` (ADR 0088): the guard refused agents; a person's
+    /// Add project sheet lists and searches the account's repositories.
+    pub(crate) async fn search_repositories(
+        &self,
+        _: &Connection,
+        request: SearchRepositories,
+    ) -> Result<RepositoryList, WireError> {
+        Ok(self
+            .forges
+            .repositories(&request.query, request.limit)
+            .await)
     }
 
     /// `pr.list`.
@@ -75,6 +89,60 @@ impl NodeService {
             access: ForgeAccess::NotPlaced,
             pull_request: None,
             feedback: self.feedback_on(session).await,
+        }))
+    }
+
+    /// `pr.timeline` (ADR 0088): the session's pull request's activity,
+    /// read now. A forge read on demand is held to ownership, as `pr.get`'s
+    /// refresh.
+    pub(crate) async fn pull_timeline(
+        &self,
+        connection: &Connection,
+        request: GetPullTimeline,
+    ) -> Result<PullTimeline, WireError> {
+        let view = self.pane_view(connection, request.session).await?;
+        Ok(self.forges.timeline(view).await)
+    }
+
+    /// `pr.check` (ADR 0088): one of the session's pull request's checks,
+    /// with its failed jobs' log tails.
+    pub(crate) async fn check_details(
+        &self,
+        connection: &Connection,
+        request: GetCheckDetails,
+    ) -> Result<CheckDetails, WireError> {
+        let view = self.pane_view(connection, request.session).await?;
+        Ok(self.forges.check(view, request.run).await)
+    }
+
+    /// What the watcher holds of `session`'s pull request, for a caller
+    /// who may operate it; `ended` for a session that is not live.
+    async fn pane_view(
+        &self,
+        connection: &Connection,
+        session: SessionId,
+    ) -> Result<PullRequestView, WireError> {
+        let info = self
+            .sessions
+            .get(session)
+            .await
+            .map_err(|error| wire(&error))?;
+        if !info.status.is_live() {
+            return Ok(PullRequestView {
+                access: ForgeAccess::Ended,
+                pull_request: None,
+                feedback: false,
+            });
+        }
+        self.check_owner(connection.principal(), session).await?;
+        let held = self
+            .forges
+            .ask(|reply| Command::Get { session, reply })
+            .await?;
+        Ok(held.unwrap_or(PullRequestView {
+            access: ForgeAccess::NotPlaced,
+            pull_request: None,
+            feedback: false,
         }))
     }
 

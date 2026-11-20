@@ -28,8 +28,9 @@ use std::pin::Pin;
 
 use chrono::{DateTime, Utc};
 use vessel_proto::forge::{
-    CheckName, ForgeHost, ForgeKind, ForgeLogin, ForgeUrl, GhState, MergeMethod, PullBody,
-    PullNumber, PullRequest, PullState, PullTitle, RefusedReason, RepoRef,
+    CheckName, CheckReport, ForgeHost, ForgeKind, ForgeLogin, ForgeUrl, GhState, MergeMethod,
+    PullBody, PullNumber, PullRequest, PullState, PullTitle, RefusedReason, RepoLimit, RepoRef,
+    Repository, RunId, TimelineItem,
 };
 use vessel_proto::workspace::{BranchName, CommitId};
 
@@ -185,6 +186,15 @@ pub struct Read {
     pub discussion: Discussion,
 }
 
+/// A pull request's activity for the pane (ADR 0088).
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Timeline {
+    /// Reviews, comments and thread comments, oldest first, then by id.
+    pub items: Vec<TimelineItem>,
+    /// A kind had more than one read takes.
+    pub truncated: bool,
+}
+
 /// What to open.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Opening {
@@ -334,4 +344,29 @@ pub trait Forge: Send + Sync + fmt::Debug {
 
     /// Whether `login` may write to `repo` (feedback quotes only those).
     fn can_write<'a>(&'a self, repo: &'a RepoRef, login: &'a ForgeLogin) -> Answer<'a, bool>;
+
+    /// The signed-in account's own repositories on `host` when `query` is
+    /// empty, else the forge's search for it; newest first, at most
+    /// `limit`, each with the clone URL the machine is set up for (ADR
+    /// 0088). A person's call.
+    fn repositories<'a>(
+        &'a self,
+        host: &'a ForgeHost,
+        query: &'a str,
+        limit: RepoLimit,
+    ) -> Answer<'a, Vec<Repository>>;
+
+    /// `number`'s reviews, conversation comments and review threads for
+    /// the pane (ADR 0088). A person's call.
+    fn timeline<'a>(&'a self, repo: &'a RepoRef, number: PullNumber) -> Answer<'a, Timeline>;
+
+    /// The check run `run` read whole, with the failed jobs of its
+    /// workflow run (`workflow_run`, when it has one) and their log tails
+    /// (ADR 0088). A person's call.
+    fn check<'a>(
+        &'a self,
+        repo: &'a RepoRef,
+        run: RunId,
+        workflow_run: Option<RunId>,
+    ) -> Answer<'a, CheckReport>;
 }

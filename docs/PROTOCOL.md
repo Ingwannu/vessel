@@ -68,6 +68,48 @@ no runtime to compile. The package that serves the method changes `staged`
 to `pending` in the commit that adds its handler; from then on the guard
 requires the handler, as for every assigned or pending row.
 
+## Version 36 (drafted, milestone 12): the pull request pane's reads (implementer G, TRACKER 431-433, ADR 0088)
+
+Drafted 36 (`PULL_REQUEST_PANE_PROTOCOL`, `PROTOCOL_VERSION` 36), the next after this ADR's part 1 (35); the
+integrator assigns it in merge order. Both methods are unary, forwardable, `read`, open to agents as `pr.get`, and
+held to the caller's ownership of the session (a forge request on demand, as `pr.get`'s refresh).
+
+- `pr.get`'s `Checks` gains `runs` (every check, one per name, by name, at most 100) and `CheckRun` gains `run`,
+  `workflow_run` (ids, 1 to 2^53 - 1), `workflow`, `started_at` and `completed_at`; all optional, so older clients
+  ignore them and older nodes omit them (`failing` keeps its meaning). `PullSummary` gains optional
+  `tally { passed, failed, pending }` (the same counts, absent when none were counted) for a row's check glyph.
+- `pr.timeline { session }` answers `PullTimeline { access, number?, items, truncated }`: reviews (submitted only,
+  `approved | changes_requested | commented`), conversation comments and review threads' comments (with `review`
+  and `thread { thread, path?, line?, start_line?, resolved, outdated }`), oldest first then by id; at most 100 of
+  each kind and 100 comments a thread, `truncated` when a kind had more. `access` is `pr.get`'s.
+- `pr.check { session, run }` answers `CheckDetails { access, report? }`. `run` must be one of the checks the
+  watcher's last read of the session's pull request named; otherwise no report. A `CheckReport` is the run's
+  name, state, pages, output, at most 20 annotations, at most 5 failed jobs of its workflow run each with a
+  `LogTail { text, cut }` (200 lines, 16 KiB), and `truncated`.
+- The job log's one redirect (ADR 0088): one `https` hop without the token, a suffix range, 20 s, never `http`.
+- The minimum protocol remains 2. The store schema is unchanged.
+
+## Version 35 (2026-11-19, milestone 12): GitHub repository search for Add project (implementer G, TRACKER 440, ADR 0088)
+
+Drafted 36; assigned 35 (`REPOSITORY_SEARCH_PROTOCOL`, `PROTOCOL_VERSION` 35) at its node-line merge, the next
+free number in merge order (impl P's drafted 35 had not merged). The method is unary and forwardable; an agent principal is refused it, as
+`forge.status` (the node's sign-in is a person's). It is `operate`, not `read`: the answer includes the account's
+private repositories, and its one caller ends in `project.clone` (`operate`), as `folder.suggest` (ADR 0112).
+
+- `forge.repos { query, limit }` (`operate`) answers `RepositoryList { access, repositories }`: Paseo's
+  `workspace.github.search_repositories`. `query` is one line of at most 256 characters (the node trims it);
+  empty lists the signed-in account's own repositories, newest first (`gh repo list`), text searches GitHub
+  sorted by update (`gh search repos --sort updated --order desc`). `limit` is 1 to 50, default 20; both are
+  refused when the request is decoded. github.com only.
+- `access` is `ForgeAccess` for github.com: `ready` when the node read, else `signed_out { gh }` (`gh: missing`
+  is Paseo's "not installed"), `refused`, `rate_limited` or `unreachable`; `repositories` is then empty.
+- Each `Repository` is `{ path, description?, visibility, updated_at, clone_url }`: `path` owner/name,
+  `description` one line of at most 350 characters, `visibility` public | private | internal (unknown for a
+  newer value), `clone_url` what `project.clone` takes, in the protocol the machine's
+  `gh config get git_protocol --host github.com` names (`ssh`), else `https`.
+- A search's own rate limit holds only search on that host; other limit answers hold the host as before.
+- The minimum protocol remains 2. The store schema is unchanged.
+
 ## Version 34 (2026-11-19, milestone 12): a new project directory, and `~` in project paths (impl F, TRACKER 234 and 242-243, ADR 0113)
 
 Assigned 34 (`PROJECT_DIRECTORY_PROTOCOL`, `PROTOCOL_VERSION` 34) at its node-line merge, the next after ADR 0111's
