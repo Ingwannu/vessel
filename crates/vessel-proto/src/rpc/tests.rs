@@ -1604,3 +1604,4 @@ fn saved_limit_requests_and_sanitized_states_round_trip_with_exact_methods() {
 
 mod envelope_versions;
 mod shared_terminals;
+mod workspace_terminals;

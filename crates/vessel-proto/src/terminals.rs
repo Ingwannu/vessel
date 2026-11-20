@@ -24,7 +24,7 @@ use std::path::PathBuf;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::id::{EventSeq, ProjectId, SessionId, TerminalId};
+use crate::id::{EventSeq, ProjectId, SessionId, TerminalId, WorktreeId};
 use crate::profile::Creator;
 use crate::scripts::ScriptName;
 use crate::session::SessionStatus;
@@ -41,6 +41,13 @@ use crate::node::ProtocolVersion;
 /// (claim or update) for terminals and terminal-mode sessions alike.
 /// Drafted 37 for review; the integrator assigns the number at merge.
 pub const SHARED_TERMINALS_PROTOCOL: Option<ProtocolVersion> = Some(ProtocolVersion::new(37));
+
+/// Terminals that belong to a workspace folder (ADR 0121): the `worktree`
+/// and `folder` places, and `worktree.remove`'s `end_terminals`. A peer
+/// below it is never handed a terminal in one of those places. Drafted 38
+/// for review; the integrator assigns the number at merge.
+pub const WORKSPACE_TERMINALS_PROTOCOL: Option<ProtocolVersion> =
+    Some(ProtocolVersion::new(38));
 
 pub use requests::{
     CloseTerminal, CreateTerminal, GetTerminal, KillTerminal, ListTerminals, ReadTerminal,
@@ -67,6 +74,22 @@ pub enum TerminalPlace {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         dir: Option<RelPath>,
     },
+    /// In a worktree's folder: its own workspace, as Paseo keys terminals by
+    /// workspace folder (ADR 0121, [`WORKSPACE_TERMINALS_PROTOCOL`]). Counts
+    /// against the worktree's project; outlives every session in it; ended
+    /// with the worktree only when its remover asks (`worktree.remove`'s
+    /// `end_terminals`).
+    Worktree {
+        /// Which.
+        worktree: WorktreeId,
+    },
+    /// In a folder that is no project's and no worktree's: an unregistered
+    /// folder's workspace (ADR 0121). Absolute; ended only when closed or
+    /// killed, or with the node.
+    Folder {
+        /// The folder.
+        path: PathBuf,
+    },
 }
 
 impl TerminalPlace {
@@ -75,7 +98,7 @@ impl TerminalPlace {
     pub const fn session(&self) -> Option<SessionId> {
         match self {
             Self::Session { session } => Some(*session),
-            Self::Project { .. } => None,
+            Self::Project { .. } | Self::Worktree { .. } | Self::Folder { .. } => None,
         }
     }
 
@@ -84,8 +107,33 @@ impl TerminalPlace {
     pub const fn project(&self) -> Option<ProjectId> {
         match self {
             Self::Project { project, .. } => Some(*project),
-            Self::Session { .. } => None,
+            Self::Session { .. } | Self::Worktree { .. } | Self::Folder { .. } => None,
         }
+    }
+
+    /// The worktree it is in, if it was placed in one (ADR 0121).
+    #[must_use]
+    pub const fn worktree(&self) -> Option<WorktreeId> {
+        match self {
+            Self::Worktree { worktree } => Some(*worktree),
+            Self::Session { .. } | Self::Project { .. } | Self::Folder { .. } => None,
+        }
+    }
+
+    /// Whether it is one of ADR 0121's workspace places, which a peer below
+    /// [`WORKSPACE_TERMINALS_PROTOCOL`] cannot decode.
+    #[must_use]
+    pub const fn is_workspace_place(&self) -> bool {
+        matches!(self, Self::Worktree { .. } | Self::Folder { .. })
+    }
+
+    /// Whether a peer speaking `protocol` decodes this place: a workspace
+    /// place only from [`WORKSPACE_TERMINALS_PROTOCOL`] (never while its
+    /// number is pending). The node hides the others' terminals from it.
+    #[must_use]
+    pub fn readable_by(&self, protocol: ProtocolVersion) -> bool {
+        !self.is_workspace_place()
+            || WORKSPACE_TERMINALS_PROTOCOL.is_some_and(|since| protocol >= since)
     }
 }
 

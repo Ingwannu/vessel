@@ -29,6 +29,14 @@ impl Terminals {
         self.end_all(&handles, false).await;
     }
 
+    /// End every live terminal whose folder is in `folder` and keep them,
+    /// with their output (a worktree removed with its terminals, ADR 0121).
+    /// Waits for their ends.
+    pub(crate) async fn end_in(&self, folder: &std::path::Path) {
+        let handles = self.handles(|info| info.is_live() && info.folder.starts_with(folder));
+        self.end_all(&handles, false).await;
+    }
+
     /// Watch `session`'s end (once, however many terminals): it ends the
     /// terminals its own agent opened (`here` is this node) and every
     /// agent's terminal beside it. Synchronous, so a call that stops

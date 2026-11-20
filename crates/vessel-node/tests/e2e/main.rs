@@ -158,6 +158,9 @@ mod transfers_across;
 mod waiting;
 #[cfg(test)]
 mod workspace;
+#[cfg(test)]
+#[cfg(unix)]
+mod workspace_terminals;
 
 #[cfg(test)]
 mod limits;

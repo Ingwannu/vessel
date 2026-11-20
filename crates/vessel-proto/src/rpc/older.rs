@@ -34,6 +34,7 @@ use crate::title::SessionTitle;
 /// The first version whose ended sessions may sit outside the archive.
 const ENDED_OUTSIDE_THE_ARCHIVE: ProtocolVersion = ProtocolVersion::new(10);
 
+mod places;
 mod templates;
 mod titles;
 
@@ -63,7 +64,12 @@ impl Reply {
                 .and_then(|entry| titles::inbox_entry(entry, protocol))
                 .map(|entry| Self::GetInboxEntry(Some(entry))),
             Self::CreateTerminal(info) => titles::terminal(info, protocol).map(Self::CreateTerminal),
-            Self::ListTerminals(list) => titles::terminals(list, protocol).map(Self::ListTerminals),
+            Self::ListTerminals(list) => {
+                let placed = places::listed(list, protocol);
+                titles::terminals(placed.as_ref().unwrap_or(list), protocol)
+                    .or(placed)
+                    .map(Self::ListTerminals)
+            }
             Self::GetTerminal(info) => titles::terminal(info, protocol).map(Self::GetTerminal),
             Self::RenameTerminal(info) => titles::terminal(info, protocol).map(Self::RenameTerminal),
             Self::SubscribeTerminal(subscribed) => {

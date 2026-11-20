@@ -68,6 +68,24 @@ no runtime to compile. The package that serves the method changes `staged`
 to `pending` in the commit that adds its handler; from then on the guard
 requires the handler, as for every assigned or pending row.
 
+## Version 38 (drafted, milestone 12): terminals that belong to a workspace folder (implementer T2, TRACKER 817 R1, ADR 0121)
+
+Drafted 38 (`WORKSPACE_TERMINALS_PROTOCOL`, `PROTOCOL_VERSION` 38) for review, after ADR 0116's drafted 37; the
+integrator assigns the number at the node-line merge. No method is added.
+
+- `TerminalPlace` gains `worktree { worktree }` (the worktree's folder, counted against its project) and
+  `folder { path }` (an absolute folder no project or worktree owns; kept canonical; at most 16 live in one folder).
+  Agents still open terminals beside a session only. Archiving or deleting a session ends the terminals beside it
+  only, so a worktree's or a folder's shells outlive every agent in that workspace, as Paseo's do.
+- `terminal.list { place }` matches the place's kind exactly: a project's list holds its project places, not its
+  worktrees' (a worktree is its own workspace); a folder is matched canonical.
+- `worktree.remove` gains `end_terminals` (default false). With it, the live terminals in the worktree end first and
+  those placed in it are forgotten once it is removed; without it a live terminal keeps the worktree
+  (`kept: in_use`), as before. Clients ask the person first, with the count.
+- A peer below 38 is never handed a terminal in a new place: its lists leave them out, and a call naming one by id
+  answers `not_found`. `Call::since` makes a create or list with a new place, and `end_terminals`, need 38.
+- The minimum protocol remains 2. The store schema is unchanged.
+
 ## Version 37 (drafted, milestone 12): several clients on one node's terminals (implementer T2, TRACKER 481-483, ADR 0116)
 
 Drafted 37 (`SHARED_TERMINALS_PROTOCOL`, `PROTOCOL_VERSION` 37) for review, the next after the plugin manager's 36; the

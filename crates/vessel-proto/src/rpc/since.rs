@@ -124,8 +124,36 @@ impl Call {
             // A long poll on the list (ADR 0116): an older node answers at
             // once, so a client asking again on every answer would spin.
             Self::ListTerminals(request) => {
-                if request.changed_from.is_some() {
+                let polls = if request.changed_from.is_some() {
                     Some(crate::terminals::SHARED_TERMINALS_PROTOCOL?.get())
+                } else {
+                    None
+                };
+                // A workspace place (ADR 0121): an older node cannot decode it.
+                let placed = if request
+                    .place
+                    .as_ref()
+                    .is_some_and(crate::terminals::TerminalPlace::is_workspace_place)
+                {
+                    Some(crate::terminals::WORKSPACE_TERMINALS_PROTOCOL?.get())
+                } else {
+                    None
+                };
+                polls.max(placed)
+            }
+            // As the list's place above.
+            Self::CreateTerminal(request) => {
+                if request.place.is_workspace_place() {
+                    Some(crate::terminals::WORKSPACE_TERMINALS_PROTOCOL?.get())
+                } else {
+                    None
+                }
+            }
+            // Ending a worktree's terminals with it (ADR 0121): an older
+            // node would ignore the acknowledgement and refuse the removal.
+            Self::RemoveWorktree(request) => {
+                if request.end_terminals {
+                    Some(crate::terminals::WORKSPACE_TERMINALS_PROTOCOL?.get())
                 } else {
                     None
                 }
@@ -252,7 +280,6 @@ impl Call {
             | Self::CreateWorktree(_)
             | Self::SetupOutput(_)
             | Self::RunSetup(_)
-            | Self::RemoveWorktree(_)
             | Self::ListSnapshots(_)
             | Self::DropSnapshot(_)
             | Self::GitStatus(_)
@@ -305,7 +332,6 @@ impl Call {
             | Self::OpenPullRequest(_)
             | Self::MergePullRequest(_)
             | Self::SetFeedback(_)
-            | Self::CreateTerminal(_)
             | Self::GetTerminal(_)
             | Self::ReadTerminal(_)
             | Self::SubscribeTerminal(_)

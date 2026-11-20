@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use vessel_proto::scripts::ScriptName;
 use vessel_proto::terminals::TerminalInfo;
-use vessel_proto::{ErrorCode, NodeId, ProjectId, SessionId, TerminalId, WireError};
+use vessel_proto::{ErrorCode, NodeId, ProjectId, SessionId, TerminalId, WireError, WorktreeId};
 use vessel_session::terminals::TerminalHandle;
 
 use super::scripts::Plan;
@@ -26,6 +26,9 @@ pub(crate) struct Owner {
     pub(crate) project: Option<ProjectId>,
     /// The agent that opened it.
     pub(crate) agent: Option<(NodeId, SessionId)>,
+    /// A folder place's folder (ADR 0121): as many live there as in a
+    /// project.
+    pub(crate) folder: Option<PathBuf>,
 }
 
 /// A terminal as the node keeps it.
@@ -172,7 +175,7 @@ impl Terminals {
     /// of it, so starts at once cannot all pass.
     ///
     /// # Errors
-    /// `Limit` (the node's, a session's, a project's), `Forbidden` (an
+    /// `Limit` (the node's, a session's, a project's, a folder's), `Forbidden` (an
     /// agent's four) or `Running` (the script's live or starting run).
     pub(crate) fn reserve(&self, start: Start) -> Result<Reservation, TerminalsError> {
         let mut state = self.state();
@@ -220,6 +223,13 @@ impl Terminals {
         {
             return Err(TerminalsError::Limit(
                 "at most 16 live terminals in a project",
+            ));
+        }
+        if let Some(folder) = &owner.folder
+            && count(&|other| other.folder.as_ref() == Some(folder)) >= MAX_PER_PROJECT
+        {
+            return Err(TerminalsError::Limit(
+                "at most 16 live terminals in a folder",
             ));
         }
         if let Some(agent) = owner.agent
@@ -379,6 +389,22 @@ impl Terminals {
             .values()
             .filter_map(|entry| Some((entry.handle.pid()?, entry.handle.id())))
             .collect()
+    }
+
+    /// Forget the ended terminals placed in `worktree` (its removal, ADR
+    /// 0121; a live one refused the removal or was ended first).
+    pub(crate) fn forget_worktree(&self, worktree: WorktreeId) {
+        let mut state = self.state();
+        let before = state.entries.len();
+        state.entries.retain(|_, entry| {
+            let info = entry.handle.info();
+            info.is_live() || info.place.worktree() != Some(worktree)
+        });
+        let forgot = state.entries.len() != before;
+        drop(state);
+        if forgot {
+            self.list_moved();
+        }
     }
 
     /// Forget the ended terminals placed in `project` (its removal; a live
