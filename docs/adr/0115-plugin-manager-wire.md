@@ -55,7 +55,8 @@ client data; Paseo's TypeScript entries do not run here." (stated difference).
   without a restart: on, every enabled installation starts; off, every one
   stops. Hidden from peers below the protocol.
 - Installations are a node-owned file `<home>/plugins/installations.json`
-  (`{id: {source: {kind: directory, path, subpath?}, enabled}}`), owner-only
+  (`{id: {source: {kind: directory, path}, enabled}}`; a directory source is
+  one absolute path, a subdirectory already named in it), owner-only
   (0600, directory 0700), written atomically by the plugin service alone. Not
   in `settings.json`: that file has its own writer, and two writers to one
   file is what ADR 0079's single namespace was meant to avoid; the namespace

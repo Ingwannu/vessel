@@ -63,16 +63,24 @@ impl LaunchEnv {
         home: &Path,
         vars: impl IntoIterator<Item = (OsString, OsString)>,
     ) -> Self {
-        let passed = vars
-            .into_iter()
-            .filter_map(|(name, value)| {
-                let name = name.to_str()?;
-                PASSED
-                    .iter()
-                    .find(|passed| passed.eq_ignore_ascii_case(name))
-                    .map(|passed| (*passed, value))
-            })
-            .collect();
+        // One value per name. Unix may hold `PATH` and `path` at once: the
+        // exact spelling wins (what `which_in` and the helper's own shell
+        // read), else the first other case of it.
+        let named = vars.into_iter().filter_map(|(name, value)| {
+            let name = name.into_string().ok()?;
+            let known = PASSED
+                .iter()
+                .find(|known| known.eq_ignore_ascii_case(&name))?;
+            Some((*known, name == *known, value))
+        });
+        let mut passed: Vec<(&'static str, OsString)> = Vec::new();
+        for (known, exact, value) in named {
+            match passed.iter_mut().find(|(kept, _)| *kept == known) {
+                Some(slot) if exact => slot.1 = value,
+                Some(_) => {}
+                None => passed.push((known, value)),
+            }
+        }
         Self {
             passed,
             home: home.to_path_buf(),
@@ -347,6 +355,22 @@ pub(super) mod tests {
         }
         assert!(credential_shaped("GH_TOKEN") && credential_shaped("openai_api_key"));
         assert!(!credential_shaped("PATH") && !credential_shaped("LANG"));
+    }
+
+    #[test]
+    fn each_name_is_passed_once_and_the_exact_spelling_wins() {
+        let vars = [
+            ("path", "/lower"),
+            ("PATH", "/exact"),
+            ("Path", "/mixed"),
+            ("lang", "C"),
+        ]
+        .iter()
+        .map(|(name, value)| (OsString::from(*name), OsString::from(*value)));
+        let env = LaunchEnv::from_vars(Path::new("/home/someone"), vars);
+        let names: Vec<&str> = env.passed.iter().map(|(name, _)| *name).collect();
+        assert_eq!(names, ["PATH", "LANG"]);
+        assert_eq!(env.path(), Some(&OsString::from("/exact")));
     }
 
     #[test]
