@@ -78,3 +78,27 @@ Source: the node review of TRACKER 817 (R1: closing a finished agent's tab ended
 - Page and native consumers follow. Stated difference: an unregistered folder's terminals outlive every session in
   it until closed (Paseo's archived folder workspace would kill them; Vessel has no folder workspace record to
   archive).
+
+## As built: the page (TRACKER 829)
+
+- `web/src/data/workspace/terminal-place.ts` holds the place rule as pure functions.
+  - From protocol 40: a project workspace gets `Project`, a worktree workspace `Worktree`, and a session outside
+    projects `Folder {cwd}`.
+  - Below 40, it is today's `Session` beside the first live unarchived agent.
+  - A session that left its folder to the node (no `cwd`) keeps the `Session` place, since the page cannot name
+    that folder.
+- The workspace's shells:
+  - They are listed by their place, and the node does the matching.
+  - Shells placed beside the workspace's agents before the upgrade are found by one `terminal.list` when the
+    workspace opens. There is no poll, since no new ones are made (the coordinator's ruling). They stay in the
+    strip until closed.
+- "New terminal" needs no agent from 40. Its "Unarchive an agent…" words remain for nodes below 40.
+- The archive warning counts only shells placed beside the archived agents (`endedByArchive`). A test pins that
+  `Worktree`, `Folder` and `Project` shells are never counted.
+- Worktree removal:
+  - The dialog counts the live terminals at or under the worktree's folder, whatever their place, which is what
+    `end_in` ends. It also checks the fleet's sessions for a live one in it.
+  - With terminals and no live session, Paseo's bulk-close terminal line with the count sits above the usual
+    buttons, and the removal sends `end_terminals: true`.
+  - With a live session, it is as before.
+
