@@ -38,7 +38,9 @@ pub use content::{
     CappedText, InvalidBrowserContent, MAX_PAGE_TEXT_BYTES, PageText, TextCompleteness,
 };
 pub use failure::{BrowserEffect, BrowserFailure, HistoryDirection};
-pub use human::{CssCoordinate, CssPoint, HumanInput, InvalidCssCoordinate, KeyAction, PointerAction};
+pub use human::{
+    CssCoordinate, CssPoint, HumanInput, InvalidCssCoordinate, KeyAction, PointerAction,
+};
 pub use identity::{BrowserId, ElementRef, InvalidBrowserIdentity};
 pub use image::{
     ImagePixels, ImageSize, InvalidBrowserImage, MAX_RGBA_BYTES, MAX_SCREENSHOT_BYTES,

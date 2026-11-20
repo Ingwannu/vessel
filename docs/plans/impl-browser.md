@@ -1,8 +1,8 @@
 # Workspace browser implementation
 
-TRACKER 509–513 / catalogue F-G76–80. Reference behavior is in the
-[area 4 survey](../parity/survey/area-4-terminals-scripts-browser.md). The
-runtime and wire choices are in [ADR 0078](../adr/0078-browser-engine-and-native-panel.md)
+TRACKER 509–513 / catalogue F-G76–80. The reference behavior is documented in
+[the browser survey and plan](browser.md). The runtime and wire choices are in
+[ADR 0078](../adr/0078-browser-engine-and-native-panel.md)
 and [ADR 0119](../adr/0119-general-browser-activation-independent-of-preview.md).
 
 | Row | Packet | Evidence required |
@@ -29,3 +29,9 @@ test export against approved local fixtures under the service identity. Check
 private permissions, target/process closure and relaunch. Native packets also
 require full native and applicable page checks plus wide and compact captures.
 Windows qualification remains pending.
+
+Recovered historical results: run `wp-browser-ts-20261116T025409Z-c1283993`
+reported TS freshness with 5 proto and 2 web checks. Run
+`wp-browser-wait-tests-20261116T032059Z-218afa24` reported 77 browser unit tests
+passed and 2 ignored, including both real-candidate fixtures. These results
+predate this receiving tree.

@@ -14,12 +14,23 @@ use axum::{
 use tokio::net::TcpListener;
 use tokio_util::sync::{CancellationToken, DropGuard};
 use vessel_proto::browser::{
-    ImageSize, RequiredInput, ViewportSide, ViewportSize, WaitBudget, WaitFor, WaitMatch,
+    CssCoordinate, CssPoint, HumanInput, ImageSize, InputText, KeyModifiers, MouseButton,
+    PointerAction, RequiredInput, ScreenshotExtent, TextCompleteness, ViewportSide, ViewportSize,
+    WaitBudget, WaitFor, WaitMatch,
 };
+use vessel_proto::conversation::FiniteNumber;
 
-const HTML: &str = "<!doctype html><meta charset=utf-8><title>Rust fixture</title><h1>Owned Rust page</h1><label for=probe>Fixture input</label><input id=probe><button>Fixture button</button><p>Owned Rust page ready</p>";
+const HTML: &str = r#"<!doctype html><meta charset=utf-8><title>Rust fixture</title>
+<style>body {margin:0; min-height:1200px} #probe {position:absolute; left:20px; top:100px; width:120px; height:24px}</style>
+<h1>Owned Rust page</h1><label for=probe>Fixture input</label>
+<input id=probe onpointerdown="this.dataset.trusted = event.isTrusted">
+<button>Fixture button</button><p>Owned Rust page ready</p>"#;
 const WIDTH: u32 = 390;
 const HEIGHT: u32 = 844;
+const FULL_HEIGHT: u32 = 1200;
+const INPUT_X: f64 = 32.0;
+const INPUT_Y: f64 = 110.0;
+const INPUT_TEXT: &str = "typed in the fixture";
 
 pub(super) struct FixtureProxy {
     stop: CancellationToken,
@@ -74,6 +85,7 @@ pub(super) struct Observed {
     matched: WaitMatch,
     snapshot: crate::snapshot::Snapshot,
     png: ImageSize,
+    full_png: ImageSize,
 }
 pub(super) async fn exercise(client: &Client) -> Result<Observed, PageError> {
     let viewport = ViewportSize {
@@ -95,14 +107,49 @@ pub(super) async fn exercise(client: &Client) -> Result<Observed, PageError> {
         )
         .await?;
     let snapshot = page.snapshot().await?;
-    let png = page.capture().await?.size();
+    let png = page.capture_extent(ScreenshotExtent::Viewport).await?.size();
+    exercise_input(&mut page).await?;
+    let full_png = page.capture_extent(ScreenshotExtent::Page).await?.size();
     page.close().await?;
     Ok(Observed {
         matched,
         snapshot,
         png,
+        full_png,
     })
 }
+
+async fn exercise_input(page: &mut Page) -> Result<(), PageError> {
+    let point = CssPoint {
+        x: CssCoordinate::try_from(FiniteNumber::new(INPUT_X).unwrap()).unwrap(),
+        y: CssCoordinate::try_from(FiniteNumber::new(INPUT_Y).unwrap()).unwrap(),
+    };
+    for action in [
+        PointerAction::Press(MouseButton::Left),
+        PointerAction::Release(MouseButton::Left),
+    ] {
+        page.human_input(HumanInput::Pointer {
+            position: point,
+            action,
+            modifiers: KeyModifiers::default(),
+        })
+        .await?;
+    }
+    page.human_input(HumanInput::Text {
+        text: InputText::try_from(INPUT_TEXT.to_owned()).unwrap(),
+    })
+    .await?;
+    let inspect = RequiredInput::try_from(
+        "() => { const input = document.querySelector('#probe'); return [input.value, input.dataset.trusted, input === document.activeElement]; }"
+            .to_owned(),
+    ).unwrap();
+    let observed = page.evaluate_function(&inspect).await?;
+    let expected = serde_json::to_string(&(INPUT_TEXT, "true", true)).unwrap();
+    assert_eq!(observed.completeness, TextCompleteness::Whole);
+    assert_eq!(observed.text.as_str(), expected);
+    Ok(())
+}
+
 impl Observed {
     pub(super) fn verify(&self) {
         assert_eq!(self.matched, WaitMatch::Text);
@@ -127,5 +174,7 @@ impl Observed {
         );
         assert_eq!(self.png.width().get(), WIDTH);
         assert_eq!(self.png.height().get(), HEIGHT);
+        assert_eq!(self.full_png.width().get(), WIDTH);
+        assert_eq!(self.full_png.height().get(), FULL_HEIGHT);
     }
 }
