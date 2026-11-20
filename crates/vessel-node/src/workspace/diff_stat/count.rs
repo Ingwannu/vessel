@@ -18,8 +18,8 @@ pub(super) enum Compared {
 /// The count for `dir`.
 ///
 /// `Ok(None)` is a real empty answer: no comparison, or both sides zero.
-/// An error means git did not answer, and the caller keeps the last count.
-#[must_use]
+/// An error means git did not answer. The caller keeps a count it has
+/// already stored.
 pub(super) async fn stat_in(
     git: &Git,
     dir: &Path,

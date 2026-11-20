@@ -583,7 +583,7 @@ mod tests {
         let (stats, tx) = DiffStats::scripted(Duration::from_millis(20), interest);
         tx.send(Some(Answer::Plain)).unwrap();
         let (path, root) = folder();
-        stats.observe(&[path.clone()], &[(path.clone(), root)]);
+        stats.observe(std::slice::from_ref(&path), &[(path.clone(), root)]);
         assert!(lock(&stats.shared.book).slots.contains_key(&path));
         let deadline = Instant::now() + Duration::from_secs(2);
         while Instant::now() < deadline && lock(&stats.shared.book).slots.contains_key(&path) {
@@ -605,7 +605,7 @@ mod tests {
         let (stats, tx) = DiffStats::scripted(Duration::from_millis(40), Duration::from_secs(30));
         let (path, root) = folder();
         let mut changed = stats.subscribe();
-        stats.observe(&[path.clone()], &[(path.clone(), root)]);
+        stats.observe(std::slice::from_ref(&path), &[(path.clone(), root)]);
         assert!(!stats.ready(&path));
         assert!(should_wait(None, stats.generation(), true, false));
 
@@ -648,7 +648,7 @@ mod tests {
             deletions: 2,
         };
         tx.send(Some(Answer::Count(Some(stat)))).unwrap();
-        stats.observe(&[path.clone()], &[(path.clone(), root)]);
+        stats.observe(std::slice::from_ref(&path), &[(path.clone(), root)]);
         let deadline = Instant::now() + Duration::from_secs(2);
         while Instant::now() < deadline && stats.stat(&path) != Some(stat) {
             tokio::time::sleep(Duration::from_millis(10)).await;
@@ -674,7 +674,7 @@ mod tests {
         let (stats, tx) = DiffStats::scripted(Duration::from_millis(40), Duration::from_secs(30));
         let (path, root) = folder();
         tx.send(Some(Answer::Keep)).unwrap();
-        stats.observe(&[path.clone()], &[(path.clone(), root)]);
+        stats.observe(std::slice::from_ref(&path), &[(path.clone(), root)]);
         let deadline = Instant::now() + Duration::from_secs(2);
         while Instant::now() < deadline && !stats.ready(&path) {
             tokio::time::sleep(Duration::from_millis(10)).await;
