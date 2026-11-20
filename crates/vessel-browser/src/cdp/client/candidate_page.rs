@@ -51,6 +51,7 @@ pub(super) const DOWNLOAD_NAME: &str = "vessel-browser-fixture-download.txt";
 struct FixtureState {
     routes: Routes,
     sent_attachment: Arc<AtomicBool>,
+    refused_websockets: Arc<[AtomicBool; 2]>,
     policy: Arc<PolicyOrigin>,
 }
 
@@ -59,6 +60,7 @@ pub(super) struct FixtureProxy {
     guard: DropGuard,
     actor: tokio::task::JoinHandle<Result<(), std::io::Error>>,
     sent_attachment: Arc<AtomicBool>,
+    refused_websockets: Arc<[AtomicBool; 2]>,
 }
 impl FixtureProxy {
     pub(super) fn start(listener: TcpListener, routes: Routes, policy: Arc<PolicyOrigin>) -> Self {
@@ -66,9 +68,11 @@ impl FixtureProxy {
         let guard = stop.clone().drop_guard();
         let closing = stop.clone();
         let sent_attachment = Arc::new(AtomicBool::new(false));
+        let refused_websockets = Arc::new([AtomicBool::new(false), AtomicBool::new(false)]);
         let state = FixtureState {
             routes,
             sent_attachment: Arc::clone(&sent_attachment),
+            refused_websockets: Arc::clone(&refused_websockets),
             policy,
         };
         let actor = tokio::spawn(async move {
@@ -81,6 +85,7 @@ impl FixtureProxy {
             guard,
             actor,
             sent_attachment,
+            refused_websockets,
         }
     }
     pub(super) async fn finish(self) {
@@ -89,6 +94,7 @@ impl FixtureProxy {
             guard,
             actor,
             sent_attachment,
+            refused_websockets,
         } = self;
         stop.cancel();
         tokio::time::timeout(SHUTDOWN_TIMEOUT, actor)
@@ -100,12 +106,22 @@ impl FixtureProxy {
             sent_attachment.load(Ordering::SeqCst),
             "the browser never requested the attachment"
         );
+        assert!(
+            refused_websockets.iter().all(|item| item.load(Ordering::SeqCst)),
+            "the browser did not reach the policy proxy for both websocket peers"
+        );
         drop(guard);
     }
 }
 async fn document(State(state): State<FixtureState>, request: Request<Body>) -> Response {
     let (parts, body) = request.into_parts();
     drop(body);
+    if let Some((index, status)) = state.routes.websocket_refusal(&parts).await {
+        if status == StatusCode::FORBIDDEN && let Some(mark) = state.refused_websockets.get(index) {
+            mark.store(true, Ordering::SeqCst);
+        }
+        return status.into_response();
+    }
     if parts.method != axum::http::Method::GET {
         return StatusCode::FORBIDDEN.into_response();
     }

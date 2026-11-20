@@ -4,7 +4,7 @@ use std::io::ErrorKind;
 use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, TcpListener};
 use std::time::Duration;
 
-use axum::http::{StatusCode, Uri};
+use axum::http::{Method, StatusCode, Uri, header, request::Parts};
 use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
 use tokio::net::{TcpStream, UdpSocket};
 use vessel_proto::browser::{RequiredInput, WaitBudget, WaitFor, WaitMatch, WaitTimeout};
@@ -18,6 +18,7 @@ const REFUSAL_PATH: &str = "/fixture-refused";
 const REDIRECTED_PATH: &str = "/fixture-refused-after-redirect";
 const EMBEDDED_PATH: &str = "/fixture-refused-embedded";
 const WORKER_PATH: &str = "/fixture-refused-worker";
+const WEBSOCKET_PATH: &str = "/fixture-private-socket";
 const REDIRECTS: [&str; 2] = ["/fixture-redirect-v4", "/fixture-redirect-v6"];
 const DATAGRAM_CONTROL: &[u8] = b"local fixture";
 
@@ -31,6 +32,7 @@ pub(super) struct Routes {
 struct Canary {
     address: SocketAddr,
     datagram: SocketAddr,
+    websocket: SocketAddr,
     refused: &'static str,
     refused_after_redirect: &'static str,
 }
@@ -80,6 +82,38 @@ impl Routes {
         })
     }
 
+    pub(super) fn websocket_urls(&self) -> [String; 2] {
+        self.canaries
+            .map(|peer| format!("ws://{}{WEBSOCKET_PATH}", peer.websocket))
+    }
+
+    pub(super) async fn websocket_refusal(
+        &self,
+        request: &Parts,
+    ) -> Option<(usize, StatusCode)> {
+        let destination = request.uri.authority()?.as_str().parse::<SocketAddr>().ok()?;
+        let index = self
+            .canaries
+            .iter()
+            .position(|peer| peer.websocket == destination)?;
+        let request = if request.method == Method::CONNECT && request.uri.path_and_query().is_none() {
+            format!("CONNECT {destination} HTTP/1.1\r\nHost: {destination}\r\n\r\n")
+        } else if request.method == Method::GET
+            && request.uri.path() == WEBSOCKET_PATH
+            && request.uri.query().is_none()
+            && request
+                .headers
+                .get(header::UPGRADE)
+                .is_some_and(|value| value.as_bytes().eq_ignore_ascii_case(b"websocket"))
+        {
+            format!("GET ws://{destination}{WEBSOCKET_PATH} HTTP/1.1\r\nHost: {destination}\r\nConnection: Upgrade\r\nUpgrade: websocket\r\n\r\n")
+        } else {
+            return None;
+        };
+        let refused = read_refusal(self.proxy, &request).await;
+        Some((index, if refused { StatusCode::FORBIDDEN } else { StatusCode::BAD_GATEWAY }))
+    }
+
     /// This test-only front door prevents any unrelated Chromium background
     /// request from reaching the actual policy proxy or starting DNS resolution.
     pub(super) async fn try_refusal(&self, uri: &Uri) -> Option<Result<&'static str, StatusCode>> {
@@ -96,20 +130,16 @@ impl Routes {
             .canaries
             .iter()
             .find(|item| item.address == destination)?;
-        let reply = tokio::time::timeout(
-            REFUSAL_DEADLINE,
-            read_refusal(self.proxy, destination, path),
-        )
-        .await;
+        let request = format!(
+            "GET http://{destination}{path} HTTP/1.1\r\nHost: {destination}\r\nConnection: close\r\n\r\n"
+        );
+        let refused = read_refusal(self.proxy, &request).await;
         let marker = if path == REDIRECTED_PATH {
             canary.refused_after_redirect
         } else {
             canary.refused
         };
-        Some(match reply {
-            Ok(Ok(true)) => Ok(marker),
-            Ok(Ok(false) | Err(_)) | Err(_) => Err(StatusCode::BAD_GATEWAY),
-        })
+        Some(if refused { Ok(marker) } else { Err(StatusCode::BAD_GATEWAY) })
     }
 }
 
@@ -139,24 +169,20 @@ async fn wait_for(page: &mut Page, marker: &str) -> Result<(), PageError> {
     Ok(())
 }
 
-async fn read_refusal(
-    proxy: SocketAddr,
-    destination: SocketAddr,
-    path: &str,
-) -> std::io::Result<bool> {
-    let mut socket = TcpStream::connect(proxy).await?;
-    let request = format!(
-        "GET http://{destination}{path} HTTP/1.1\r\nHost: {destination}\r\nConnection: close\r\n\r\n"
-    );
-    socket.write_all(request.as_bytes()).await?;
-    let mut status = [0; REFUSED_HTTP.len()];
-    let _received = socket.read_exact(&mut status).await?;
-    Ok(&status == REFUSED_HTTP)
+async fn read_refusal(proxy: SocketAddr, request: &str) -> bool {
+    let exchange = async {
+        let mut socket = TcpStream::connect(proxy).await?;
+        socket.write_all(request.as_bytes()).await?;
+        let mut status = [0; REFUSED_HTTP.len()];
+        let _received = socket.read_exact(&mut status).await?;
+        Ok::<_, std::io::Error>(&status == REFUSED_HTTP)
+    };
+    matches!(tokio::time::timeout(REFUSAL_DEADLINE, exchange).await, Ok(Ok(true)))
 }
 
 pub(super) struct NetworkFixture {
     proxy: PublicProxy,
-    stream_peers: [TcpListener; 2],
+    stream_peers: [TcpListener; 4],
     datagram_peers: [std::net::UdpSocket; 2],
     routes: Routes,
 }
@@ -165,6 +191,8 @@ impl NetworkFixture {
     pub(super) async fn start() -> Self {
         let ipv4 = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
         let ipv6 = TcpListener::bind((Ipv6Addr::LOCALHOST, 0)).unwrap();
+        let websocket4 = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
+        let websocket6 = TcpListener::bind((Ipv6Addr::LOCALHOST, 0)).unwrap();
         let udp4 = checked_datagram(Ipv4Addr::LOCALHOST.into()).await;
         let udp6 = checked_datagram(Ipv6Addr::LOCALHOST.into()).await;
         let proxy = PublicProxy::start().await.unwrap();
@@ -174,12 +202,14 @@ impl NetworkFixture {
                 Canary {
                     address: positive_control(&ipv4).await,
                     datagram: udp4.local_addr().unwrap(),
+                    websocket: positive_control(&websocket4).await,
                     refused: "Fixture IPv4 refused",
                     refused_after_redirect: "Fixture redirected IPv4 refused",
                 },
                 Canary {
                     address: positive_control(&ipv6).await,
                     datagram: udp6.local_addr().unwrap(),
+                    websocket: positive_control(&websocket6).await,
                     refused: "Fixture IPv6 refused",
                     refused_after_redirect: "Fixture redirected IPv6 refused",
                 },
@@ -187,7 +217,7 @@ impl NetworkFixture {
         };
         Self {
             proxy,
-            stream_peers: [ipv4, ipv6],
+            stream_peers: [ipv4, ipv6, websocket4, websocket6],
             datagram_peers: [udp4, udp6],
             routes,
         }

@@ -134,9 +134,11 @@ responses. Distinct routes prevent an earlier navigation from satisfying a
 redirect or background request. The fixture front door maps only observed
 policy refusals to its expected marker. The same origin verifies that real
 ICE gathering completes with controlled STUN and TURN endpoints, then checks
-both held TCP and UDP canaries after positive socket controls. The live run
-is pending. These cases leave real DNS rebinding, websocket and separate
-QUIC/WebTransport qualification open.
+both held TCP and UDP canaries after positive socket controls. The browser
+also attempts WebSockets to two dedicated private peers. The fixture confirms
+each request reached the policy proxy as an upgrade or CONNECT and received
+a refusal. Live runs are pending. These cases leave real DNS rebinding and
+separate QUIC/WebTransport qualification open.
 
 ### Download follow-up
 

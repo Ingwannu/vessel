@@ -13,6 +13,7 @@ const WORKER_PAGE: &str = "/fixture-worker";
 const WORKER_SCRIPT: &str = "/fixture-worker.js";
 const WORKER_CONTROL: &str = "/fixture-worker-control";
 const ICE_PAGE: &str = "/fixture-ice";
+const WEBSOCKET_PAGE: &str = "/fixture-websocket";
 const READ_CANARIES: &str = r#"
 async function observedReads() {
     const responses = await Promise.all(probes.map(async ([url, marker]) => {
@@ -69,6 +70,21 @@ async function gather() {
 }
 gather();
 "#;
+const WEBSOCKET_PROBE: &str = r#"
+function refused(url) {
+    return new Promise(resolve => {
+        const socket = new WebSocket(url);
+        socket.addEventListener("error", () => resolve(true), {once: true});
+        socket.addEventListener("open", () => {
+            resolve(false);
+            socket.close();
+        }, {once: true});
+    });
+}
+Promise.all(urls.map(refused)).then(results => {
+    if (results.every(Boolean)) document.body.textContent = "Fixture websocket traffic refused";
+});
+"#;
 
 pub(super) struct PolicyOrigin {
     authority: String,
@@ -96,6 +112,7 @@ impl PolicyOrigin {
             EMBEDDED => html(&script(routes, false, READ_FROM_PAGE)),
             WORKER_PAGE => html(WORKER_CLIENT),
             ICE_PAGE => html(&ice_script(routes)),
+            WEBSOCKET_PAGE => html(&websocket_script(routes)),
             WORKER_SCRIPT => (
                 [
                     (header::CONTENT_TYPE, "text/javascript; charset=utf-8"),
@@ -119,6 +136,7 @@ impl PolicyOrigin {
             (EMBEDDED, "Fixture embedded traffic refused"),
             (WORKER_PAGE, "Fixture worker traffic refused"),
             (ICE_PAGE, "Fixture ICE completed"),
+            (WEBSOCKET_PAGE, "Fixture websocket traffic refused"),
         ] {
             visit(page, &format!("{}{path}", self.origin), marker).await?;
         }
@@ -129,6 +147,11 @@ impl PolicyOrigin {
 fn ice_script(routes: Routes) -> String {
     let urls = serde_json::to_string(&routes.ice_urls().collect::<Vec<_>>()).unwrap();
     format!("const urls = {urls};\n{ICE_PROBE}")
+}
+
+fn websocket_script(routes: Routes) -> String {
+    let urls = serde_json::to_string(&routes.websocket_urls()).unwrap();
+    format!("const urls = {urls};\n{WEBSOCKET_PROBE}")
 }
 
 fn script(routes: Routes, worker: bool, source: &str) -> String {
