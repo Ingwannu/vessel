@@ -6,16 +6,14 @@ wins and this file is corrected in the same commit.
 
 ## Resume point
 
-- **Done:** ADR 0072 and this plan. No code. No protocol change. No
-  sidebar edit. The slot that opens the screen stays `None`
-  (`spikes/native/app/src/areas/sidebar.rs`, `schedules`). This commit
-  records the device zone, the three controls on a person's session
-  target, `defined_by` on every update, a forwarded peer, and status
+- **Done:** ADR 0072, this plan, and slice 2: the `view` models and the
+  `link` calls, with their tests. No protocol change. No sidebar edit.
+  The slot that opens the screen stays `None`
+  (`spikes/native/app/src/areas/sidebar.rs`, `schedules`). Status stays
   proposed.
-- **Half-done:** nothing. The models are specified and not written.
-- **Next:** slice 2, the `link` calls and the `view` models with their
-  tests, as ADR 0072's "Models in `view`". Do not start slice 3 in that
-  commit.
+- **Half-done:** nothing.
+- **Next:** slice 3, the list and the detail, drawn from kit controls.
+  Do not start slice 4 in that commit.
 
 ## What Paseo does (0.15.4)
 
@@ -179,7 +177,9 @@ A heartbeat's menu stays delete only.
 - The agent's tools, including `create_heartbeat`:
   `crates/vessel-mcp/src/tools/automation.rs`.
 - The empty sidebar slot: `spikes/native/app/src/areas/sidebar.rs`.
-- No `view` or `link` module for schedules on this branch. No route.
+- `spikes/native/view/src/schedules/` and
+  `spikes/native/link/src/schedules.rs`: the list, the form, the preview
+  and the ten calls. No screen yet, and no route.
 
 `docs/ARCHITECTURE.md` does not change: `view` may already depend on
 `vessel-proto`, and `link` may already depend on `view` and

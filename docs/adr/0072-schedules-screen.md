@@ -225,9 +225,11 @@ with the screen).
   Output: the request, or `OlderPeer` without a request. A reply is
   reusable for save only under the rule in the table.
 
-`link` grows one command per call in the table, answered by one event
-carrying the proto reply or the mapped error. No command takes a bare
-`String` for an id, a zone, a cron or a count.
+`link` grows one command, `Command::Schedules`, answered by one event,
+`Event::Schedule`. The ten calls are that command's kind, the same
+envelope workspace and devices use, because the link root is already
+at its line budget. No command takes a bare `String` for an id, a zone,
+a cron or a count.
 
 ## Why this and not the others
 

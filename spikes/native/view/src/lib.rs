@@ -33,6 +33,7 @@ mod options;
 pub mod pairing;
 pub mod palette;
 pub mod prefs;
+pub mod schedules;
 pub mod search;
 pub mod session;
 pub mod settings;

@@ -114,6 +114,9 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
                 message: said(),
             }),
         }),
+        Command::Schedules(call) => {
+            Event::Schedule(call.refused(vessel_app_link::schedules::Failure::Unsent))
+        }
         Command::Prompt { session, text, .. } => return Settle::Prompt { session, text },
         Command::Open { .. }
         | Command::Stop { .. }

@@ -166,6 +166,10 @@ impl Link {
                     reached: None,
                 }),
             })),
+            // No node transport in the browser: the call is not invented.
+            Command::Schedules(call) => self.emit(Event::Schedule(
+                call.refused(crate::schedules::Failure::Unsupported),
+            )),
         }
     }
 

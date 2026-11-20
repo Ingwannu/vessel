@@ -24,7 +24,7 @@ spikes/native/kit/src/field.rs 694
 spikes/native/kit/src/picker.rs 1147
 spikes/native/kit/src/slider.rs 719
 spikes/native/link/src/demo.rs 591
-spikes/native/link/src/lib.rs 1107
+spikes/native/link/src/lib.rs 1073
 spikes/native/view/src/text/conversation/session.rs 555
 spikes/native/view/src/text/workspace/en.rs 710
 spikes/native/view/src/text/workspace/ko.rs 683
