@@ -191,7 +191,10 @@ impl Shell {
         let Some(shown) = self.areas.conversation.shown.clone() else {
             return;
         };
-        let online = self.fleet.online().any(|machine| machine.name == shown.machine);
+        let online = self
+            .fleet
+            .online()
+            .any(|machine| machine.name == shown.machine);
         if !self.areas.conversation.link_back(online) {
             return;
         }
