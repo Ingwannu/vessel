@@ -94,3 +94,22 @@ fn a_slot_is_a_short_plain_name() {
     assert_eq!(named(&"a".repeat(65)), None);
     assert_eq!(slot(&HeaderMap::new()), None);
 }
+
+#[test]
+fn the_same_document_posted_again_keeps_its_address() {
+    let previews = Previews::default();
+    let start = Instant::now();
+    let first = previews.put("panel", bytes(3), start).unwrap();
+    // Reposted near the end of its idle time: same id, idle time anew.
+    let again = previews
+        .put("panel", bytes(3), after(start, IDLE, 1))
+        .unwrap();
+    assert_eq!(again, first);
+    assert!(previews.show(&first, after(start, IDLE, 2)).is_some());
+    // Another document for the panel replaces it.
+    let changed = previews
+        .put("panel", Bytes::from_static(b"yyy"), after(start, IDLE, 2))
+        .unwrap();
+    assert_ne!(changed, first);
+    assert!(previews.show(&first, after(start, IDLE, 2)).is_none());
+}
