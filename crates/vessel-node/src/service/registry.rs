@@ -2,7 +2,11 @@
 //! Creation and lifecycle orchestration use the same Store, never a second registry.
 
 use super::{Connection, NodeService};
-use crate::{principal::Principal, waits::Waiter, workspace::{MAX_WAIT_SECS, should_wait}};
+use crate::{
+    principal::Principal,
+    waits::Waiter,
+    workspace::{MAX_WAIT_SECS, should_wait},
+};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 use vessel_proto::registry::{
@@ -176,7 +180,9 @@ impl NodeService {
             drop(changed);
         }
         let generation = DiffStatRevision::of(self.diff_stats.generation());
-        attached(workspaces, &keys, generation, |key| self.diff_stats.stat(key))
+        attached(workspaces, &keys, generation, |key| {
+            self.diff_stats.stat(key)
+        })
     }
 
     pub(crate) async fn rename_workspace(
