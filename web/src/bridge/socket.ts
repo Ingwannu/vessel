@@ -167,12 +167,17 @@ export class BridgeSocket {
           try {
             frame = frames.parse(data);
           } catch (error) {
-            if (!verified) throw error;
             // After the server proved itself, a frame that is not JSON is
             // a broken connection, not a refusal: redial, keeping the key.
-            socket.close();
-            this.#dropped(socket);
-            return;
+            // A frame this page does not know (a tab open across an
+            // upgrade) is a refusal: `#attempt` is already 0, so redialling
+            // it would repeat every 500 ms and never show the restarted UI.
+            if (verified && error instanceof SyntaxError) {
+              socket.close();
+              this.#dropped(socket);
+              return;
+            }
+            throw error;
           }
           if (verified) {
             if (frame.type === "challenge" || frame.type === "welcome")

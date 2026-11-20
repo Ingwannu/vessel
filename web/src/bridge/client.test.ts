@@ -280,3 +280,21 @@ test("a frame that is not JSON after the welcome redials instead of refusing", a
     expect(bridge.link.kind).toBe("closed");
   });
 });
+
+test("a frame of the wrong shape after the welcome is a refusal", async () => {
+  const { bridge, socket } = start();
+  const welcome = await answer(socket);
+  socket.message(welcome);
+  await vi.waitFor(() => {
+    expect(bridge.link.kind).toBe("open");
+  });
+  socket.dispatchEvent(
+    new MessageEvent("message", {
+      data: JSON.stringify({ type: "from-a-newer-ui" }),
+    }),
+  );
+  await vi.waitFor(() => {
+    expect(bridge.link.kind).toBe("refused");
+  });
+  expect(Socket.all.length).toBe(1);
+});
