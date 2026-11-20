@@ -1,5 +1,6 @@
 //! How to run a node.
 
+use std::ffi::OsString;
 use std::net::{Ipv4Addr, SocketAddr};
 use std::num::NonZeroUsize;
 use std::path::PathBuf;
@@ -196,5 +197,19 @@ impl Config {
             limits: vessel_harness::LimitProbe::Disabled,
             limit_environment: vessel_harness::LimitEnvironment::new(),
         }
+    }
+
+    /// This machine's saved sign-ins as the quota backend, with the
+    /// nonsecret route facts `var` reads (ADR 0042). Only a binary calls
+    /// this, with its own process environment: [`Config::new`] probes
+    /// nothing, so no in-process or test node reaches the account's
+    /// sign-ins by a default. It lives here, beside the rest of the node's
+    /// configuration, rather than as field assignments in `vesseld`'s
+    /// `run`, which holds no rule of its own about limits.
+    #[must_use]
+    pub fn with_local_limits(mut self, var: impl Fn(&str) -> Option<OsString>) -> Self {
+        self.limits = vessel_harness::LimitProbe::Local;
+        self.limit_environment = vessel_harness::LimitEnvironment::from_vars(var);
+        self
     }
 }
