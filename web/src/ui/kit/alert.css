@@ -9,6 +9,7 @@
   --alert-icon-gap: 12px;
   display: flex;
   flex-direction: column;
+  align-self: stretch;
   gap: 2px;
   border: 1px solid var(--border-subtle);
   border-radius: var(--r-6);
@@ -17,7 +18,7 @@
   font: var(--t-body);
 }
 
-.alert.xs {
+.alert-xs {
   --alert-icon: 12px;
   --alert-icon-gap: 8px;
   gap: 0;
@@ -26,38 +27,38 @@
   font: var(--t-meta);
 }
 
-.alert.sm {
+.alert-sm {
   --alert-icon: 14px;
   padding: 12px 16px;
 }
 
-.alert.md {
+.alert-md {
   padding: 16px 24px;
 }
 
-.alert.lg {
+.alert-lg {
   --alert-icon: 20px;
   --alert-icon-gap: 16px;
   gap: 4px;
   padding: 24px 32px;
 }
 
-.alert.info {
+.alert-info {
   --alert-accent: var(--info);
   border-color: color-mix(in srgb, var(--info) 50%, transparent);
 }
 
-.alert.warning {
+.alert-warning {
   --alert-accent: var(--warn);
   border-color: color-mix(in srgb, var(--warn) 50%, transparent);
 }
 
-.alert.error {
+.alert-error {
   --alert-accent: var(--danger);
   border-color: color-mix(in srgb, var(--danger) 50%, transparent);
 }
 
-.alert.success {
+.alert-success {
   --alert-accent: var(--online);
 }
 

@@ -16,6 +16,10 @@
 // - Sizes (padding vertical x horizontal): xs 8x12, sm 12x16, md 16x24,
 //   lg 24x32; xs text 12px, the others 14px; icons 12, 14, 16, 20.
 // - Role: an error is `alert` (announced at once); the others `status`.
+// - Classes are `alert-<size>` and `alert-<variant>`, never bare `md` or
+//   `error`: the timeline's Markdown is `.md` (max-width 720px), and a bare
+//   size class picked it up (the offline Alert stopped short of the
+//   column, P2 review R2). Every size stretches to its column.
 
 import "./alert.css";
 
@@ -68,7 +72,7 @@ export function Alert({
   const below = title === undefined ? null : described;
   return (
     <div
-      className={`alert ${size} ${variant}`}
+      className={`alert alert-${size} alert-${variant}`}
       role={variant === "error" ? "alert" : "status"}
     >
       <div className="alert-lead">
