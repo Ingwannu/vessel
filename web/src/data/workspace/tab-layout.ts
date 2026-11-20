@@ -119,7 +119,7 @@ export function removeTab(layout: TabLayout, key: string): TabLayout {
     return layout;
   }
   const tabs = layout.tabs.filter((tab) => tabKey(tab) !== key);
-  const next = tabs[index - 1] ?? tabs[index];
+  const next = tabs[index] ?? tabs[index - 1];
   return {
     ...layout,
     tabs,

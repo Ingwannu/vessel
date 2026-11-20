@@ -42,6 +42,9 @@ export function Launcher({
 function CompactTabs(props: TabChromeProps) {
   const [open, setOpen] = useState(false);
   const { items, words } = props;
+  const startTerminal = props.launch.find(
+    (action) => action.label === words.terminal,
+  );
   return (
     <>
       <div className="workspace-tab-bar compact">
@@ -79,16 +82,29 @@ function CompactTabs(props: TabChromeProps) {
           hideClose
           onClose={() => setOpen(false)}
           footer={
-            <Button
-              variant="ghost"
-              start={<Icon name="plus" size={16} />}
-              onClick={() => {
-                setOpen(false);
-                props.select({ kind: "draft" });
-              }}
-            >
-              {words.newTab}
-            </Button>
+            <div className="workspace-switcher-footer">
+              <Button
+                icon="compose"
+                onClick={() => {
+                  setOpen(false);
+                  props.select({ kind: "draft" });
+                }}
+              >
+                {words.newAgent}
+              </Button>
+              <Button
+                icon="terminal"
+                disabled={
+                  startTerminal === undefined || startTerminal.disabled === true
+                }
+                onClick={() => {
+                  setOpen(false);
+                  startTerminal?.run();
+                }}
+              >
+                {words.newTerminal}
+              </Button>
+            </div>
           }
         >
           <div className="workspace-switcher">

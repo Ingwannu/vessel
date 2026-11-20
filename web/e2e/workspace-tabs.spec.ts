@@ -27,6 +27,10 @@ test("workspace files retain a dirty edit, reorder, and ask once on a bulk close
   const strip = page.getByRole("tablist", { name: "Workspace tabs" });
   const order = await strip.getByRole("tab").allTextContents();
   expect(order.indexOf("tax.ts")).toBeLessThan(order.indexOf("Files"));
+  const diff = panelTab(page, "Diff");
+  await diff.dragTo(file, { targetPosition: { x: 4, y: 12 } });
+  const dragged = await strip.getByRole("tab").allTextContents();
+  expect(dragged.indexOf("Diff")).toBeLessThan(dragged.indexOf("tax.ts"));
   await panelTab(page, "Files").click({ button: "right" });
   await page.getByRole("menuitem", { name: "Close tabs to the left" }).click();
   const bulk = page.getByRole("dialog", { name: "Close tabs to the left" });

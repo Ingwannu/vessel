@@ -122,6 +122,16 @@
   gap: var(--s-1);
 }
 
+.workspace-switcher-footer {
+  display: flex;
+  gap: var(--s-2);
+  width: 100%;
+}
+
+.workspace-switcher-footer > * {
+  flex: 1;
+}
+
 .workspace-switcher-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

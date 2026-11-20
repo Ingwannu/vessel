@@ -56,7 +56,6 @@ const EMPTY_DRAFT: Draft = {
   picks: {},
   chosen: false,
 };
-
 const NO_CRUMBS: readonly never[] = [];
 
 export function NewSession({
@@ -177,6 +176,7 @@ export function NewSession({
       rememberStarted(fleet, nodeId, known, effective, options);
       fleet.select(machine);
       fleet.putSession(machine, created.value);
+      void fleet.refreshSessions(machine);
       if (workspace !== undefined) {
         workspace.done(id);
       } else if (here.current) {
