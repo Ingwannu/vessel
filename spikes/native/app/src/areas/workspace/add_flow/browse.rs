@@ -51,15 +51,19 @@ impl Picked {
 }
 
 impl Shell {
-    /// The link's nodes on this computer, sent with every fleet read:
-    /// whether they changed (an unchanged set draws nothing).
-    pub(crate) fn add_flow_this_computer(&mut self, nodes: Vec<NodeId>) -> bool {
+    /// The link's nodes on this computer, sent with every fleet read
+    /// (2 s): drawn again only when they changed.
+    pub(crate) fn add_flow_this_computer(
+        &mut self,
+        nodes: Vec<NodeId>,
+        cx: &mut Context<'_, Self>,
+    ) {
         if self.areas.workspace.add_flow.this_computer == nodes {
-            return false;
+            return;
         }
         self.areas.workspace.add_flow.this_computer = nodes;
         self.add_flow_fleet();
-        true
+        cx.notify();
     }
 
     /// Whether `node` runs on this computer.

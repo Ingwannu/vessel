@@ -271,12 +271,9 @@ fn browse_is_offered_on_this_computer_and_adds_the_folder_picked(cx: &mut TestAp
         shell.open_add_flow(None, window, cx);
         assert_eq!(page_id(shell), Some(PageId::Method));
         // Another node on this computer: not this machine's Browse.
-        assert!(shell.add_flow_this_computer(vec![vessel_proto::NodeId::random()]));
+        shell.add_flow_this_computer(vec![vessel_proto::NodeId::random()], cx);
         assert!(!offers_browse(shell));
-        let this = vec![scene.context().node()];
-        assert!(shell.add_flow_this_computer(this.clone()));
-        // The next fleet read's same set changes nothing.
-        assert!(!shell.add_flow_this_computer(this));
+        shell.add_flow_this_computer(vec![scene.context().node()], cx);
         assert!(offers_browse(shell));
         shell.add_flow_choose(RowAction::Method(Method::Browse), window, cx);
         name

@@ -30,13 +30,7 @@ impl Shell {
             Event::Sync(answer) => self.sync_answer(answer),
             Event::NodeSettings(answer) => self.node_settings_answer(answer),
             Event::Diagnostics(answer) => self.diagnostics_answer(answer),
-            Event::ThisComputer(nodes) => {
-                // Sent with every fleet read (2 s): an unchanged set draws
-                // nothing.
-                if !self.add_flow_this_computer(nodes) {
-                    return;
-                }
-            }
+            Event::ThisComputer(nodes) => return self.add_flow_this_computer(nodes, cx),
             Event::Fleet(fleet) => {
                 self.terminal_tabs_on_fleet();
                 // The link reads the fleet every 2 s; a read that changed
