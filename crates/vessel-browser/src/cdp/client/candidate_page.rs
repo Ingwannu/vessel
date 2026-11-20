@@ -107,7 +107,10 @@ pub(super) async fn exercise(client: &Client) -> Result<Observed, PageError> {
         )
         .await?;
     let snapshot = page.snapshot().await?;
-    let png = page.capture_extent(ScreenshotExtent::Viewport).await?.size();
+    let png = page
+        .capture_extent(ScreenshotExtent::Viewport)
+        .await?
+        .size();
     exercise_input(&mut page).await?;
     let full_png = page.capture_extent(ScreenshotExtent::Page).await?.size();
     page.close().await?;
