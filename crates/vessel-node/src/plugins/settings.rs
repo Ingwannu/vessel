@@ -407,7 +407,7 @@ impl Plugins {
     /// Tell the helper a document's state; its answer is not read.
     async fn settings_announce(&self, target: &Target, notice: SettingsNotice) {
         if let Err(error) = self
-            .ask(target, SettingsStep::Changed { state: notice })
+            .settings_ask(target, SettingsStep::Changed { state: notice })
             .await
         {
             tracing::debug!(plugin = %target.plugin, %error, "a settings notice was not delivered");

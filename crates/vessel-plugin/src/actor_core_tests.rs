@@ -30,7 +30,7 @@ impl Fixture {
             protocol: HelperProtocol::V1,
             client: document(&["echo"]),
             hooks: HookSubscriptions::default(),
-            settings: vessel_proto::plugins::SettingsDeclarations::default(),
+            settings: SettingsDeclarations::default(),
         })
         .expect("ready");
         Self {
@@ -280,7 +280,7 @@ fn second_ready_and_counter_exhaustion_are_closed_protocol_failures() {
             protocol: HelperProtocol::V1,
             client: document(&["echo"]),
             hooks: HookSubscriptions::default(),
-            settings: vessel_proto::plugins::SettingsDeclarations::default(),
+            settings: SettingsDeclarations::default(),
         }),
         Err(RuntimeError::Protocol(ProtocolViolation::Ordering))
     ));
