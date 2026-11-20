@@ -74,7 +74,7 @@
   --info: #93c5fd;
   /* Info as words and their mark (an Alert's title and icon): Paseo's
      blue[300] is 1.7:1 on the light page (TRACKER 827), so light takes the
-     building lane's blue, 4.9:1 on #fafafa; dark keeps Paseo's (9.9:1).
+     building lane's blue, 4.95:1 on #fafafa; dark keeps Paseo's (9.8:1).
      Edges stay --info: a border is not text. */
   --info-ink: light-dark(#2563eb, #93c5fd);
 
