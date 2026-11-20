@@ -3,8 +3,8 @@
 use crate::areas::session::Open;
 use crate::shell::language_tests;
 use gpui::TestAppContext;
-use vessel_app_link::sessions::{Access, Binding};
 use vessel_app_link::Command;
+use vessel_app_link::sessions::{Access, Binding};
 use vessel_app_view::machine_book::Name;
 use vessel_app_view::sessions::SessionAddress;
 use vessel_app_view::{Machine, Reach};
