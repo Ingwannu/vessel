@@ -166,7 +166,13 @@ impl Shell {
 
     fn diff_stat_send(&mut self, machine: &str) {
         let changed_from = {
-            let host = self.areas.sidebar.diff.hosts.entry(machine.to_owned()).or_default();
+            let host = self
+                .areas
+                .sidebar
+                .diff
+                .hosts
+                .entry(machine.to_owned())
+                .or_default();
             if host.phase != Phase::Idle {
                 return;
             }
