@@ -82,7 +82,7 @@ fn origin_name(branch: &str) -> Option<RefName> {
 /// Any other branch than the base uses the base. The base itself, and a
 /// missing base, use `origin/<branch>`.
 #[must_use]
-pub(super) const fn compared(branch: Option<&str>, base: Option<&str>) -> Option<Compared> {
+pub(super) fn compared(branch: Option<&str>, base: Option<&str>) -> Option<Compared> {
     match (branch, base) {
         (None, None | Some(_)) => None,
         (Some(branch), Some(base)) if !on_base(branch, base) => Some(Compared::Base),
@@ -90,12 +90,12 @@ pub(super) const fn compared(branch: Option<&str>, base: Option<&str>) -> Option
     }
 }
 
-const fn on_base(branch: &str, base: &str) -> bool {
+fn on_base(branch: &str, base: &str) -> bool {
     bare(branch) == bare(base)
 }
 
 /// `refs/heads/main` matches `main`. `refs/remotes/origin/main` does not.
-const fn bare(name: &str) -> &str {
+fn bare(name: &str) -> &str {
     if let Some(rest) = name.strip_prefix("refs/heads/") {
         return rest;
     }
@@ -110,8 +110,8 @@ const fn bare(name: &str) -> &str {
 /// A binary file contributes nothing. Both sides zero is none.
 #[must_use]
 pub(super) fn counted(files: &[FileChange]) -> Option<DiffStat> {
-    let mut additions = 0;
-    let mut deletions = 0;
+    let mut additions: u32 = 0;
+    let mut deletions: u32 = 0;
     for file in files {
         additions = additions.saturating_add(file.additions.unwrap_or(0));
         deletions = deletions.saturating_add(file.deletions.unwrap_or(0));

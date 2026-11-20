@@ -33,6 +33,7 @@ const INTEREST: Duration = Duration::from_secs(60);
 /// The most folders watched at once.
 const MAX_SLOTS: usize = 1000;
 
+#[derive(Debug)]
 struct Slot {
     epoch: u64,
     roots: Vec<WorkspaceRoot>,
@@ -243,26 +244,18 @@ impl Watch {
 
 async fn watch_cwd(key: PathBuf, epoch: u64, shared: Arc<Shared>, workspaces: Arc<Workspaces>) {
     let mut directory = Watch::empty();
-    let mut dirty = true;
     loop {
         if shared.stop.is_cancelled() || retire(&shared, &key, epoch) {
             break;
         }
-        if dirty {
-            refresh(&workspaces, &shared, &key, &mut directory).await;
-            dirty = false;
-        }
+        refresh(&workspaces, &shared, &key, &mut directory).await;
         if shared.stop.is_cancelled() || retire(&shared, &key, epoch) {
             break;
         }
         match wait(&shared.stop, &mut directory).await {
             Wake::Stop => break,
-            Wake::Quiet | Wake::Closed => {
-                directory.clear();
-                dirty = true;
-            }
+            Wake::Quiet | Wake::Closed => directory.clear(),
             Wake::Event => {
-                dirty = true;
                 if let Some(events) = directory.events.as_mut() {
                     settle(&shared.stop, events).await;
                 }
@@ -394,7 +387,10 @@ fn arm(dir: &Path) -> Option<(Box<notify::RecommendedWatcher>, mpsc::Receiver<()
 }
 
 fn ignored(event: &Event) -> bool {
-    event.kind.is_access() || (!event.paths.is_empty() && event.paths.iter().all(skipped))
+    if event.kind.is_access() {
+        return true;
+    }
+    !event.paths.is_empty() && event.paths.iter().map(PathBuf::as_path).all(skipped)
 }
 
 /// `node_modules`, `target`, and git's object and log stores.
