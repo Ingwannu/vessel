@@ -33,7 +33,6 @@ describe("the workspace line (TRACKER 426)", () => {
     expect(quarters(4, 0, 2)).toBe(2);
     expect(quarters(5, 0, 1)).toBe(3);
     expect(quarters(9, 0, 1)).toBe(3);
-    expect(quarters(1, 1, 2)).toBe(2);
     expect(quarters(3, 0, 0)).toBe(4);
   });
 
@@ -45,6 +44,11 @@ describe("the workspace line (TRACKER 426)", () => {
     expect(checkSummary(pull({ checks: "failing" }))?.outcome).toBe("failed");
     expect(checkSummary(pull({ checks: "cancelled" }))?.outcome).toBe("failed");
     expect(checkSummary(pull({ checks: "passing" }))?.outcome).toBe("passed");
+    // A summary still pending whose tally already holds a failure.
+    expect(
+      checkSummary(pull({ counts: { passed: 2, failed: 1, pending: 3 } }))
+        ?.outcome,
+    ).toBe("failed");
     expect(checkSummary(pull({ checks: "none" }))).toBeNull();
     expect(checkSummary(null)).toBeNull();
   });

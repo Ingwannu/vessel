@@ -14,7 +14,9 @@
 //   `features/shell/workspace-meta.tsx`. Items in Paseo's order: the
 //   machine (only in a fleet of several, Paseo's host badge), the pull
 //   request, its checks, the labels. The checks' outcome is the
-//   summary's state (a failure wins over progress); the running pie's
+//   summary's state, and a failure in the tally wins over a summary
+//   still pending (Paseo's summarizeChecks: any failed check makes the
+//   summary failed whatever still runs); the running pie's
 //   quarters are passed and failed of the tally's total, rounded down
 //   (Paseo's `toFilledQuarters`); without a tally the ring stays empty
 //   (Paseo's `summarizeChecksStatus`: running reads 0 of 1).
@@ -82,7 +84,9 @@ export function checkSummary(pull: SharedPull | null): CheckSummary | null {
     case "passing":
       return { outcome: "passed", quarters: 4 };
     case "pending":
-      return { outcome: "running", quarters: quartersOf(pull) };
+      return (pull.counts?.failed ?? 0) > 0
+        ? { outcome: "failed", quarters: 4 }
+        : { outcome: "running", quarters: quartersOf(pull) };
     default:
       return null;
   }
