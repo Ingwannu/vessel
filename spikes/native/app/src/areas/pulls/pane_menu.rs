@@ -124,7 +124,12 @@ impl Cards<'_> {
             words,
             url,
         };
-        self.kebab(target, group, self.shell.words.pulls().comment_actions(), cx)
+        self.kebab(
+            target,
+            group,
+            self.shell.words.pulls().comment_actions(),
+            cx,
+        )
     }
 
     /// A thread header's kebab: Open, on its first comment's page.

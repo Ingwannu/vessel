@@ -95,8 +95,7 @@ impl Shell {
         };
         // Asks answer in the order they finish: an older text's late
         // answer must not take the place of the current one's.
-        if asks(open).is_none_or(|(asked, current)| asked != machine || current.as_str() != query)
-        {
+        if asks(open).is_none_or(|(asked, current)| asked != machine || current.as_str() != query) {
             return;
         }
         open.repositories = Some(Repositories {

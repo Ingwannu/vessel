@@ -160,7 +160,9 @@ fn head(
         .cursor_pointer()
         .hover(move |style| style.bg(hover))
         .role(gpui::Role::Button)
-        .aria_label(SharedString::from(shell.words.pulls().activity().to_owned()))
+        .aria_label(SharedString::from(
+            shell.words.pulls().activity().to_owned(),
+        ))
         .aria_expanded(open)
         .on_click(cx.listener(|shell, _event, _window, cx| {
             if let Some(facts) = shell.areas.pulls.facts.as_mut() {

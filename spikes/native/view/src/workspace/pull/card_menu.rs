@@ -58,7 +58,11 @@ pub fn thread_acts(first: Option<&TimelineItem>) -> Vec<CardAct> {
     let page = first.is_some_and(|item| match item {
         TimelineItem::Review { url, .. } | TimelineItem::Comment { url, .. } => url.is_some(),
     });
-    if page { vec![CardAct::Open] } else { Vec::new() }
+    if page {
+        vec![CardAct::Open]
+    } else {
+        Vec::new()
+    }
 }
 
 /// The forge's name for "Open on …" (Paseo's `brandLabel`): GitHub, or

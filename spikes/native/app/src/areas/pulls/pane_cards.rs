@@ -18,12 +18,12 @@
 //!   that says whether it is open); one without words opens it on the
 //!   forge (a link), as Paseo's do.
 
+use std::collections::HashSet;
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::picker::glyph;
 use vessel_app_kit::theme::SidebarSurfaces;
 use vessel_app_kit::theme::identity::{Hue, fill};
 use vessel_app_kit::theme::spacing;
-use std::collections::HashSet;
 
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, InteractiveElement as _, IntoElement as _, ParentElement as _,

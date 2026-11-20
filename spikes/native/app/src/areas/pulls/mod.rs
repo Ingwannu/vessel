@@ -33,9 +33,9 @@ mod pane_cards;
 mod pane_checks;
 mod pane_menu;
 mod pane_ring;
+mod pane_skeleton;
 #[cfg(test)]
 mod pane_tests;
-mod pane_skeleton;
 mod pane_threads;
 mod pane_timeline;
 
