@@ -260,6 +260,36 @@
   color: var(--st-building);
 }
 
+/* Settings replaces the machine list. Paseo's settings sidebar puts
+   Back in a 36px header with a hairline under it, and the groups in
+   the scroll body. The workspace rows above end 6px short of that
+   header (Paseo's sidebarHeaderGroup padding, spacing 1.5), so Back
+   is not flush against Board. */
+.sidebar.in-settings .side-list {
+  padding-bottom: 6px;
+}
+
+.settings-nav {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-back {
+  flex: none;
+  display: flex;
+  align-items: center;
+  height: var(--topbar-h);
+  padding: 0 8px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.settings-back .nav-item {
+  flex: 1;
+  min-width: 0;
+}
+
 /* Settings' sections, under their headings. */
 .settings-nav .side-group {
   display: flex;
