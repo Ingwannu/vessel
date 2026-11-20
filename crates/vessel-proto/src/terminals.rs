@@ -46,8 +46,7 @@ pub const SHARED_TERMINALS_PROTOCOL: Option<ProtocolVersion> = Some(ProtocolVers
 /// and `folder` places, and `worktree.remove`'s `end_terminals`. A peer
 /// below it is never handed a terminal in one of those places. Drafted 38
 /// for review; the integrator assigns the number at merge.
-pub const WORKSPACE_TERMINALS_PROTOCOL: Option<ProtocolVersion> =
-    Some(ProtocolVersion::new(38));
+pub const WORKSPACE_TERMINALS_PROTOCOL: Option<ProtocolVersion> = Some(ProtocolVersion::new(38));
 
 pub use requests::{
     CloseTerminal, CreateTerminal, GetTerminal, KillTerminal, ListTerminals, ReadTerminal,

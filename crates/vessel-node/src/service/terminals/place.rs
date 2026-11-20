@@ -260,9 +260,7 @@ pub(super) async fn canonical_folder(path: &std::path::Path) -> Result<PathBuf, 
     .await
     .ok()
     .flatten();
-    found.ok_or_else(|| {
-        TerminalsError::Conflict(format!("the folder is gone: {}", path.display()))
-    })
+    found.ok_or_else(|| TerminalsError::Conflict(format!("the folder is gone: {}", path.display())))
 }
 
 /// A start beside an archived session: refused, since archiving ends what

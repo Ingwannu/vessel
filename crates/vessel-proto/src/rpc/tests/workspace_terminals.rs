@@ -83,7 +83,11 @@ fn an_older_peers_list_leaves_out_the_workspace_places_only() {
     };
     assert_eq!(seen.terminals, vec![beside]);
     assert_eq!(seen.revision, 3);
-    assert_eq!(reply.for_protocol(since), None, "a current peer reads it as it is");
+    assert_eq!(
+        reply.for_protocol(since),
+        None,
+        "a current peer reads it as it is"
+    );
     assert!(folder().readable_by(since));
     assert!(!folder().readable_by(older));
 }
