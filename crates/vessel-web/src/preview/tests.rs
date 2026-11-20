@@ -42,7 +42,7 @@ fn the_least_recently_loaded_goes_first_past_the_count() {
     assert!(previews.show(first, later).is_some());
     let _ninth = previews.put("another", bytes(1), later).unwrap();
     assert!(previews.show(first, later).is_some());
-    assert!(previews.show(ids.get(1).unwrap(), later).is_none());
+    assert!(previews.show(&ids[1], later).is_none());
 }
 
 #[test]
