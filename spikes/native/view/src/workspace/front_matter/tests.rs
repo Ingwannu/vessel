@@ -150,7 +150,7 @@ fn aliases_that_nest_past_the_depth_budget_stay_in_the_body() {
     // The app review's case: each anchor 62 levels inside the map holds
     // the one before. Under the node budget, it is about 1,000 levels deep
     // once the loader copies the aliases.
-    let yaml: String = (0..17_usize)
+    let yaml = (0..17_usize)
         .map(|level| {
             let inner = level
                 .checked_sub(1)
@@ -161,7 +161,8 @@ fn aliases_that_nest_past_the_depth_budget_stay_in_the_body() {
                 "]".repeat(62)
             )
         })
-        .collect();
+        .collect::<Vec<_>>()
+        .concat();
     let source = format!("---\n{yaml}---\n# Body\n");
     let read = {
         let source = source.clone();
