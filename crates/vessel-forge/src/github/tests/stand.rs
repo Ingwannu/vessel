@@ -75,6 +75,11 @@ async fn answer(
 }
 
 pub(super) async fn stand() -> (Shared, GitHub, RepoRef) {
+    stand_with(None).await
+}
+
+/// [`stand`], with the machine's `gh` (asked how it clones, ADR 0088).
+pub(super) async fn stand_with(gh: Option<crate::gh::Gh>) -> (Shared, GitHub, RepoRef) {
     let shared: Shared = Arc::new(Mutex::new(Stand::default()));
     let app = Router::new()
         .fallback(answer)
@@ -89,7 +94,7 @@ pub(super) async fn stand() -> (Shared, GitHub, RepoRef) {
             github: Token::new(TOKEN),
             enterprise: None,
         },
-        None,
+        gh,
     ));
     let api = format!("http://{address}/").parse().unwrap();
     let github = GitHub::at(credentials, api).unwrap();

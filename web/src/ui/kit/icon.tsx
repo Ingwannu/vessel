@@ -91,6 +91,9 @@ export const ICON_NAMES = [
   "tag",
   "info",
   "blocks",
+  "zoom-in",
+  "zoom-out",
+  "scan",
 ] as const;
 
 export type IconName = (typeof ICON_NAMES)[number];

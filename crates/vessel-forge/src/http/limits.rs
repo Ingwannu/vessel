@@ -45,6 +45,8 @@ pub(crate) enum Resource {
     Core,
     /// GraphQL.
     Graphql,
+    /// Search (ADR 0088): its own, smaller quota.
+    Search,
 }
 
 impl Resource {
@@ -52,6 +54,7 @@ impl Resource {
         match name {
             "core" => Some(Self::Core),
             "graphql" => Some(Self::Graphql),
+            "search" => Some(Self::Search),
             _ => None,
         }
     }
@@ -76,6 +79,45 @@ struct Bucket {
     at: tokio::time::Instant,
 }
 
+/// What a limit answer holds (ADR 0088): the whole host, or only its
+/// search, whose quota (30 a minute) is its own; a person typing a search
+/// must not stop the pull requests being watched.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) enum Hold {
+    /// Every request to the host (a secondary limit is the account's).
+    Host,
+    /// Only searches.
+    Search,
+}
+
+impl Hold {
+    /// What a limit answer to a request counted against `asked` holds:
+    /// search alone for search's own spent quota, else the host.
+    pub(crate) fn of(asked: Resource, headers: &HeaderMap) -> Self {
+        let header = |name: &str| {
+            headers
+                .get(name)
+                .and_then(|value| value.to_str().ok())
+                .map(str::trim)
+        };
+        let searched = asked == Resource::Search
+            && header("x-ratelimit-resource").is_none_or(|resource| resource == "search");
+        if searched && header("x-ratelimit-remaining") == Some("0") {
+            Self::Search
+        } else {
+            Self::Host
+        }
+    }
+
+    /// The holds a request counted against `resource` waits for.
+    const fn for_request(resource: Resource) -> &'static [Self] {
+        match resource {
+            Resource::Search => &[Self::Host, Self::Search],
+            Resource::Core | Resource::Graphql => &[Self::Host],
+        }
+    }
+}
+
 /// Whether a request may go now.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Admit {
@@ -91,7 +133,7 @@ pub(crate) enum Admit {
 #[derive(Debug, Default)]
 pub(crate) struct Limits {
     quotas: HashMap<(ForgeHost, Resource), Quota>,
-    cooldowns: HashMap<ForgeHost, Cooldown>,
+    cooldowns: HashMap<(ForgeHost, Hold), Cooldown>,
     buckets: HashMap<ForgeHost, Bucket>,
 }
 
@@ -104,10 +146,12 @@ impl Limits {
         priority: Priority,
         now: DateTime<Utc>,
     ) -> Admit {
-        if let Some(cooldown) = self.cooldowns.get(host)
-            && cooldown.until > now
-        {
-            return Admit::Held(cooldown.until);
+        for hold in Hold::for_request(resource) {
+            if let Some(cooldown) = self.cooldowns.get(&(host.clone(), *hold))
+                && cooldown.until > now
+            {
+                return Admit::Held(cooldown.until);
+            }
         }
         if priority == Priority::Person {
             return Admit::Go;
@@ -165,9 +209,21 @@ impl Limits {
         headers: &HeaderMap,
         now: DateTime<Utc>,
     ) -> DateTime<Utc> {
+        self.cool_down_for(host, Hold::Host, headers, now)
+    }
+
+    /// [`Self::cool_down`] for what `hold` holds of `host`.
+    pub(crate) fn cool_down_for(
+        &mut self,
+        host: &ForgeHost,
+        hold: Hold,
+        headers: &HeaderMap,
+        now: DateTime<Utc>,
+    ) -> DateTime<Utc> {
+        let key = (host.clone(), hold);
         let step = self
             .cooldowns
-            .get(host)
+            .get(&key)
             .map_or(COOLDOWN_FIRST, |cooldown| cooldown.next);
         let said = headers
             .get("retry-after")
@@ -182,7 +238,7 @@ impl Limits {
             });
         let until = said.or_else(|| later(now, step)).unwrap_or(now);
         let _previous = self.cooldowns.insert(
-            host.clone(),
+            key,
             Cooldown {
                 until,
                 next: step.saturating_mul(2).min(COOLDOWN_CAP),
@@ -194,12 +250,15 @@ impl Limits {
     /// A good answer after a cooldown ended: the next one starts from the
     /// first step again.
     pub(crate) fn cooled(&mut self, host: &ForgeHost, now: DateTime<Utc>) {
-        if self
-            .cooldowns
-            .get(host)
-            .is_some_and(|cooldown| cooldown.until <= now)
-        {
-            let _ended = self.cooldowns.remove(host);
+        for hold in [Hold::Host, Hold::Search] {
+            let key = (host.clone(), hold);
+            if self
+                .cooldowns
+                .get(&key)
+                .is_some_and(|cooldown| cooldown.until <= now)
+            {
+                let _ended = self.cooldowns.remove(&key);
+            }
         }
     }
 
@@ -290,6 +349,36 @@ mod tests {
         let _old = headers.insert("x-ratelimit-remaining", HeaderValue::from_static("0"));
         assert!(is_limit(StatusCode::FORBIDDEN, &headers, b""));
         assert!(!is_limit(StatusCode::UNAUTHORIZED, &headers, b""));
+    }
+
+    #[test]
+    fn a_spent_search_quota_holds_only_search_and_a_secondary_limit_holds_all() {
+        let mut limits = Limits::default();
+        let now = DateTime::<Utc>::UNIX_EPOCH;
+        let mut spent = HeaderMap::new();
+        let _old = spent.insert("x-ratelimit-resource", HeaderValue::from_static("search"));
+        let _old = spent.insert("x-ratelimit-remaining", HeaderValue::from_static("0"));
+        let hold = Hold::of(Resource::Search, &spent);
+        assert_eq!(hold, Hold::Search);
+        let until = limits.cool_down_for(&host(), hold, &spent, now);
+        assert_eq!(
+            limits.admit(&host(), Resource::Search, Priority::Person, now),
+            Admit::Held(until)
+        );
+        assert_eq!(
+            limits.admit(&host(), Resource::Core, Priority::Person, now),
+            Admit::Go,
+            "watching pull requests goes on while search waits"
+        );
+        let mut secondary = HeaderMap::new();
+        let _old = secondary.insert("retry-after", HeaderValue::from_static("30"));
+        assert_eq!(Hold::of(Resource::Search, &secondary), Hold::Host);
+        assert_eq!(Hold::of(Resource::Core, &spent), Hold::Host);
+        limits.cooled(&host(), later(until, 1).unwrap());
+        assert_eq!(
+            limits.admit(&host(), Resource::Search, Priority::Person, now),
+            Admit::Go
+        );
     }
 
     #[test]

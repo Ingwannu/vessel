@@ -200,6 +200,7 @@ const fn forwardable(method: Method) -> bool {
         | Method::FindFiles
         | Method::SearchFiles
         | Method::ForgeStatus
+        | Method::SearchRepositories
         | Method::ListPullRequests
         | Method::GetPullRequest
         | Method::OpenPullRequest

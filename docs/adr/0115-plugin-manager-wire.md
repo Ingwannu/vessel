@@ -3,9 +3,9 @@
 Status: proposed (impl P, 2026-11-19; CATALOGUE F-M1..F-M39, TRACKER 696;
 coordinator ruling 2026-11-19 approving the plan
 `/tmp/work/m12-claude-wave/plugins/inventory-plan.md`). The coordinator
-recorded 0115 as this ADR's number. The protocol, drafted 35
-(`PLUGINS`, today `None` in `vessel_proto::plugins`), is assigned at the
-node-line merge. Extends ADR 0079 (architecture, trust) and ADR 0068 (hook
+recorded 0115 as this ADR's number. The protocol, drafted 35,
+was assigned 36 (`PLUGINS_PROTOCOL` in `vessel_proto::plugins`) at the
+node-line merge, after ADR 0088's `forge.repos` took 35. Extends ADR 0079 (architecture, trust) and ADR 0068 (hook
 names); neither is changed except where this record says so.
 
 ## Context
@@ -101,7 +101,7 @@ client data; Paseo's TypeScript entries do not run here." (stated difference).
   the configured helpers start in the background; `plugin.list` waits for that
   first settle (bounded by the deadline) so its first answer is authoritative.
 
-### Wire (protocol drafted 35)
+### Wire (protocol 36)
 
 | Method | Scope | Request -> reply |
 |---|---|---|

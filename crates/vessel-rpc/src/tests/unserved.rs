@@ -109,6 +109,7 @@ macro_rules! methods {
             find_files: vessel_proto::workspace::FindFiles => vessel_proto::workspace::FoundFiles;
             search_files: vessel_proto::workspace::SearchFiles => vessel_proto::workspace::GrepResult;
             forge_status: vessel_proto::forge::GetForgeStatus => vessel_proto::forge::ForgeStatus;
+            search_repositories: vessel_proto::forge::SearchRepositories => vessel_proto::forge::RepositoryList;
             list_pull_requests: vessel_proto::forge::ListPullRequests => vessel_proto::forge::PullRequestList;
             get_pull_request: vessel_proto::forge::GetPullRequest => vessel_proto::forge::PullRequestView;
             open_pull_request: vessel_proto::forge::OpenPullRequest => vessel_proto::forge::OpenOutcome;

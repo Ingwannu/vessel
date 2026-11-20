@@ -297,6 +297,9 @@ impl Reply {
             | Self::SearchFiles(_)
             // Protocol 11's are newer than every older peer.
             | Self::ForgeStatus(_)
+            // Repository search (ADR 0088): refused below its protocol
+            // before dispatch.
+            | Self::SearchRepositories(_)
             | Self::ListPullRequests(_)
             | Self::GetPullRequest(_)
             | Self::OpenPullRequest(_)

@@ -18,7 +18,7 @@
 
 import "./file-change-alert.css";
 
-import { Button, Icon } from "../../ui/kit";
+import { Button, Dialog, Icon } from "../../ui/kit";
 
 /** What the alert says (Paseo's `FileConflictAlertState`). */
 export type DiskChange =
@@ -74,5 +74,33 @@ export function FileChangeAlert({ change }: { change: DiskChange }) {
         </div>
       ) : null}
     </div>
+  );
+}
+
+/** Reload while the edit holds changes: Paseo asks first. */
+export function ReloadDialog({
+  onCancel,
+  onReload,
+}: {
+  onCancel: () => void;
+  onReload: () => void;
+}) {
+  return (
+    <Dialog
+      title="Reload from disk?"
+      onClose={onCancel}
+      footer={
+        <>
+          <Button variant="ghost" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button variant="danger-solid" onClick={onReload}>
+            Reload
+          </Button>
+        </>
+      }
+    >
+      <p className="dialog-copy">Your local changes will be lost.</p>
+    </Dialog>
   );
 }

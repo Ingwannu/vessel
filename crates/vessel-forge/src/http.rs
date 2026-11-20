@@ -32,7 +32,7 @@ use tokio::sync::Semaphore;
 use vessel_proto::forge::{ForgeHost, RefusedReason};
 
 pub(crate) use self::limits::Resource;
-use self::limits::{Admit, Limits, is_limit, sso};
+use self::limits::{Admit, Hold, Limits, is_limit, sso};
 use crate::provider::{ForgeError, Priority};
 use crate::token::Token;
 
@@ -179,10 +179,11 @@ impl Http {
             return Ok(Reply::Body { status, body });
         }
         if is_limit(status, &headers, &body) {
+            let hold = Hold::of(call.resource, &headers);
             let until = self
                 .state()
                 .limits
-                .cool_down(call.host, &headers, Utc::now());
+                .cool_down_for(call.host, hold, &headers, Utc::now());
             return Err(ForgeError::RateLimited { until });
         }
         match status {

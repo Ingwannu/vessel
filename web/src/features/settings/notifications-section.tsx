@@ -96,7 +96,7 @@ export function NotificationsSection() {
             detail={{
               description:
                 refused ??
-                "Alerts when a session finishes or needs your input or approval, while this page is open but not in front.",
+                "Alerts when a session finishes or needs your input or approval, unless you are looking at it.",
             }}
             control={
               <Select

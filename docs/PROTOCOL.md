@@ -68,10 +68,10 @@ no runtime to compile. The package that serves the method changes `staged`
 to `pending` in the commit that adds its handler; from then on the guard
 requires the handler, as for every assigned or pending row.
 
-## Version 35 (drafted, 2026-11-19, milestone 12): the plugin manager and directory installs (impl P, CATALOGUE F-M1..F-M39, TRACKER 696, ADR 0115)
+## Version 36 (2026-11-20, milestone 12): the plugin manager and directory installs (impl P, CATALOGUE F-M1..F-M39, TRACKER 696, ADR 0115)
 
-Drafted as 35 (`PLUGINS_PROTOCOL`, `PROTOCOL_VERSION` 35), the next after ADR 0113's 34; the number is assigned at
-the node-line merge. Every method is unary and not forwardable (a node's plugins are its administration, as
+Drafted as 35; assigned 36 (`PLUGINS_PROTOCOL`, `PROTOCOL_VERSION` 36) at its node-line merge, after ADR 0088's
+`forge.repos` took 35. Every method is unary and not forwardable (a node's plugins are its administration, as
 `node.settings`); an agent principal is refused every `admin` one.
 
 - `plugin.list {}` (`read`) answers `{plugins: [PluginListItem]}` in id order: `id, name?, description?, icon?,
@@ -100,6 +100,27 @@ the node-line merge. Every method is unary and not forwardable (a node's plugins
   `invalid_request`; a kept list that could not be written is `internal`.
 - The minimum protocol remains 2. The store schema is unchanged (installations live in the node's
   `plugins/installations.json`, not in the database).
+
+## Version 35 (2026-11-19, milestone 12): GitHub repository search for Add project (implementer G, TRACKER 440, ADR 0088)
+
+Drafted 36; assigned 35 (`REPOSITORY_SEARCH_PROTOCOL`, `PROTOCOL_VERSION` 35) at its node-line merge, the next
+free number in merge order (impl P's drafted 35 had not merged). The method is unary and forwardable; an agent principal is refused it, as
+`forge.status` (the node's sign-in is a person's). It is `operate`, not `read`: the answer includes the account's
+private repositories, and its one caller ends in `project.clone` (`operate`), as `folder.suggest` (ADR 0112).
+
+- `forge.repos { query, limit }` (`operate`) answers `RepositoryList { access, repositories }`: Paseo's
+  `workspace.github.search_repositories`. `query` is one line of at most 256 characters (the node trims it);
+  empty lists the signed-in account's own repositories, newest first (`gh repo list`), text searches GitHub
+  sorted by update (`gh search repos --sort updated --order desc`). `limit` is 1 to 50, default 20; both are
+  refused when the request is decoded. github.com only.
+- `access` is `ForgeAccess` for github.com: `ready` when the node read, else `signed_out { gh }` (`gh: missing`
+  is Paseo's "not installed"), `refused`, `rate_limited` or `unreachable`; `repositories` is then empty.
+- Each `Repository` is `{ path, description?, visibility, updated_at, clone_url }`: `path` owner/name,
+  `description` one line of at most 350 characters, `visibility` public | private | internal (unknown for a
+  newer value), `clone_url` what `project.clone` takes, in the protocol the machine's
+  `gh config get git_protocol --host github.com` names (`ssh`), else `https`.
+- A search's own rate limit holds only search on that host; other limit answers hold the host as before.
+- The minimum protocol remains 2. The store schema is unchanged.
 
 ## Version 34 (2026-11-19, milestone 12): a new project directory, and `~` in project paths (impl F, TRACKER 234 and 242-243, ADR 0113)
 
