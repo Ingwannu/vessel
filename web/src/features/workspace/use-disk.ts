@@ -73,6 +73,7 @@ export function useDisk(
   node: NodeKey,
   root: WorkspaceRoot,
   path: RelPath,
+  active: boolean,
   read: boolean,
   shown: () => ContentHash | null,
   writing: () => Promise<unknown> | null,
@@ -89,6 +90,9 @@ export function useDisk(
   }, [read, firstRead]);
 
   useEffect(() => {
+    if (!active) {
+      return undefined;
+    }
     const controller = new AbortController();
     const follow = async (signal: AbortSignal) => {
       await firstRead.kept;
@@ -127,7 +131,7 @@ export function useDisk(
     return () => {
       controller.abort();
     };
-  }, [fleet, node, root, path, firstRead, shown, writing]);
+  }, [active, fleet, node, root, path, firstRead, shown, writing]);
 
   const settled = useCallback(() => {
     setDisk("same");

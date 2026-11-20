@@ -33,7 +33,7 @@ import {
 } from "../../data/workspace/wanted-place";
 import { Spinner } from "../../ui/kit";
 import type { NodeKey } from "../../wire/bridge";
-import type { SessionInfo, SessionSpec } from "../../wire/proto";
+import type { SessionInfo, SessionPlace, SessionSpec } from "../../wire/proto";
 import { ApprovalDialog } from "../projects/approval-dialog";
 import { SetupCard } from "../workspace/setup-card";
 import { makeWorktree, type Step } from "./start-worktree";
@@ -66,7 +66,12 @@ export interface Starter {
   view: ReactNode;
 }
 
-export function useStarter(machine: NodeKey | null): Starter {
+/** A workspace draft already has a place (including a typed folder).
+ * Only the standalone composer resolves the sidebar's remembered place. */
+export function useStarter(
+  machine: NodeKey | null,
+  workspace?: SessionPlace | null,
+): Starter {
   const fleet = useFleet();
   const label = useFleetState((state) =>
     machine === null ? "" : labelOf(state, machine),
@@ -141,7 +146,7 @@ export function useStarter(machine: NodeKey | null): Starter {
   const project =
     place.kind === "project" ? projectIn(projects, place.project) : null;
   const ready = (base: Sendable): Sendable => {
-    if (!base.ok) {
+    if (!base.ok || workspace !== undefined) {
       return base;
     }
     const problem = placeProblem(place, project);
@@ -152,6 +157,13 @@ export function useStarter(machine: NodeKey | null): Starter {
     async (spec: SessionSpec): Promise<Outcome<SessionInfo> | null> => {
       if (machine === null) {
         return null;
+      }
+      if (workspace !== undefined) {
+        return createSession(
+          fleet,
+          machine,
+          workspace === null ? spec : { ...spec, cwd: null, place: workspace },
+        );
       }
       setStep({ kind: "idle" });
       // The place sent is the one held from now on (a sidebar's request
@@ -217,7 +229,7 @@ export function useStarter(machine: NodeKey | null): Starter {
           });
       }
     },
-    [fleet, machine, place, wanted],
+    [fleet, machine, place, wanted, workspace],
   );
 
   const approve = (choice: Approval) => () => {
