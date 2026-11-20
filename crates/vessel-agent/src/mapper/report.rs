@@ -82,8 +82,9 @@ pub(crate) fn turn_usage(usage: &acp::Usage) -> TurnUsage {
     }
 }
 
-/// `text` cut to at most `max` bytes, at a character boundary.
-pub(super) fn cut(mut text: String, max: usize) -> String {
+/// `text` cut to at most `max` bytes, at a character boundary (the
+/// session's bounds on what an agent says; every driver cuts with this).
+pub(crate) fn cut(mut text: String, max: usize) -> String {
     if text.len() > max {
         let end = text.floor_char_boundary(max);
         text.truncate(end);

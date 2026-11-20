@@ -155,7 +155,13 @@ async fn drivers_are_acp_until_an_agents_own_protocol_is_offered() {
         let node = fixture.start().await;
         let owner = fixture.connect(&node).await;
         let in_force = owner.call(GetNodeSettings {}).await.unwrap();
-        assert_eq!(in_force.drivers, AgentDrivers::default(), "run as ACP");
+        // Claude Code's own protocol is offered since its slice 2; the
+        // unknown choice runs as ACP.
+        let claude_direct = AgentDrivers {
+            claude_code: AgentDriver::Direct,
+            ..AgentDrivers::default()
+        };
+        assert_eq!(in_force.drivers, claude_direct);
 
         // An agent whose own protocol this build does not offer yet:
         // refused, and nothing changes.
@@ -189,7 +195,7 @@ async fn drivers_are_acp_until_an_agents_own_protocol_is_offered() {
             ..SetAgentDrivers::default()
         };
         let changed = owner.call(drivers(acp)).await.unwrap();
-        assert_eq!(changed.drivers, AgentDrivers::default());
+        assert_eq!(changed.drivers, claude_direct);
         let kept: serde_json::Value =
             serde_json::from_slice(&std::fs::read(fixture.data_dir().settings_path()).unwrap())
                 .unwrap();

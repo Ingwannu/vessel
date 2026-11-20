@@ -16,8 +16,17 @@
 //! - A `user` frame starts a turn. Before its first, a `system` `init`
 //!   frame. The prompt's first word picks what the turn does:
 //!   - `think`: reasoning, then a reply, both streamed;
-//!   - `tool`: asks to run a command (`can_use_tool`) and waits for the
-//!     answer; denied, the command's result is the denial, then a reply;
+//!   - `tool`: asks to run a command (`can_use_tool`, with three
+//!     suggestions: a session rule to allow it, a rule to deny it and a
+//!     switch into bypass) and waits for the answer; denied, the command's
+//!     result is the denial; then a reply whose text is the answer as
+//!     received (its JSON);
+//!   - `question`: asks a question (`AskUserQuestion`: a choice of one and
+//!     a choice of several), then replies with the answer as `tool` does;
+//!   - `plan`: asks to leave planning (`ExitPlanMode`), likewise;
+//!   - `unannounced`: asks to run a command no frame has shown, likewise;
+//!   - `withdraw`: asks to run a command, withdraws the request
+//!     (`control_cancel_request`) and ends the turn, answer or not;
 //!   - `wait`: streams a little, then waits for an interrupt;
 //!   - `fail`: ends with an error subtype;
 //!   - `limit`: ends `success` with `is_error`, as a usage limit does;
@@ -217,7 +226,12 @@ impl Fake {
                          "is_error": denied}]}}),
                 )?;
                 let message = format!("m{}b", self.turns);
-                self.reply(&message, "", "Done.")?;
+                let heard = if response["subtype"] == "success" {
+                    answer.to_string()
+                } else {
+                    "refused".to_owned()
+                };
+                self.reply(&message, "", &heard)?;
                 self.result(&json!({"input_tokens": 4, "output_tokens": 2}))?;
             }
             Waiting::Refusal { request } if request == id => {
@@ -265,17 +279,41 @@ impl Fake {
                                    "cache_creation_input_tokens": 2}))?;
             }
             "tool" => {
-                self.send(&json!({"type": "assistant", "parent_tool_use_id": null,
-                    "session_id": self.session,
-                    "message": {"id": message, "content": [
-                        {"type": "tool_use", "id": call, "name": "Bash",
-                         "input": {"command": "ls", "description": "List"}}]}}))?;
+                let suggestions = json!([
+                    {"type": "addRules", "rules": [{"toolName": "Bash", "ruleContent": "ls"}],
+                     "behavior": "allow", "destination": "session"},
+                    {"type": "addRules", "rules": [{"toolName": "Bash"}],
+                     "behavior": "deny", "destination": "localSettings"},
+                    {"type": "setMode", "mode": "bypassPermissions", "destination": "session"}]);
+                let input = json!({"command": "ls", "description": "List"});
+                self.ask(&message, &call, "Bash", &input, &suggestions, true)?;
+            }
+            "question" => {
+                let input = json!({"questions": [
+                    {"question": "Which colour?", "header": "Colour", "multiSelect": false,
+                     "options": [{"label": "Red", "description": "Warm"},
+                                 {"label": "Blue", "description": "Cool"}]},
+                    {"question": "Which sizes?", "header": "Sizes", "multiSelect": true,
+                     "options": [{"label": "S", "description": "Small"},
+                                 {"label": "L", "description": "Large"}]}]});
+                self.ask(&message, &call, "AskUserQuestion", &input, &json!([]), true)?;
+            }
+            "plan" => {
+                let input = json!({"plan": "1. Edit the file"});
+                self.ask(&message, &call, "ExitPlanMode", &input, &json!([]), true)?;
+            }
+            "unannounced" => {
+                let input = json!({"command": "pwd"});
+                self.ask(&message, &call, "Bash", &input, &json!([]), false)?;
+            }
+            "withdraw" => {
+                let input = json!({"command": "ls"});
+                self.ask(&message, &call, "Bash", &input, &json!([]), true)?;
                 let request = format!("c{}", self.turns);
-                self.send(&json!({"type": "control_request", "request_id": request,
-                    "request": {"subtype": "can_use_tool", "tool_name": "Bash",
-                                "input": {"command": "ls"}, "tool_use_id": call,
-                                "permission_suggestions": []}}))?;
-                self.waiting = Waiting::Permission { request, call };
+                self.send(&json!({"type": "control_cancel_request", "request_id": request}))?;
+                self.waiting = Waiting::Nothing;
+                self.reply(&format!("m{}b", self.turns), "", "Withdrawn.")?;
+                self.result(&json!({"input_tokens": 1, "output_tokens": 1}))?;
             }
             "wait" => {
                 self.delta(&message, "Working")?;
@@ -317,6 +355,35 @@ impl Fake {
             }
         }
         Ok(None)
+    }
+
+    /// Ask to use `tool` with `input` for call `call` (shown first in
+    /// message `id` when `announce`), offering `suggestions`, and wait for
+    /// the answer.
+    fn ask(
+        &mut self,
+        id: &str,
+        call: &str,
+        tool: &str,
+        input: &Value,
+        suggestions: &Value,
+        announce: bool,
+    ) -> std::io::Result<()> {
+        if announce {
+            self.send(&json!({"type": "assistant", "parent_tool_use_id": null,
+                "session_id": self.session,
+                "message": {"id": id, "content": [
+                    {"type": "tool_use", "id": call, "name": tool, "input": input}]}}))?;
+        }
+        let request = format!("c{}", self.turns);
+        self.send(&json!({"type": "control_request", "request_id": request,
+            "request": {"subtype": "can_use_tool", "tool_name": tool, "input": input,
+                        "tool_use_id": call, "permission_suggestions": suggestions}}))?;
+        self.waiting = Waiting::Permission {
+            request,
+            call: call.to_owned(),
+        };
+        Ok(())
     }
 
     /// One streamed text delta of message `id`.

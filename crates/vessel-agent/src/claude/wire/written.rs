@@ -92,13 +92,25 @@ pub(crate) enum HostAnswer {
     },
 }
 
-/// A tool's permission, as `can_use_tool`'s answer carries it. Only the
-/// denial for now: slice 1 denies every request, and the allowing answer
-/// (`behavior: allow`, `updatedInput`, `toolUseID`) comes with the
-/// permissions slice that sends it, rather than waiting here unused.
+/// A tool's permission, as `can_use_tool`'s answer carries it.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(tag = "behavior", rename_all = "snake_case")]
 pub(crate) enum Permission {
+    /// It may run.
+    Allow {
+        /// The input it runs with: the agent's own, or a question's with
+        /// its answers added.
+        #[serde(rename = "updatedInput")]
+        updated_input: Value,
+        /// The rules or mode change the person chose with it, each one of
+        /// the agent's own suggestions as it gave them (or the mode a plan
+        /// approval switches to); none for an answer of this once.
+        #[serde(rename = "updatedPermissions", skip_serializing_if = "Vec::is_empty")]
+        updated_permissions: Vec<Value>,
+        /// The call answered.
+        #[serde(rename = "toolUseID")]
+        tool_use_id: String,
+    },
     /// It may not run.
     Deny {
         /// Why, for the agent.

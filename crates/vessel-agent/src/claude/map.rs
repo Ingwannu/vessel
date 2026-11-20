@@ -109,6 +109,16 @@ impl Translator {
         events
     }
 
+    /// The tool call a request asks about, when no frame has shown it yet
+    /// (a subagent's call, whose frames are not shown until slice 5; or a
+    /// request ahead of its frame): what the person approves must be on
+    /// the timeline.
+    pub(crate) fn announce(&mut self, id: &str, name: &str, input: &Value) -> Option<AgentEvent> {
+        self.announced
+            .insert(id.to_owned())
+            .then(|| AgentEvent::ToolCall(tool_call(id, name, input)))
+    }
+
     /// What a `user` frame of the agent's shows: its tools' results.
     pub(crate) fn user(&self, frame: &UserMessage) -> Vec<AgentEvent> {
         if frame.parent_tool_use_id.is_some() {

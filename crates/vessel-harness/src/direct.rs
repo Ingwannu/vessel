@@ -11,7 +11,8 @@
 //!   one table. `selectable` stays false until the driver's permissions
 //!   slice lands: a driver that cannot ask a person must never run a
 //!   session (the plan, `docs/plans/agents-own-protocols.md`). Codex's
-//!   landed with its slice 2 (approvals and questions, the mode).
+//!   landed with its slice 2 (approvals and questions, the mode), Claude
+//!   Code's with its slice 2 (tool requests, plan approval, questions).
 //! - Versions: a driver states the oldest and the newest agent version it
 //!   was checked against. Below the oldest, the session runs on ACP; above
 //!   the newest, it runs and its log says so, since vendors add
@@ -100,7 +101,8 @@ const CLAUDE: Direct = Direct {
     ],
     oldest: Version::new(2, 1, 246),
     newest_checked: Version::new(2, 1, 246),
-    selectable: false,
+    // Since its slice 2: every tool request is asked of a person.
+    selectable: true,
 };
 
 /// `OpenCode`'s server as documented for 1.18.

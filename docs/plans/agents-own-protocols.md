@@ -255,6 +255,48 @@ Agent SDK's `sdk.d.ts` of the version followed (0.3.246 now, CLI
    - `--allow-dangerously-skip-permissions` is passed only for a bypass
      session.
    - After this slice the setting may select `direct` for Claude Code.
+   As built (2026-11-14; `BUILT` and `selectable` true):
+   - `claude/asks` holds what is asked under node-minted ids, at most 64
+     (the oldest gives way, answered as withdrawn), with the ids already
+     settled remembered. A tool request is a permission request on its
+     call: `Allow`, each of the agent's suggestions an allowing answer can
+     carry (rules added or replaced with `allow`, a mode change but never
+     into bypass, directories added; each labelled from what it says and
+     sent back exactly as given in `updatedPermissions`), `Reject`. A
+     suggestion it cannot carry (a `deny` rule, a removal, an unknown
+     shape or place) is left out, never guessed.
+   - `ExitPlanMode`: Paseo's `Reject` and `Implement`; implementing goes on
+     in `acceptEdits`, sent inside the answer as the SDK's `setMode`
+     update where Paseo calls `set_permission_mode` first (one answer,
+     nothing to fail between two; a stated difference). Paseo's third
+     choice (implement and return to the mode before planning) needs the
+     live mode, so it comes with slice 3.
+   - `AskUserQuestion`, only when `AgentSetup::questions` (otherwise the
+     launch keeps `--disallowedTools=AskUserQuestion`, and a request for it
+     is denied, saying why): one field a question (`question_<n>`, its
+     header the title, its text the description), a choice of its options
+     (several with `multiSelect`) or text without options; the answer goes
+     back as the tool's own input with `answers` keyed by each question's
+     full text, several joined by `, ` (the SDK's comma-separated form),
+     and a decline denies the tool. A stated difference: no free "Other"
+     answer beside the options, since a Vessel field is a choice or text,
+     not both (a new field kind would be a protocol change).
+   - The floor: every request is answered exactly once, by the person or
+     with a denial saying it was withdrawn (a cancel withdraws before it
+     interrupts; a turn's end, the driver stopping a turn and the
+     connection's end withdraw the rest); a request the agent withdraws
+     (`control_cancel_request`) is settled cancelled without an answer. A
+     request ahead of its call's frame shows the call first.
+   - Outside the contract: a Claude Code older than `direct`'s `oldest`
+     runs over ACP (the version gate), which asks for permissions too; one
+     inside it that does not answer `initialize` fails the handshake,
+     typed. No MCP permission tool is added (see the slice report: the
+     coordinator's earlier decision named one for this case).
+   - The contract test checks `updatedPermissions`, `PermissionUpdate`'s
+     fields and values, the destinations and modes named, and
+     `AskUserQuestionInput` (`sdk-tools.d.ts`): `questions`, `header`,
+     `options`, `multiSelect`, `answers`.
+   - `history` answers `unsupported` until slice 4, as Codex's does.
 3. **Options.** Model, effort, fast and permission mode, changed live
    with `set_model` and `set_permission_mode`, or by restarting with
    `--resume` where the contract fails. As Paseo has them: the models
@@ -358,7 +400,13 @@ checked against `/doc`.
     prompts are not typed by a person);
   - a synthetic or local message (`/context`) shown once, and a
     subagent's frames;
-  - `can_use_tool` payloads and suggestions;
+  - `can_use_tool` payloads and suggestions; that a suggestion sent back
+    in `updatedPermissions` is applied (a session rule allows the next
+    call unasked), and that `setMode` there takes a plan's approval into
+    `acceptEdits`; `AskUserQuestion`'s answers read by the tool as sent,
+    and what it does with a question left unanswered; whether the CLI
+    sends `control_cancel_request` when a turn is interrupted with a
+    request open;
   - `rewind_files` on real file history.
 - **OpenCode**:
   - 1.18's event shapes;
@@ -446,3 +494,17 @@ checked against `/doc`.
   the bookkeeping (offered decisions, the bound, withdrawal, resolution)
   and the mode's choice. The node's setting accepts `direct` for Codex
   (e2e), and the runtime chooses it (unit).
+- Claude Code slice 2 (permissions, plan approval, questions): built and
+  offered (`BUILT` and `selectable` true). `claude/asks` (what is asked,
+  its choices in `asks/choices`, the question form in `asks/question`),
+  `claude/session/asking` (the session's side: a request published, an
+  answer sent, withdrawals settled). Checked against `fake-claude-stream`:
+  a tool request with three suggestions (one offered, a deny rule and a
+  switch into bypass left out) answered with a session rule sent back as
+  given, a rejection, a cancel withdrawing before it interrupts, the
+  agent withdrawing its own request, a request ahead of its frame, a plan
+  approved into `acceptEdits`, a question of a choice of one and of
+  several answered by the questions' text, declined, and refused when
+  nobody can answer; unit tests for the labels, the bound, the settled
+  memory and an unfit question. The node's setting accepts `direct` for
+  Claude Code (e2e).

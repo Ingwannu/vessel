@@ -7,8 +7,9 @@ it costs. It partly supersedes ADR 0003 (every structured agent over ACP)
 and replaces ADR 0055's wait for an adapter change. The research notes
 are summarised below; the plan is `docs/plans/agents-own-protocols.md`.
 Slice 0 (the seam made selectable, protocol 18) is built (see "Slice 0,
-as built"), and Codex's driver through its slice 2 is built and offered
-(see "Codex slice 2, as built").
+as built"), and Codex's and Claude Code's drivers through their slice 2
+are built and offered (see "Codex slice 2, as built" and "Claude Code
+slice 2, as built").
 
 ## Context
 
@@ -413,3 +414,32 @@ it (`selectable` true). Choices made here:
 - **Checked**: `schema/app-server.json` grows to the 61 definitions the
   driver follows; the contract test checks each field and value used,
   and that a granted permission profile has the requested one's shape.
+
+## Claude Code slice 2, as built (2026-11-14)
+
+Every tool request is asked of a person; `BUILT` and `selectable` are
+true. The plan's Claude Code section lists what was built and checked.
+
+- **Route**: `can_use_tool` only. Each request becomes a permission
+  request with Claude Code's own choices (allow once, each suggestion an
+  allowing answer can carry, sent back as given, reject), a plan's
+  approval as Paseo's reject and implement, or a question for
+  `AskUserQuestion` when someone can answer. Every request is answered
+  exactly once; the floor is as decided above.
+- **Not built: the MCP permission tool.** The decision above names it as
+  the fallback outside the contract's versions or when the control
+  handshake does not come up. As built:
+  - A Claude Code older than `direct`'s `oldest` runs over ACP, through
+    the version gate, and ACP asks for permissions.
+  - One the contract covers that does not answer `initialize` fails the
+    handshake, typed. So the session never runs unasked, but it does not
+    start either.
+  - Whether to add the MCP route, or to restart such a session over ACP,
+    is the coordinator's to decide. Until then this records the
+    difference.
+- **Stated differences from Paseo**:
+  - Implementing a plan sends the mode change inside the answer (`setMode`
+    in `updatedPermissions`), where Paseo calls `set_permission_mode`
+    first.
+  - A question with options does not also take free text.
+  - Paseo's "implement and return to the earlier mode" comes with slice 3.

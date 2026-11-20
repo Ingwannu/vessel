@@ -1,6 +1,6 @@
-//! The client's commands: prompts, cancels and what this slice does not
-//! offer yet, and the requests the driver itself sends (the session
-//! loop's other half is `agent`).
+//! The client's commands: prompts, cancels, answers (handed to `asking`)
+//! and what the driver does not offer yet, and the requests the driver
+//! itself sends (the session loop's other half is `agent`).
 
 use vessel_proto::{AgentEvent, ContentBlock, OptionChoice};
 
@@ -26,11 +26,17 @@ impl Session {
             Command::Steer { reply, .. } => {
                 let _gone = reply.send(Err(InputError::CannotSteer));
             }
-            Command::Answer { id, reply, .. } => {
-                answer(reply, Err(InputError::PermissionNotFound(id)));
+            Command::Answer { id, outcome, reply } => {
+                let result = self.answer_permission(id, outcome).await;
+                answer(reply, result);
             }
-            Command::AnswerQuestion { id, reply, .. } => {
-                answer(reply, Err(InputError::QuestionNotFound(id)));
+            Command::AnswerQuestion {
+                id,
+                answer: given,
+                reply,
+            } => {
+                let result = self.answer_question(id, given).await;
+                answer(reply, result);
             }
             Command::TurnRunning { reply } => {
                 let _gone = reply.send(self.turn != Turn::Idle);
@@ -113,7 +119,9 @@ impl Session {
         answer(reply, Ok(()));
     }
 
-    /// The client stops the running turn (a no-op without one).
+    /// The client stops the running turn (a no-op without one): what it
+    /// asked is withdrawn first, so the agent is never left waiting on an
+    /// answer while it stops.
     pub(super) async fn cancel(&mut self) {
         let Turn::Running { cancelled, .. } = &mut self.turn else {
             return;
@@ -122,6 +130,7 @@ impl Session {
             return;
         }
         *cancelled = true;
+        self.withdraw_all().await;
         self.interrupt().await;
     }
 
@@ -137,6 +146,7 @@ impl Session {
         *failure = Some(reason);
         if !*cancelled {
             *cancelled = true;
+            self.withdraw_all().await;
             self.interrupt().await;
         }
     }

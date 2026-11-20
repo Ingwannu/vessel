@@ -100,37 +100,37 @@ mod tests {
         }
     }
 
-    /// A driver not built yet (Claude Code's, `OpenCode`'s) is refused
-    /// before its agent starts (the program here does not exist, and is never looked for),
+    /// A driver not built yet (`OpenCode`'s) is refused before its agent
+    /// starts (the program here does not exist, and is never looked for),
     /// for a session, a probe and a listing alike.
     #[tokio::test]
     async fn a_driver_not_built_is_refused_before_anything_starts() {
         let missing = CommandSpec::new("vessel-no-such-agent");
-        for driver in [Driver::ClaudeStream, Driver::OpencodeHttp] {
-            assert!(!driver.built(), "{driver}");
-            let Err(AgentError::NoDriver(refused)) =
-                AgentProcess::spawn_with(driver, &missing, setup())
-            else {
-                panic!("{driver} must be refused");
-            };
-            assert_eq!(refused, driver);
-            assert!(matches!(
-                probe_with(driver, &missing, setup()).await,
-                Err(ProbeError::Spawn(AgentError::NoDriver(_)))
-            ));
-            assert!(matches!(
-                history_with(
-                    driver,
-                    &missing,
-                    None,
-                    HistoryFrom::default(),
-                    Duration::from_secs(1)
-                )
-                .await,
-                Err(HistoryError::Spawn(AgentError::NoDriver(_)))
-            ));
-        }
+        let driver = Driver::OpencodeHttp;
+        assert!(!driver.built(), "{driver}");
+        let Err(AgentError::NoDriver(refused)) =
+            AgentProcess::spawn_with(driver, &missing, setup())
+        else {
+            panic!("{driver} must be refused");
+        };
+        assert_eq!(refused, driver);
+        assert!(matches!(
+            probe_with(driver, &missing, setup()).await,
+            Err(ProbeError::Spawn(AgentError::NoDriver(_)))
+        ));
+        assert!(matches!(
+            history_with(
+                driver,
+                &missing,
+                None,
+                HistoryFrom::default(),
+                Duration::from_secs(1)
+            )
+            .await,
+            Err(HistoryError::Spawn(AgentError::NoDriver(_)))
+        ));
         assert!(Driver::Acp.built());
         assert!(Driver::CodexAppServer.built(), "since Codex's slice 1");
+        assert!(Driver::ClaudeStream.built(), "since Claude Code's slice 2");
     }
 }

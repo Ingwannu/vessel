@@ -7,8 +7,7 @@ use vessel_proto::AgentEvent;
 use super::super::io::Read;
 use super::super::map::Translator;
 use super::super::wire::{
-    AgentRequest, Answer, ControlRequest, ControlResponse, Frame, HostAnswer, Outgoing, Permission,
-    System, TurnResult,
+    AgentRequest, Answer, ControlRequest, ControlResponse, Frame, System, TurnResult,
 };
 use super::{ABILITIES, Session, Turn, handshake_failed};
 use crate::error::Disconnect;
@@ -72,18 +71,16 @@ impl Session {
             Frame::ControlResponse(ControlResponse { response }) => {
                 return self.answered(response).await;
             }
-            // Nothing the driver asks waits for a withdrawal yet: every
-            // request is answered as it arrives.
-            Frame::ControlCancelRequest(_)
-            | Frame::System(_)
-            | Frame::KeepAlive
-            | Frame::Unknown => {}
+            Frame::ControlCancelRequest(cancel) => self.agent_withdrew(&cancel.request_id).await,
+            Frame::System(_) | Frame::KeepAlive | Frame::Unknown => {}
         }
         None
     }
 
-    /// A turn's `result`.
+    /// A turn's `result`: whatever the turn left asked is withdrawn first,
+    /// so its resolutions come before the turn's end.
     pub(super) async fn ended(&mut self, result: &TurnResult) {
+        self.withdraw_all().await;
         let Turn::Running { cancelled, failure } = std::mem::replace(&mut self.turn, Turn::Idle)
         else {
             tracing::debug!("a result outside a turn of the session's");
@@ -96,44 +93,15 @@ impl Session {
         self.emit(event).await;
     }
 
-    /// A request of the agent's. Tool requests are denied until the
-    /// permissions slice; anything else is refused and stops the turn.
+    /// A request of the agent's: a tool request is asked of a person
+    /// (`asking`); anything else is refused and stops the turn.
     pub(super) async fn asked(&mut self, request: ControlRequest) {
         let ControlRequest {
             request_id,
             request,
         } = request;
         match request {
-            AgentRequest::CanUseTool(asked) => {
-                let denied = Permission::Deny {
-                    message: "Vessel's Claude Code driver does not ask for permissions yet"
-                        .to_owned(),
-                    tool_use_id: asked.tool_use_id,
-                };
-                let answer = match serde_json::to_value(denied) {
-                    Ok(value) => HostAnswer::Success {
-                        request_id,
-                        response: value,
-                    },
-                    Err(error) => HostAnswer::Error {
-                        request_id,
-                        error: error.to_string(),
-                    },
-                };
-                let _sent = self
-                    .out
-                    .send(&Outgoing::ControlResponse { response: answer })
-                    .await;
-                tracing::info!(tool = %asked.tool_name, "Claude Code's tool request denied");
-                self.emit(AgentEvent::HarnessLog {
-                    line: format!(
-                        "Vessel declined Claude Code's request to use {}: this driver does not \
-                         ask for permissions yet",
-                        asked.tool_name
-                    ),
-                })
-                .await;
-            }
+            AgentRequest::CanUseTool(asked) => self.ask(request_id, asked).await,
             AgentRequest::Unknown => {
                 self.refuse(request_id, "Vessel does not serve this request")
                     .await;

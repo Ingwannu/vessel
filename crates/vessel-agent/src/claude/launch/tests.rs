@@ -150,6 +150,22 @@ fn a_new_conversation_gets_its_id_on_the_command_line_and_nothing_else_is_added(
     );
 }
 
+/// The question tool stays exactly when someone can answer a question,
+/// the node's one decision the ACP adapter follows too.
+#[test]
+fn the_question_tool_is_removed_only_when_nobody_can_answer() {
+    let removed = "--disallowedTools=AskUserQuestion";
+    let (without, _) = launched(&setup());
+    assert!(without.iter().any(|arg| arg == removed));
+    let answering = AgentSetup {
+        questions: true,
+        ..setup()
+    };
+    let (with, _) = launched(&answering);
+    assert!(with.iter().all(|arg| arg != removed), "{with:?}");
+    assert!(with.iter().all(|arg| allowed(arg, None)));
+}
+
 #[test]
 fn a_resumed_conversation_is_named_by_resume_alone() {
     let id = "5d0c3c1e-8f3a-4e8e-9c55-2f0f3a1b7c42";

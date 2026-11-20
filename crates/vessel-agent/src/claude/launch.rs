@@ -37,11 +37,12 @@
 //!   not offered, a choice of it is refused before spawning, and the
 //!   default is `default`, as Paseo does. One exhaustive match maps them,
 //!   and only `bypassPermissions` adds `--allow-dangerously-skip-permissions`.
-//! - Questions: slice 1 does not ask questions, so `AskUserQuestion` is
-//!   always removed (`--disallowedTools=AskUserQuestion`). Slice 2 removes
-//!   it exactly when `AgentSetup::questions` is false, the node's one
-//!   decision the ACP path also follows (its adapter offers the tool only
-//!   to a client that advertises questions), so the two cannot drift.
+//! - Questions: `AskUserQuestion` is removed (`--disallowedTools=
+//!   AskUserQuestion`) exactly when `AgentSetup::questions` is false, the
+//!   node's one decision the ACP path also follows (its adapter offers the
+//!   tool only to a client that advertises questions), so the two cannot
+//!   drift. With it, the agent's questions are asked of a person
+//!   (`asks`).
 //! - Fork is slice 4's: refused here (`ForkRefusal::CannotFork`), answered
 //!   as the adapters answer an agent that cannot fork.
 
@@ -145,8 +146,10 @@ pub(crate) fn launch(
     let mut args: Vec<OsString> = vec![
         "--include-partial-messages".into(),
         "--permission-prompt-tool=stdio".into(),
-        "--disallowedTools=AskUserQuestion".into(),
     ];
+    if !setup.questions {
+        args.push("--disallowedTools=AskUserQuestion".into());
+    }
     let resumed = setup.resume.is_some();
     let conversation = if let Some(resumed) = &setup.resume {
         let Ok(id) = uuid::Uuid::parse_str(resumed.as_str()) else {

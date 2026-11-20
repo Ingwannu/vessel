@@ -1,6 +1,6 @@
 //! A session over `fake-claude-stream`: the driver's launch and loop
-//! driven directly (the driver is not `BUILT`, so `AgentProcess` refuses
-//! it), with the fake's frames shaped as the Agent SDK declares them.
+//! driven directly, with the fake's frames shaped as the Agent SDK
+//! declares them. What the agent asks a person is in `asking`.
 
 use std::process::Stdio;
 use std::time::Duration;
@@ -371,54 +371,6 @@ async fn a_side_questions_context_reaches_the_agent_first_and_is_never_kept() {
 }
 
 #[tokio::test]
-async fn a_tool_request_is_denied_and_the_log_says_why() {
-    within(async {
-        let mut session = start(setup(), &[]);
-        let _ready = session.ready().await;
-        session.prompt(text("tool")).await.unwrap();
-        let events = session.turn().await;
-        let call = events
-            .iter()
-            .find_map(|event| {
-                if let AgentEvent::ToolCall(call) = event {
-                    Some(call)
-                } else {
-                    None
-                }
-            })
-            .unwrap();
-        assert_eq!(call.title, "Bash: ls");
-        assert!(events.iter().any(|event| matches!(
-            event,
-            AgentEvent::HarnessLog { line } if line.contains("declined") && line.contains("Bash")
-        )));
-        let settled = events
-            .iter()
-            .find_map(|event| {
-                if let AgentEvent::ToolCallUpdate(update) = event {
-                    Some(update)
-                } else {
-                    None
-                }
-            })
-            .unwrap();
-        assert_eq!(settled.id, call.id);
-        assert_eq!(settled.status, Some(ToolCallStatus::Failed));
-        let Some(content) = &settled.content else {
-            panic!("{settled:?}");
-        };
-        assert!(matches!(
-            &content[0],
-            ToolCallContent::Content { content: ContentBlock::Text { text } }
-                if text.contains("does not ask for permissions yet")
-        ));
-        assert_eq!(said(&events, false), "Done.");
-        assert!(matches!(events.last(), Some(AgentEvent::TurnEnded { .. })));
-    })
-    .await;
-}
-
-#[tokio::test]
 async fn a_cancel_interrupts_the_turn_and_it_ends_cancelled() {
     within(async {
         let mut session = start(setup(), &[]);
@@ -616,3 +568,5 @@ async fn what_this_slice_does_not_offer_is_answered_as_such() {
     })
     .await;
 }
+
+mod asking;

@@ -1,6 +1,6 @@
 //! One session over Claude Code's stream-json: the control handshake,
-//! turns, cancelling, and what the agent asks (slice 1 of the plan's
-//! Claude Code section).
+//! turns, cancelling, and what the agent asks (slices 1 and 2 of the
+//! plan's Claude Code section).
 //!
 //! [Decision Log]
 //! - Purpose: the session actors see what the ACP driver gives them, in
@@ -12,8 +12,9 @@
 //!   handshake time. The session is ready with the conversation its
 //!   launch named (`Launched`): Claude Code writes its `init` frame only
 //!   once a turn starts. A CLI that does not answer `initialize` fails the
-//!   handshake with that reason; the fallback to the documented MCP
-//!   permission tool for exactly that case is slice 2's.
+//!   handshake with that reason. A CLI older than the contract was checked
+//!   against never gets here: `vessel_harness::direct`'s version gate runs
+//!   it over ACP, which asks for permissions too.
 //! - One loop owns the state and never awaits an answer in place; the
 //!   agent's frames and the client's commands arrive through channels.
 //!   Commands are polled first, as in the ACP driver: the agent can stream
@@ -21,16 +22,23 @@
 //!   the stream to pause. Taking a command before frames already queued is
 //!   safe: a turn ends only at its `result`, handled in order with its
 //!   frames.
-//! - The floor (ADR 0057): every tool request is answered (denied, until
-//!   the permissions slice turns them into permission requests, with a
-//!   line in the session's log); a control request the driver does not
-//!   serve or cannot read is refused and the running turn is stopped and
-//!   ends failed, saying why. Nothing is ever allowed by default, and
-//!   nothing the agent asks is left waiting.
+//! - The floor (ADR 0057): every tool request is asked of a person
+//!   (`asks`: a permission request, a plan's approval or a question) and
+//!   answered exactly once, by their choice or, when the turn is
+//!   cancelled or ends or the connection does, with a denial saying it
+//!   was withdrawn; a cancel withdraws before it interrupts. A control
+//!   request the driver does not serve or cannot read is refused and the
+//!   running turn is stopped and ends failed, saying why. Nothing is ever
+//!   allowed by default, and nothing the agent asks is left waiting.
+//! - Questions: `AskUserQuestion` is a question only when the node says
+//!   someone can answer one (`AgentSetup::questions`); otherwise the
+//!   launch removes the tool, and should it still be asked for, it is
+//!   denied, saying why.
 //! - Layout: this file holds the loop, its state and its outputs; `agent`
 //!   handles the agent's traffic (frames, its requests, its answers),
 //!   `commands` the client's commands and the driver's own requests, so
-//!   each file has one side of the conversation.
+//!   each file has one side of the conversation; `asking` is what the
+//!   agent asks a person, between the two.
 //! - A turn the driver ends itself (a refusal) still ends at its `result`
 //!   (the CLI writes one after the interrupt), so the next prompt never
 //!   meets the previous turn's end; the failure replaces what the result
@@ -43,6 +51,7 @@ use tokio::process::{ChildStdin, ChildStdout};
 use tokio::sync::mpsc;
 use vessel_proto::{AgentAbilities, AgentEvent, HarnessSessionId};
 
+use super::asks::Asks;
 use super::io::{self, Ended, Read, Writer};
 use super::launch::Launched;
 use super::map::Translator;
@@ -53,6 +62,7 @@ use crate::input::Command;
 use crate::output::AgentOutput;
 
 mod agent;
+mod asking;
 mod commands;
 
 /// Frames read ahead of the loop.
@@ -101,6 +111,8 @@ pub(super) async fn run(
         next: 0,
         initialize: None,
         interrupts: HashSet::new(),
+        asks: Asks::default(),
+        questions: setup.questions,
         ready: false,
         turn: Turn::Idle,
     };
@@ -125,6 +137,10 @@ struct Session {
     initialize: Option<String>,
     /// Interrupts sent and not answered.
     interrupts: HashSet<String>,
+    /// What the agent asked and nobody answered yet.
+    asks: Asks,
+    /// Whether `AskUserQuestion` is asked of a person.
+    questions: bool,
     ready: bool,
     turn: Turn,
 }
@@ -196,6 +212,7 @@ impl Session {
 
     /// Settle what is open, then say why the connection ended.
     async fn close(&mut self, end: Disconnect) {
+        self.withdraw_all().await;
         if self.turn != Turn::Idle {
             self.turn = Turn::Idle;
             self.emit(AgentEvent::TurnFailed {

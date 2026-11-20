@@ -10,8 +10,9 @@
 //! - Choice: the SDK's `sdk.d.ts` is Anthropic's, all rights reserved, so
 //!   nothing of it is copied into this public repository. The lists below
 //!   are our own (the names the driver uses), and the test reads the
-//!   installed SDK's file, named by `VESSEL_CLAUDE_SDK_TYPES`, checking
-//!   each name inside its type's declaration, and the SDK's
+//!   installed SDK's file, named by `VESSEL_CLAUDE_SDK_TYPES` (and the tool
+//!   inputs' `sdk-tools.d.ts` beside it), checking each name inside its
+//!   type's declaration, and the SDK's
 //!   `claudeCodeVersion` against the version `vessel_harness::direct`
 //!   says the driver was checked against.
 //! - Ignored by default (it needs the SDK installed, which a CI runner has
@@ -46,8 +47,26 @@ const FIELDS: &[(&str, &[&str])] = &[
     ("SDKKeepAliveMessage", &["type"]),
     (
         "PermissionResult",
-        &["behavior", "updatedInput", "toolUseID", "message"],
+        &[
+            "behavior",
+            "updatedInput",
+            "updatedPermissions",
+            "toolUseID",
+            "message",
+        ],
     ),
+    (
+        "PermissionUpdate",
+        &[
+            "type",
+            "rules",
+            "behavior",
+            "destination",
+            "mode",
+            "directories",
+        ],
+    ),
+    ("PermissionRuleValue", &["toolName", "ruleContent"]),
     (
         "SDKUserMessage",
         &[
@@ -110,19 +129,59 @@ const LITERALS: &[(&str, &[&str])] = &[
     ("SDKControlCancelRequest", &["control_cancel_request"]),
     ("SDKKeepAliveMessage", &["keep_alive"]),
     ("PermissionResult", &["allow", "deny"]),
+    (
+        "PermissionUpdate",
+        &["addRules", "replaceRules", "setMode", "addDirectories"],
+    ),
+    ("PermissionBehavior", &["allow"]),
+    (
+        "PermissionUpdateDestination",
+        &[
+            "session",
+            "localSettings",
+            "projectSettings",
+            "userSettings",
+            "cliArg",
+        ],
+    ),
+    ("PermissionMode", &["acceptEdits", "bypassPermissions"]),
     ("SDKPartialAssistantMessage", &["stream_event"]),
     ("SDKResultSuccess", &["result", "success"]),
     ("SDKSystemMessage", &["system", "init"]),
 ];
 
-/// `name`'s declaration in `types`: from `type <name> =` to the `};` that
-/// closes it at the start of a line, without its comments.
+/// The tool inputs the driver reads or writes (`sdk-tools.d.ts`, beside
+/// `sdk.d.ts`), and the fields of them it uses: a question's form, and
+/// the answers it sends back.
+const TOOL_FIELDS: &[(&str, &[&str])] = &[(
+    "AskUserQuestionInput",
+    &[
+        "questions",
+        "question",
+        "header",
+        "options",
+        "label",
+        "description",
+        "multiSelect",
+        "answers",
+    ],
+)];
+
+/// `name`'s declaration in `types`, without its comments: a `type <name> =`
+/// on one line, or one (or an `interface <name> {`) up to the `}` that
+/// closes it at the start of a line.
 fn declaration(types: &str, name: &str) -> Option<String> {
-    let start = types.find(&format!("type {name} = "))?;
+    let start = types
+        .find(&format!("type {name} = "))
+        .or_else(|| types.find(&format!("interface {name} {{")))?;
     let rest = types.get(start..)?;
-    let end = rest
-        .find("\n};")
-        .map_or(rest.len(), |end| end.saturating_add(3));
+    let first = rest.lines().next().unwrap_or_default();
+    let end = if first.trim_end().ends_with(';') {
+        first.len()
+    } else {
+        rest.find("\n}")
+            .map_or(rest.len(), |end| end.saturating_add(2))
+    };
     let block = rest.get(..end)?;
     Some(
         block
@@ -177,6 +236,20 @@ fn every_frame_field_and_value_the_driver_uses_is_declared_by_the_sdk() {
 
 #[test]
 #[ignore = "needs the Agent SDK installed: VESSEL_CLAUDE_SDK_TYPES=<its sdk.d.ts>, then --ignored"]
+fn every_tool_input_field_the_driver_uses_is_declared_by_the_sdk() {
+    let (path, _) = installed();
+    let tools = path.parent().map(|dir| dir.join("sdk-tools.d.ts")).unwrap();
+    let types = std::fs::read_to_string(&tools).unwrap();
+    for (name, fields) in TOOL_FIELDS {
+        let block = declaration(&types, name).unwrap_or_else(|| panic!("no type {name}"));
+        for field in *fields {
+            assert!(declares(&block, field), "{name} has no `{field}`");
+        }
+    }
+}
+
+#[test]
+#[ignore = "needs the Agent SDK installed: VESSEL_CLAUDE_SDK_TYPES=<its sdk.d.ts>, then --ignored"]
 fn the_sdk_speaks_to_the_claude_code_the_driver_was_checked_against() {
     let (path, _) = installed();
     let manifest = path.parent().map(|dir| dir.join("package.json")).unwrap();
@@ -201,4 +274,15 @@ fn a_declaration_is_read_without_its_comments() {
     assert!(!declares(&block, "x") && !declares(&block, "c"));
     assert!(block.contains("'a'"));
     assert!(declaration(types, "C").is_none());
+}
+
+#[test]
+fn a_one_line_type_and_an_interface_are_read_to_their_own_end() {
+    let types = "declare type D = 'x' | 'y';\ndeclare type E = 'z';\n\
+                 interface F {\n  g: {\n    h?: string;\n  };\n}\nlet i: 1;\n";
+    let one_line = declaration(types, "D").unwrap();
+    assert!(one_line.contains("'y'") && !one_line.contains("'z'"));
+    let interface = declaration(types, "F").unwrap();
+    assert!(declares(&interface, "g") && declares(&interface, "h"));
+    assert!(!declares(&interface, "let i"));
 }
