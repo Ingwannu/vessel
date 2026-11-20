@@ -165,7 +165,7 @@ The producer contract, environment injection, closure/denial tests and actual
 CLI consumer must pass before the feature's pending protocol is assigned. A
 wire test with the final assigned protocol remains required at integration.
 
-### The CLI consumer: agent hooks (plan, 2026-11-20)
+### The CLI consumer: agent hooks (2026-11-20)
 
 The reference is Paseo 0.15.4 as installed (`@getpaseo/cli` and its `@getpaseo/server`, paths under each
 package's `dist/`):
@@ -211,6 +211,28 @@ Vessel's rules beyond Paseo (coordinator, 2026-11-20):
 - Turning the setting off removes exactly the marked entries.
 - No test, capture or gate writes a real `~/.claude*`, `~/.codex` or OpenCode config. Tests use a scratch
   home and config directories, and a guard refuses to run when any of them resolves to the real home.
+
+As built (`vessel-node/src/agent_hooks.rs` and its modules, `vessel-cli/src/hooks.rs`):
+
+- **Where.** Each agent's home is taken as the node starts it (`HarnessEnv::home`): `$CLAUDE_CONFIG_DIR`
+  or `~/.claude`, `$CODEX_HOME` or `~/.codex`, and `~/.config/opencode`. Paseo also honours
+  `OPENCODE_CONFIG_DIR` and `XDG_CONFIG_HOME` for OpenCode; Vessel sets neither for the OpenCode it runs.
+- **Marker.** The marker is Vessel's own: `VESSEL_HOOK_CLI` together with `hooks <agent> `. Paseo's
+  marker, `hooks claude`, would also match Paseo's own entries in the same file.
+- **What changes in a file.** The file is read keeping its keys in order and each value's text as written.
+  Only `hooks` and the lists of Vessel's own events are rebuilt, and only marked commands leave them; an
+  entry shared with a person's command keeps that command. Paseo rewrites the whole file, and a file that
+  is not an object becomes `{}`.
+- **What is left alone.** A file that is not JSON, or whose `hooks` or an event list has another shape, is
+  left untouched with one warning. Turning the setting off never creates a file, and removes OpenCode's
+  plugin only when it carries the marker.
+- **Writes.** Writes are owner-only and atomic (`vessel_fleet::write_private`), after the one-time
+  `<file>.vessel-backup`. In test builds every write path refuses the real home's agent configuration.
+- **The setting.** `terminal_agent_hooks` is in `NodeSettings` and `SetNodeSettings`. It is hidden below,
+  and refused before, `ATTENTION_NOTIFICATIONS_PROTOCOL`. It is applied when changed, and at start when on,
+  on the settings writers' tracker.
+- **The OpenCode plugin** runs `$VESSEL_HOOK_CLI`, or `vessel` when unset, as the other agents' commands
+  do. Paseo's plugin runs `paseo`.
 
 A hook without an explicit revision is scoped to its terminal and follows the
 reference producer's event ordering. It does not attest which provider command

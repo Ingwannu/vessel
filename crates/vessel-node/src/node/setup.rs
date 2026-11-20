@@ -184,6 +184,12 @@ pub(super) async fn feature_state(
     // The plugin host (ADR 0115): reads its installations and, when plugins
     // are on, starts them in the background; it stops every helper with the
     // node, joined by `tasks`.
+    // The terminal agent hooks (ADR 0089): installed at start when on, as
+    // Paseo's `applyTerminalAgentHookSetting` does at boot; off leaves the
+    // agents' own files untouched.
+    if settings.current().await.terminal_agent_hooks {
+        settings.apply_agent_hooks(true);
+    }
     let plugins = crate::plugins::Plugins::start(crate::plugins::Opening {
         node,
         data: config.data_dir.clone(),

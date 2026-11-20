@@ -29,6 +29,7 @@ impl NodeService {
                 .map_err(|error| WireError::new(ErrorCode::InvalidRequest, error.to_string()))?;
         }
         let switch = request.plugins_enabled;
+        let hooks = request.terminal_agent_hooks;
         let settings = self.settings.change(request).await.map_err(|error| {
             let code = match error {
                 SettingsError::Unknown | SettingsError::UnknownDriver(_) => {
@@ -47,6 +48,12 @@ impl NodeService {
         // The plugin switch (ADR 0115) applies at once, once it is kept.
         if switch.is_some() {
             self.plugins_switched(settings.plugins_enabled);
+        }
+        // The terminal agent hooks (ADR 0089) are installed or removed at
+        // once, as Paseo's `applyTerminalAgentHookSetting` does on a change.
+        if hooks.is_some() {
+            self.settings
+                .apply_agent_hooks(settings.terminal_agent_hooks);
         }
         Ok(settings)
     }

@@ -180,6 +180,8 @@ impl Settings {
         let metadata = saved.metadata.clone().unwrap_or_default();
         // Off unless a person turned plugins on (ADR 0115, Paseo's default).
         let plugins_enabled = saved.plugins_enabled.unwrap_or(false);
+        // Off unless a person turned them on (ADR 0089, Paseo's default).
+        let terminal_agent_hooks = saved.terminal_agent_hooks.unwrap_or(false);
         let saved = saved.drivers.unwrap_or_default();
         let driver = |kind, chosen: Option<AgentDriver>| match chosen {
             Some(AgentDriver::Direct) if offered(kind) => AgentDriver::Direct,
@@ -200,7 +202,17 @@ impl Settings {
             restart_recovery: vessel_proto::restart::RestartRecovery::default(),
             metadata: Some(metadata),
             plugins_enabled,
+            terminal_agent_hooks,
         }
+    }
+
+    /// Install or remove the terminal agent hooks in the agents' own
+    /// configuration (ADR 0089), off the async threads; the work is joined
+    /// with the settings writers at shutdown. Where they go is each agent's
+    /// home as this node starts it.
+    pub(crate) fn apply_agent_hooks(&self, on: bool) {
+        let targets = crate::agent_hooks::Targets::of(self.runtime.harness_env());
+        drop(self.writers.spawn_blocking(move || targets.apply(on)));
     }
 
     /// The settings in force.
@@ -246,6 +258,9 @@ impl Settings {
         }
         if let Some(enabled) = change.plugins_enabled {
             next.plugins_enabled = Some(enabled);
+        }
+        if let Some(enabled) = change.terminal_agent_hooks {
+            next.terminal_agent_hooks = Some(enabled);
         }
         self.persist(saved, next).await
     }
