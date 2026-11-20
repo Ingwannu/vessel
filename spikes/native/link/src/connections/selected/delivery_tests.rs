@@ -257,7 +257,7 @@ async fn bounded_send_is_cancelled_by_retirement_and_queued_guard_cannot_install
         state.clients["guard-fixture"].retire();
         assert_eq!(
             phase("cancel full-channel send", sending).await,
-            Err(queue::SendFailure::Refused(Refusal::Changed))
+            Err(SendFailure::Refused(Refusal::Changed))
         );
         let guard = phase("drain already queued envelope", receive.recv())
             .await
@@ -287,7 +287,7 @@ async fn closed_app_receiver_does_not_retire_the_original_connection() {
                 selected.send_guarded(&send, guard.clone())
             )
             .await,
-            Err(queue::SendFailure::ReceiverClosed)
+            Err(SendFailure::ReceiverClosed)
         );
         assert_eq!(guard.validate(&context), Ok(()));
     })
