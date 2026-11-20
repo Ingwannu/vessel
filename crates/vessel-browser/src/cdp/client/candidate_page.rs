@@ -1,13 +1,14 @@
-//! Synthetic HTTP content exercises the real controller, never the product proxy.
+//! Synthetic HTTP content exercises the real controller and local policy refusals.
 //!
 //! This helper owns no workspace/Preview/root authority and permits only its
 //! fixed fixture origin. A successful PNG is transport/geometry evidence;
 //! native decoding, paint, first-frame policy and engine qualification stay separate.
-use super::{Client, Events, SHUTDOWN_TIMEOUT};
+use super::{Client, Events, SHUTDOWN_TIMEOUT, candidate_network::Routes};
 use crate::page::{Page, PageError, ViewportFrame};
 use axum::{
     Router,
     body::Body,
+    extract::State,
     http::{Request, StatusCode, header},
     response::{IntoResponse as _, Response},
 };
@@ -38,12 +39,12 @@ pub(super) struct FixtureProxy {
     actor: tokio::task::JoinHandle<Result<(), std::io::Error>>,
 }
 impl FixtureProxy {
-    pub(super) fn start(listener: TcpListener) -> Self {
+    pub(super) fn start(listener: TcpListener, routes: Routes) -> Self {
         let stop = CancellationToken::new();
         let guard = stop.clone().drop_guard();
         let closing = stop.clone();
         let actor = tokio::spawn(async move {
-            axum::serve(listener, Router::new().fallback(document))
+            axum::serve(listener, Router::new().fallback(document).with_state(routes))
                 .with_graceful_shutdown(closing.cancelled_owned())
                 .await
         });
@@ -60,25 +61,32 @@ impl FixtureProxy {
         drop(guard);
     }
 }
-fn document(request: Request<Body>) -> std::future::Ready<Response> {
+async fn document(State(routes): State<Routes>, request: Request<Body>) -> Response {
     let (parts, body) = request.into_parts();
     drop(body);
-    if parts.method != axum::http::Method::GET || parts.uri.host() != Some("fixture.test") {
-        return std::future::ready(StatusCode::FORBIDDEN.into_response());
+    if parts.method != axum::http::Method::GET {
+        return StatusCode::FORBIDDEN.into_response();
+    }
+    if let Some(refused) = routes.try_refusal(&parts.uri).await {
+        return match refused {
+            Ok(marker) => ([(header::CACHE_CONTROL, "no-store")], marker).into_response(),
+            Err(error) => error.into_response(),
+        };
+    }
+    if parts.uri.host() != Some("fixture.test") {
+        return StatusCode::FORBIDDEN.into_response();
     }
     if parts.uri.path() == "/favicon.ico" {
-        return std::future::ready(StatusCode::NO_CONTENT.into_response());
+        return StatusCode::NO_CONTENT.into_response();
     }
-    std::future::ready(
-        (
-            [
-                (header::CONTENT_TYPE, "text/html; charset=utf-8"),
-                (header::CACHE_CONTROL, "no-store"),
-            ],
-            HTML,
-        )
-            .into_response(),
+    (
+        [
+            (header::CONTENT_TYPE, "text/html; charset=utf-8"),
+            (header::CACHE_CONTROL, "no-store"),
+        ],
+        HTML,
     )
+        .into_response()
 }
 
 pub(super) struct Observed {
@@ -88,7 +96,11 @@ pub(super) struct Observed {
     full_png: ImageSize,
     compositor_png: ImageSize,
 }
-pub(super) async fn exercise(client: &Client, events: &mut Events) -> Result<Observed, PageError> {
+pub(super) async fn exercise(
+    client: &Client,
+    events: &mut Events,
+    routes: Routes,
+) -> Result<Observed, PageError> {
     let viewport = ViewportSize {
         width: ViewportSide::try_from(WIDTH).unwrap(),
         height: ViewportSide::try_from(HEIGHT).unwrap(),
@@ -119,6 +131,7 @@ pub(super) async fn exercise(client: &Client, events: &mut Events) -> Result<Obs
     ));
     let full_png = page.capture_extent(ScreenshotExtent::Page).await?.size();
     let compositor_png = page.probe_compositor(events).await?.size();
+    routes.verify_browser(&mut page).await?;
     page.close().await?;
     Ok(Observed {
         matched,

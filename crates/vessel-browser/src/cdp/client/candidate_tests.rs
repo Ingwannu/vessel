@@ -4,6 +4,7 @@
 //! storage stays quarantined at a fresh nonce path; no product profile or engine
 //! admission is released from a leader/accepted-group cleanup receipt.
 use super::*;
+use super::candidate_network::NetworkFixture;
 use crate::cdp::{requests, transport};
 use crate::launch::{Plan, ProxyEndpoint};
 use crate::preparation::Preparation;
@@ -93,7 +94,9 @@ async fn approved_candidate_uses_real_rust_driver_and_private_child_pipe() {
             temporary,
             listener,
         } = fixture().await;
-        let proxy = candidate_page::FixtureProxy::start(listener);
+        let network = NetworkFixture::start().await;
+        let routes = network.routes();
+        let proxy = candidate_page::FixtureProxy::start(listener, routes);
         let spawned = plan.spawn_for_diagnostic().unwrap();
         let run = spawned.child.lifetime();
         let (client, mut events) = Client::start(transport::Pipe::new(spawned.stdout, spawned.stdin));
@@ -112,7 +115,7 @@ async fn approved_candidate_uses_real_rust_driver_and_private_child_pipe() {
             .await
             .unwrap();
         let page = if identity.is_ok() && version.is_ok() {
-            Some(candidate_page::exercise(&client, &mut events).await)
+            Some(candidate_page::exercise(&client, &mut events, routes).await)
         } else {
             None
         };
@@ -123,6 +126,7 @@ async fn approved_candidate_uses_real_rust_driver_and_private_child_pipe() {
             .unwrap()
             .unwrap();
         proxy.finish().await;
+        network.finish().await;
         let (plan, held) = scope
             .run(move || {
                 let held = matches!(Profile::prepare(&root, &temporary), Err(ProfileError::Busy));

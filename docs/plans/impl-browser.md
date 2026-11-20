@@ -42,3 +42,9 @@ selected target's compositor using start, first-frame acknowledgement and stop.
 A later watch needs a separate bounded frame path so frames cannot occupy the
 essential state queue. The protocol is experimental and must be verified
 against the approved runtime. [Chromium DevTools Page protocol](https://raw.githubusercontent.com/ChromeDevTools/devtools-protocol/master/pdl/domains/Page.pdl).
+
+The local candidate network fixture serves its positive page in memory. Its
+front proxy forwards only two held loopback destinations to the actual policy
+proxy and checks the 403 responses, while both TCP listeners check for direct
+connections. This isolates the refusal test from external DNS and websites.
+The full policy and profile-reuse gates remain separate.
