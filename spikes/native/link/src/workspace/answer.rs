@@ -21,8 +21,8 @@ use vessel_proto::workspace::{
 use vessel_proto::{ProjectId, SessionId, SessionInfo, WorktreeId};
 
 use super::{
-    Ask, Download, FileAsk, GitAsk, GitWrite, PathChange, ProjectAsk, ReadImage, StartEnded,
-    StartKey, WorktreeAsk,
+    Ask, Download, FileAsk, GitAsk, GitWrite, ImageBytes, PathChange, ProjectAsk, ReadImage,
+    StartEnded, StartKey, WorktreeAsk,
 };
 
 /// What a git write answered.
@@ -492,14 +492,4 @@ fn took_failed(form: Form, problem: &Problem) -> Answer {
         form,
         result: no(problem),
     }
-}
-
-/// An image's bytes and the version they are (`file.read_bytes`, checked
-/// whole against its hash).
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ImageBytes {
-    /// The file's bytes.
-    pub bytes: std::sync::Arc<[u8]>,
-    /// Their version.
-    pub revision: vessel_proto::workspace::panel_files::FileRevision,
 }

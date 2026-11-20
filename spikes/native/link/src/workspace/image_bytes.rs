@@ -27,7 +27,17 @@ use vessel_proto::workspace::ContentHash;
 use vessel_proto::workspace::panel_files::FileRevision;
 
 use super::download::failure;
-use super::{ImageBytes, ReadImage};
+use super::ReadImage;
+
+/// An image's bytes and the version they are (`file.read_bytes`, checked
+/// whole against its hash).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ImageBytes {
+    /// The file's bytes.
+    pub bytes: std::sync::Arc<[u8]>,
+    /// Their version.
+    pub revision: vessel_proto::workspace::panel_files::FileRevision,
+}
 
 /// Fetch the image `ask` names into memory.
 pub(super) async fn fetch(

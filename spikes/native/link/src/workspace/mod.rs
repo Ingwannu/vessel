@@ -69,7 +69,8 @@ use vessel_client::NodeClient;
 #[cfg(not(target_arch = "wasm32"))]
 use vessel_proto::ProjectId;
 
-pub use answer::{Answer, Form, GitWritten, ImageBytes};
+pub use answer::{Answer, Form, GitWritten};
+pub use image_bytes::ImageBytes;
 pub use ask::{
     Ask, Download, FileAsk, GitAsk, GitWrite, PathChange, ProjectAsk, ReadImage, Save, WorktreeAsk,
 };
