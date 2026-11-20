@@ -267,8 +267,6 @@ pulls-add-all-to-chat = Add all to chat
 pulls-refresh-state = Refresh git and { $forge } state
 # The refresh icon's name while it reads.
 pulls-refreshing = Refreshing
-# A menu row, and the pane's View link's name: open the item on the forge. $forge is the forge's name, such as GitHub. Keep short.
-pulls-open-on = Open on { $forge }
 # A card menu's row that copies the comment's or review's words. Keep short.
 pulls-copy = Copy
 # The name of the button that opens a comment's or review's menu.
