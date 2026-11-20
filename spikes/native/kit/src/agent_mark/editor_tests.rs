@@ -7,43 +7,57 @@ fn tree(bytes: &[u8]) -> resvg::usvg::Tree {
     resvg::usvg::Tree::from_data(bytes, &resvg::usvg::Options::default()).unwrap()
 }
 
+/// The side of the square a mark is drawn into for measuring.
+const SIDE: u32 = 48;
+
+/// The width and height of what `bytes` paints in a `SIDE` square: the
+/// drawn pixels, not the paths' geometry (Microsoft's VS Code file draws
+/// paths past its box and clips them with a mask).
+fn painted(bytes: &[u8]) -> (u32, u32) {
+    let tree = tree(bytes);
+    let scale = 48.0_f32.mul_add(tree.size().width().recip(), 0.0);
+    let mut pixels = resvg::tiny_skia::Pixmap::new(SIDE, SIDE).unwrap();
+    resvg::render(
+        &tree,
+        resvg::tiny_skia::Transform::from_scale(scale, scale),
+        &mut pixels.as_mut(),
+    );
+    let (mut left, mut top, mut right, mut bottom) = (SIDE, SIDE, 0, 0);
+    for (y, row) in (0_u32..).zip(pixels.pixels().chunks(48)) {
+        for (x, pixel) in (0_u32..).zip(row) {
+            if pixel.alpha() > 0 {
+                left = left.min(x);
+                right = right.max(x);
+                top = top.min(y);
+                bottom = bottom.max(y);
+            }
+        }
+    }
+    (
+        right.saturating_sub(left).saturating_add(1),
+        bottom.saturating_sub(top).saturating_add(1),
+    )
+}
+
 #[test]
 fn every_editor_mark_fills_its_box_in_both_schemes() {
     for art in EDITORS {
         for scheme in [Scheme::Light, Scheme::Dark] {
-            let tree = tree(art.image(scheme).bytes);
-            let view = tree.size();
-            let ink = tree.root().abs_bounding_box();
+            let view = tree(art.image(scheme).bytes).size();
             assert!(
-                ink.left() >= -0.01 && ink.top() >= -0.01,
+                view.height().mul_add(-1.0, view.width()).abs() < 0.01,
                 "{}",
                 art.light.path
             );
-            assert!(
-                ink.right() <= view.width().mul_add(1.0, 0.01),
-                "{}",
-                art.light.path
-            );
-            assert!(
-                ink.bottom() <= view.height().mul_add(1.0, 0.01),
-                "{}",
-                art.light.path
-            );
-            let longest = ink.width().max(ink.height());
-            assert!(
-                longest >= view.width().mul_add(0.8, 0.0),
-                "{}",
-                art.light.path
-            );
+            let (width, height) = painted(art.image(scheme).bytes);
+            // Edge to edge: at least four fifths of the square.
+            assert!(width.max(height) >= 38, "{} {width}x{height}", art.light.path);
         }
         assert_eq!(
             art.image_size(Size::Sixteen),
             gpui::size(gpui::px(16.0), gpui::px(16.0))
         );
-        assert_eq!(
-            art.dimensions(Size::Sixteen, Space::Row),
-            Some((32.0, 16.0))
-        );
+        assert_eq!(art.dimensions(Size::Sixteen, Space::Row), Some((32.0, 16.0)));
     }
 }
 
