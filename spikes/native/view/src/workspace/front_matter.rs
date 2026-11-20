@@ -16,14 +16,19 @@
 //!   (ruling A). Only this module names it. Its loader copies an anchored
 //!   node at each alias, so the events are counted first: past 100 aliases,
 //!   or past `MAX_NODES` nodes once aliases are expanded, the block is
-//!   refused as Paseo refuses it, before anything is copied.
+//!   refused as Paseo refuses it, before anything is copied. The loader
+//!   (`Parser::load` too), the emitter and a value's drop all descend by
+//!   recursion, on the UI thread, so the events are pulled one by one and
+//!   a block nested past `MAX_DEPTH` is refused there too (Paseo's reader
+//!   throws on a deep enough one and keeps the document).
 //! - Cost: one crate (and hashlink) in the app. A nested value is written
 //!   back by yaml-rust2's emitter, which can quote or order a nested value
-//!   differently from the page's `yaml` stringify.
+//!   differently from the page's `yaml` stringify. A block nested past 64
+//!   levels stays in the body here, where Paseo's reader may still read it.
 
 use std::collections::HashMap;
 
-use yaml_rust2::parser::{Event, EventReceiver, Parser};
+use yaml_rust2::parser::{Event, Parser};
 use yaml_rust2::{Yaml, YamlEmitter, YamlLoader};
 
 /// One row of the table.
@@ -50,6 +55,11 @@ const MAX_ALIASES: usize = 100;
 /// The most nodes a block may expand to, aliases included: a bound on
 /// what the loader copies (100 aliases can still nest exponentially).
 const MAX_NODES: usize = 10_000;
+
+/// The deepest a block may nest: the loader, the emitter and a value's
+/// drop recurse once per level, on the UI thread (a 1 MiB main stack on
+/// Windows).
+const MAX_DEPTH: usize = 64;
 
 /// The block at the top of `source` and the rest after its closing line,
 /// as Paseo's pattern finds them
@@ -114,11 +124,9 @@ impl Budget {
             }
         }
     }
-}
 
-impl EventReceiver for Budget {
-    fn on_event(&mut self, event: Event) {
-        match event {
+    fn see(&mut self, event: &Event) {
+        match *event {
             Event::Alias(anchor) => {
                 self.aliases = self.aliases.saturating_add(1);
                 let size = self.anchored.get(&anchor).copied().unwrap_or(1);
@@ -133,6 +141,9 @@ impl EventReceiver for Budget {
             Event::SequenceStart(anchor, _) | Event::MappingStart(anchor, _) => {
                 self.add(1);
                 self.open.push((anchor, 0));
+                if self.open.len() > MAX_DEPTH {
+                    self.over = true;
+                }
             }
             Event::SequenceEnd | Event::MappingEnd => self.close(),
             Event::Nothing
@@ -147,10 +158,18 @@ impl EventReceiver for Budget {
 /// `yaml` as Paseo's reader takes it: one document, a map, within the
 /// alias and size budget.
 fn parsed(yaml: &str) -> Option<yaml_rust2::yaml::Hash> {
+    // Pulled one event at a time: `Parser::load` recurses once per level.
+    let mut parser = Parser::new_from_str(yaml);
     let mut budget = Budget::default();
-    Parser::new_from_str(yaml).load(&mut budget, true).ok()?;
-    if budget.over {
-        return None;
+    loop {
+        let (event, _mark) = parser.next_token().ok()?;
+        if event == Event::StreamEnd {
+            break;
+        }
+        budget.see(&event);
+        if budget.over {
+            return None;
+        }
     }
     let mut documents = YamlLoader::load_from_str(yaml).ok()?;
     if documents.len() != 1 {

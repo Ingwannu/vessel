@@ -279,6 +279,7 @@ impl Shell {
             // node's reason is shown under it.
             Err(problem) => Shown::Failed(words.problem(&problem)),
         };
+        viewer.look.text_read();
         let rows = match &viewer.text {
             Shown::Text { lines, more, .. } => lines.len().saturating_add(usize::from(*more)),
             Shown::Loading | Shown::Binary | Shown::Failed(_) => 0,

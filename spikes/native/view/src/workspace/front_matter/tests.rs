@@ -109,3 +109,38 @@ fn a_bom_and_crlf_lines_are_read_as_the_page_reads_them() {
         }
     );
 }
+
+#[test]
+fn a_block_nested_past_the_depth_budget_stays_in_the_body() {
+    // About 10 KB that the loader would build 5,000 levels deep. The
+    // reader runs on a quarter of Windows' main stack, so a descent per
+    // level would overflow there.
+    let depth = 5_000;
+    let source = format!(
+        "---\nkey: {}{}\n---\n# Body\n",
+        "[".repeat(depth),
+        "]".repeat(depth)
+    );
+    let read = {
+        let source = source.clone();
+        std::thread::Builder::new()
+            .stack_size(256 * 1024)
+            .spawn(move || markdown_document(&source))
+            .expect("a thread")
+            .join()
+            .expect("read without overflowing")
+    };
+    assert_eq!(read, intact(&source));
+}
+
+#[test]
+fn a_block_at_the_depth_budget_is_read() {
+    let source = format!(
+        "---\nkey: {}1{}\n---\nbody\n",
+        "[".repeat(MAX_DEPTH.saturating_sub(1)),
+        "]".repeat(MAX_DEPTH.saturating_sub(1))
+    );
+    let document = markdown_document(&source);
+    assert_eq!(document.body, "body\n");
+    assert_eq!(document.front_matter.len(), 1);
+}

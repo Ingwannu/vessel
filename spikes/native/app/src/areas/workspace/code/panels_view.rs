@@ -11,11 +11,12 @@ use vessel_app_kit::ui::{
     ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div, px, relative,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _};
-use vessel_app_view::workspace::front_matter::{FrontMatterRow, markdown_document};
+use vessel_app_view::workspace::front_matter::FrontMatterRow;
 use vessel_app_view::workspace::markdown_paths::{self, Target};
-use vessel_app_view::workspace::viewers::{Side, preview_fits};
+use vessel_app_view::workspace::viewers::Side;
 
 use super::frame::note;
+use super::panels::PreviewKey;
 use super::{Shown, Viewer};
 use crate::shell::Shell;
 
@@ -66,21 +67,25 @@ pub(super) fn markdown(
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let words = shell.t.lang.viewers();
-    let text = match (&viewer.edit, &viewer.text) {
-        (Some(editing), _) if editing.model.version().is_some() => {
-            editing.model.content().to_owned()
-        }
+    // Derived once per text (`Look::preview`), not on every render.
+    let preview = match (&viewer.edit, &viewer.text) {
+        (Some(editing), _) if editing.model.version().is_some() => viewer.look.preview(
+            PreviewKey::Edit(editing.model.revision()),
+            || editing.model.content().to_owned(),
+        ),
         // Read only in part (a phone's width reads a page at a time): the
         // Preview draws the whole document or says it cannot.
         (_, Shown::Text { more: true, .. }) => {
             return note(words.too_large, tokens).into_any_element();
         }
-        (_, Shown::Text { lines, .. }) => lines.join("\n"),
+        (_, Shown::Text { lines, .. }) => viewer
+            .look
+            .preview(PreviewKey::Read, || lines.join("\n")),
         _ => return note(shell.words().labels().loading, tokens).into_any_element(),
     };
-    if u64::try_from(text.len()).is_ok_and(|size| !preview_fits(size)) {
+    let Some(document) = preview.document.as_ref() else {
         return note(words.too_large, tokens).into_any_element();
-    }
+    };
     let from = viewer.path.clone();
     let folder = shell
         .areas
@@ -99,12 +104,10 @@ pub(super) fn markdown(
         }
     })
     .with_images(viewer.look.pictures.resolver());
-    let document = markdown_document(&text);
-    let version = text_version(&document.body);
     let body = chat_markdown_with(
         "code-markdown-preview",
         &document.body,
-        version,
+        preview.version,
         Options {
             actions: Some(actions),
             ..Options::default()
@@ -196,9 +199,3 @@ const KEY_MAX: f32 = 180.0;
 
 /// The reading column's width (the page's 78ch at its 14px body).
 const MARKDOWN_COLUMN: f32 = 760.0;
-
-/// A cheap version of `text` for the renderer's re-parse.
-fn text_version(text: &str) -> u64 {
-    use std::hash::{BuildHasher as _, BuildHasherDefault, DefaultHasher};
-    BuildHasherDefault::<DefaultHasher>::default().hash_one(text)
-}

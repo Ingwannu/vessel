@@ -20,8 +20,16 @@
 //!   panel's file, and hands the decoded images to the same shared map.
 //! - Cost: an image shows one frame after its bytes arrive. A workspace
 //!   image that fails to read stays empty (its words are not drawn).
+//!
+//! The Markdown preview's document (the text joined, its front matter
+//! read, the body's version) is derived once per text, not per frame: a
+//! render follows every change in the shell, and a file may be 10 MiB.
+//! The text is known by the edit's revision, or as the read shown, which
+//! a new read drops (`Look::text_read`).
 
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::rc::Rc;
 use std::sync::{Arc, Mutex, PoisonError};
 
 use gpui::{Image, ImageFormat, ImageSource, SharedUri};
@@ -29,8 +37,11 @@ use vessel_app_kit::ui::{Context, Window};
 use vessel_app_link::workspace::{Ask, FileAsk, ImageBytes, ReadImage};
 use vessel_app_view::composer::viewer::Viewport;
 use vessel_app_view::workspace::file_panels::DownloadFailure;
+use vessel_app_view::workspace::front_matter::{MarkdownDocument, markdown_document};
 use vessel_app_view::workspace::markdown_paths::{self, Target};
-use vessel_app_view::workspace::viewers::{FilePanel, ImageKind, Side, image_kind, panel_of};
+use vessel_app_view::workspace::viewers::{
+    FilePanel, ImageKind, Side, image_kind, panel_of, preview_fits,
+};
 use vessel_proto::workspace::{FileVersion, ReadFile, RelPath};
 
 use crate::shell::Shell;
@@ -45,6 +56,26 @@ pub(super) struct Look {
     pub(super) image: Option<ImagePanel>,
     /// The images a Markdown preview names.
     pub(super) pictures: Pictures,
+    /// The Markdown preview's document, kept while its text stays.
+    preview: RefCell<Option<Rc<Preview>>>,
+}
+
+/// Which text a preview was derived from.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum PreviewKey {
+    /// The edit's text at this revision (`EditorModel::revision`).
+    Edit(u64),
+    /// The text read and shown read-only.
+    Read,
+}
+
+/// The Markdown preview's document, derived from one text.
+pub(super) struct Preview {
+    key: PreviewKey,
+    /// The front matter and the body; `None`: past the display budget.
+    pub(super) document: Option<MarkdownDocument>,
+    /// The body's version, for the renderer's re-parse.
+    pub(super) version: u64,
 }
 
 impl Look {
@@ -57,6 +88,41 @@ impl Look {
             side: Side::opening(at_line),
             image: (bytes && matches!(panel, FilePanel::Image(_))).then(ImagePanel::default),
             pictures: Pictures::default(),
+            preview: RefCell::new(None),
+        }
+    }
+
+    /// The preview of the text `key` names: kept when it was derived from
+    /// that text, else derived from `text()`.
+    pub(super) fn preview(&self, key: PreviewKey, text: impl FnOnce() -> String) -> Rc<Preview> {
+        let mut kept = self.preview.borrow_mut();
+        if let Some(preview) = kept.as_ref().filter(|preview| preview.key == key) {
+            return Rc::clone(preview);
+        }
+        let text = text();
+        let document = u64::try_from(text.len())
+            .is_ok_and(preview_fits)
+            .then(|| markdown_document(&text));
+        let version = document
+            .as_ref()
+            .map_or(0, |document| text_version(&document.body));
+        let preview = Rc::new(Preview {
+            key,
+            document,
+            version,
+        });
+        *kept = Some(Rc::clone(&preview));
+        preview
+    }
+
+    /// A read replaced the text shown: its preview is derived again.
+    pub(super) fn text_read(&mut self) {
+        let kept = self.preview.get_mut();
+        if kept
+            .as_ref()
+            .is_some_and(|preview| preview.key == PreviewKey::Read)
+        {
+            *kept = None;
         }
     }
 
@@ -132,6 +198,15 @@ impl Pictures {
         // Nothing to draw yet (GPUI's "still loading"), never a path on
         // this computer.
         ImageSource::Custom(Arc::new(|_, _| None))
+    }
+
+    /// Whether the renderer named an image since the last `drain`.
+    fn named(&self) -> bool {
+        !self
+            .wanted
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .is_empty()
     }
 
     /// The names met since the last call, each once.
@@ -260,6 +335,15 @@ impl Shell {
     /// that are files of the root.
     pub(super) fn preview_pictures(&mut self, _window: &mut Window, cx: &mut Context<'_, Self>) {
         let panel = &self.areas.workspace.code;
+        // Most frames name nothing new: one lock, no work.
+        if !panel
+            .files
+            .viewer
+            .as_ref()
+            .is_some_and(|viewer| viewer.look.pictures.named())
+        {
+            return;
+        }
         let Some((machine, root)) = panel
             .root()
             .map(|(machine, root)| (machine.to_owned(), *root))
@@ -314,3 +398,12 @@ fn failure_words(
         DownloadFailure::Local(why) => why,
     }
 }
+
+/// A cheap version of `text` for the renderer's re-parse.
+fn text_version(text: &str) -> u64 {
+    use std::hash::{BuildHasher as _, BuildHasherDefault, DefaultHasher};
+    BuildHasherDefault::<DefaultHasher>::default().hash_one(text)
+}
+
+#[cfg(test)]
+mod tests;
