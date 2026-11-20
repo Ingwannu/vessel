@@ -47,12 +47,12 @@ use std::cell::Cell;
 use std::rc::Rc;
 use std::time::Duration;
 
-use gpui::Task;
+use gpui::{AppContext as _, Task};
 use vessel_app_kit::ScrollState;
 use vessel_app_kit::drag::LIST_DRAG_DISTANCE;
 use vessel_app_kit::ui::{
-    AppContext as _, Bounds, Context, Div, InteractiveElement as _, IntoElement, MouseButton,
-    Pixels, Render, Stateful, StatefulInteractiveElement as _, Subscription, Window, div, px,
+    Bounds, Context, Div, InteractiveElement as _, IntoElement, MouseButton, Pixels, Render,
+    Stateful, StatefulInteractiveElement as _, Subscription, Window, div, px,
 };
 use vessel_app_link::Command;
 use vessel_app_view::prefs::{ProjectKey, ProjectOrder};

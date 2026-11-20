@@ -121,3 +121,37 @@ difference until this item).
   API does it cheaply, else stated.
 - Frames: start of a drag, mid-drag over another project with the gap open, the drop, Escape
   restoring, auto-scroll near an edge; 1280 en-dark and ko-light, plus one at 390.
+
+## As built
+
+- view `prefs/projects.rs`: `ProjectKey` (a machine's name and a project id there) and
+  `ProjectKeyed`, the tidying contract (`keep_listed`, `rename_machine`, `forget_machine`). Folds
+  (`prefs/folds.rs`) now use the same key and contract; the document's shape is unchanged.
+- view `prefs/order.rs`: `ProjectOrder`, native only, written only once a drop changed the order.
+  `dropped(before, after)` writes `after` followed by the stored keys it does not hold (Paseo's
+  `mergeWithRemainder`). It does nothing when the drop left the order as it was.
+- view `sidebar/tree.rs`: `TreeState::order`. Stored projects come first in their order, and the
+  rest follow by name.
+- app `Shell::tidy_projects` (was `tidy_folds`) runs each tidying over folds and order alike;
+  `projects_listed` (was `folds_listed`).
+- kit `ScrollState::scroll_by`: a scroll by a delta, clamped to GPUI's measured range.
+- app `areas/sidebar/projects/drag.rs`:
+  - The header's `on_drag` (threshold 6) starts the drag, grabbed where the press was. The
+    constructor's offset is where the press had moved past 6, so the press point is kept
+    separately.
+  - At the start, the shown order, each block's centre (through a probe on every block) and the
+    list's top are kept in the list's own coordinates.
+  - Moves (`on_drag_move` on the list) find the nearest kept centre and move the dragged key
+    there.
+  - A release over the list or outside it writes the order.
+  - Escape (an app-wide interceptor) cancels and stops GPUI's drag.
+  - A 16 ms ticker scrolls the list in the outer 20%.
+  - The hover card closes at the start.
+- app `areas/sidebar/projects.rs`: while dragging, the tree is drawn in the drag's order.
+  - The dragged block's place is a gap of its height.
+  - The block itself is drawn absolutely in the list (so the scroll area clips it, as Paseo's)
+    at the pointer less the grab, at 0.9, its header in `surface2` with a `border` edge and
+    `shadow_md`.
+- The 200 ms gap opening: not done. GPUI's `with_animation` animates one element's own style
+  from a fixed start; opening a gap while the others slide would need each block's previous slot
+  kept across frames. The app also holds motion still on the software renderer. Stated.
