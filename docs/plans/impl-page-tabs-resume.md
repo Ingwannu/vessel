@@ -38,9 +38,11 @@ to prefer a live session and fall back to an ended, unarchived one.
 `08624f6c9` adds that fallback, keeps the archive warning and updates the
 worktree browser case to launch a terminal after the last live agent
 exits. Its exact web gate `impl-page-tabs-20261120T054654Z-08624f6c`
-is queued in `/tmp/work/impl-page-tabs/gate-r12`. Send the results to
-reviewer `6fcba8b5`, then send the packet to integrator `ec7c91e9` on
-approval. The isolated capture fleet has exited.
+passed all nine steps, with 700 unit and 107 browser tests. Logs are in
+`/tmp/work/impl-page-tabs/gate-r12`. Reviewer `6fcba8b5` received
+`/tmp/work/impl-page-tabs/PACKET-R4.md`. Send the packet to integrator
+`ec7c91e9` on approval. There are no queued verification runs and the
+isolated capture fleet has exited.
 
 T2 reviewed the standalone-terminal seam and found no remaining issues
 in this slice. It uses the existing terminal protocol with polling and
