@@ -41,7 +41,10 @@ fn renders_of_one_text_derive_its_document_once() {
     let reread = look.preview(PreviewKey::Read, || text("read again"));
     assert_eq!(derived.get(), 4);
     assert_eq!(
-        reread.document.as_ref().map(|document| document.body.as_str()),
+        reread
+            .document
+            .as_ref()
+            .map(|document| document.body.as_str()),
         Some("read again\n")
     );
 }

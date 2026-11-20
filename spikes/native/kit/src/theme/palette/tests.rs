@@ -147,9 +147,7 @@ fn switching_dark_palettes_updates_the_component_layer_together(cx: &mut gpui::T
 }
 
 #[gpui::test]
-fn a_scheme_unlike_the_starting_appearance_reaches_the_markdown_ink(
-    cx: &mut gpui::TestAppContext,
-) {
+fn a_scheme_unlike_the_starting_appearance_reaches_the_markdown_ink(cx: &mut gpui::TestAppContext) {
     cx.update(|cx| {
         gpui_component::init(cx);
         for palette in [Palette::Dark, Palette::Light, Palette::PureBlack] {

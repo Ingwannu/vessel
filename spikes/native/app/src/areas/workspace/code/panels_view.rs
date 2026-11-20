@@ -69,18 +69,19 @@ pub(super) fn markdown(
     let words = shell.t.lang.viewers();
     // Derived once per text (`Look::preview`), not on every render.
     let preview = match (&viewer.edit, &viewer.text) {
-        (Some(editing), _) if editing.model.version().is_some() => viewer.look.preview(
-            PreviewKey::Edit(editing.model.revision()),
-            || editing.model.content().to_owned(),
-        ),
+        (Some(editing), _) if editing.model.version().is_some() => viewer
+            .look
+            .preview(PreviewKey::Edit(editing.model.revision()), || {
+                editing.model.content().to_owned()
+            }),
         // Read only in part (a phone's width reads a page at a time): the
         // Preview draws the whole document or says it cannot.
         (_, Shown::Text { more: true, .. }) => {
             return note(words.too_large, tokens).into_any_element();
         }
-        (_, Shown::Text { lines, .. }) => viewer
-            .look
-            .preview(PreviewKey::Read, || lines.join("\n")),
+        (_, Shown::Text { lines, .. }) => {
+            viewer.look.preview(PreviewKey::Read, || lines.join("\n"))
+        }
         _ => return note(shell.words().labels().loading, tokens).into_any_element(),
     };
     let Some(document) = preview.document.as_ref() else {
