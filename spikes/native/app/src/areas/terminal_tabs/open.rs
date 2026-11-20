@@ -148,7 +148,8 @@ impl Shell {
             return;
         };
         let target = Target::Terminal(info.id);
-        let mut pane = Pane::new(Origin::Opened, cx, &key);
+        let scrollback = self.prefs.settings.terminal.scrollback;
+        let mut pane = Pane::new(Origin::Opened, scrollback, cx, &key);
         pane.info = Some(info);
         let _replaced = self.areas.terminal_tabs.panes.insert(key.clone(), pane);
         self.areas.terminal_tabs.focus_next = Some(key.clone());

@@ -14,14 +14,20 @@
 //! - The checks row opens the checks page where the forge has one
 //!   (GitHub's `/checks` after the pull request's address, Paseo's
 //!   `buildForgeChecksUrl`), else the pull request's page.
+//! - The checks row counts each state as Paseo's (`ChecksSummaryPill`
+//!   over `COUNTED_CHECK_PRESENTATIONS`) from the summary's tally (ADR 0088
+//!   part 2, protocol 39; TRACKER 824), and leads with the forge's mark.
 //! - Differences, named: Paseo's diff stat is a server field the node does
-//!   not send yet (TRACKER 819 adds it after the pull request's row);
-//!   Paseo counts each check state, the session's summary holds the checks
-//!   as one state, said as the row's line does.
+//!   not send yet (TRACKER 819 adds it after the pull request's row); the
+//!   node counts passed, failed and pending only (no warning, action
+//!   required or manual), and a summary without a tally (an older node,
+//!   or no check counted) says the checks' one state as the row's line
+//!   does.
 
-use vessel_proto::forge::{ForgeKind, PullNumber};
+use vessel_proto::forge::{CheckTally, ForgeKind, PullNumber};
 
 use crate::board::{Card, RunsIn};
+use crate::workspace::pull::checks::Presentation;
 use crate::workspace::pull::{CardChecks, CardPull, PullPhase};
 
 /// GitHub's checks page under a pull request's address.
@@ -62,11 +68,35 @@ pub struct HoverFolder {
     pub path: String,
 }
 
-/// The checks' row: their one state (`Card::checks_url` is its page).
+/// The checks' row (`Card::checks_url` is its page).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct HoverChecks {
     /// Passed, failed or running.
     pub state: CardChecks,
+    /// Their counts per state, when the node counted them.
+    pub tally: Option<CheckTally>,
+    /// The forge (its mark leads the row).
+    pub forge: ForgeKind,
+}
+
+impl HoverChecks {
+    /// Paseo's pills: each state that has checks, with its count, in
+    /// Paseo's order (success, failure, then pending). Empty without a
+    /// tally, when the row says the one state instead.
+    #[must_use]
+    pub fn counted(&self) -> Vec<(Presentation, u32)> {
+        let Some(tally) = self.tally else {
+            return Vec::new();
+        };
+        [
+            (Presentation::Success, tally.passed),
+            (Presentation::Failure, tally.failed),
+            (Presentation::Pending, tally.pending),
+        ]
+        .into_iter()
+        .filter(|&(_, count)| count > 0)
+        .collect()
+    }
 }
 
 impl Card {
@@ -93,7 +123,12 @@ impl Card {
             folder: self.hover_folder(),
             checks: card_pull
                 .and_then(|card_pull| card_pull.checks)
-                .map(|state| HoverChecks { state }),
+                .zip(summary)
+                .map(|(state, summary)| HoverChecks {
+                    state,
+                    tally: summary.tally,
+                    forge: summary.repo.kind,
+                }),
         }
     }
 
@@ -155,11 +190,15 @@ mod tests {
     //! The card's facts from a session's card, as Paseo's content reads
     //! its workspace entry.
 
-    use vessel_proto::forge::{ChecksState, ForgeAccess, ForgeKind, PullState, SessionPullRequest};
+    use vessel_proto::forge::{
+        CheckTally, ChecksState, ForgeAccess, ForgeKind, PullState, SessionPullRequest,
+    };
     use vessel_proto::{HarnessKind, ProjectId, SessionId, SessionInfo, SessionMode, SessionSpec};
 
-    use super::{HoverFolder, short_path};
+    use super::{HoverChecks, HoverFolder, short_path};
     use crate::board::{Card, RunsIn};
+    use crate::text::Lang;
+    use crate::workspace::pull::checks::Presentation;
     use crate::workspace::pull::fixtures::summary;
     use crate::workspace::pull::{CardChecks, PullPhase};
 
@@ -240,6 +279,48 @@ mod tests {
             card.checks_url().as_deref(),
             Some("https://github.com/acme/widgets/pull/42")
         );
+    }
+
+    #[test]
+    fn the_checks_row_counts_each_state_in_paseos_order() {
+        let mut card = card();
+        let mut read = summary(PullState::Open, false);
+        read.checks = ChecksState::Failing;
+        read.tally = Some(CheckTally {
+            passed: 4,
+            failed: 1,
+            pending: 0,
+        });
+        card.detail.pull_request = Some(Box::new(SessionPullRequest {
+            access: ForgeAccess::Ready { login: None },
+            summary: Some(read),
+            feedback: false,
+        }));
+        let checks = card.hover_details().checks.unwrap();
+        assert_eq!(checks.forge, ForgeKind::Github);
+        // A zero is left out, as Paseo's pill is.
+        assert_eq!(
+            checks.counted(),
+            [(Presentation::Success, 4), (Presentation::Failure, 1)]
+        );
+        assert_eq!(
+            Lang::En.sidebar().checks_counted(&checks.counted()),
+            "Checks, Passed: 4, Failed: 1"
+        );
+        assert_eq!(
+            Lang::Ko.sidebar().checks_counted(&checks.counted()),
+            "검사, 통과: 4개, 실패: 1개"
+        );
+    }
+
+    #[test]
+    fn without_a_tally_the_row_says_one_state() {
+        let checks = HoverChecks {
+            state: CardChecks::Running,
+            tally: None,
+            forge: ForgeKind::Unknown,
+        };
+        assert!(checks.counted().is_empty());
     }
 
     #[test]

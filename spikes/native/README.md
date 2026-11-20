@@ -1380,7 +1380,9 @@ every check grouped with its ring and times, and the activity's cards
 each card's menu (Add to chat, Copy, Open on GitHub; `pane_menu.rs`, rows
 from `view::workspace::pull::card_menu`). Every control is named for
 assistive technology; folds say whether they are open.
-A card shows its number, state and checks under the branch. The fleet's
+A card shows its number, state and checks under the branch; its hover
+card's checks row (TRACKER 810, 824) leads with the forge's mark and counts
+each state from the summary's tally (`view::sidebar::hover`). The fleet's
 nodes reach no forge (the remotes are bare repositories), so the screens
 there show why a pull request cannot be opened.
 

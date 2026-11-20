@@ -76,10 +76,16 @@ pub(crate) fn panel(
     }
     let keys = pane.keys.clone();
     let focus = pane.focus.clone();
+    // While a press selects, the pointer's moves and its release are heard
+    // anywhere in the window, so a drag past the screen's edge scrolls.
+    let selecting = pane.selecting.then(|| (cx.weak_entity(), key.clone()));
     let input = canvas(
         |_bounds, _window, _cx| {},
         move |bounds, (), window, cx| {
             window.handle_input(&focus, ElementInputHandler::new(bounds, keys), cx);
+            if let Some((shell, key)) = selecting {
+                listen_drag(window, shell, key);
+            }
         },
     )
     .absolute()
@@ -91,16 +97,21 @@ pub(crate) fn panel(
         .id(ElementId::Name(
             format!("terminal-surface-{}", key.terminal).into(),
         ))
+        // P1 review note 1: the keyboard's target is named (Paseo's
+        // native `accessibilityLabel="Terminal input"`); the grid is not.
+        .role(gpui::Role::TextInput)
+        .aria_label(words.input().to_owned())
         .track_focus(&pane.focus)
         .on_mouse_down(
             MouseButton::Left,
-            cx.listener(move |shell, _event, window, cx| {
+            cx.listener(move |shell, event: &gpui::MouseDownEvent, window, cx| {
                 shell.terminal_tab_focus(&pressed, window, cx);
+                shell.terminal_tab_press(&pressed, event, cx);
             }),
         )
         .on_key_down(
-            cx.listener(move |shell, event: &KeyDownEvent, _window, cx| {
-                shell.terminal_tab_key(&typed, event, cx);
+            cx.listener(move |shell, event: &KeyDownEvent, window, cx| {
+                shell.terminal_tab_key(&typed, event, window, cx);
             }),
         )
         .on_scroll(cx.listener(move |shell, event: &ScrollEvent, _window, cx| {
@@ -110,6 +121,7 @@ pub(crate) fn panel(
         .child(anchor_probe(&pane.probe))
         .child(input)
         .children(preedit(shell, &key, pane.preedit.as_deref(), tokens, cx))
+        .children(super::find_bar::bar(shell, &key, tokens, window, cx))
         .when(pane.stage == Stage::Attaching, |screen| {
             screen.child(attaching(tokens))
         });
@@ -155,6 +167,25 @@ fn trouble_line(shell: &Shell, stage: Stage, tokens: &Tokens) -> Option<AnyEleme
 }
 
 /// The terminal's own surface, edge to edge.
+/// The pointer's moves and release, window-wide, for a drag selecting in
+/// `key`'s pane.
+fn listen_drag(window: &mut Window, shell: gpui::WeakEntity<Shell>, key: PaneKey) {
+    let (moved, released) = (shell.clone(), key.clone());
+    window.on_mouse_event(move |event: &gpui::MouseMoveEvent, phase, _window, cx| {
+        if phase == gpui::DispatchPhase::Bubble {
+            drop(moved.update(cx, |shell, cx| {
+                shell.terminal_tab_drag(&key, event.position, cx);
+            }));
+        }
+    });
+    window.on_mouse_event(move |event: &gpui::MouseUpEvent, phase, window, cx| {
+        if phase == gpui::DispatchPhase::Bubble && event.button == MouseButton::Left {
+            drop(shell.update(cx, |shell, cx| shell.terminal_tab_release(&released, cx)));
+            window.refresh();
+        }
+    });
+}
+
 fn surface(background: gpui::Hsla) -> gpui::Div {
     div()
         .flex_1()
@@ -298,7 +329,13 @@ impl Shell {
         let tabs = &mut self.areas.terminal_tabs;
         let fresh = !tabs.panes.contains_key(key);
         if fresh {
-            let pane = super::Pane::new(vessel_app_view::terminal::Origin::Attached, cx, key);
+            let scrollback = self.prefs.settings.terminal.scrollback;
+            let pane = super::Pane::new(
+                vessel_app_view::terminal::Origin::Attached,
+                scrollback,
+                cx,
+                key,
+            );
             let _none = self.areas.terminal_tabs.panes.insert(key.clone(), pane);
         }
         let Some(pane) = self.areas.terminal_tabs.panes.get_mut(key) else {
