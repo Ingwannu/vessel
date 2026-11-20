@@ -66,3 +66,14 @@ the checked PNG via reference counting. Navigation, resize, uncertain delivery
 and close clear the previous context's pixels. The eventual node watch keeps
 descriptor and terminal notices separate so a lagging frame consumer can skip
 intermediate pixels while still detecting state changes.
+
+The immutable Linux fixture on `41682f25` passed in 6.75 s under UID/GID 1000.
+Remote format, strict browser Clippy and the test export passed. The live test
+observed a trusted click, committed text, stale-input refusal, viewport and
+compositor PNGs of 390×844, and a 390×1200 full-page PNG. Both local canaries
+received a positive control and zero browser connections after the actual
+policy proxy refused their requests. The browser and private pipe closed, and
+the retained profile still refused a second owner. The audit found no exact
+profile process after closure and no group or other access across all 247
+created entries. Product routing, profile reuse, per-renderer sandbox
+observation and release qualification are pending.

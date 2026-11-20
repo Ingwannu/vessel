@@ -27,9 +27,9 @@ impl FrameWatch {
 
     fn ready_at(&self, now: Instant) -> bool {
         self.latest.receiver_count() > 0
-            && self.published_at.is_none_or(|last| {
-                now.saturating_duration_since(last) >= MINIMUM_FRAME_GAP
-            })
+            && self
+                .published_at
+                .is_none_or(|last| now.saturating_duration_since(last) >= MINIMUM_FRAME_GAP)
     }
 
     pub(super) fn clear(&self) {
