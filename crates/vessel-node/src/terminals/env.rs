@@ -14,6 +14,17 @@ const ROUTE_VARIABLES: [&str; 2] = ["ANTHROPIC_BASE_URL", "ANTHROPIC_AUTH_TOKEN"
 /// The two that name an agent's connection to its node (ADR 0013).
 const AGENT_VARIABLES: [&str; 2] = ["VESSEL_AGENT_SESSION", "VESSEL_NODE_SOCKET"];
 
+/// The three a terminal's activity capability sets (ADR 0089). They are
+/// removed like credentials, so another terminal never reports as this one.
+/// They say that the node runs inside a terminal, not a session's process
+/// tree, so they never take a model route's variables with them: those are
+/// the user's own there (owed item 3 of the node review of TRACKER 815).
+const TERMINAL_ACTIVITY_VARIABLES: [&str; 3] = [
+    vessel_proto::notifications::TERMINAL_ACTIVITY_ID_ENV,
+    vessel_proto::notifications::TERMINAL_ACTIVITY_SECRET_ENV,
+    vessel_proto::notifications::TERMINAL_ACTIVITY_SOCKET_ENV,
+];
+
 /// Every credential Vessel itself defines, by name: what a node in a test
 /// (whose environment is not read) removes.
 pub const KNOWN_CREDENTIALS: [&str; 8] = [
@@ -29,28 +40,30 @@ pub const KNOWN_CREDENTIALS: [&str; 8] = [
 
 /// Whether `name` is one of Vessel's credentials: a `VESSEL_*` name ending
 /// in `TOKEN` or `SECRET` (the node's token, an agent's or an MCP server's
-/// secret, a model route's), or one that names an agent's connection.
+/// secret, a model route's), one that names an agent's connection, or a
+/// terminal's activity capability.
 fn is_credential(name: &str) -> bool {
     (name.starts_with("VESSEL_") && (name.ends_with("TOKEN") || name.ends_with("SECRET")))
         || AGENT_VARIABLES.contains(&name)
-        || [
-            vessel_proto::notifications::TERMINAL_ACTIVITY_ID_ENV,
-            vessel_proto::notifications::TERMINAL_ACTIVITY_SOCKET_ENV,
-        ]
-        .contains(&name)
+        || TERMINAL_ACTIVITY_VARIABLES.contains(&name)
 }
 
 /// The names to remove from every terminal's environment, given the names
-/// in the node's own: Vessel's credentials, and, when any is there (the
-/// node runs inside a session's process tree), a model route's variables
-/// too. The binaries call this with their own environment's names at
-/// start; library code reads no process environment (AGENTS.md section 8).
+/// in the node's own: Vessel's credentials, and, when one of them other
+/// than a terminal's activity capability is there (the node runs inside a
+/// session's process tree), a model route's variables too. The binaries
+/// call this with their own environment's names at start; library code
+/// reads no process environment (AGENTS.md section 8).
 pub fn credentials_in(names: impl IntoIterator<Item = OsString>) -> Vec<OsString> {
     let mut found: Vec<OsString> = names
         .into_iter()
         .filter(|name| name.to_str().is_some_and(is_credential))
         .collect();
-    if !found.is_empty() {
+    let in_a_session = found.iter().any(|name| {
+        name.to_str()
+            .is_some_and(|name| !TERMINAL_ACTIVITY_VARIABLES.contains(&name))
+    });
+    if in_a_session {
         found.extend(ROUTE_VARIABLES.iter().map(OsString::from));
     }
     found.sort();
@@ -200,6 +213,31 @@ mod tests {
             "the user's own MY_TOKEN and the data folder stay; a route's \
              variables go only with a session's"
         );
+    }
+
+    #[test]
+    fn a_node_started_in_a_terminal_keeps_the_users_route() {
+        let activity = names(&[
+            "PATH",
+            vessel_proto::notifications::TERMINAL_ACTIVITY_ID_ENV,
+            vessel_proto::notifications::TERMINAL_ACTIVITY_SECRET_ENV,
+            vessel_proto::notifications::TERMINAL_ACTIVITY_SOCKET_ENV,
+        ]);
+        let mut expected = names(&TERMINAL_ACTIVITY_VARIABLES);
+        expected.sort();
+        assert_eq!(
+            credentials_in(activity.clone()),
+            expected,
+            "the capability goes, the user's ANTHROPIC_BASE_URL and \
+             ANTHROPIC_AUTH_TOKEN stay"
+        );
+        // Inside a session's process tree as well, the route goes too.
+        let mut in_a_session = activity;
+        in_a_session.push(OsString::from("VESSEL_AGENT_SESSION"));
+        let found = credentials_in(in_a_session);
+        for route in ROUTE_VARIABLES {
+            assert!(found.contains(&OsString::from(route)), "{route}");
+        }
     }
 
     #[test]
