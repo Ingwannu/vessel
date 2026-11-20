@@ -138,6 +138,9 @@ pub enum Fake {
     /// skeleton each Claude Code driver slice extends. See
     /// `src/bin/fake_claude_stream.rs`.
     ClaudeStream,
+    /// `fake-plugin`: a plugin helper keeping one settings document
+    /// (ADR 0115, "Settings"). See `src/bin/fake_plugin.rs`.
+    Plugin,
 }
 
 impl Fake {
@@ -152,6 +155,7 @@ impl Fake {
             Self::Tool => "fake-tool",
             Self::CodexAppServer => "fake-codex-app-server",
             Self::ClaudeStream => "fake-claude-stream",
+            Self::Plugin => "fake-plugin",
         }
     }
 
