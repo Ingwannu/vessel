@@ -256,6 +256,7 @@ async fn remove(
         .call(RemoveWorktree {
             worktree: worktree.id,
             if_lost,
+            end_terminals: false,
         })
         .await?;
     out(&crate::render::removal(&outcome)).await
