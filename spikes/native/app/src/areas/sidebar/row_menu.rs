@@ -156,6 +156,9 @@ impl Shell {
         if acts.is_empty() {
             return;
         }
+        // The menu takes the row's hover card's place (Paseo's: no card
+        // while the context menu is open).
+        self.areas.sidebar.cards.close();
         let rows = &mut self.areas.sidebar.rows;
         rows.target = Some(Target {
             card: card.clone(),

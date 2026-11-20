@@ -45,15 +45,11 @@ pub fn copy_button(
     id: impl Into<ElementId>,
     text: SharedString,
     look: CopyLook,
-    window: &Window,
+    // Kept for its callers: the click reads the window it lands in.
+    _window: &Window,
     cx: &App,
 ) -> Stateful<Div> {
-    let key = key_of(&text);
-    let copied = cx
-        .try_global::<Copied>()
-        .and_then(|copied| copied.0)
-        .is_some_and(|(copied, at)| copied == key && at.elapsed() < COPIED_FOR);
-    let handle = window.window_handle();
+    let copied = copied_within(&text, COPIED_FOR, cx);
     div()
         .id(id)
         .size(px(SIDE))
@@ -69,18 +65,36 @@ pub fn copy_button(
             GLYPH,
             look.glyph,
         ))
-        .on_click(move |_, _, cx| {
+        .on_click(move |_, window, cx| {
             cx.stop_propagation();
-            cx.write_to_clipboard(ClipboardItem::new_string(text.to_string()));
-            cx.set_global(Copied(Some((key, Instant::now()))));
-            // The check goes back to the copy glyph once its moment is
-            // over; nothing else would draw the window again.
-            cx.spawn(async move |cx| {
-                cx.background_executor().timer(COPIED_FOR).await;
-                let _closed = handle.update(cx, |_, window, _| window.refresh());
-            })
-            .detach();
+            copy_for(&text, COPIED_FOR, window, cx);
         })
+}
+
+/// Whether `text` is what was copied last, less than `moment` ago (a
+/// copy control's check).
+#[must_use]
+pub fn copied_within(text: &str, moment: Duration, cx: &App) -> bool {
+    let key = key_of(text);
+    cx.try_global::<Copied>()
+        .and_then(|copied| copied.0)
+        .is_some_and(|(copied, at)| copied == key && at.elapsed() < moment)
+}
+
+/// Put `text` on the clipboard as the thing copied last, the window drawn
+/// again once `moment` is over (Paseo's hover card's copy rows keep their
+/// check 2 s, this button's 1.5 s).
+pub fn copy_for(text: &str, moment: Duration, window: &Window, cx: &mut App) {
+    cx.write_to_clipboard(ClipboardItem::new_string(text.to_owned()));
+    cx.set_global(Copied(Some((key_of(text), Instant::now()))));
+    // The check goes back to the copy glyph once its moment is over;
+    // nothing else would draw the window again.
+    let handle = window.window_handle();
+    cx.spawn(async move |cx| {
+        cx.background_executor().timer(moment).await;
+        let _closed = handle.update(cx, |_, window, _| window.refresh());
+    })
+    .detach();
 }
 
 /// A text's key, to know what was copied.

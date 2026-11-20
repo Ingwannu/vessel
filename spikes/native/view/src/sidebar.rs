@@ -28,6 +28,7 @@ use crate::board::{Card, Fleet, Machine, Reach};
 use crate::prefs::{Grouping, SessionSort, SidebarView};
 
 pub mod display;
+pub mod hover;
 pub mod navigation;
 pub mod status;
 pub mod tree;
