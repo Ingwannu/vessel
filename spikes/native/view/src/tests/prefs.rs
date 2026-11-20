@@ -557,8 +557,14 @@ fn the_terminal_scrollback_is_written_once_changed_and_read_clamped() {
         ..Preferences::default()
     };
     let written = serde_json::to_string(&changed).unwrap();
-    assert!(written.ends_with(r#","terminal":{"scrollback":500}}"#), "{written}");
-    assert_eq!(serde_json::from_str::<Preferences>(&written).unwrap(), changed);
+    assert!(
+        written.ends_with(r#","terminal":{"scrollback":500}}"#),
+        "{written}"
+    );
+    assert_eq!(
+        serde_json::from_str::<Preferences>(&written).unwrap(),
+        changed
+    );
     let read = |stored: &str| {
         let text = format!(r#"{{"terminal":{{"scrollback":{stored}}}}}"#);
         serde_json::from_str::<Preferences>(&text)
