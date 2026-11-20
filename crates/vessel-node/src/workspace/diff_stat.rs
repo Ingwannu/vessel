@@ -2,8 +2,8 @@
 //!
 //! A folder a served client has asked about is counted again every
 //! [`CACHE`], and dropped [`INTEREST`] after the last request. At most
-//! [`LIMIT`] counts run at once, under the shared git pool. Git being
-//! busy or out of time keeps the last count. At most [`MAX_SLOTS`]
+//! [`LIMIT`] counts run at once, under the shared git pool. A count that
+//! finds git busy or out of time keeps the last count. At most [`MAX_SLOTS`]
 //! folders. Both sides zero, no comparison, and a folder that is not a
 //! git checkout are stored as none. The generation moves only when a
 //! stored count changes, including the first time it is stored.
