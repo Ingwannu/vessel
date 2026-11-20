@@ -81,7 +81,8 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
             vessel_app_view::history::Problem::Unsent,
         )),
         Command::Labels(request) => Event::Labels(request.refused(labels_failure(unsent.why))),
-        Command::RetireConnection(_tag) => return Settle::Ignore,
+        // Presence is a heartbeat; the next one carries it.
+        Command::RetireConnection(_) | Command::Presence(_) => return Settle::Ignore,
         Command::CodeSource(request) => {
             Event::CodeSource(Box::new(request.refused(Problem::Unsent)))
         }
@@ -152,8 +153,6 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
             }),
         }),
         Command::Terminals(ask) => return settle_terminals(ask),
-        // Presence is a heartbeat; the next one carries it.
-        Command::Presence(_) => return Settle::Ignore,
         Command::Prompt { session, text, .. } => return Settle::Prompt { session, text },
         Command::Files(command) => return settle_files(command, words),
         Command::Open { .. }

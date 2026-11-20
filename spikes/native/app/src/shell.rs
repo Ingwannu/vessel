@@ -16,6 +16,7 @@ use vessel_app_kit::ui::{
     ParentElement as _, Render, Styled as _, WeakEntity, Window, div, px,
 };
 use vessel_app_link::{Command, Event, Link, Prefs};
+use vessel_app_view::panels::SidebarLayout;
 use vessel_app_view::prefs::Panel;
 use vessel_app_view::{Fleet, Text};
 
@@ -207,7 +208,7 @@ impl Shell {
     pub(crate) fn toggle_sidebar(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
         if matches!(
             areas::sidebar::arrangement(self, window),
-            vessel_app_view::panels::SidebarLayout::Sheet
+            SidebarLayout::Sheet
         ) {
             self.sidebar_sheet = match self.sidebar_sheet {
                 Some(_) => None,
@@ -323,11 +324,8 @@ impl Render for Shell {
         // Navigation or docking closes its sheet.
         let phone = vessel_app_kit::breakpoint::phone(window);
         let sidebar = areas::sidebar::arrangement(self, window);
-        let sheet_form = matches!(sidebar, vessel_app_view::panels::SidebarLayout::Sheet);
-        let docked = matches!(
-            sidebar,
-            vessel_app_view::panels::SidebarLayout::Docked { .. }
-        );
+        let sheet_form = matches!(sidebar, SidebarLayout::Sheet);
+        let docked = matches!(sidebar, SidebarLayout::Docked { .. });
         if !sheet_form
             || self
                 .sidebar_sheet

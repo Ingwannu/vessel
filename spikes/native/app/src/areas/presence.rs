@@ -16,7 +16,7 @@
 use std::time::Instant;
 
 use gpui::{
-    AnyElement, Context, DispatchPhase, IntoElement, MouseDownEvent, ScrollWheelEvent, Styled as _,
+    AnyElement, Context, DispatchPhase, IntoElement, MouseDownEvent, ScrollEvent, Styled as _,
     Subscription, Window,
 };
 use vessel_app_link::Command;
@@ -146,7 +146,7 @@ pub(crate) fn observer(cx: &Context<'_, Shell>) -> AnyElement {
                 }
             });
             let scrolled = shell.clone();
-            window.on_mouse_event(move |_event: &ScrollWheelEvent, phase, _window, cx| {
+            window.on_mouse_event(move |_event: &ScrollEvent, phase, _window, cx| {
                 if phase == DispatchPhase::Capture {
                     drop(scrolled.update(cx, Shell::presence_input));
                 }
