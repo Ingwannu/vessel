@@ -211,10 +211,9 @@ pub(crate) async fn put<S: NodeSource>(State(ui): State<Arc<Ui<S>>>, request: Re
     if declared.is_some_and(|length| length > MAX_BYTES) {
         return StatusCode::PAYLOAD_TOO_LARGE.into_response();
     }
-    let body = match to_bytes(body, MAX_BYTES).await {
-        Ok(body) => body,
-        // Past the cap without a declared length, or the body broke off.
-        Err(_) => return (StatusCode::BAD_REQUEST, "the document was not read").into_response(),
+    // Past the cap without a declared length, or the body broke off.
+    let Ok(body) = to_bytes(body, MAX_BYTES).await else {
+        return (StatusCode::BAD_REQUEST, "the document was not read").into_response();
     };
     if std::str::from_utf8(&body).is_err() {
         return (StatusCode::BAD_REQUEST, "the document is not UTF-8").into_response();
