@@ -10,7 +10,7 @@ use axum::extract::State;
 use axum::http::header::AUTHORIZATION;
 use axum::http::{HeaderMap, Method, StatusCode, Uri};
 use axum::response::{IntoResponse as _, Response};
-use axum::routing::get;
+use axum::routing::{get, post};
 use axum::{Json, Router, middleware};
 use tokio::net::TcpListener;
 use tokio_util::sync::CancellationToken;
@@ -24,7 +24,7 @@ use crate::registry::{Registry, chain};
 use crate::source::NodeSource;
 use crate::token::LaunchToken;
 use crate::wire::Status;
-use crate::{files, socket};
+use crate::{files, preview, socket};
 
 /// How `vessel ui` serves.
 #[derive(Debug, Clone)]
@@ -92,6 +92,8 @@ pub(crate) struct Ui<S> {
     pub(crate) registry: Arc<Registry<S>>,
     /// The page's preferences and drafts.
     pub(crate) keeper: Keeper,
+    /// The HTML previews' documents (ADR 0122).
+    pub(crate) previews: preview::Previews,
 }
 
 /// Serve the UI on `listener` until `shutdown`, bridging to the nodes
@@ -135,10 +137,13 @@ pub async fn serve<S: NodeSource>(
         hello_deadline: config.hello_deadline,
         registry: Registry::new(source, config.backoff, connections),
         keeper,
+        previews: preview::Previews::default(),
     });
     let app = Router::new()
         .route("/api/status", get(status::<S>))
         .route("/api/ws", get(socket::upgrade::<S>))
+        .route("/api/preview", post(preview::put::<S>))
+        .route("/preview/{id}", get(preview::show::<S>))
         .fallback(page::<S>)
         .with_state(ui)
         .layer(middleware::from_fn_with_state(allowed, guard));
@@ -182,7 +187,7 @@ async fn status<S: NodeSource>(State(ui): State<Arc<Ui<S>>>, headers: HeaderMap)
 }
 
 /// Whether `headers` carry the issued session key as `Authorization: Bearer`.
-fn authorized(auth: &crate::auth::Auth, headers: &HeaderMap) -> bool {
+pub(crate) fn authorized(auth: &crate::auth::Auth, headers: &HeaderMap) -> bool {
     headers
         .get(AUTHORIZATION)
         .and_then(|value| value.to_str().ok())

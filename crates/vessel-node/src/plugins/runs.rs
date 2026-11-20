@@ -195,7 +195,7 @@ impl Plugins {
             return;
         };
         let reason = match supervisor.shutdown().await {
-            Err(error) => error.to_string(),
+            Err(error) => host::reason(&error),
             Ok(_receipt) => "plugin helper stopped".to_owned(),
         };
         host_line(&logs, &format!("stopped: {reason}"));

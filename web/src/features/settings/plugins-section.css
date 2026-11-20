@@ -1,0 +1,129 @@
+/* Settings › Plugins (plugins-section.tsx), Paseo's host Plugins page:
+   the install card (the field over its button, both the column's width as
+   Paseo's stretched column draws them, 16 inside, 12 between),
+   the empty list's words centred in the card (Paseo's styles.empty: 16
+   inside, the row hint's muted 12px),
+   a row's status badge beside its id, the description, source and error
+   lines under it, and the logs dialog's entries (Paseo's logEntry: 12
+   inside, 8 apart, on its surface2 fill, here the well fill that shows on
+   the dialog in both schemes; stderr heads in the danger colour). */
+
+.plugin-install {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  padding: 16px;
+  border-radius: var(--r-2);
+  background: var(--bg-surface);
+}
+
+/* Paseo's StatusBadge (status-badge.tsx): a full pill, 3 by 8 inside, 12px
+   regular; success and error a tint of their colour (Paseo's 12% light,
+   16% dark) with no border, anything else the muted surface3 fill with the
+   border. */
+.plugin-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  background: var(--surface-3);
+  color: var(--text-secondary);
+  font: var(--t-meta);
+}
+
+.plugin-status.ok,
+.plugin-status.danger {
+  border-color: transparent;
+}
+
+.plugin-status.ok {
+  background: light-dark(
+    color-mix(in srgb, var(--online) 12%, transparent),
+    color-mix(in srgb, var(--online) 16%, transparent)
+  );
+  color: var(--online);
+}
+
+.plugin-status.danger {
+  background: light-dark(
+    color-mix(in srgb, var(--danger) 12%, transparent),
+    color-mix(in srgb, var(--danger) 16%, transparent)
+  );
+  color: var(--danger);
+}
+
+.plugin-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.plugin-source,
+.plugin-error {
+  margin-top: 4px;
+  font: var(--t-meta);
+}
+
+.plugin-source {
+  color: var(--text-tertiary);
+}
+
+.plugin-error {
+  color: var(--danger);
+}
+
+.plugin-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.plugin-empty {
+  padding: 16px;
+  color: var(--text-secondary);
+  font: var(--t-meta);
+  text-align: center;
+}
+
+.plugin-logs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.plugin-log {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border-radius: var(--r-2);
+  background: var(--bg-well);
+}
+
+.plugin-log-head {
+  color: var(--text-secondary);
+  font: var(--t-mono);
+}
+
+.plugin-log-head.stderr {
+  color: var(--danger);
+}
+
+.plugin-log-message {
+  margin: 0;
+  color: var(--text-primary);
+  font: var(--t-mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.plugin-logs-state {
+  margin: 0;
+  padding: 24px 0;
+  color: var(--text-secondary);
+  font: var(--t-body);
+  text-align: center;
+}

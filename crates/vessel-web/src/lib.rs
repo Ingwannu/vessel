@@ -27,6 +27,8 @@
 //!   where the source says ([`PageFiles`], ADR 0028);
 //! - `paint`: the preferences' appearance written into the index, so the
 //!   first paint is already right;
+//! - `preview`: an HTML file's Preview as a document of its own, under
+//!   Paseo's sandboxed preview policy (ADR 0122);
 //! - [`NodeSource`]: the seam through which the CLI gives the nodes;
 //! - [`wire`]: the frames the browser and the server exchange.
 //!
@@ -44,6 +46,7 @@ mod hashed;
 mod keep;
 mod ops;
 mod paint;
+mod preview;
 mod registry;
 mod server;
 mod socket;
