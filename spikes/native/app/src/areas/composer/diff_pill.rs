@@ -3,6 +3,7 @@
 //! existing Changes tab. There is no second diff pane.
 
 use gpui::ClickEvent;
+use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
     AnyElement, Context, InteractiveElement as _, IntoElement as _, MouseButton,
     ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div, px,
@@ -58,11 +59,11 @@ fn counts(
         .flex()
         .flex_row()
         .items_center()
-        .gap(px(4.0))
-        .min_h(px(32.0))
-        .px(px(12.0))
-        .py(px(4.0))
-        .rounded(px(6.0))
+        .gap(px(spacing::S1))
+        .min_h(px(spacing::S8))
+        .px(px(spacing::S3))
+        .py(px(spacing::S1))
+        .rounded(px(spacing::S1_5))
         .border_1()
         .border_color(tokens.border_subtle)
         .bg(tokens.btn_secondary_bg)

@@ -6,6 +6,8 @@
 use std::time::Duration;
 
 use chrono::Utc;
+use vessel_app_kit::status_mark::SLOT_HEIGHT;
+use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
     AnyElement, Context, IntoElement as _, ParentElement as _, Styled as _, div, px,
 };
@@ -64,8 +66,8 @@ fn counts(stat: DiffStat, tokens: &Tokens) -> AnyElement {
         .flex()
         .flex_row()
         .items_center()
-        .gap(px(4.0))
-        .h(px(20.0))
+        .gap(px(spacing::S1))
+        .h(px(SLOT_HEIGHT))
         .type_(Type::Meta)
         .child(
             div()
@@ -84,7 +86,7 @@ fn counts(stat: DiffStat, tokens: &Tokens) -> AnyElement {
 fn stamp(card: &Card, tokens: &Tokens) -> AnyElement {
     div()
         .flex_none()
-        .h(px(20.0))
+        .h(px(SLOT_HEIGHT))
         .type_(Type::Meta)
         .text_color(tokens.text_tertiary)
         .child(compact_ago(card.detail.active_at, Utc::now()))
