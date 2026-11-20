@@ -50,8 +50,8 @@ impl Reply {
         let info = |info: &SessionInfo| info.for_protocol(protocol);
         match self {
             Self::GetRegistry(snapshot) => titles::registry(snapshot, protocol).map(Self::GetRegistry),
-            Self::ListWorkspaces(list) => titles::workspaces(list, protocol).map(Self::ListWorkspaces),
-            Self::GetWorkspace(workspace) => titles::workspace(workspace, protocol).map(Self::GetWorkspace),
+            Self::ListWorkspaces(list) => titles::served_list(list, protocol).map(Self::ListWorkspaces),
+            Self::GetWorkspace(workspace) => titles::served(workspace, protocol).map(Self::GetWorkspace),
             Self::RenameWorkspace(workspace) => titles::workspace(workspace, protocol).map(Self::RenameWorkspace),
             Self::PinWorkspace(workspace) => titles::workspace(workspace, protocol).map(Self::PinWorkspace),
             Self::ReleaseWorkspaceAutomation(workspace) => {
@@ -302,6 +302,10 @@ impl Reply {
             | Self::SearchRepositories(_)
             | Self::ListPullRequests(_)
             | Self::GetPullRequest(_)
+            // The pane's reads (ADR 0088): refused below their protocol before
+            // dispatch.
+            | Self::GetPullTimeline(_)
+            | Self::GetCheckDetails(_)
             | Self::OpenPullRequest(_)
             | Self::MergePullRequest(_)
             | Self::SetFeedback(_)

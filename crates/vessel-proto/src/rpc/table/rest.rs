@@ -135,9 +135,9 @@ macro_rules! method_table_rest {
             /// Read an atomic independent-workspace registry snapshot.
             GetRegistry / get_registry / "workspace.registry" [Read, (pending $crate::registry::PROJECT_WORKSPACE_REGISTRY), unary]: $crate::registry::GetRegistry => $crate::registry::RegistrySnapshot;
             /// List active/archived workspace descriptors independently of sessions.
-            ListWorkspaces / list_workspaces / "workspace.list" [Read, (pending $crate::registry::PROJECT_WORKSPACE_REGISTRY), unary]: $crate::registry::ListWorkspaces => Vec<$crate::registry::WorkspaceDescriptor>;
+            ListWorkspaces / list_workspaces / "workspace.list" [Read, (pending $crate::registry::PROJECT_WORKSPACE_REGISTRY), unary]: $crate::registry::ListWorkspaces => Vec<$crate::registry::ServedWorkspace>;
             /// Inspect one workspace including its archived lifecycle.
-            GetWorkspace / get_workspace / "workspace.get" [Read, (pending $crate::registry::PROJECT_WORKSPACE_REGISTRY), unary]: $crate::registry::GetWorkspace => $crate::registry::WorkspaceDescriptor;
+            GetWorkspace / get_workspace / "workspace.get" [Read, (pending $crate::registry::PROJECT_WORKSPACE_REGISTRY), unary]: $crate::registry::GetWorkspace => $crate::registry::ServedWorkspace;
             /// Rename one active workspace without changing its filesystem placement.
             RenameWorkspace / rename_workspace / "workspace.rename" [Operate, (pending $crate::registry::PROJECT_WORKSPACE_REGISTRY), unary]: $crate::registry::RenameWorkspace => $crate::registry::WorkspaceDescriptor;
             /// Persist one workspace pin without changing client-local ordering.
@@ -248,6 +248,10 @@ macro_rules! method_table_rest {
             GetInboxAttention / inbox_attention / "inbox.attention" [Read, (pending $crate::notifications::ATTENTION_NOTIFICATIONS_PROTOCOL), unary]: $crate::inbox_attention::GetInboxAttention => Vec<$crate::inbox_attention::SessionAttention>;
             /// Mark observed attention read without granting general session operations.
             ReadInboxThrough / read_inbox_through / "inbox.read" [Read, (pending $crate::notifications::ATTENTION_NOTIFICATIONS_PROTOCOL), unary]: $crate::inbox_attention::ReadInboxThrough => $crate::Ack;
+            /// A session's pull request's reviews, comments and review threads, as Paseo's pane (ADR 0088).
+            GetPullTimeline / pull_timeline / "pr.timeline" [Read, (pending $crate::forge::PULL_REQUEST_PANE_PROTOCOL), unary]: $crate::forge::GetPullTimeline => $crate::forge::PullTimeline;
+            /// One check of a session's pull request, with its failed jobs' log tails (ADR 0088).
+            GetCheckDetails / check_details / "pr.check" [Read, (pending $crate::forge::PULL_REQUEST_PANE_PROTOCOL), unary]: $crate::forge::GetCheckDetails => $crate::forge::CheckDetails;
         }
     };
 }

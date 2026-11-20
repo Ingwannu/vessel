@@ -68,6 +68,45 @@ no runtime to compile. The package that serves the method changes `staged`
 to `pending` in the commit that adds its handler; from then on the guard
 requires the handler, as for every assigned or pending row.
 
+## Version 39 (2026-11-20, milestone 12): the pull request pane's reads (implementer G, TRACKER 431-433, ADR 0088)
+
+Assigned 39 (`PULL_REQUEST_PANE_PROTOCOL`, `PROTOCOL_VERSION` 39) at its node-line merge, after the shared terminals' 37
+and the diff stat's 38. Both methods are unary, forwardable, `read`, open to agents as
+`pr.get`, and held to the caller's ownership of the session (a forge request on demand, as `pr.get`'s refresh).
+
+- `pr.get`'s `Checks` gains `runs` (every check, one per name, by name, at most 100) and `CheckRun` gains `run`,
+  `workflow_run` (ids, 1 to 2^53 - 1), `workflow`, `started_at` and `completed_at`; all optional, so older clients
+  ignore them and older nodes omit them (`failing` keeps its meaning). `PullSummary` gains optional
+  `tally { passed, failed, pending }` (the same counts, absent when none were counted) for a row's check glyph.
+- `pr.timeline { session }` answers `PullTimeline { access, number?, items, truncated }`: reviews (submitted only,
+  `approved | changes_requested | commented`), conversation comments and review threads' comments (with `review`
+  and `thread { thread, path?, line?, start_line?, resolved, outdated }`), oldest first then by id; at most 100 of
+  each kind and 100 comments a thread, `truncated` when a kind had more. `access` is `pr.get`'s.
+- `pr.check { session, run }` answers `CheckDetails { access, report? }`. `run` must be one of the checks the
+  watcher's last read of the session's pull request named; otherwise no report. A `CheckReport` is the run's
+  name, state, pages, output, at most 20 annotations, at most 5 failed jobs of its workflow run each with a
+  `LogTail { text, cut }` (200 lines, 16 KiB), and `truncated`.
+- The job log's one redirect (ADR 0088): one `https` hop without the token, a suffix range, 20 s, never `http`.
+
+## Version 38 (2026-11-20, milestone 12): a workspace's diff stat (implementer K, TRACKER 819, ADR 0120)
+
+Assigned 38 (`DIFF_STAT_PROTOCOL`, `PROTOCOL_VERSION` 38) after shared terminals took 37. No method is added.
+`workspace.list` and `workspace.get` serve two fields and take `changed_from`.
+
+- The count is not on the registry row and does not bump `RegistryRevision`. A file save does not wake
+  `workspace.registry`.
+- `diff_stat` is `{additions, deletions}` (both `u32`), absent when there is nothing to show: not a git checkout, no
+  comparison, both sides zero, a missing folder, or a first count that git did not answer. A later busy or timed-out
+  count keeps the stored value.
+- `stat_revision` is one generation on every row of an answer. It moves when a stored count changes, including the
+  first time a count is stored, even when that count is null. The same value does not move it, and it does not wrap.
+- `changed_from` waits, at most 30 s, until that generation moves. The first read omits it and waits only while a
+  requested folder has not been counted. A delegated call notes interest and does not wait. An empty list keeps the
+  last generation for the next read.
+- A peer below 38 does not receive the fields (`Reply::for_protocol` strips them). A client sends `changed_from` only
+  to a node at 38 or later: an older node ignores the field and answers at once.
+- The minimum protocol remains 2. The store schema is unchanged.
+
 ## Version 37 (2026-11-20, milestone 12): several clients on one node's terminals (implementer T2, TRACKER 481-483, ADR 0116)
 
 Assigned 37 (`SHARED_TERMINALS_PROTOCOL`, `PROTOCOL_VERSION` 37) at its node-line merge, the next after the plugin
