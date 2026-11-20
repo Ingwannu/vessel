@@ -1,11 +1,13 @@
 # N3 current checkpoint
 
-Current stop point: ADR 0060 source `ba6702b3`/evidence `bad27224` has V1
-source/scoped-evidence PASS, not integration. A local merge of node head
-`9c7a45ca` is resolved/staged but uncommitted: its shared connector tests
-fail four Clippy large_futures checks. V1 confirmed source equality and
-routed the correction to the owner. Own scoped feature/TS checks passed;
-no active process remains. Continue when that owner correction arrives.
+Current state: ADR 0060 source `ba6702b3`/evidence `bad27224` has V1
+source/scoped-evidence PASS, not integration. The resolved/staged local
+merge of `9c7a45ca` now includes the exact owner's correction `a365d295`
+for the four connector large_futures errors. The owner and V1 cleared that
+one-file source correction; the owner's whole gate is still pending, so no
+upstream whole PASS is inferred. N3's corrected baseline gate is active as
+`base-node21b.sh`, with main log/exit marker `base-node21b.log/.exit`.
+Do not alter Rust or issue another Cargo command while it runs.
 Rows 5–7 are not implemented. The cleanup-record recovery disclosure is
 below; the restored JSON is not an original-file mtime attestation.
 
@@ -235,3 +237,48 @@ by V1 before overwrite; `cleanup-record-recovery.json` documents provenance
 and explicitly excludes original filesystem mtime attestation. Root logs,
 source pins and final audit were unaffected. Future helpers use unique output
 names. Actual SSD scratch is empty, UID/GID1000,0700, with no process left.
+
+## Owner correction and corrected baseline
+
+The owner supplied `a365d29575ff44c096b352cb678151e07cccb45e`, sole parent
+`9c7a45ca`. Import only its connector.rs patch into the held merge; the file
+is byte-identical to that object (SHA621496262692054e7fcbcf787cfe3214317aebfff5682941bebac93319040062).
+Four async bodies are Box::pin arguments to the existing within; LIMIT60,
+assertions and lints are preserved. `base-node21-owner-delta.json` proves
+this is the sole Rust input change since the passing owned-helper checks.
+Those four launcher/TS checks and web417 results remain valid and are not
+repeated. V1 independently source-cleared the owner patch, not a whole gate.
+
+`base-node21b.sh` is detached: fmt/size/boundaries, both A5 prebuilds and whole
+Clippy/tests in one slot, final real binaries, then the previously unreached
+full page E2E and CLI fleet. It reuses the unchanged frozen web bundle.
+Final cleanup writes only its unique base-node21b-ssd-cleanup.json file.
+All failures and original source pins are retained. The merge remains
+uncommitted until the corrected baseline passes. No new listing code yet.
+
+## Current priority: fixture gate/CI follow-up
+
+The coordinator identified required-feature coverage missing from the default
+workspace/CI. Its integrated source candidate is `4660f784` on `a365d295`;
+it is published only after the owner's gate 21 succeeds. The queued N3
+baseline was already admitted when cancellation was considered, so no signal
+was sent. It ended at an own optional test-helper refactor's unused address
+argument in default builds. That uncommitted optional refactor was removed,
+restoring fixture tests exactly to the V1-passed source and candidate466.
+No lint/expectation/deadline was changed. Crates/Cargo now match466 exactly.
+
+The small CI follow-up is prepared separately on branch
+`backend/m12-forge-gate`, worktree sibling `vessel-m12-forge-gate`, base466,
+so it cannot include the original branch's native ancestry or held merge.
+It adds a serial public root runner, both explicit forge-fixture CI commands,
+and gate/README documentation. No product Rust/wire behavior changes. Active
+runner is `forge-gate.sh`; its log/exit marker and source pins use forge-gate
+prefixes in scratch. It is queued in one shared slot, uses SSD test data,
+A5 prebuilds and the same environment. The commit is owed after validation
+and integration confirmation; tell the coordinator its hash.
+
+The old held merge remains uncommitted. Do not mistake its two failed
+baseline runs for the CI follow-up's gate or for the earlier ADR0060 PASS.
+A6 is read: until the shared required_protocol accessor lands, ship value
+types/node logic only, no new registered call or second version mechanism.
+Actual project-wide PR listing (ADR0061) remains unbuilt.

@@ -491,3 +491,10 @@ tests in1.12s, both TS generators, unchanged incoming generated declarations
 and all1,116 Rust/Cargo pins. It does not replace the blocked full baseline.
 Private SSD scratch is empty and no gate/fleet is active. The shared owner's
 connector correction is still required; no ADR0061 implementation has begun.
+
+
+The owner correction `a365d295` is now imported exactly: four Box::pin
+wrappers in connector.rs, preserving LIMIT60/assertions/lints. It is the
+only changed Rust input since the passing owned-helper/TS checks. The
+corrected baseline gate is active; no whole PASS or new listing is claimed.
+The owner's own whole run is also pending, not evidence for this tree.
