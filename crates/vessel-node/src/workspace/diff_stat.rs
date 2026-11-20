@@ -3,10 +3,12 @@
 //! A folder a served client has asked about is counted again every
 //! [`CACHE`], and dropped [`INTEREST`] after the last request. At most
 //! [`LIMIT`] counts run at once, under the shared git pool. A count that
-//! finds git busy or out of time keeps the last count. At most [`MAX_SLOTS`]
-//! folders. Both sides zero, no comparison, and a folder that is not a
-//! git checkout are stored as none. The generation moves only when a
-//! stored count changes, including the first time it is stored.
+//! finds git busy or out of time keeps a count already stored. The first
+//! answer, when nothing is stored, is none, so the read is not left
+//! waiting. At most [`MAX_SLOTS`] folders. Both sides zero, no comparison,
+//! a folder that is not a git checkout, and one that cannot be resolved
+//! are stored as none. The generation moves only when a stored count
+//! changes, including the first time it is stored.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -306,7 +308,7 @@ async fn read_root(workspaces: &Workspaces, shared: &Shared, root: WorkspaceRoot
         Ok(_) => return Answer::Plain,
         Err(error) => {
             tracing::debug!(%error, "diff stat: the workspace folder is not available");
-            return Answer::Keep;
+            return Answer::Plain;
         }
     };
     let git = match workspaces.git() {
@@ -333,7 +335,7 @@ fn classify(result: Result<Option<DiffStat>, GitError>) -> Answer {
         Ok(stat) => Answer::Count(stat),
         Err(GitError::Unexpected { what: "base" }) => Answer::Count(None),
         Err(error) => {
-            tracing::debug!(%error, "diff stat: git did not answer; the last count stays");
+            tracing::debug!(%error, "diff stat: git did not answer");
             Answer::Keep
         }
     }
@@ -347,13 +349,20 @@ fn root_of(shared: &Shared, key: &Path) -> Option<WorkspaceRoot> {
 }
 
 fn remember(shared: &Shared, key: &Path, answer: Answer) {
-    let stat = match answer {
-        Answer::Keep => return,
-        Answer::Plain => None,
-        Answer::Count(stat) => stat,
-    };
     let generation = {
         let mut book = lock(&shared.book);
+        // Keep leaves a stored count alone. Nothing stored yet is null, so
+        // the first read is not left pending for the whole wait.
+        let stat = match answer {
+            Answer::Keep => {
+                if book.slots.get(key).is_none_or(|slot| slot.seen) {
+                    return;
+                }
+                None
+            }
+            Answer::Plain => None,
+            Answer::Count(stat) => stat,
+        };
         book.publish(key, stat)
     };
     if let Some(generation) = generation {
@@ -520,6 +529,12 @@ mod tests {
             additions: 1,
             deletions: 0,
         };
+        remember(&shared, &key, Answer::Keep);
+        assert!(lock(&shared.book).slots[&key].seen);
+        assert!(lock(&shared.book).slots[&key].stat.is_none());
+        assert_eq!(lock(&shared.book).generation, 1);
+        remember(&shared, &key, Answer::Keep);
+        assert_eq!(lock(&shared.book).generation, 1);
         remember(&shared, &key, Answer::Count(Some(stat)));
         let generation = lock(&shared.book).generation;
         remember(&shared, &key, Answer::Keep);
@@ -652,6 +667,21 @@ mod tests {
         assert!(stats.stat(&path).is_none());
         assert!(stats.ready(&path));
         assert!(stats.generation() > generation);
+    }
+
+    #[tokio::test]
+    async fn a_first_keep_is_ready_and_moves_the_generation() {
+        let (stats, tx) = DiffStats::scripted(Duration::from_millis(40), Duration::from_secs(30));
+        let (path, root) = folder();
+        tx.send(Some(Answer::Keep)).unwrap();
+        stats.observe(&[path.clone()], &[(path.clone(), root)]);
+        let deadline = Instant::now() + Duration::from_secs(2);
+        while Instant::now() < deadline && !stats.ready(&path) {
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+        assert!(stats.ready(&path));
+        assert!(stats.stat(&path).is_none());
+        assert_eq!(stats.generation(), 1);
     }
 
     #[tokio::test]

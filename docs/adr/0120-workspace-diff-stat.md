@@ -65,10 +65,12 @@ spend the node's watch budget, and the walk would include trees the
 count ignores. At most four counts run at once, under the shared git
 pool of eight local slots, so a person's status, diff, or commit still
 has room. A count that finds git busy, or that times out, keeps the
-last stored value and tries again on the next pass. Null is stored
-only when the folder is not a git checkout, there is no comparison
-(detached, or `origin/<branch>` does not resolve), or both sides are
-zero. At most 1000 folders; past that a further folder is answered as
+last stored value and tries again on the next pass. The first answer,
+when nothing is stored yet, is null, so that read is not left waiting.
+A folder that cannot be resolved is null, as one that is not a git
+checkout is. Null is also stored when there is no comparison (detached,
+or `origin/<branch>` does not resolve) or both sides are zero. At most
+1000 folders; past that a further folder is answered as
 null and is not counted. The book lock is not held across an await.
 The count task holds the workspaces and the book, not the service that
 owns both.
