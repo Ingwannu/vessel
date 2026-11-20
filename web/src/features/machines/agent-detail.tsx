@@ -130,22 +130,15 @@ function Offer({
   if (!answer.ok) {
     return (
       <SettingsSection title="What it offers">
-        {/* Paseo's settings pages: a read that failed is an error Alert in
-            the flow (TRACKER 820); a refused start says it all in one line. */}
-        {nodeError(answer.problem) === "conflict" ? (
-          <Alert
-            size="sm"
-            variant="error"
-            description={refusedStart(agent, agents)}
-          />
-        ) : (
-          <Alert
-            size="sm"
-            variant="error"
-            title={`${name} did not say what it offers`}
-            description={`${answer.problem.message} ${nextStep(answer.problem)}`}
-          />
-        )}
+        <OffersFailure
+          name={name}
+          refused={
+            nodeError(answer.problem) === "conflict"
+              ? refusedStart(agent, agents)
+              : null
+          }
+          reason={`${answer.problem.message} ${nextStep(answer.problem)}`}
+        />
       </SettingsSection>
     );
   }
@@ -176,5 +169,29 @@ function Offer({
         </RowList>
       )}
     </SettingsSection>
+  );
+}
+
+/** Paseo's settings pages: a read that failed is an error Alert in the flow
+ * (TRACKER 820). A refused start (`refused`) says it all in one line; any
+ * other failure is what did not happen over the node's reason. */
+export function OffersFailure({
+  name,
+  refused,
+  reason,
+}: {
+  name: string;
+  refused: string | null;
+  reason: string;
+}) {
+  return refused === null ? (
+    <Alert
+      size="sm"
+      variant="error"
+      title={`${name} did not say what it offers`}
+      description={reason}
+    />
+  ) : (
+    <Alert size="sm" variant="error" description={refused} />
   );
 }

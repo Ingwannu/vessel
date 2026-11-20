@@ -49,6 +49,30 @@ export function Message({
   );
 }
 
+/** Paseo's UsageBody error: an Alert in the flow, what failed over the
+ * node's reason, its Retry reading the machine's reports again (TRACKER
+ * 820). */
+export function UsageReadFailed({
+  message,
+  onRetry,
+}: {
+  message: string;
+  onRetry: () => void;
+}) {
+  return (
+    <Alert
+      size="sm"
+      variant="error"
+      title="Unable to load usage"
+      description={message}
+    >
+      <Button size="sm" variant="outline" onClick={onRetry}>
+        Try again
+      </Button>
+    </Alert>
+  );
+}
+
 /** One machine's plan usage: its reader and whether it can report. The
  * Settings section and the usage modal share it, so the two never read or
  * act differently. */
@@ -115,26 +139,14 @@ export function PlanContent({
   const display = useUsagePrefs().usage.display;
   const { now, locale, deviceClock } = useQuotaClock();
   if (plan.ready === null) {
-    // Paseo's UsageBody error: an Alert in the flow, its Retry reading the
-    // machine's reports again (TRACKER 820).
     const read = plan.read;
     return read.kind === "failed" ? (
-      <Alert
-        size="sm"
-        variant="error"
-        title="Unable to load usage"
-        description={read.problem.message}
-      >
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => {
-            plan.reader.open(read.node);
-          }}
-        >
-          Try again
-        </Button>
-      </Alert>
+      <UsageReadFailed
+        message={read.problem.message}
+        onRetry={() => {
+          plan.reader.open(read.node);
+        }}
+      />
     ) : (
       <Message text="Reading usage…" />
     );

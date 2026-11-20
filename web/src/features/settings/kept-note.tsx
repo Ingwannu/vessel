@@ -9,8 +9,10 @@ import { Alert } from "../../ui/kit";
 export function KeptNote() {
   const kept = useStore(prefs, (state) => state.kept);
   const note = keptNote(kept);
-  // Paseo's settings notices: a warning Alert in the flow (TRACKER 820).
-  return note === null ? null : (
-    <Alert size="sm" variant="warning" description={note} />
-  );
+  return note === null ? null : <KeptNoteView note={note} />;
+}
+
+/** Paseo's settings notices: a warning Alert in the flow (TRACKER 820). */
+export function KeptNoteView({ note }: { note: string }) {
+  return <Alert size="sm" variant="warning" description={note} />;
 }

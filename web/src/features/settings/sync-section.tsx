@@ -176,20 +176,10 @@ function SharedBy({ machine, label }: { machine: NodeKey; label: string }) {
       )}
       <SettingsSection title="Machines that pull it">
         {kept.map((member) => (
-          // Paseo's settings notices: a warning Alert in the flow (TRACKER
-          // 820).
-          <Alert
+          <KeptOwnEdit
             key={member.device}
-            size="sm"
-            variant="warning"
-            description={
-              <>
-                {member.label} kept its own edit of{" "}
-                {(member.conflicts ?? []).join(", ")}. The shared version is
-                beside it, named <code>.vessel-incoming</code>; Vessel never
-                overwrites a file you changed.
-              </>
-            }
+            label={member.label}
+            files={member.conflicts ?? []}
           />
         ))}
         {members.length === 0 ? (
@@ -215,5 +205,29 @@ function SharedBy({ machine, label }: { machine: NodeKey; label: string }) {
         )}
       </SettingsSection>
     </SettingsPage>
+  );
+}
+
+/** A machine that kept its own edit of shared files: Paseo's settings
+ * notices, a warning Alert in the flow (TRACKER 820). */
+export function KeptOwnEdit({
+  label,
+  files,
+}: {
+  label: string;
+  files: readonly string[];
+}) {
+  return (
+    <Alert
+      size="sm"
+      variant="warning"
+      description={
+        <>
+          {label} kept its own edit of {files.join(", ")}. The shared version is
+          beside it, named <code>.vessel-incoming</code>; Vessel never
+          overwrites a file you changed.
+        </>
+      }
+    />
   );
 }
