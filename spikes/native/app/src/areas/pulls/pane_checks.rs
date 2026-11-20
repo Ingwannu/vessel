@@ -19,7 +19,8 @@
 
 use std::collections::HashSet;
 
-use gpui::{Bounds, MouseButton, PathBuilder, Pixels, Point, canvas, point};
+use gpui::MouseButton;
+use vessel_app_kit::theme::spacing;
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::picker::glyph;
 use vessel_app_kit::theme::SidebarSurfaces;
@@ -42,11 +43,9 @@ use crate::shell::Shell;
 
 /// Paseo's list: roughly eight rows, then its own scroll.
 const LIST_MAX: f32 = 268.0;
-/// Points along a whole turn of an arc.
-const STEPS: u16 = 64;
 
 /// A presentation's colour (Paseo's ring palette and row glyphs).
-fn colour(presentation: Presentation, tokens: &Tokens) -> Hsla {
+pub(super) fn colour(presentation: Presentation, tokens: &Tokens) -> Hsla {
     let status = tokens.status();
     match presentation {
         Presentation::Failure => status.error.foreground,
@@ -169,8 +168,8 @@ fn head(
         .flex()
         .flex_row()
         .items_center()
-        .gap(px(8.0))
-        .p(px(12.0))
+        .gap(px(spacing::S2))
+        .p(px(spacing::S3))
         .cursor_pointer()
         .hover(move |style| style.bg(hover))
         .on_click(cx.listener(|shell, _event, _window, cx| {
@@ -179,14 +178,14 @@ fn head(
             }
             cx.notify();
         }))
-        .child(ring(arcs, tokens))
+        .child(super::pane_ring::ring(arcs, tokens))
         .child(
             div()
                 .flex()
                 .flex_col()
                 .flex_1()
                 .min_w_0()
-                .gap(px(2.0))
+                .gap(px(spacing::S0_5))
                 .child(
                     div()
                         .type_(Type::Body)
@@ -221,78 +220,6 @@ fn head(
         .into_any_element()
 }
 
-/// Paseo's ring: the track, then each segment from twelve o'clock.
-fn ring(arcs: &[Segment], tokens: &Tokens) -> AnyElement {
-    let track = tokens.neutral.surface3;
-    let painted: Vec<(Segment, Hsla)> = arcs
-        .iter()
-        .map(|arc| (*arc, colour(arc.presentation, tokens)))
-        .collect();
-    // One part is the whole ring (Paseo's single dash): a closed circle.
-    let whole_ring = painted.len() == 1;
-    canvas(
-        |_, _, _| (),
-        move |bounds, (), window, _cx| {
-            if let Some(path) = arc_path(bounds, 0.0, circumference(), true) {
-                window.paint_path(path, track);
-            }
-            for (arc, ink) in &painted {
-                if let Some(path) = arc_path(bounds, arc.start, arc.length, whole_ring) {
-                    window.paint_path(path, *ink);
-                }
-            }
-        },
-    )
-    .size(px(RING_SIZE))
-    .flex_none()
-    .into_any_element()
-}
-
-/// The stroke of an arc `length` long from `start` along the ring.
-fn arc_path(
-    bounds: Bounds<Pixels>,
-    start: f32,
-    length: f32,
-    closed: bool,
-) -> Option<gpui::Path<Pixels>> {
-    let mut points = arc_points(bounds, start, length);
-    if closed {
-        let _end = points.pop();
-    }
-    let (first, rest) = points.split_first()?;
-    let mut path = PathBuilder::stroke(px(RING_STROKE));
-    path.move_to(*first);
-    for next in rest {
-        path.line_to(*next);
-    }
-    if closed {
-        path.close();
-    }
-    path.build().ok()
-}
-
-#[expect(
-    clippy::float_arithmetic,
-    clippy::arithmetic_side_effects,
-    reason = "an arc's points are trigonometry on the canvas's floats"
-)]
-fn arc_points(bounds: Bounds<Pixels>, start: f32, length: f32) -> Vec<Point<Pixels>> {
-    let center = bounds.center();
-    let radius = vessel_app_view::workspace::pull::checks::RING_RADIUS;
-    let whole = circumference();
-    let from = std::f32::consts::TAU * start / whole;
-    let turn = std::f32::consts::TAU * length / whole;
-    (0..=STEPS)
-        .map(|step| {
-            let angle = from + turn * f32::from(step) / f32::from(STEPS);
-            point(
-                center.x + px(radius * angle.sin()),
-                center.y - px(radius * angle.cos()),
-            )
-        })
-        .collect()
-}
-
 /// The groups, each with its header and, unless folded, its rows.
 fn groups(
     shell: &Shell,
@@ -309,7 +236,7 @@ fn groups(
         .flex_col()
         .max_h(px(LIST_MAX))
         .overflow_y_scroll()
-        .pb(px(8.0));
+        .pb(px(spacing::S2));
     for group in &read.groups {
         let presentation = group.presentation;
         let folded = collapsed.contains(&presentation);
@@ -321,10 +248,10 @@ fn groups(
                 .flex()
                 .flex_row()
                 .items_center()
-                .gap(px(4.0))
-                .px(px(12.0))
-                .pt(px(8.0))
-                .pb(px(4.0))
+                .gap(px(spacing::S1))
+                .px(px(spacing::S3))
+                .pt(px(spacing::S2))
+                .pb(px(spacing::S1))
                 .cursor_pointer()
                 .on_click(cx.listener(move |shell, _event, _window, cx| {
                     if let Some(facts) = shell.areas.pulls.facts.as_mut() {
@@ -414,9 +341,9 @@ fn row(
         .flex()
         .flex_row()
         .items_center()
-        .gap(px(8.0))
-        .px(px(12.0))
-        .h(px(32.0))
+        .gap(px(spacing::S2))
+        .px(px(spacing::S3))
+        .h(px(spacing::S8))
         .flex_none()
         .cursor_pointer()
         .hover(move |style| style.bg(hover))
@@ -447,7 +374,7 @@ fn row(
                 .flex_row()
                 .flex_none()
                 .items_center()
-                .gap(px(8.0))
+                .gap(px(spacing::S2))
                 .children(add)
                 .child(
                     div()
@@ -484,10 +411,10 @@ pub(super) fn add_button(
         .flex_row()
         .flex_none()
         .items_center()
-        .gap(px(4.0))
-        .h(px(24.0))
-        .px(px(4.0))
-        .rounded(px(4.0))
+        .gap(px(spacing::S1))
+        .h(px(spacing::S6))
+        .px(px(spacing::S1))
+        .rounded(px(spacing::S1))
         .type_(Type::Meta)
         .text_color(neutral.foreground)
         .when(!adding, |button| {
@@ -503,15 +430,15 @@ fn failing(pull: &PullRequest, tokens: &Tokens) -> AnyElement {
     div()
         .flex()
         .flex_col()
-        .pb(px(8.0))
+        .pb(px(spacing::S2))
         .children(pull.checks.failing.iter().map(|run| {
             div()
                 .flex()
                 .flex_row()
                 .items_center()
-                .gap(px(8.0))
-                .px(px(12.0))
-                .h(px(32.0))
+                .gap(px(spacing::S2))
+                .px(px(spacing::S3))
+                .h(px(spacing::S8))
                 .child(mark(Presentation::of(run.state), tokens))
                 .child(
                     div()

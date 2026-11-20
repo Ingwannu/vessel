@@ -31,7 +31,9 @@ mod pane_activity;
 mod pane_attach;
 mod pane_cards;
 mod pane_checks;
+mod pane_ring;
 mod pane_skeleton;
+mod pane_threads;
 mod pane_timeline;
 
 use std::collections::HashSet;
