@@ -2,10 +2,11 @@
 //! small `sh` helper that declares one method and answers its first call
 //! (ADR 0115, "Catalog and invoke"). Nothing is fetched.
 
-use vessel_proto::RawJson;
 use vessel_proto::plugins::{
-    InvokeContext, InvokePlugin, PluginGeneration, PluginStatus, RuntimeGeneration,
+    HelperCall, InvokeContext, InvokePlugin, NodeToHelper, PluginGeneration, PluginStatus,
+    RuntimeGeneration,
 };
+use vessel_proto::{ProjectId, RawJson, SessionId};
 
 use super::super::tests::{Fixture, client_only, id, until};
 use super::super::{CallFailure, PluginError};
@@ -24,6 +25,14 @@ fn call(plugin: &str, generation: RuntimeGeneration, method: &str, input: RawJso
 /// No input.
 fn none() -> RawJson {
     RawJson::empty_object()
+}
+
+/// The envelope a helper's method receives, read back from the helper.
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Received {
+    input: serde_json::Value,
+    context: InvokeContext,
 }
 
 /// One theme with Paseo's eight colors, as `vessel plugin init` writes.
@@ -121,7 +130,7 @@ async fn a_call_to_a_plugin_that_is_not_installed_or_not_running_is_refused() {
 async fn a_helper_answers_its_declared_method_and_refuses_an_undeclared_one() {
     let fixture = Fixture::new();
     let plugins = fixture.host(true).await;
-    answering_plugin(&fixture, "echo");
+    let kept = answering_plugin(&fixture, "echo");
     let _item = plugins.install("~/echo", None, None).await.unwrap();
     until(&plugins, "echo", PluginStatus::Running).await;
     let catalog = plugins.catalog(true).await.unwrap();
@@ -150,11 +159,33 @@ async fn a_helper_answers_its_declared_method_and_refuses_an_undeclared_one() {
     };
     assert_eq!(*failure, CallFailure::Changed);
     let input = RawJson::from_text(r#"{"query":"메모"}"#).unwrap();
+    // The node passes the context as the caller stated it (ADR 0115).
+    let context = InvokeContext::Agent {
+        project: ProjectId::random(),
+        worktree: None,
+        agent: SessionId::random(),
+    };
     let output = plugins
-        .invoke(call("echo", generation, "echo.read", input))
+        .invoke(InvokePlugin {
+            context: context.clone(),
+            ..call("echo", generation, "echo.read", input)
+        })
         .await
         .unwrap();
     assert_eq!(output.as_text(), r#"{"ok":true}"#);
+    // What the helper received: the method, and `{input, context}`.
+    let request: NodeToHelper = serde_json::from_slice(&std::fs::read(&kept).unwrap()).unwrap();
+    let NodeToHelper::Request {
+        call: HelperCall::Invoke { method, input },
+        ..
+    } = request
+    else {
+        panic!("the helper's first request is the call: {request:?}");
+    };
+    assert_eq!(method.as_str(), "echo.read");
+    let received: Received = serde_json::from_str(RawJson::from(input).as_text()).unwrap();
+    assert_eq!(received.input, serde_json::json!({ "query": "메모" }));
+    assert_eq!(received.context, context);
     let undeclared = plugins
         .invoke(call("echo", generation, "echo.write", none()))
         .await;
@@ -165,14 +196,48 @@ async fn a_helper_answers_its_declared_method_and_refuses_an_undeclared_one() {
     fixture.finish().await;
 }
 
-/// A plugin whose `sh` helper declares `echo.read`, reads `initialize`,
-/// then the first request (the node's first invocation id is 1), answers
-/// it with `{"ok":true}`, and reads frames until the node closes its pipe.
+/// Between the owner's switch-off and its application the helper still
+/// runs; neither the catalog nor a call reaches it then (node review
+/// note 3).
 #[cfg(unix)]
-fn answering_plugin(fixture: &Fixture, name: &str) {
+#[tokio::test]
+async fn a_switched_off_helper_takes_no_call_before_its_stop() {
+    let fixture = Fixture::new();
+    let plugins = fixture.host(true).await;
+    let _kept = answering_plugin(&fixture, "echo");
+    let _item = plugins.install("~/echo", None, None).await.unwrap();
+    until(&plugins, "echo", PluginStatus::Running).await;
+    let catalog = plugins.catalog(true).await.unwrap();
+    let [installation] = catalog.catalog.installations() else {
+        panic!("one running helper: {:?}", catalog.catalog.installations());
+    };
+    let generation = installation.address().generation;
+    // Another change holds the lock, so the switch-off waits to apply.
+    let held = plugins.change().await.unwrap();
+    plugins.set_switch(false);
+    let refused = plugins
+        .invoke(call("echo", generation, "echo.read", none()))
+        .await;
+    assert!(
+        matches!(refused, Err(PluginError::NotRunning(_))),
+        "{refused:?}"
+    );
+    let off = plugins.catalog(true).await.unwrap();
+    assert!(off.catalog.installations().is_empty());
+    drop(held);
+    until(&plugins, "echo", PluginStatus::Disabled).await;
+    fixture.finish().await;
+}
+
+/// A plugin whose `sh` helper declares `echo.read`, reads `initialize`,
+/// then the first request (the node's first invocation id is 1), keeps that
+/// request's frame in `request.json` beside it, answers it with
+/// `{"ok":true}`, and reads frames until the node closes its pipe. Returns
+/// where the request is kept.
+#[cfg(unix)]
+fn answering_plugin(fixture: &Fixture, name: &str) -> std::path::PathBuf {
     use std::fmt::Write as _;
     use std::num::NonZeroU64;
-    use std::os::unix::fs::PermissionsExt as _;
 
     use vessel_proto::plugins::{
         ClientDocument, HelperPayload, HelperProtocol, HelperToNode, HookSubscriptions,
@@ -198,18 +263,22 @@ fn answering_plugin(fixture: &Fixture, name: &str) {
         request: InvocationId::new(NonZeroU64::MIN),
         output: HelperPayload::try_from(RawJson::from_text(r#"{"ok":true}"#).unwrap()).unwrap(),
     });
-    let read_frame = "  set -- $(dd bs=1 count=4 2>/dev/null | od -An -tu1)\n  \
-                      [ \"$#\" -eq 4 ] || exit 0\n  \
-                      length=$(( ($1 << 24) | ($2 << 16) | ($3 << 8) | $4 ))\n  \
-                      dd bs=1 count=\"$length\" of=/dev/null 2>/dev/null\n";
+    let kept = fixture.home().join(name).join("request.json");
+    let read_frame = |to: &str| {
+        format!(
+            "set -- $(dd bs=1 count=4 2>/dev/null | od -An -tu1)\n\
+             [ \"$#\" -eq 4 ] || exit 0\n\
+             length=$(( ($1 << 24) | ($2 << 16) | ($3 << 8) | $4 ))\n\
+             dd bs=1 count=\"$length\" of='{to}' 2>/dev/null\n"
+        )
+    };
     let script = format!(
-        "#!/bin/sh\nprintf '{ready}'\nfor step in initialize request; do\n{read_frame}done\n\
-         printf '{answer}'\nwhile :; do\n{read_frame}done\n"
+        "#!/bin/sh\nprintf '{ready}'\n{initialize}{request}\
+         printf '{answer}'\nwhile :; do\n{rest}done\n",
+        initialize = read_frame("/dev/null"),
+        request = read_frame(&kept.display().to_string()),
+        rest = read_frame("/dev/null"),
     );
-    let manifest = format!(r#"{{"id":"{name}","server":{{"command":["./helper.sh"]}}}}"#);
-    let directory = fixture.plugin(name, &manifest, &[("helper.sh", script.as_bytes())]);
-    let helper = directory.join("helper.sh");
-    let mut permissions = std::fs::metadata(&helper).unwrap().permissions();
-    permissions.set_mode(0o700);
-    std::fs::set_permissions(&helper, permissions).unwrap();
+    super::super::tests::helper_plugin(fixture, name, script.as_bytes());
+    kept
 }

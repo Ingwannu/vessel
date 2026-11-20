@@ -68,10 +68,10 @@ no runtime to compile. The package that serves the method changes `staged`
 to `pending` in the commit that adds its handler; from then on the guard
 requires the handler, as for every assigned or pending row.
 
-## Version 41 (drafted, 2026-11-20, milestone 12): a node's plugin catalog and plugin method calls (impl P, ADR 0115 "Catalog and invoke")
+## Version 41 (2026-11-20, milestone 12): a node's plugin catalog and plugin method calls (impl P, ADR 0115 "Catalog and invoke")
 
-Drafted as 41 (`PLUGIN_CATALOG_PROTOCOL`, `PROTOCOL_VERSION` 41), the next after the workspace-folder terminals' 40; the number
-is assigned at the node-line merge. Both methods are unary and not forwardable.
+Assigned 41 (`PLUGIN_CATALOG_PROTOCOL`, `PROTOCOL_VERSION` 41) at its node-line merge, the next after the workspace-folder
+terminals' 40. Both methods are unary and not forwardable.
 
 - `plugin.catalog {}` (`read`) answers `{generation, catalog: {node, installations: [{address, required_client,
   document}]}, may_invoke}` (`may_invoke`: whether this caller may call `plugin.invoke`): every running

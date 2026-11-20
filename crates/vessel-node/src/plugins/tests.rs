@@ -337,7 +337,7 @@ fn helper_script(frames: u32, exit_now: bool) -> Vec<u8> {
 }
 
 #[cfg(unix)]
-fn helper_plugin(fixture: &Fixture, name: &str, script: &[u8]) {
+pub(super) fn helper_plugin(fixture: &Fixture, name: &str, script: &[u8]) {
     use std::os::unix::fs::PermissionsExt as _;
 
     let manifest = format!(r#"{{"id":"{name}","server":{{"command":["./helper.sh"]}}}}"#);
