@@ -6,7 +6,7 @@
 
 use gpui::{AnyElement, Context, KeyDownEvent, Window};
 use vessel_app_kit::assets::Glyph;
-use vessel_app_kit::theme::radius;
+use vessel_app_kit::theme::{radius, spacing};
 use vessel_app_kit::toolbar_button::{ToolbarButton, ToolbarConfig, ToolbarIcon, ToolbarInk};
 use vessel_app_kit::ui::{
     ElementId, FluentBuilder as _, InteractiveElement as _, IntoElement as _, ParentElement as _,
@@ -23,10 +23,10 @@ const WIDTH: f32 = 340.0;
 /// Paseo's `COLLAPSED_FIELD_HEIGHT`.
 const FIELD_HEIGHT: f32 = 28.0;
 /// The overlay's inset (`frame: { padding: spacing[2] }`).
-const INSET: f32 = 8.0;
+const INSET: f32 = spacing::S2;
 /// The widget's padding (`spacing[1.5]`) and gap (`spacing[1]`).
 const PADDING: f32 = 6.0;
-const GAP: f32 = 4.0;
+const GAP: f32 = spacing::S1;
 
 /// The rows and columns the bar covers from the pane's top right, for
 /// `cell` sized cells: the frame's inset, the widget's padding and border
@@ -76,8 +76,8 @@ pub(super) fn bar(
         .flex()
         .flex_row()
         .items_center()
-        .gap(px(8.0))
-        .px(px(8.0))
+        .gap(px(spacing::S2))
+        .px(px(spacing::S2))
         .h(px(FIELD_HEIGHT))
         .bg(surfaces.surface2)
         .rounded(px(radius::MD))
