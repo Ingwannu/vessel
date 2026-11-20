@@ -24,7 +24,7 @@ use vessel_app_view::settings::{Section, Surface};
 
 use super::{
     agents, appearance, chat, choices, connections, devices, diagnostics, general, host_agents,
-    notifications, overview, plugins, sync,
+    notifications, overview, plugins, sync, terminal,
 };
 use crate::shell::Shell;
 
@@ -85,13 +85,13 @@ fn page(section: Section) -> Option<Draw> {
         Section::Notifications => {
             Some(|shell, tokens, phone, _, cx| notifications::render(shell, tokens, phone, cx))
         }
+        Section::Terminal => Some(terminal::render),
         Section::Plugins => {
             Some(|shell, tokens, phone, _, cx| plugins::render(shell, tokens, phone, cx))
         }
         // Not drawn yet. Sidebar waits on S3's sidebar reading its items;
         // the rest have nothing behind them in Vessel yet.
         Section::Sidebar
-        | Section::Terminal
         | Section::Browser
         | Section::Editor
         | Section::Files

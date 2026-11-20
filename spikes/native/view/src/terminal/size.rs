@@ -52,9 +52,47 @@ impl ScrollbackLines {
     }
 }
 
+impl ScrollbackLines {
+    /// `lines` floored into 0 through [`MAX`](Self::MAX), as Paseo's
+    /// `parseTerminalScrollbackLines` takes a typed count: more than the
+    /// maximum is the maximum, never a refusal.
+    #[must_use]
+    pub fn clamped(lines: u64) -> Self {
+        Self(u32::try_from(lines.min(u64::from(Self::MAX))).unwrap_or(Self::MAX))
+    }
+}
+
 impl Default for ScrollbackLines {
     fn default() -> Self {
         Self::DEFAULT
+    }
+}
+
+impl serde::Serialize for ScrollbackLines {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_u32(self.0)
+    }
+}
+
+/// A stored count is read as Paseo's schema reads it
+/// (`clampedNumber(0, 1e6)`): a number is clamped into range, a fraction
+/// floored; anything else is refused, so the preference's lenient reader
+/// falls back to the default.
+impl<'de> serde::Deserialize<'de> for ScrollbackLines {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let number = f64::deserialize(deserializer)?;
+        if number.is_finite() {
+            #[expect(
+                clippy::as_conversions,
+                clippy::cast_possible_truncation,
+                clippy::cast_sign_loss,
+                reason = "clamped to 0 ..= MAX and floored first, so the cast is exact"
+            )]
+            let lines = number.floor().clamp(0.0, f64::from(Self::MAX)) as u64;
+            Ok(Self::clamped(lines))
+        } else {
+            Err(serde::de::Error::custom("the scrollback is not a number"))
+        }
     }
 }
 

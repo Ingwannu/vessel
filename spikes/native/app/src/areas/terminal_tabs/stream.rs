@@ -271,6 +271,8 @@ impl Shell {
             return;
         }
         refit(&mut model, pane.fit);
+        // The scrollback setting may have changed while the model was away.
+        model.set_scrollback(pane.scrollback);
         pane.model = Some(model);
         if let Ok(replies) = std::str::from_utf8(replies)
             && !replies.is_empty()
@@ -279,6 +281,7 @@ impl Shell {
         }
         self.terminal_tab_pump(key);
         self.terminal_tab_draw(key, cx);
+        self.terminal_find_output(key, cx);
         self.terminal_tab_apply(key, cx);
     }
 

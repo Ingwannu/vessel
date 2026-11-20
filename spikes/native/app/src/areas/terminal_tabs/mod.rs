@@ -39,13 +39,20 @@
 //!   push, and below 37 a shell another client opened shows within one
 //!   read; size ownership is per connection, so this app's windows share
 //!   one owner; the tab's label is a rename's title, never the shell's own
-//!   (no OSC title on the node); no selection, copy or find (P3), no key
-//!   bar (P4), no file drop (P7).
+//!   (no OSC title on the node); no key bar (P4), no file drop (P7).
+//! - Find, selection and copy (P3): Paseo's desktop terminal (xterm.js):
+//!   Mod+F's bar while the terminal has the keyboard (`find`, `find_bar`),
+//!   mouse selection and Paseo's copy keys (`select`); a paste is queued
+//!   whole and sent in parts the node takes (the view's `TerminalSender`);
+//!   Settings > Terminal's scrollback applies to open tabs at once.
 
 mod body;
 mod draw;
+mod find;
+mod find_bar;
 mod input;
 mod open;
+mod select;
 mod stream;
 #[cfg(test)]
 mod tests;
@@ -143,6 +150,20 @@ pub(crate) struct Pane {
     sender: TerminalSender,
     /// Its focus observers.
     observers: Vec<gpui::Subscription>,
+    /// The mouse selection, with the screen and width it was made on (a
+    /// width change re-wraps the text under it; another screen is other
+    /// text).
+    selected: Option<select::Selected>,
+    /// A drag selecting: the pointer's moves extend the selection.
+    selecting: bool,
+    /// Find, while its bar is open.
+    find: Option<find::PaneFind>,
+    /// Bumped whenever the selection or find's marks change, so the frame
+    /// is drawn again.
+    marks: u64,
+    /// The scrollback the setting asks for; set on the model when it is
+    /// home from a parse.
+    scrollback: ScrollbackLines,
 }
 
 /// Where a create opens its tab.
@@ -221,7 +242,12 @@ impl TerminalTabs {
 }
 
 impl Pane {
-    fn new(origin: Origin, cx: &mut Context<'_, Shell>, key: &PaneKey) -> Self {
+    fn new(
+        origin: Origin,
+        scrollback: ScrollbackLines,
+        cx: &mut Context<'_, Shell>,
+        key: &PaneKey,
+    ) -> Self {
         use gpui::AppContext as _;
         let shell = cx.weak_entity();
         let keys_key = key.clone();
@@ -230,10 +256,7 @@ impl Pane {
             stage: Stage::Attaching,
             origin,
             typed: Typed::Never,
-            model: Some(TerminalModel::new(
-                GridSize::default(),
-                ScrollbackLines::default(),
-            )),
+            model: Some(TerminalModel::new(GridSize::default(), scrollback)),
             log: TerminalLog::default(),
             live_from: EventSeq::ZERO,
             history: Vec::new(),
@@ -254,7 +277,40 @@ impl Pane {
             preedit: None,
             sender: TerminalSender::default(),
             observers: Vec::new(),
+            selected: None,
+            selecting: false,
+            find: None,
+            marks: 0,
+            scrollback,
         }
+    }
+
+    /// The selection or find's marks changed: draw again.
+    const fn marked(&mut self) {
+        self.marks = self.marks.wrapping_add(1);
+    }
+}
+
+impl Shell {
+    /// The scrollback setting changed: every open terminal keeps that many
+    /// lines from now on, as Paseo's desktop applies it live (a model at its
+    /// parse takes it when it comes back).
+    pub(crate) fn terminal_scrollback(
+        &mut self,
+        lines: ScrollbackLines,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let keys: Vec<PaneKey> = self.areas.terminal_tabs.panes.keys().cloned().collect();
+        for key in keys {
+            if let Some(pane) = self.areas.terminal_tabs.panes.get_mut(&key) {
+                pane.scrollback = lines;
+                if let Some(model) = pane.model.as_mut() {
+                    model.set_scrollback(lines);
+                }
+            }
+            self.terminal_tab_draw(&key, cx);
+        }
+        self.terminal_session_scrollback(lines, cx);
     }
 }
 
