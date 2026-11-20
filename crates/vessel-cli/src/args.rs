@@ -166,6 +166,16 @@ pub(crate) enum Command {
     /// server), with its endpoint and the session's credential in the
     /// environment; it is not run by hand.
     Mcp,
+    /// Report agent hook activity for the Vessel terminal this runs in: what
+    /// the node's "Terminal agent hooks" setting installs in Claude Code,
+    /// Codex and `OpenCode` (ADR 0089, Paseo's `paseo hooks`). Silent, and
+    /// does nothing outside a Vessel terminal.
+    Hooks {
+        /// The agent: `claude`, `codex` or `opencode`.
+        agent: String,
+        /// Its hook event, as the agent names it.
+        event: String,
+    },
     /// Change a session in place: its profile, its queue, answers to its
     /// agent, marks; start it again, copy, move or delete it.
     Session {
