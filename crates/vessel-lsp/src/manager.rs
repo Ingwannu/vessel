@@ -483,7 +483,11 @@ async fn server(
                 if process.is_none() {
                     let started = tokio::select! {
                         () = shutdown.cancelled() => break,
-                        _cancelled = work.reply.closed() => Err(Error::Unavailable),
+                        // The caller gave up before the server was up. Drop
+                        // the start without a backoff: a dropped query is
+                        // not a crash, and the next caller should still
+                        // find this workspace ready.
+                        _abandoned = work.reply.closed() => continue,
                         result = launch(&key, &config, &tools, &generation.projects, &watcher) => result,
                     };
                     match started {
@@ -497,9 +501,13 @@ async fn server(
                 }
                 let Some(server) = &mut process else { break; };
                 let mut reply = work.reply;
+                // Run a query that was already written to its timeout, even
+                // if the caller has gone. Dropping it midway can leave half
+                // a frame, or an answer the next query would read as its
+                // own; killing the server for that made one cancellation
+                // everyone's outage. A closed reply just drops the answer.
                 let result = tokio::select! {
                     () = shutdown.cancelled() => break,
-                    _cancelled = reply.closed() => Err(Error::Unavailable),
                     result = tokio::time::timeout(config.request_timeout, server.query(work.query, &watcher)) => result.unwrap_or(Err(Error::Timeout)),
                 };
                 let failed = matches!(&result, Err(Error::Protocol | Error::Timeout | Error::Frame(_) | Error::Json(_) | Error::Unavailable));
