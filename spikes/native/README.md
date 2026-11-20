@@ -1409,7 +1409,7 @@ it (`view::workspace::front_matter`, its cases with the page's tests). The
 crate came in through the fixed native-crate-lock step; it adds hashlink
 0.12.2 to the lock, its default `encoding` feature stays off, and only that
 module names it. Its events are pulled one at a time and counted first:
-past 100 aliases, 10,000 expanded nodes or 64 levels the block stays in
+past 100 aliases, 10,000 expanded nodes or 64 expanded levels the block stays in
 the body, because the loader, the emitter and a value's drop recurse per
 level on the UI thread.
 
