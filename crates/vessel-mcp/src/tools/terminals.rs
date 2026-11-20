@@ -42,7 +42,7 @@ impl VesselTools {
         let node = self.target(args).await?;
         match name {
             "create_terminal" => self.create_terminal(node, args).await,
-            "list_terminals" => Ok(json!(self.on(node, ListTerminals { place: None }).await?)),
+            "list_terminals" => Ok(json!(self.on(node, ListTerminals::default()).await?)),
             "read_terminal" => self.read_terminal(node, args).await,
             "write_terminal" => self.write_terminal(node, args).await,
             "close_terminal" => {

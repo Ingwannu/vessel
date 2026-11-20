@@ -750,7 +750,7 @@ fn the_plugin_methods_know_their_version_scope_and_shape() {
     assert!(refused.is_err());
 }
 
-/// ADR 0088's pane reads, drafted as 37 (`PULL_REQUEST_PANE_PROTOCOL`):
+/// ADR 0088's pane reads, drafted as 39 (`PULL_REQUEST_PANE_PROTOCOL`):
 /// reads, as `pr.get`.
 const PULL_REQUEST_PANE_METHODS: &[(&str, Scope)] =
     &[("pr.timeline", Scope::Read), ("pr.check", Scope::Read)];
@@ -773,7 +773,7 @@ fn the_pane_reads_know_their_version_scope_and_shape() {
         })
         .collect();
     assert_eq!(methods, PULL_REQUEST_PANE_METHODS);
-    assert!(PULL_REQUEST_PANE_PROTOCOL <= Some(crate::PROTOCOL_VERSION));
+    assert_eq!(PULL_REQUEST_PANE_PROTOCOL, Some(crate::PROTOCOL_VERSION));
     // A check run is a positive number, checked when the request is decoded.
     let refused = serde_json::from_value::<Call>(serde_json::json!({
         "method": "pr.check",
@@ -1637,3 +1637,4 @@ fn saved_limit_requests_and_sanitized_states_round_trip_with_exact_methods() {
 }
 
 mod envelope_versions;
+mod shared_terminals;

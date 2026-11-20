@@ -394,6 +394,11 @@ pub const PROTOCOLS: &[(&str, Option<crate::ProtocolVersion>, &str)] = &[
         "The plugin manager: `plugin.*` and the node's plugin switch (ADR 0115).",
     ),
     (
+        "SHARED_TERMINALS_PROTOCOL",
+        crate::terminals::SHARED_TERMINALS_PROTOCOL,
+        "`terminal.list`'s `changed_from` long poll and a resize's claim or update (ADR 0116).",
+    ),
+    (
         "PULL_REQUEST_PANE_PROTOCOL",
         crate::forge::PULL_REQUEST_PANE_PROTOCOL,
         "`pr.timeline`, `pr.check`, and every check's run and times (ADR 0088).",

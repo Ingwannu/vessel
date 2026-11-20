@@ -68,11 +68,11 @@ no runtime to compile. The package that serves the method changes `staged`
 to `pending` in the commit that adds its handler; from then on the guard
 requires the handler, as for every assigned or pending row.
 
-## Version 37 (drafted, milestone 12): the pull request pane's reads (implementer G, TRACKER 431-433, ADR 0088)
+## Version 39 (drafted, milestone 12): the pull request pane's reads (implementer G, TRACKER 431-433, ADR 0088)
 
-Drafted 37 (`PULL_REQUEST_PANE_PROTOCOL`, `PROTOCOL_VERSION` 37), the next after the plugin manager's 36; the
-integrator assigns it in merge order. Both methods are unary, forwardable, `read`, open to agents as `pr.get`, and
-held to the caller's ownership of the session (a forge request on demand, as `pr.get`'s refresh).
+Drafted 39 (`PULL_REQUEST_PANE_PROTOCOL`, `PROTOCOL_VERSION` 39), after the shared terminals' 37 and the 38 drafted
+before it; the integrator assigns it in merge order. Both methods are unary, forwardable, `read`, open to agents as
+`pr.get`, and held to the caller's ownership of the session (a forge request on demand, as `pr.get`'s refresh).
 
 - `pr.get`'s `Checks` gains `runs` (every check, one per name, by name, at most 100) and `CheckRun` gains `run`,
   `workflow_run` (ids, 1 to 2^53 - 1), `workflow`, `started_at` and `completed_at`; all optional, so older clients
@@ -87,6 +87,23 @@ held to the caller's ownership of the session (a forge request on demand, as `pr
   name, state, pages, output, at most 20 annotations, at most 5 failed jobs of its workflow run each with a
   `LogTail { text, cut }` (200 lines, 16 KiB), and `truncated`.
 - The job log's one redirect (ADR 0088): one `https` hop without the token, a suffix range, 20 s, never `http`.
+
+## Version 37 (2026-11-20, milestone 12): several clients on one node's terminals (implementer T2, TRACKER 481-483, ADR 0116)
+
+Assigned 37 (`SHARED_TERMINALS_PROTOCOL`, `PROTOCOL_VERSION` 37) at its node-line merge, the next after the plugin
+manager's 36. No method is added; two calls gain optional fields and one answer a field.
+
+- `terminal.list { place?, changed_from? }`: with `changed_from`, a long poll (at most 30 s, in the caller's wait
+  shares, answered at once when forwarded) until the node's terminal list revision differs, as `terminal.get` and
+  `port.list`. Paseo pushes `terminals_changed`; the long poll gives the same latency without a new frame kind.
+- `TerminalList` gains `revision` (0 from an older node): it moves when a terminal starts, ends (status), is renamed,
+  changes its service state or is forgotten, never for a resize or output. It is read before the list, so a change
+  between the two answers the next poll at once. It is the node's, not a place's.
+- `TerminalInput::Resize` gains `intent?: claim | update` (Paseo's size ownership), for `terminal.send` and a
+  terminal-mode session's `session.send` alike. Absent is a claim. A claim applies and makes its connection the owner;
+  an update applies only from the owner and is otherwise dropped, still answered `Ack`.
+- A client sends `changed_from` or an `intent` only to a node at 37 or later (`Call::since`): an older node would answer
+  the poll at once (a client asking again on each answer would spin) and apply another client's update.
 - The minimum protocol remains 2. The store schema is unchanged.
 
 ## Version 36 (2026-11-20, milestone 12): the plugin manager and directory installs (impl P, CATALOGUE F-M1..F-M39, TRACKER 696, ADR 0115)

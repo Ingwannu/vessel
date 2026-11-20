@@ -41,7 +41,12 @@ pub(crate) async fn shell(target: &Target, shell: Shell) -> Result<(), CliError>
                 }),
                 (None, None) => None,
             };
-            let list = client.call(ListTerminals { place }).await?;
+            let list = client
+                .call(ListTerminals {
+                    place,
+                    changed_from: None,
+                })
+                .await?;
             let mut text = String::new();
             for terminal in &list.terminals {
                 text.push_str(&terminal_line(terminal));
@@ -211,7 +216,7 @@ pub(crate) async fn ports(target: &Target, ports: &Ports) -> Result<(), CliError
 
 /// The terminal `given` names: an id or a unique prefix of one.
 async fn find_terminal(client: &NodeClient, given: &str) -> Result<TerminalInfo, CliError> {
-    let terminals = client.call(ListTerminals { place: None }).await?.terminals;
+    let terminals = client.call(ListTerminals::default()).await?.terminals;
     let matching: Vec<TerminalInfo> = terminals
         .into_iter()
         .filter(|terminal| terminal.id.to_string().starts_with(given))

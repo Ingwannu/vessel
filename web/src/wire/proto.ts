@@ -5853,7 +5853,13 @@ export type ListTerminals = {
 /**
  * Only this session's or project's.
  */
-place?: TerminalPlace | null, };
+place?: TerminalPlace | null, 
+/**
+ * Wait (at most 30 s) until the node's terminal list `revision`
+ * differs from this one (ADR 0116,
+ * [`super::SHARED_TERMINALS_PROTOCOL`]; an older node answers at once).
+ */
+changed_from?: number | null, };
 
 /**
  * Report selection is typed even while its method awaits protocol assignment.
@@ -8811,6 +8817,25 @@ session: SessionId,
 side: SessionId, };
 
 /**
+ * What a resize asks of the size's owner (ADR 0116, Paseo's
+ * `terminal-size-ownership.ts`).
+ *
+ * [Decision Log]
+ * - Purpose: two clients showing one terminal (the app and the page, or
+ *   two windows) both fit it to their own pane; whatever arrived last won,
+ *   so the shell's size flipped as either redrew.
+ * - Choice: Paseo's rule. The client whose pane takes focus or attaches
+ *   claims the terminal; its later fits are updates, applied only while it
+ *   still owns it; another client's update is dropped (and answered as
+ *   done, as Paseo's returns `false` without an error).
+ * - Owner: one connection (its identity, not its client's name). Clients
+ *   that share a connection share its ownership: the page's server keeps
+ *   one per node for every tab, the native app one per machine for all its
+ *   windows, and a home node one for the calls it forwards.
+ */
+export type ResizeIntent = "claim" | "update";
+
+/**
  * Node-level startup continuation policy (ADR 0059).
  */
 export type RestartRecovery = { 
@@ -11742,7 +11767,12 @@ data: TerminalBytes, } | { "kind": "resize",
 /**
  * New size.
  */
-size: TerminalSize, };
+size: TerminalSize, 
+/**
+ * Whose size it is (ADR 0116, [`crate::terminals::SHARED_TERMINALS_PROTOCOL`]):
+ * absent is a claim, as every client below that protocol sends.
+ */
+intent?: ResizeIntent | null, };
 
 /**
  * What a terminal runs.
@@ -11777,7 +11807,15 @@ export type TerminalList = {
 /**
  * At most 96 (64 live, 32 ended).
  */
-terminals: Array<TerminalInfo>, };
+terminals: Array<TerminalInfo>, 
+/**
+ * The node's terminal list as it stood when this answer was read: it
+ * moves when a terminal starts, ends, is renamed or is forgotten, not
+ * on a resize or output (ADR 0116). Read before the list, so a change
+ * in between answers the next `changed_from` at once. 0 from a node
+ * older than [`SHARED_TERMINALS_PROTOCOL`].
+ */
+revision: number, };
 
 /**
  * A chunk of PTY output.
@@ -13553,6 +13591,11 @@ export const REPOSITORY_SEARCH_PROTOCOL = 35;
 export const PLUGINS_PROTOCOL = 36;
 
 /**
+ * `terminal.list`'s `changed_from` long poll and a resize's claim or update (ADR 0116).
+ */
+export const SHARED_TERMINALS_PROTOCOL = 37;
+
+/**
  * `pr.timeline`, `pr.check`, and every check's run and times (ADR 0088).
  */
-export const PULL_REQUEST_PANE_PROTOCOL = 37;
+export const PULL_REQUEST_PANE_PROTOCOL = 39;
