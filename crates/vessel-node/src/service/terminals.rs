@@ -180,9 +180,7 @@ impl NodeService {
         // A folder is matched as it is kept: canonical (ADR 0121).
         let asked = match request.place {
             Some(TerminalPlace::Folder { path }) => Some(TerminalPlace::Folder {
-                path: place::canonical_folder(&path)
-                    .await
-                    .unwrap_or_else(|_gone| path),
+                path: place::canonical_folder(&path).await.unwrap_or(path),
             }),
             other => other,
         };
