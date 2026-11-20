@@ -325,6 +325,7 @@ mod tests {
         assert_eq!(terminal(&info, crate::PROTOCOL_VERSION), None);
         let list = TerminalList {
             terminals: vec![info],
+            revision: 0,
         };
         assert!(terminals(&list, older()).is_some());
     }

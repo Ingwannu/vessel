@@ -741,7 +741,7 @@ fn the_plugin_methods_know_their_version_scope_and_shape() {
         })
         .collect();
     assert_eq!(methods, PLUGIN_METHODS);
-    assert_eq!(PLUGINS_PROTOCOL, Some(crate::PROTOCOL_VERSION));
+    assert!(PLUGINS_PROTOCOL <= Some(crate::PROTOCOL_VERSION));
     // The installation id is checked when the request is decoded.
     let refused = serde_json::from_value::<Call>(serde_json::json!({
         "method": "plugin.enable",
@@ -1603,3 +1603,4 @@ fn saved_limit_requests_and_sanitized_states_round_trip_with_exact_methods() {
 }
 
 mod envelope_versions;
+mod shared_terminals;
