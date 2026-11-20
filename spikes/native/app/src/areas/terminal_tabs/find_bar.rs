@@ -214,7 +214,10 @@ fn buttons(
         ToolbarButton::new(
             element("terminal-find-close", key),
             words.find_close().to_owned(),
-            ToolbarIcon::new(Glyph::Close, ToolbarInk::Muted),
+            // The 24-grid X (Lucide's, Paseo's `CloseIcon`), so the three
+            // marks share one size as Paseo's `glyphSize`; the 10-grid
+            // `Close` is the window's and fills its whole box.
+            ToolbarIcon::new(Glyph::X, ToolbarInk::Muted),
             close_config,
             tokens,
         )
