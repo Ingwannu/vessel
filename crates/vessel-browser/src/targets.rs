@@ -55,8 +55,16 @@ pub(crate) struct Binding {
 impl Binding {
     fn new(workspace: WorkspaceId, page: Page) -> Self {
         let (notices, _) = broadcast::channel(NOTICE_CAPACITY);
-        let state = TargetState { revision: page.revision(), load: BrowserLoad::Loading };
-        Self { workspace, page, state, notices }
+        let state = TargetState {
+            revision: page.revision(),
+            load: BrowserLoad::Loading,
+        };
+        Self {
+            workspace,
+            page,
+            state,
+            notices,
+        }
     }
 
     pub(crate) fn watch(&mut self) -> TargetWatch {
@@ -68,7 +76,10 @@ impl Binding {
     }
 
     pub(crate) fn announce(&mut self, load: BrowserLoad) {
-        let latest = TargetState { revision: self.page.revision(), load };
+        let latest = TargetState {
+            revision: self.page.revision(),
+            load,
+        };
         if self.state != latest {
             self.state = latest;
             let _receivers = self.notices.send(TargetNotice::State(latest));

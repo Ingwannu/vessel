@@ -10,11 +10,11 @@ use super::*;
 use crate::launch::{Plan, ProxyEndpoint};
 use crate::preparation::Preparation;
 use crate::profile::{Profile, ProfileError};
+use crate::targets::TargetNotice;
 use std::path::PathBuf;
 use tokio::net::TcpListener;
 use vessel_proto::WorkspaceId;
 use vessel_proto::browser::{BrowserFailure, HumanInput, ViewportSide, ViewportSize};
-use crate::targets::TargetNotice;
 
 struct Fixture {
     scope: Preparation,
