@@ -27,7 +27,8 @@ pub struct Machine {
     pub can_browse: bool,
     /// Its Git can clone.
     pub can_clone: bool,
-    /// Its GitHub repositories can be searched (TRACKER 440; none yet).
+    /// Its GitHub repositories can be searched: it has `forge.repos`
+    /// (ADR 0088, TRACKER 440).
     pub can_search_github: bool,
     /// It has `project.create_directory` (ADR 0113).
     pub can_create_directory: bool,
@@ -42,17 +43,34 @@ pub enum CloneProtocol {
     Ssh,
 }
 
-/// A repository to clone, typed by hand (search rows wait on TRACKER 440).
+/// Where a repository row came from.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Origin {
+    /// Typed in the field: `owner/repo` or a whole remote.
+    Typed,
+    /// A row of the machine's GitHub search (`forge.repos`, ADR 0088), with
+    /// its one-line description when it has one.
+    Found {
+        /// GitHub's description.
+        description: Option<String>,
+    },
+}
+
+/// A repository to clone: typed by hand, or found by the machine's GitHub
+/// search (TRACKER 440).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Repository {
     /// The row's identity, also the destination draft's.
     pub id: String,
     /// `owner/name`, or the remote's last segment.
     pub name_with_owner: String,
-    /// What was typed: a whole remote, or `owner/repo`.
+    /// What was typed (a whole remote, or `owner/repo`), or the clone URL
+    /// the node found in the protocol `gh` is set to.
     pub clone_url: String,
-    /// For `owner/repo`: the transport to make a remote with.
+    /// For a typed `owner/repo`: the transport to make a remote with.
     pub protocol: Option<CloneProtocol>,
+    /// Typed or found.
+    pub origin: Origin,
 }
 
 /// What differs between pages.

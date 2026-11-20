@@ -864,7 +864,7 @@ below an 800x600 window.
 |---|---|---|
 | Merge PR (squash), (merge), (rebase) after View PR, shown only when a merge would be taken | Paseo `git/policy.ts` `canMergePr` (560-591), `shouldShowPullRequestAction` (753-770), `buildDirectPullRequestMergeAction` (444-462) | `view/src/workspace/pull/{merge,menu}.rs`, `app/src/areas/pulls/merge.rs`, `app/src/areas/git/menu.rs` |
 | Why a merge was refused | Paseo `getMergePrUnavailableMessage` (712-747) and its `unavailable.mergePr*` words; the node's closed `MergeRefusal` | `view/src/workspace/pull/merge_words.rs` |
-| The feedback switch | The node's `pr.feedback` (`SetFeedback`); a row in the facts dialog | `app/src/areas/pulls/feedback.rs` |
+| The feedback switch | The node's `pr.feedback` (`SetFeedback`); a row in the pull request pane (the code panel's tab, ADR 0088) | `app/src/areas/pulls/feedback.rs` |
 | The facts header | Paseo `pull-request-panel/pane.tsx` 524-552 and its styles 1216-1224 (the title at the body size and weight, the number muted in the same run) | `app/src/areas/pulls/facts.rs` |
 
 ### Differences from the references, each with its reason

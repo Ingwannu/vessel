@@ -274,4 +274,13 @@ glyph_inventory! {
     /// The needs-input alert's marks (Lucide `CircleAlert`'s two strokes at
     /// its 2 stroke), drawn over its disc in the disc's knockout colour.
     StatusAlertMarks => "kit/status-alert-marks.svg",
+    /// Skipped or cancelled (Paseo's `CircleSlash`: a check that says
+    /// nothing about the run): the ring struck through.
+    CircleSlash => "kit/circle-slash.svg",
+    /// Add to chat (Paseo's `MessageSquarePlus`): the message mark with a
+    /// plus inside.
+    MessagePlus => "kit/message-plus.svg",
+    /// Open on the forge (Paseo's `ExternalLink`, a card menu's row): a
+    /// box with an arrow leaving its corner.
+    ExternalLink => "kit/external-link.svg",
 }

@@ -25,6 +25,7 @@ pub mod git_remote;
 pub mod model;
 pub mod options;
 pub mod paths;
+pub mod repositories;
 pub mod rows;
 
 #[cfg(test)]

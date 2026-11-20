@@ -32,15 +32,26 @@ pub(super) fn state_glyph(phase: PullPhase, tokens: &Tokens) -> AnyElement {
 
 /// [`state_glyph`] at `size` (a card's meta row draws it at 12).
 pub(crate) fn state_glyph_sized(phase: PullPhase, size: f32, tokens: &Tokens) -> AnyElement {
-    let status = tokens.status();
-    let (which, colour) = match phase {
-        PullPhase::Open => (Glyph::PullRequest, status.success.foreground),
-        PullPhase::Draft => (Glyph::PullRequestDraft, tokens.neutral.foreground_muted),
-        PullPhase::Merged => (Glyph::GitMerge, tokens.neutral.accent),
-        PullPhase::Closed => (Glyph::PullRequestClosed, status.error.foreground),
-        PullPhase::Unknown => (Glyph::PullRequest, tokens.neutral.foreground_muted),
+    let which = match phase {
+        PullPhase::Open | PullPhase::Unknown => Glyph::PullRequest,
+        PullPhase::Draft => Glyph::PullRequestDraft,
+        PullPhase::Merged => Glyph::GitMerge,
+        PullPhase::Closed => Glyph::PullRequestClosed,
     };
-    glyph(which, size, colour).flex_none().into_any_element()
+    glyph(which, size, state_colour(phase, tokens))
+        .flex_none()
+        .into_any_element()
+}
+
+/// A state's colour, its glyph's and its word's (Paseo's `stateLabel*`).
+pub(crate) fn state_colour(phase: PullPhase, tokens: &Tokens) -> gpui::Hsla {
+    let status = tokens.status();
+    match phase {
+        PullPhase::Open => status.success.foreground,
+        PullPhase::Draft | PullPhase::Unknown => tokens.neutral.foreground_muted,
+        PullPhase::Merged => tokens.neutral.accent,
+        PullPhase::Closed => status.error.foreground,
+    }
 }
 
 /// The link, when the session's pull request has been read.
@@ -57,7 +68,7 @@ pub(crate) fn link(
     let pulls = &shell.areas.pulls;
     let touch = breakpoint::phone(window);
     let neutral = tokens.neutral;
-    let open = pulls.facts.is_some();
+    let open = shell.code_shows_pull_request();
     let element = div()
         .id("pulls-link")
         .flex()
