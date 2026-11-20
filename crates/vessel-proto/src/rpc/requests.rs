@@ -18,12 +18,6 @@ pub struct GetNode;
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct ListHarnesses;
 
-/// `session.list`: every session the node knows, newest first, including
-/// ended sessions restored from disk.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
-pub struct ListSessions;
-
 /// `session.get`: one session.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]

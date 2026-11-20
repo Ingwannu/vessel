@@ -27,7 +27,7 @@ async fn every_unary_method_round_trips() {
     assert_eq!(client.call(GetNode).await.unwrap().name, "test-node");
     assert_eq!(client.call(ListHarnesses).await.unwrap().len(), 1);
     assert_eq!(
-        client.call(ListSessions).await.unwrap(),
+        client.call(ListSessions::default()).await.unwrap(),
         vec![info(session(1), spec())]
     );
     assert_eq!(
@@ -88,7 +88,7 @@ async fn every_unary_method_round_trips() {
     let expected = [
         GetNode.into_call(),
         ListHarnesses.into_call(),
-        ListSessions.into_call(),
+        ListSessions::default().into_call(),
         GetSession {
             session: session(1),
         }

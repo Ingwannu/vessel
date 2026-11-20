@@ -22,13 +22,14 @@ impl NodeService {
     pub(crate) async fn list_sessions(
         &self,
         _: &Connection,
-        _: ListSessions,
+        request: ListSessions,
     ) -> Result<Vec<SessionInfo>, WireError> {
         self.sessions
             .list()
             .await
             .map(|list| {
                 list.into_iter()
+                    .filter(|info| info.labels.covers(&request.labels))
                     .map(|info| self.with_workspace(info))
                     .collect()
             })

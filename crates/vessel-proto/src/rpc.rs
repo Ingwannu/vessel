@@ -51,14 +51,16 @@ use crate::transfer::{
 };
 
 mod frames;
+mod listing;
 mod older;
 mod requests;
 mod since;
 
 pub use frames::{ClientFrame, ClientInfo, Hello, ServerFrame, SubscriptionEnd, Welcome};
+pub use listing::ListSessions;
 pub use requests::{
-    Ack, CreateSession, EventPage, GetNode, GetSession, KillSession, ListHarnesses, ListSessions,
-    ReadEvents, RenameSession, SendInput, StopNode, StopWhen, Subscribe, Subscribed, Unsubscribe,
+    Ack, CreateSession, EventPage, GetNode, GetSession, KillSession, ListHarnesses, ReadEvents,
+    RenameSession, SendInput, StopNode, StopWhen, Subscribe, Subscribed, Unsubscribe,
 };
 
 /// A request type, bound to its response type and its method.

@@ -197,29 +197,36 @@ async fn an_old_connection_refuses_direct_and_wrapped_self_before_dispatch() {
     }
 }
 
-fn labeled_creation_calls() -> [Call; 2] {
-    let labels = serde_json::from_str(r#"{"env":"prod"}"#).unwrap();
-    let call = CreateSession {
-        spec: spec().with_labels(labels),
-    }
-    .into_call();
+fn label_metadata_calls() -> Vec<Call> {
+    let labels: vessel_proto::SessionLabels = serde_json::from_str(r#"{"env":"prod"}"#).unwrap();
     [
-        call.clone(),
-        vessel_proto::Forward {
-            node: NodeId::random(),
-            call: Box::new(call),
+        CreateSession {
+            spec: spec().with_labels(labels.clone()),
         }
         .into_call(),
+        ListSessions::matching(labels).into_call(),
     ]
+    .into_iter()
+    .flat_map(|call| {
+        [
+            call.clone(),
+            vessel_proto::Forward {
+                node: NodeId::random(),
+                call: Box::new(call),
+            }
+            .into_call(),
+        ]
+    })
+    .collect()
 }
 
 #[tokio::test]
-async fn creation_labels_are_refused_before_an_older_server_dispatches() {
+async fn label_metadata_is_refused_before_an_older_server_dispatches() {
     let previous = vessel_proto::lifecycle_version::SINCE
         .checked_sub(1)
         .unwrap();
     let (mut raw, mut served) = raw_client(previous).await;
-    for (index, call) in labeled_creation_calls().into_iter().enumerate() {
+    for (index, call) in label_metadata_calls().into_iter().enumerate() {
         let response = call_raw(&mut raw, u64::try_from(index).unwrap(), call).await;
         assert_eq!(refusal(&response).code, ErrorCode::Unsupported);
     }
@@ -227,12 +234,12 @@ async fn creation_labels_are_refused_before_an_older_server_dispatches() {
 }
 
 #[tokio::test]
-async fn creation_labels_are_never_sent_to_an_older_node() {
+async fn label_metadata_is_never_sent_to_an_older_node() {
     let previous = vessel_proto::lifecycle_version::SINCE
         .checked_sub(1)
         .unwrap();
     let (client, mut server_end) = older_node(ProtocolVersion::new(previous)).await;
-    for call in labeled_creation_calls() {
+    for call in label_metadata_calls() {
         let call = UnaryCall::try_from(call).unwrap();
         assert!(matches!(
             client.call_any(call).await,

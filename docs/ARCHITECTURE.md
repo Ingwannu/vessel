@@ -1269,4 +1269,6 @@ starts with it, while the store keeps a distinct current-label column.
 Import copies that current map. Older peers receive infos without labels,
 including nested transfer replies and saved/scheduled session specs. One
 version constant is assigned at integration; no dependency edge changes.
-Filtering and patch/event ingress follow in the next slices.
+The list request preserves its historical null encoding by default; a label
+filter reads the current map with AND semantics. Patch/event ingress follows
+in the next slices.

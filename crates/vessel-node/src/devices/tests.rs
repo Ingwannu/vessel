@@ -403,7 +403,13 @@ async fn pairing_creates_a_device_once_and_its_credential_authenticates_it() {
     // The credential works; a wrong one and an unknown device do not, and
     // are indistinguishable.
     let connection = authenticate(&node, device, &secret).await.unwrap();
-    assert!(connection.call(ListSessions).await.unwrap().is_empty());
+    assert!(
+        connection
+            .call(ListSessions::default())
+            .await
+            .unwrap()
+            .is_empty()
+    );
     let wrong = DeviceSecret::from_bytes([0; 32]);
     assert_eq!(
         authenticate(&node, device, &wrong).await.unwrap_err(),
@@ -430,7 +436,7 @@ async fn revoking_a_device_closes_its_connections_and_refuses_it_after() {
     laptop_paired.closed().await;
     laptop_again.closed().await;
     assert_eq!(
-        laptop_again.call(ListSessions).await,
+        laptop_again.call(ListSessions::default()).await,
         Err(CallError::Disconnected)
     );
     assert_eq!(
@@ -477,7 +483,7 @@ async fn a_device_without_a_scope_is_forbidden_that_method() {
         .await
         .unwrap();
     let connection = authenticate(&node, viewer.id, &secret).await.unwrap();
-    assert!(connection.call(ListSessions).await.is_ok());
+    assert!(connection.call(ListSessions::default()).await.is_ok());
     let create = CreateSession {
         spec: SessionSpec::new(
             HarnessKind::ClaudeCode,

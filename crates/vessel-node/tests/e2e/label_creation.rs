@@ -2,7 +2,7 @@
 //! Exact-id access and an unfiltered list keep the same session set.
 
 use crate::support::{Fixture, structured_spec, within};
-use vessel_proto::SessionLabels;
+use vessel_proto::{ListSessions, SessionLabels};
 
 fn labels(text: &str) -> SessionLabels {
     serde_json::from_str(text).unwrap()
@@ -25,6 +25,14 @@ async fn creation_labels_are_current_metadata_and_survive_restart() {
             )
             .await
             .unwrap();
+        let filtered = client
+            .call(ListSessions::matching(requested.clone()))
+            .await
+            .unwrap();
+        assert_eq!(
+            filtered.iter().map(|info| info.id).collect::<Vec<_>>(),
+            [first.id]
+        );
         assert_eq!(client.sessions().await.unwrap().len(), 2);
         assert_eq!(
             client.session(second.id).await.unwrap().labels,
@@ -36,6 +44,16 @@ async fn creation_labels_are_current_metadata_and_survive_restart() {
         let restored = client.session(first.id).await.unwrap();
         assert_eq!(restored.labels, requested);
         assert_eq!(restored.spec.labels, requested);
+        let filtered = client
+            .call(ListSessions::matching(labels(
+                r#"{"env":"prod","tier":"b"}"#,
+            )))
+            .await
+            .unwrap();
+        assert_eq!(
+            filtered.iter().map(|info| info.id).collect::<Vec<_>>(),
+            [second.id]
+        );
         node.stop().await.unwrap();
     })
     .await;

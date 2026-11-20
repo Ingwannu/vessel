@@ -242,8 +242,11 @@ No row of the crate table changes.
   directions and nested reply projections, typed stored metadata and legacy
   text-column decoding. Wire declarations are generated. The whole commit
   gate is next; the focused checks are not a whole-workspace claim.
-- Half-done: subsequent label slices remain drafts: 2c list filtering,
-  2d actor-serialized patches and their RPC/event, 2e CLI and MCP ingress.
-  Each has its own tests; no later feature is enabled by this slice.
-- Next: gate and report 2b, then finish 2c through 2e, before background.
+- Slice 2c adds only the optional AND filter to `session.list`. Its default
+  still encodes `params: null`, existing callers use that default, and a
+  non-empty filter requires the same version as creation labels. The
+  request and its serde tests live in `rpc/listing.rs`.
+- Half-done: 2d actor-serialized patches and their RPC/event, then 2e CLI
+  and MCP ingress. No later feature is enabled by this slice.
+- Next: gate and report 2c, then finish 2d and 2e, before background.
   Windows, macOS and real harnesses remain unverified locally.

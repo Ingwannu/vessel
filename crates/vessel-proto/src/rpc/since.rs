@@ -99,12 +99,14 @@ impl Call {
             Self::UpdatePrompt(request) => template_since(request.session.as_deref()),
             Self::CreateSchedule(request) => target_since(&request.definition.target),
             Self::UpdateSchedule(request) => target_since(&request.definition.target),
+            Self::ListSessions(request) => {
+                (!request.labels.is_empty()).then_some(crate::lifecycle_version::SINCE)
+            }
             Self::OpenSideQuestion(_)
             | Self::PromptSideQuestion(_)
             | Self::ResetSideQuestion(_)
             | Self::NodeInfo(_)
             | Self::ListHarnesses(_)
-            | Self::ListSessions(_)
             | Self::GetSession(_)
             | Self::KillSession(_)
             | Self::Subscribe(_)
