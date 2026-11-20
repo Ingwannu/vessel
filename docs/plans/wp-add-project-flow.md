@@ -178,8 +178,11 @@ Steps (each its own packet and gate):
 5. Browse: native only, on this computer's own machine (Paseo: Electron
    on its local daemon); the page shows no Browse, as Paseo's browser web.
    Its description says the platform's file manager instead of Finder off
-   macOS (question 4). Until TRACKER 816 the native app cannot tell which
-   machine is this computer, so it hides Browse too (ruling 5).
+   macOS (question 4). Vessel's app runs no node of its own, so "this
+   computer's machine" is a node that reports this computer's hostname
+   and OS (ruling 5). Another machine with the same hostname and OS is
+   taken for this one: a folder picked here that it lacks gets its
+   `project.add`'s "Directory not found".
 6. Completion: Paseo opens its new-workspace screen; Vessel opens a new
    session in the project (the page's "New session here", the native
    `chat_in_project`), the closest screen it has.
@@ -224,12 +227,16 @@ Steps (each its own packet and gate):
 4. Browse names the platform's own file manager (Finder on macOS, File
    Explorer on Windows, the file manager on Linux), a stated difference.
 
-5. Native Browse (2026-11-19): the first native packet ships the other
-   three methods with Browse hidden, as on the page. TRACKER 816, after
-   the file viewers, marks the app's own machine (a loopback route first,
-   else the node's hostname equal to this computer's), keeps
-   `board::Machine` changes minimal and names the tracks it touches; then
-   Browse turns on with the system folder chooser (`prompt_for_paths`).
+5. Native Browse (2026-11-19, rule settled 2026-11-20): the first native
+   packet ships the other three methods with Browse hidden, as on the
+   page. TRACKER 816, after the file viewers, marks the app's own machine
+   and turns Browse on with the system folder chooser (`prompt_for_paths`).
+   The rule is the same OS and the same hostname (ASCII case aside); a
+   loopback route is neither needed nor enough, since a loopback port can
+   be an SSH tunnel to another machine or a container's published port,
+   whose nodes report other hostnames. The link decides it per fleet read
+   (`view::this_computer`) and sends `Event::ThisComputer` before
+   `Event::Fleet`, so `board::Machine` and `Fleet` are unchanged.
 6. Page frames (2026-11-19): the structure passed; the field draws no
    focus ring and the footer's keys are Paseo's Shortcut badges (`↑↓` on
    macOS, `↑+↓` elsewhere, `⏎`, `Esc`), both sides.

@@ -66,6 +66,7 @@ pub mod terminal_tabs;
 #[cfg(test)]
 mod tests;
 mod text;
+pub mod this_computer;
 pub mod timeline;
 pub mod toasts;
 pub mod updates;
@@ -88,7 +89,7 @@ pub use text::{
     BoardWords, ConversationWords, GitFailureText, GitHashText, GitHeaderText, GitLabels,
     GitStashText, GitSuccessCommits, GitSuccessText, Lang, MachinesText, MarkText, NoticeWords,
     OptionsText, OverviewText, PaletteWords, SettingsText, ShortcutWords, SidebarWords, Text,
-    grouped, meter_tokens, short_tokens,
+    ViewerWords, grouped, meter_tokens, short_tokens,
 };
 
 pub mod layout;

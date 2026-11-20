@@ -21,8 +21,8 @@ use vessel_proto::workspace::{
 use vessel_proto::{ProjectId, SessionId, SessionInfo, WorktreeId};
 
 use super::{
-    Ask, Download, FileAsk, GitAsk, GitWrite, PathChange, ProjectAsk, StartEnded, StartKey,
-    WorktreeAsk,
+    Ask, Download, FileAsk, GitAsk, GitWrite, PathChange, ProjectAsk, ReadImage, StartEnded,
+    StartKey, WorktreeAsk,
 };
 
 /// What a git write answered.
@@ -255,6 +255,13 @@ pub enum Answer {
         /// Kept at its path, or why not.
         result: Result<(), DownloadFailure>,
     },
+    /// An image's bytes arrived.
+    ImageRead {
+        /// What was asked.
+        ask: ReadImage,
+        /// The whole version, or why not.
+        result: Result<ImageBytes, DownloadFailure>,
+    },
     /// A step of a start.
     Start {
         /// Which start.
@@ -468,6 +475,10 @@ fn file_refused(ask: FileAsk, problem: &Problem) -> Answer {
             download,
             result: Err(DownloadFailure::Call(problem.clone())),
         },
+        FileAsk::Image(ask) => Answer::ImageRead {
+            ask,
+            result: Err(DownloadFailure::Call(problem.clone())),
+        },
     }
 }
 
@@ -481,4 +492,14 @@ fn took_failed(form: Form, problem: &Problem) -> Answer {
         form,
         result: no(problem),
     }
+}
+
+/// An image's bytes and the version they are (`file.read_bytes`, checked
+/// whole against its hash).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ImageBytes {
+    /// The file's bytes.
+    pub bytes: std::sync::Arc<[u8]>,
+    /// Their version.
+    pub revision: vessel_proto::workspace::panel_files::FileRevision,
 }

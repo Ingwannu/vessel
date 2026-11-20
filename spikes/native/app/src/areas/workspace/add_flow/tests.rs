@@ -3,8 +3,9 @@
 //! machine and text; a folder chosen is added; an older machine is not
 //! asked and gets no New directory; a refusal is said on its page; a
 //! success closes the sheet and moves on; a language change keeps the
-//! field. The GitHub page searches its machine and keeps typed rows
-//! while it searches and under an error.
+//! field; Browse is offered on this computer's machine only and adds the
+//! folder its chooser picks. The GitHub page searches its machine and
+//! keeps typed rows while it searches and under an error.
 use super::*;
 use gpui::TestAppContext;
 use vessel_app_link::Event;
@@ -362,6 +363,86 @@ fn an_older_machine_is_not_searched(cx: &mut TestAppContext) {
                 .iter()
                 .any(|call| matches!(call, Call::SearchRepositories(_)))
         );
+        scene.close(shell.fixture_link()).unwrap();
+    });
+}
+
+fn offers_browse(shell: &Shell) -> bool {
+    render::rows_of(shell)
+        .iter()
+        .any(|row| row.action == RowAction::Method(Method::Browse))
+}
+
+fn method_error(shell: &Shell) -> Option<String> {
+    shell
+        .areas
+        .workspace
+        .add_flow
+        .open
+        .as_ref()
+        .and_then(|open| open.flow.page().error.clone())
+}
+
+#[gpui::test]
+fn browse_is_offered_on_this_computer_and_adds_the_folder_picked(cx: &mut TestAppContext) {
+    let (shell, cx, mut scene) = setup(cx);
+    let name = shell.update_in(cx, |shell, window, cx| {
+        let name = machine(shell, &scene, PROJECT_DIRECTORY_PROTOCOL);
+        shell.open_add_flow(None, window, cx);
+        assert_eq!(page_id(shell), Some(PageId::Method));
+        // Another node on this computer: not this machine's Browse.
+        shell.add_flow_this_computer(vec![vessel_proto::NodeId::random()], cx);
+        assert!(!offers_browse(shell));
+        shell.add_flow_this_computer(vec![scene.context().node()], cx);
+        assert!(offers_browse(shell));
+        shell.add_flow_choose(RowAction::Method(Method::Browse), window, cx);
+        name
+    });
+    // Cancelled: nothing asked, nothing said.
+    assert!(cx.did_prompt_for_paths());
+    cx.simulate_path_prompt_response(|options| {
+        assert!(options.directories && !options.files && !options.multiple);
+        None
+    });
+    cx.run_until_parked();
+    shell.update_in(cx, |shell, window, cx| {
+        assert_eq!(page_id(shell), Some(PageId::Method));
+        assert_eq!(method_error(shell), None);
+        // A chooser that gives no folder says Paseo's error.
+        shell.add_flow_choose(RowAction::Method(Method::Browse), window, cx);
+    });
+    cx.simulate_path_prompt_response(|_options| Some(Vec::new()));
+    cx.run_until_parked();
+    shell.update_in(cx, |shell, window, cx| {
+        assert_eq!(
+            method_error(shell).as_deref(),
+            Some("Unable to browse for a directory")
+        );
+        shell.add_flow_choose(RowAction::Method(Method::Browse), window, cx);
+        // One chooser at a time.
+        shell.add_flow_choose(RowAction::Method(Method::Browse), window, cx);
+    });
+    cx.simulate_path_prompt_response(|_options| Some(vec!["/home/me/sketch".into()]));
+    cx.run_until_parked();
+    assert!(!cx.did_prompt_for_paths());
+    shell.update_in(cx, |shell, _window, _cx| {
+        let page = shell.areas.workspace.add_flow.open.as_ref().unwrap().flow.page();
+        assert!(page.submitting);
+        assert_eq!(page.error, None);
+        assert!(
+            matches!(scene.request(shell.fixture_link()).unwrap(), Call::AddProject(add) if add.path == std::path::Path::new("/home/me/sketch"))
+        );
+        // The node's refusal is said on the method page.
+        shell.took_project(&name, Form::Folder, Err(Problem::Unsent));
+        assert_eq!(page_id(shell), Some(PageId::Method));
+        assert_eq!(method_error(shell).as_deref(), Some("Unable to add project"));
+        let added = scene
+            .transcript(shell.fixture_link())
+            .unwrap()
+            .iter()
+            .filter(|call| matches!(call, Call::AddProject(_)))
+            .count();
+        assert_eq!(added, 1, "the cancel and the empty pick asked nothing");
         scene.close(shell.fixture_link()).unwrap();
     });
 }

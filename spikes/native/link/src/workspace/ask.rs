@@ -126,6 +126,18 @@ pub enum FileAsk {
     /// `file.read_bytes`, page by page (protocol 27, ADR 0105): a file kept
     /// on this computer.
     Download(Download),
+    /// `file.read_bytes`, page by page (protocol 27): an image's bytes for
+    /// the Files tab's image panel (F-F40), kept in memory.
+    Image(ReadImage),
+}
+
+/// An image of a root to draw.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReadImage {
+    /// The root.
+    pub root: WorkspaceRoot,
+    /// The file.
+    pub path: RelPath,
 }
 
 /// A file of a root to keep on this computer.

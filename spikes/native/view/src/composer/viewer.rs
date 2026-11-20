@@ -65,11 +65,23 @@ impl Position {
     }
 }
 
+/// How an image is fitted before it is zoomed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Fit {
+    /// The lightbox's: inside [`MAX_WIDTH`] by [`MAX_HEIGHT`], [`PADDING`]
+    /// from the canvas's edges.
+    Lightbox,
+    /// The Files tab's image panel: the whole canvas, as Paseo's image
+    /// panel passes its viewport no `fit` (padding 0, no cap).
+    Panel,
+}
+
 /// Fitted content with its bounded zoom and pan, reset for each image.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Viewport {
     content: Extent,
     canvas: Extent,
+    fit: Fit,
     fitted: Extent,
     scale: f32,
     x: f32,
@@ -81,11 +93,22 @@ pub struct Viewport {
     reason = "finite image geometry, bounded by validated extents and zoom limits"
 )]
 impl Viewport {
-    /// Start centered at the fitted size.
+    /// Start centered at the lightbox's fitted size.
     #[must_use]
     pub fn new(content: Extent, canvas: Extent) -> Self {
-        let available_w = (canvas.width - PADDING * 2.0).clamp(0.0, MAX_WIDTH);
-        let available_h = (canvas.height - PADDING * 2.0).clamp(0.0, MAX_HEIGHT);
+        Self::fitted(content, canvas, Fit::Lightbox)
+    }
+
+    /// Start centered at the size `fit` gives.
+    #[must_use]
+    pub fn fitted(content: Extent, canvas: Extent, fit: Fit) -> Self {
+        let (available_w, available_h) = match fit {
+            Fit::Lightbox => (
+                (canvas.width - PADDING * 2.0).clamp(0.0, MAX_WIDTH),
+                (canvas.height - PADDING * 2.0).clamp(0.0, MAX_HEIGHT),
+            ),
+            Fit::Panel => (canvas.width, canvas.height),
+        };
         // Set the limiting edge exactly rather than multiplying it by a
         // rounded fit ratio, which can overshoot the presentation cap.
         let fitted = if available_w == 0.0 || available_h == 0.0 {
@@ -107,6 +130,7 @@ impl Viewport {
         Self {
             content,
             canvas,
+            fit,
             fitted,
             scale: MIN_SCALE,
             x: 0.0,
@@ -117,7 +141,7 @@ impl Viewport {
     /// A resize returns to fit, as Paseo's resize observer does.
     pub fn resize(&mut self, canvas: Extent) {
         if self.canvas != canvas {
-            *self = Self::new(self.content, canvas);
+            *self = Self::fitted(self.content, canvas, self.fit);
         }
     }
 
@@ -135,6 +159,12 @@ impl Viewport {
             width: self.fitted.width * self.scale,
             height: self.fitted.height * self.scale,
         }
+    }
+
+    /// The canvas the content is fitted to.
+    #[must_use]
+    pub fn canvas(self) -> Extent {
+        self.canvas
     }
 
     /// Current zoom relative to fit.

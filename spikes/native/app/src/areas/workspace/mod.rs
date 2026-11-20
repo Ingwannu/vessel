@@ -193,12 +193,11 @@ impl Shell {
             Answer::Diff { ask, result } => self.diff_read(&ask, result),
             Answer::Listed { ask, result } => self.folder_read(&ask, result),
             Answer::Read { ask, result } => {
-                let seen = result
-                    .as_ref()
-                    .ok()
-                    .and_then(|read| read.version.hash.clone());
+                let version = result.as_ref().ok().map(|read| read.version.clone());
+                let seen = version.as_ref().and_then(|version| version.hash.clone());
                 self.file_read(&ask, result, cx);
                 self.code_file_seen(&ask, seen);
+                self.code_image_seen(&ask, version);
             }
             Answer::Found { ask, result } => self.files_found(&ask, result),
             Answer::Grepped { ask, result } => self.files_grepped(&ask, result),
@@ -210,6 +209,7 @@ impl Shell {
                 self.folder_inspected(&ask, result);
             }
             Answer::Downloaded { result, .. } => self.file_downloaded(result, cx),
+            Answer::ImageRead { ask, result } => self.code_image_read(&ask, result, cx),
             // Track G1's: the git toolbar's reads and writes.
             Answer::Status { root, result } => {
                 // An unchanged status asks for no frame (track G1's

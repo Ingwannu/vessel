@@ -124,6 +124,8 @@ impl Shell {
             return;
         };
         let page = match form {
+            // Browse adds from the method page (Paseo's `"method"` source).
+            Form::Folder if open.flow.page().kind.id() == PageId::Method => PageId::Method,
             Form::Folder => PageId::DirectorySearch,
             Form::Clone => PageId::GithubLocation,
             Form::Directory => PageId::NewDirectoryName,

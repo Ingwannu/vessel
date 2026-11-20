@@ -39,6 +39,7 @@ use crate::shell::Shell;
 mod actions;
 mod display;
 mod foot;
+mod hover_card;
 mod layout;
 mod machines;
 mod projects;
@@ -110,6 +111,8 @@ pub(crate) struct SidebarState {
     rows: row_menu::RowMenu,
     /// The projects whose Show more was pressed (not kept, as Paseo's).
     shown_all: projects::ShownAll,
+    /// A session row's hover card (TRACKER 810).
+    cards: vessel_app_kit::HoverCards,
     /// Its right edge, dragged to resize it.
     pub(crate) edge: PanelEdge,
 }
@@ -124,6 +127,7 @@ impl SidebarState {
             display: display::DisplayMenu::new(window, cx),
             rows: row_menu::RowMenu::new(cx),
             shown_all: projects::ShownAll::new(),
+            cards: vessel_app_kit::HoverCards::new(),
             edge: PanelEdge::new(),
         }
     }
@@ -257,6 +261,7 @@ pub(crate) fn render(
         ))
         .child(foot::foot(shell, tokens, cx).flex_none())
         .children(shell.areas.sidebar.tips.render(tokens))
+        .children(hover_card::layer(shell, tokens, window, cx))
         .children(display::menu(shell, tokens, window, cx))
         .children(row_menu::render(shell, tokens, touch, window, cx))
         .children(crate::areas::workspace::sidebar_project_layers(
