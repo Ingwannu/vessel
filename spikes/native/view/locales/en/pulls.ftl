@@ -192,3 +192,84 @@ pulls-merge-rejected = The merge was refused
 pulls-merge-refused-unknown = The pull request wasn't merged
 # Switch label in the pull request view. Keep it one line.
 pulls-feedback = Send failing checks and reviews to the session
+# The pull request pane (an Explorer tab). Its toolbar's button that opens the pull request on the forge. Keep short.
+pulls-pane-view = View
+# The pane's words when the pull request could not be read.
+pulls-pane-failed = Failed to refresh git state.
+# Read the pull request again after a failure. Keep short.
+pulls-pane-retry = Retry
+# A count of skipped or cancelled checks. $count is a number.
+pulls-count-skipped = { NUMBER($count) } skipped
+# The checks' detail line. $parts is the counts joined with commas, such as "2 failing, 4 in progress"; $total is every check.
+pulls-checks-detail = { $parts } { NUMBER($total) ->
+    [one] check
+   *[other] checks
+    }
+# A group of failing checks in the pane. $count is a number.
+pulls-group-failing = { NUMBER($count) ->
+    [one] { $count } failing check
+   *[other] { $count } failing checks
+    }
+# A group of checks still running. $count is a number.
+pulls-group-pending = { NUMBER($count) ->
+    [one] { $count } in progress check
+   *[other] { $count } in progress checks
+    }
+# A group of passed checks. $count is a number.
+pulls-group-passed = { NUMBER($count) ->
+    [one] { $count } successful check
+   *[other] { $count } successful checks
+    }
+# A group of skipped or cancelled checks. $count is a number.
+pulls-group-skipped = { NUMBER($count) ->
+    [one] { $count } skipped check
+   *[other] { $count } skipped checks
+    }
+# A running check's time so far. $duration is short, such as "2m" or "1m 30s".
+pulls-check-running = running { $duration }
+# The pane's Activity when the pull request has none.
+pulls-no-activity = No activity yet
+# After a name in an activity card: they left a comment. Lowercase, as Paseo writes it.
+pulls-verb-commented = commented
+# After a name in an activity card: their review approved. Lowercase.
+pulls-verb-approved = approved
+# After a name in an activity card: their review asked for changes. Lowercase.
+pulls-verb-changes-requested = requested changes
+# After a name in an activity card: they reviewed without a verdict. Lowercase.
+pulls-verb-reviewed = reviewed
+# A review thread with no file, in its header.
+pulls-thread-discussion = Discussion thread
+# A thread's badge: someone marked it resolved. Keep short.
+pulls-thread-resolved = Resolved
+# A thread's badge: the code it was about has changed since. Keep short.
+pulls-thread-outdated = Outdated
+# An activity card's age: under a minute.
+pulls-age-now = just now
+# An activity card's age in minutes. $count is a whole number. Keep short.
+pulls-age-minutes = { NUMBER($count) }m ago
+# An activity card's age in hours. $count is a whole number. Keep short.
+pulls-age-hours = { NUMBER($count) }h ago
+# An activity card's age in days. $count is a whole number. Keep short.
+pulls-age-days = { NUMBER($count) }d ago
+# An activity card's age in months of 30 days. $count is a whole number. Keep short.
+pulls-age-months = { NUMBER($count) }mo ago
+# An activity card's age in years. $count is a whole number. Keep short.
+pulls-age-years = { NUMBER($count) }y ago
+# A card whose author the forge did not name.
+pulls-unknown-author = unknown
+# Hand a comment, a review, a thread or a failed check's logs to the session's composer. Keep short.
+pulls-add-to-chat = Add to chat
+# While a failed check's logs are read before they are added. Keep short.
+pulls-adding-to-chat = Adding...
+# Hand every comment, review and open thread to the composer, each as its own item. Keep short.
+pulls-add-all-to-chat = Add all to chat
+# The name assistive technology reads for the pane's refresh icon. $forge is the forge's name, such as GitHub.
+pulls-refresh-state = Refresh git and { $forge } state
+# The refresh icon's name while it reads.
+pulls-refreshing = Refreshing
+# A card menu's row that copies the comment's or review's words. Keep short.
+pulls-copy = Copy
+# The name of the button that opens a comment's or review's menu.
+pulls-comment-actions = Comment actions
+# The name of the button that opens a review thread's menu.
+pulls-thread-actions = Thread actions

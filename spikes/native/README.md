@@ -1368,11 +1368,19 @@ A branch name is drawn on one line cut in its middle, never wrapped
 A session's pull request (`app/src/areas/pulls/`, rules in
 `view::workspace::pull`) is read from its card (`CardDetail.pull_request`,
 the node's watcher keeps it fresh) and asked on the same workspace channel
-(`Ask::Pull`: `pr.get`, `pr.open`). The git menu offers Create PR or View
-PR after the remote actions (Paseo's `git/policy.ts`); Create PR opens a
-form with `gh pr create --fill`'s defaults, as the node takes no title
-from a model. The link at the head of the Changes tab opens its facts; a
-card shows its number, state and checks under the branch. The fleet's
+(`Ask::Pull`: `pr.get`, `pr.open`, and the pane's `pr.timeline` and
+`pr.check`, ADR 0088). The git menu offers Create PR or View PR after the
+remote actions (Paseo's `git/policy.ts`); Create PR opens a form with
+`gh pr create --fill`'s defaults, as the node takes no title from a model.
+The pull request's pane is the code panel's Pull request tab, listed after
+Changes and Files while the card names one (`workspace/code/pull_tab.rs`;
+the link at the head of the Changes tab opens it): Paseo's toolbar, header,
+every check grouped with its ring and times, and the activity's cards
+(`areas/pulls/pane*.rs`), with Add to chat into the session's composer and
+each card's menu (Add to chat, Copy, Open on GitHub; `pane_menu.rs`, rows
+from `view::workspace::pull::card_menu`). Every control is named for
+assistive technology; folds say whether they are open.
+A card shows its number, state and checks under the branch. The fleet's
 nodes reach no forge (the remotes are bare repositories), so the screens
 there show why a pull request cannot be opened.
 

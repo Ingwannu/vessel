@@ -129,6 +129,7 @@ impl Shell {
             self.ask(&machine, Ask::Project(ProjectAsk::List));
         }
         self.add_flow_fleet();
+        self.pulls_fleet();
     }
 
     /// A machine answered a workspace ask. Returns whether what is drawn
@@ -159,6 +160,9 @@ impl Shell {
             }
             Answer::Took { form, result } => self.took_project(machine, form, result),
             Answer::Folders { query, result } => self.add_flow_folders(machine, &query, result),
+            Answer::Repositories { query, result } => {
+                self.add_flow_repositories(machine, &query, result);
+            }
             Answer::Icon { project, result } => {
                 self.background_answered(machine);
                 self.project_icon_read(machine, project, result);

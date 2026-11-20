@@ -167,3 +167,58 @@ fn stopped_removed_entries_and_unrelated_terminals_refuse() {
         Err(InvalidWorkspaceScriptRow::Terminal)
     );
 }
+
+/// A row's terminal reaches a peer as every other terminal does: without
+/// attention while ADR 0089's feature is unassigned for it (owed item 2 of
+/// the node review of TRACKER 815).
+#[test]
+fn a_rows_terminal_is_cut_like_any_terminal() {
+    use crate::workspace_services::{ServiceSnapshotId, WorkspaceScriptOutcome};
+    let before = crate::notifications::ATTENTION_NOTIFICATIONS_PROTOCOL
+        .map_or(crate::PROTOCOL_VERSION, |since| {
+            ProtocolVersion::new(since.get().saturating_sub(1))
+        });
+    let running = terminal();
+    assert!(
+        running.attention.is_some(),
+        "a new terminal reports attention"
+    );
+    let row = WorkspaceScriptRow::new(
+        definition(ScriptKind::Service),
+        WorkspaceScriptOrigin::Configured,
+        Some(running),
+        Some(observation()),
+    )
+    .unwrap();
+    let cut = row.for_protocol(before).unwrap();
+    assert_eq!(cut.view().terminal.and_then(|info| info.attention), None);
+    let bare = WorkspaceScriptRow::new(
+        definition(ScriptKind::Service),
+        WorkspaceScriptOrigin::Configured,
+        None,
+        Some(observation()),
+    )
+    .unwrap();
+    assert_eq!(bare.for_protocol(before), None, "no terminal, no copy");
+
+    for outcome in [
+        WorkspaceScriptOutcome::Accepted {
+            workspace: crate::WorkspaceId::random(),
+            snapshot: ServiceSnapshotId::random(),
+            row: Box::new(row.clone()),
+        },
+        WorkspaceScriptOutcome::Already {
+            workspace: crate::WorkspaceId::random(),
+            snapshot: ServiceSnapshotId::random(),
+            row: Box::new(row.clone()),
+        },
+    ] {
+        let projected = outcome.for_protocol(before).unwrap();
+        let (WorkspaceScriptOutcome::Accepted { row: sent, .. }
+        | WorkspaceScriptOutcome::Already { row: sent, .. }) = projected
+        else {
+            panic!("still a started or running row");
+        };
+        assert_eq!(sent.view().terminal.and_then(|info| info.attention), None);
+    }
+}

@@ -5,7 +5,7 @@ use std::collections::HashMap;
 
 use super::git_remote::{self, Location, Transport};
 use super::model::{
-    CloneProtocol, Direction, Flow, Machine, PageId, PageKind, Repository, move_index,
+    CloneProtocol, Direction, Flow, Machine, Origin, PageId, PageKind, Repository, move_index,
     move_selection,
 };
 use super::options::{
@@ -41,6 +41,7 @@ fn repository() -> Repository {
         name_with_owner: "getpaseo/paseo".to_owned(),
         clone_url: "getpaseo/paseo".to_owned(),
         protocol: Some(CloneProtocol::Ssh),
+        origin: Origin::Typed,
     }
 }
 
@@ -247,6 +248,7 @@ fn typed_repositories_are_a_remote_or_owner_repo_twice() {
             name_with_owner: "getpaseo/paseo".to_owned(),
             clone_url: "git@github.com:getpaseo/paseo.git".to_owned(),
             protocol: None,
+            origin: Origin::Typed,
         }]
     );
     let pair = typed_repositories("getpaseo/paseo");
@@ -447,6 +449,7 @@ fn rows_are_typed_and_older_machines_get_no_tilde() {
         shown: &shown,
         last_clone_parent: None,
         tilde,
+        repositories: &[],
     };
     let listed = rows(&inputs(true));
     assert_eq!(

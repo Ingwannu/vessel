@@ -40,6 +40,7 @@ mod image_view;
 mod line_syntax;
 mod panels;
 mod panels_view;
+mod pull_tab;
 mod search;
 mod shown_source;
 mod sort;
@@ -81,6 +82,8 @@ use vessel_app_link::workspace::Ask;
 enum Tab {
     Changes,
     Files,
+    /// The session's pull request (`pull_tab`, ADR 0088).
+    PullRequest,
 }
 
 /// Where the open session runs, as far as the panel knows.
@@ -478,7 +481,7 @@ impl Shell {
                 self.reread_files();
                 true
             }
-            Tab::Changes | Tab::Files => false,
+            Tab::Changes | Tab::Files | Tab::PullRequest => false,
         }
     }
 
@@ -494,6 +497,7 @@ impl Shell {
             Tab::Changes => self.read_changes(),
             // A root never listed is not among the folders read again.
             Tab::Files => self.read_folder(&RelPath::root()),
+            Tab::PullRequest => self.pulls_pane_read(),
         }
         self.code_watch();
     }
