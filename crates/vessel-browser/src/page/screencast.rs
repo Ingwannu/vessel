@@ -19,13 +19,13 @@ impl Page {
         if matches!(self.paint_signals, PaintSignals::Idle) {
             let side =
                 ViewportSide::try_from(SIGNAL_IMAGE_SIDE).map_err(|_bound| PageError::Surface)?;
-            let size = ViewportSize {
+            let bounds = ViewportSize {
                 width: side,
                 height: side,
             };
             let _focused = self.execute(requests::BringToFront {}).await?;
             let _started = self
-                .execute(requests::StartScreencast::with_viewport(size))
+                .execute(requests::StartScreencast::with_viewport(bounds))
                 .await?;
             self.paint_signals = PaintSignals::Watching;
         }
