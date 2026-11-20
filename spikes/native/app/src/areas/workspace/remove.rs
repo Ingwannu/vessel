@@ -18,7 +18,7 @@
 
 use std::path::Path;
 
-use vessel_app_kit::theme::radius;
+use vessel_app_kit::theme::{radius, spacing};
 use vessel_app_kit::ui::{
     Context, Div, ElementId, ParentElement as _, StatefulInteractiveElement as _, Styled as _, div,
     px,
@@ -344,7 +344,7 @@ fn closing_buttons(
         .flex_row()
         .flex_wrap()
         .justify_end()
-        .gap(px(8.0))
+        .gap(px(spacing::S2))
         .child(
             button("remove-cancel", labels.cancel, false, tokens).on_click(cx.listener(
                 |this, _event, _window, cx| {
