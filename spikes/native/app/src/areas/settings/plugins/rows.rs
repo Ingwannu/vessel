@@ -19,8 +19,8 @@ use vessel_app_kit::menu::{
 use vessel_app_kit::settings;
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, FluentBuilder as _, Hsla, InteractiveElement as _, IntoElement as _,
-    MouseButton, MouseDownEvent, ParentElement as _, Pixels, Point, SharedString,
+    AnyElement, ClickEvent, Context, Div, FluentBuilder as _, Hsla, InteractiveElement as _,
+    IntoElement as _, MouseButton, MouseDownEvent, ParentElement as _, Pixels, Point, SharedString,
     StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{ButtonState, Tokens, Type, TypeExt as _, outline_button};
@@ -67,6 +67,23 @@ impl Shell {
             None => state.menu.open(at, window, cx),
         }
         cx.notify();
+    }
+
+    /// The "…" activated by a click (a pointer's press already opened the
+    /// menu on its way down; assistive technology and the keyboard click
+    /// only): open the menu unless it is already open for this plugin, so
+    /// the click that ends a press does not close it again.
+    fn plugins_menu_activate(
+        &mut self,
+        plugin: PluginId,
+        at: Point<Pixels>,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let state = &self.areas.settings.plugins;
+        if !(state.menu.is_open() && state.menu_for.as_ref() == Some(&plugin)) {
+            self.plugins_menu(plugin, at, window, cx);
+        }
     }
 
     /// Row `index` of the open menu was chosen.
@@ -347,14 +364,20 @@ fn trigger(
     if !ready {
         return element.into_any_element();
     }
-    let plugin = plugin.clone();
+    let pressed = plugin.clone();
+    let clicked = plugin.clone();
     element
         .on_mouse_down(
             MouseButton::Left,
             cx.listener(move |shell, event: &MouseDownEvent, window, cx| {
-                shell.plugins_menu(plugin.clone(), event.position, window, cx);
+                shell.plugins_menu(pressed.clone(), event.position, window, cx);
             }),
         )
+        // A click (assistive technology's Click action, or the end of a
+        // pointer's press) opens it too, once (TRACKER 662's kebab).
+        .on_click(cx.listener(move |shell, event: &ClickEvent, window, cx| {
+            shell.plugins_menu_activate(clicked.clone(), event.position(), window, cx);
+        }))
         .into_any_element()
 }
 
@@ -415,3 +438,6 @@ pub(super) fn menu(
         .with_sheet(menu_label(shell, id));
     menu_with(content, &state.menu, &handlers, tokens, phone, cx)
 }
+
+#[cfg(test)]
+mod tests;
