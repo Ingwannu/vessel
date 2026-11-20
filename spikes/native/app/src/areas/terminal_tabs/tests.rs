@@ -392,21 +392,13 @@ fn close_asks_first_then_closes_the_terminal_on_its_machine(cx: &mut TestAppCont
     });
     let _created = sent(&probe, cx);
     shell.update_in(cx, |shell, window, cx| {
-        assert!(shell.run_layout_action(
-            LayoutAction::Close(CloseScope::Current),
-            window,
-            cx
-        ));
+        assert!(shell.run_layout_action(LayoutAction::Close(CloseScope::Current), window, cx));
         assert!(shell.areas.terminal_tabs.confirm.is_some());
         // Cancel keeps it.
         shell.terminal_tab_keep(window, cx);
         assert!(shell.areas.terminal_tabs.confirm.is_none());
         assert_eq!(terminal_tabs(shell), vec![terminal]);
-        assert!(shell.run_layout_action(
-            LayoutAction::Close(CloseScope::Current),
-            window,
-            cx
-        ));
+        assert!(shell.run_layout_action(LayoutAction::Close(CloseScope::Current), window, cx));
         shell.terminal_tab_close(window, cx);
         assert!(terminal_tabs(shell).is_empty());
     });
