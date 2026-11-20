@@ -26,15 +26,17 @@ The node reviewer returned three required lifecycle fixes. `c5e51a863`
 counts live terminals beside each session before archive, picks a live
 anchor for new worktree terminals, removes missing session tabs, and
 reveals a closed tab when the user re-enters its session address. The
-coordinator's R2 visual approval stands. The web gate for this follow-up
-is `impl-page-tabs-20261120T052151Z-c5e51a86` in
-`/tmp/work/impl-page-tabs/gate-r11`. After it passes, send it to the node
-reviewer `6fcba8b5`, then to integrator `ec7c91e9` once approved. The
-isolated capture fleet has exited.
+coordinator's R2 visual approval stands. The follow-up gate
+`impl-page-tabs-20261120T052151Z-c5e51a86` passed all nine steps, with 700
+unit and 107 browser tests. The logs are in
+`/tmp/work/impl-page-tabs/gate-r11`. Node reviewer `6fcba8b5` received the
+exact source and test evidence in `/tmp/work/impl-page-tabs/PACKET-R3.md`.
+Send the packet to integrator `ec7c91e9` once approved. There are no queued
+verification runs. The isolated capture fleet has exited.
 
 T2 reviewed the standalone-terminal seam and found no remaining issues
 in this slice. It uses the existing terminal protocol with polling and
 attach/focus resize. TRACKER 826 owns automatic replies to live terminal
 queries. The browser entry awaits the browser pane.
-T2 owns the protocol 37 terminal consumer follow-up and the later
-workspace-folder terminal ownership change in ADR 0121.
+The page still uses protocol 36-compatible polling and resize. T2 owns
+the node's workspace-folder terminal ownership change in ADR 0121.
