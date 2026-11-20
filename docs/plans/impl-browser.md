@@ -110,3 +110,10 @@ schedules a real viewport capture at the next permitted instant. It captures
 both document stamps around the screenshot instead of using the small signal
 image as the display frame. This keeps the CDP event queue bounded and lets
 the node drop intermediate paints while retaining the last scheduled update.
+
+The Linux relaunch fixture reopens a private profile only after the prior
+child's acknowledged close and a fresh bounded observation of its original
+process group and exact profile marker. A separate launch must return a
+fixture-only persistent cookie through the loopback test proxy. This checks
+reuse of a real Chromium profile under the service identity. The recovery
+policy for a live node with an uncertain exit still needs integration.

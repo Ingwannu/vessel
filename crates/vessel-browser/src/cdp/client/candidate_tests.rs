@@ -5,6 +5,7 @@
 //! admission is released from a leader/accepted-group cleanup receipt.
 use super::actor::{Actor, ActorError};
 use super::candidate_network::NetworkFixture;
+use super::candidate_reuse;
 use super::owner::Owner;
 use super::*;
 use crate::launch::{Plan, ProxyEndpoint};
@@ -15,6 +16,8 @@ use std::path::PathBuf;
 use tokio::net::TcpListener;
 use vessel_proto::WorkspaceId;
 use vessel_proto::browser::{BrowserFailure, HumanInput, ViewportSide, ViewportSize};
+
+const APPROVED_FIXTURE_TIMEOUT: Duration = Duration::from_secs(38);
 
 struct Fixture {
     scope: Preparation,
@@ -66,7 +69,7 @@ async fn fixture() -> Fixture {
 #[tokio::test]
 #[ignore = "requires the exact exported artifact, approved CFT and non-root runtime account"]
 async fn approved_candidate_uses_real_rust_driver_and_private_child_pipe() {
-    tokio::time::timeout(pipe_tests::FIXTURE_TIMEOUT, async {
+    tokio::time::timeout(APPROVED_FIXTURE_TIMEOUT, async {
         let Fixture {
             scope,
             plan,
@@ -76,6 +79,7 @@ async fn approved_candidate_uses_real_rust_driver_and_private_child_pipe() {
         } = fixture().await;
         let network = NetworkFixture::start().await;
         let routes = network.routes();
+        let endpoint = ProxyEndpoint::try_from(listener.local_addr().unwrap()).unwrap();
         let proxy = candidate_page::FixtureProxy::start(listener, routes);
         let owner = Owner::spawn(plan).unwrap();
         let run = owner.lifetime();
@@ -89,13 +93,12 @@ async fn approved_candidate_uses_real_rust_driver_and_private_child_pipe() {
         let driven = exercise_actor(&actor).await;
         let stopped = actor.shutdown().await.unwrap();
         let receipt = stopped.receipt.as_ref().unwrap();
-        proxy.finish().await;
-        network.finish().await;
+        let previous_root = root.clone();
+        let previous_temporary = temporary.clone();
         let held = scope
-            .run(move || matches!(Profile::prepare(&root, &temporary), Err(ProfileError::Busy)))
+            .run(move || matches!(Profile::prepare(&previous_root, &previous_temporary), Err(ProfileError::Busy)))
             .await
             .unwrap();
-        scope.finish().await;
         readiness.unwrap();
         assert!(receipt.run().same_run(&run));
         assert_eq!(receipt.code(), Some(0));
@@ -103,8 +106,10 @@ async fn approved_candidate_uses_real_rust_driver_and_private_child_pipe() {
         assert!(held);
         page.unwrap().unwrap().verify();
         driven.unwrap();
-        // No Profile::release or product capacity reuse is certified here.
-        drop(stopped);
+        candidate_reuse::relaunch(&scope, root, temporary, endpoint, stopped).await;
+        proxy.finish().await;
+        network.finish().await;
+        scope.finish().await;
     })
     .await
     .unwrap();

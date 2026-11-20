@@ -35,6 +35,9 @@ const FULL_HEIGHT: u32 = 1200;
 const INPUT_X: f64 = 32.0;
 const INPUT_Y: f64 = 110.0;
 const INPUT_TEXT: &str = "typed in the fixture";
+const FIXTURE_COOKIE: &str = "vessel-fixture-storage=present";
+pub(super) const PERSISTED_ROUTE: &str = "http://fixture.test/profile-marker";
+pub(super) const PERSISTED_MARKER: &str = "Fixture profile persisted";
 
 pub(super) struct FixtureProxy {
     stop: CancellationToken,
@@ -85,10 +88,20 @@ async fn document(State(routes): State<Routes>, request: Request<Body>) -> Respo
     if parts.uri.path() == "/favicon.ico" {
         return StatusCode::NO_CONTENT.into_response();
     }
+    if parts.uri.path() == "/profile-marker" {
+        let received = parts.headers.get(header::COOKIE).and_then(|entry| entry.to_str().ok());
+        return if received.is_some_and(|cookies| cookies.split(';').any(|cookie| cookie.trim() == FIXTURE_COOKIE)) {
+            ([(header::CACHE_CONTROL, "no-store")], PERSISTED_MARKER).into_response()
+        } else {
+            StatusCode::PRECONDITION_FAILED.into_response()
+        };
+    }
+    let storage_cookie = format!("{FIXTURE_COOKIE}; Max-Age=600; Path=/; SameSite=Lax");
     (
         [
             (header::CONTENT_TYPE, "text/html; charset=utf-8"),
             (header::CACHE_CONTROL, "no-store"),
+            (header::SET_COOKIE, storage_cookie.as_str()),
         ],
         HTML,
     )
