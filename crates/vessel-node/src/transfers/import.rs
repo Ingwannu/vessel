@@ -436,9 +436,7 @@ impl Importer<'_> {
             }
             Err(FetchError::Read(error)) => Err(error),
             Err(FetchError::Sink(error)) => Err(to_wire(TransferError::Fetch(error))),
-            Err(FetchError::Oversized(size)) => {
-                Err(to_wire(TransferError::FetchedTooLarge(size)))
-            }
+            Err(FetchError::Oversized(size)) => Err(to_wire(TransferError::FetchedTooLarge(size))),
             Err(FetchError::Task(error)) => Err(to_wire(TransferError::Task(error))),
         };
         let root = blobs.root().to_owned();

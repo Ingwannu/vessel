@@ -117,13 +117,7 @@ include!(concat!(env!("OUT_DIR"), "/files.rs"));
 /// names and session ids, which may hold dots, so the extension rule
 /// cannot tell them from files.
 const APP_ROUTES: [&str; 7] = [
-    "fleet",
-    "new",
-    "sessions",
-    "sync",
-    "devices",
-    "settings",
-    "kit",
+    "fleet", "new", "sessions", "sync", "devices", "settings", "kit",
 ];
 
 /// Whether `path` lies under one of the app's routes.

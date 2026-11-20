@@ -8,9 +8,9 @@ use bytes::Bytes;
 use rmcp::model::{JsonObject, Tool};
 use serde_json::{Value, json};
 use vessel_proto::{
-    ContentBlock, CreateSession, Delivery, EventSeq, GetSession, HarnessRef, ModelId,
-    PermissionId, PermissionOptionId, PermissionOutcome, ReadEvents, SendInput, SessionId,
-    SessionInput, SessionMode, SessionSpec, TerminalBytes, TerminalInput, TerminalSize,
+    ContentBlock, CreateSession, Delivery, EventSeq, GetSession, HarnessRef, ModelId, PermissionId,
+    PermissionOptionId, PermissionOutcome, ReadEvents, SendInput, SessionId, SessionInput,
+    SessionMode, SessionSpec, TerminalBytes, TerminalInput, TerminalSize,
 };
 
 use super::{
