@@ -22,7 +22,10 @@ vector nor a vendor download reachable here, so they keep Paseo's symbols
 - Licence of the SVG files: CC0-1.0. Simple Icons' disclaimer: the icons'
   trademarks remain their owners'; using them is subject to the owners'
   guidelines.
-- Kept: the single path's data, unchanged, in a 24 by 24 view box.
+- Kept: the single path's data, unchanged, in a 24 by 24 view box, one file
+  per scheme in this folder (`cursor-light.svg`, `cursor-dark.svg`, `zed-…`,
+  `android-studio-…`, `webstorm-…`; Xcode's one `xcode.svg`). The kit embeds
+  them by path (`kit/src/agent_mark/editors.rs`).
   Simple Icons ships no colour in the file; Vessel fills each path with its
   Simple Icons brand colour where that colour has 3:1 contrast or more
   against every menu surface of the scheme (WCAG 2.1, measured over the
