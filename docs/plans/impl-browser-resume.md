@@ -29,10 +29,14 @@ Product browser calls, the native pane and agent tool discovery are unavailable.
   target IDs, the existing tab cap and removal after actual close acknowledgement.
   Exact `0e86fb5c8` passed format (`impl-browser-node-20261120T035620Z-0e86fb5c`)
   and strict browser Clippy (`impl-browser-node-20261120T035711Z-0e86fb5c`).
-- The live artifact export for `0e86fb5c8` was queued at this checkpoint as
-  `impl-browser-node-20261120T035735Z-0e86fb5c`. Query its state and recover
-  the existing result. Do not submit a duplicate. At this checkpoint the
-  added frame-slot and target-ownership checks have no live CFT result.
+- Exact `0e86fb5c8` export `impl-browser-node-20261120T035735Z-0e86fb5c` passed.
+  Its selected live CFT fixture passed 1/0 in 6.36 s as UID/GID 1000. It
+  also verified frame delivery, frame invalidation, foreign-workspace refusal
+  and target removal after close. The post-run audit again found 247 owned
+  private entries, no exact-profile processes and no cleanup signals.
+- The ordinary focused browser suite is
+  `impl-browser-node-20261120T040057Z-0e86fb5c` on the same source. Check the
+  existing receipt rather than enqueueing it again.
 
 ## Review and next work
 
@@ -41,9 +45,8 @@ The coordinator approved the plan and ADR and received the scoped pass for
 ready, the node reviewer precedes the integrator. P2 onward needs the
 coordinator's frames verdict before the native reviewer and lead.
 
-1. Settle the exact target/visible-slot result and retain any failure receipt.
-   A passing selected fixture still leaves the ordinary browser suite and
-   exact whole root gate to run before package review.
+1. Recover the ordinary focused suite result if still pending. Keep the exact
+   whole root gate for package review after P1 reaches the node entry point.
 2. Finish P1's node actor and real event routing. Consume the prepared child
    and workspace targets through the single bounded dispatcher, and keep
    discrete state/terminal notices separate from the latest frame. Test actual
@@ -51,8 +54,8 @@ coordinator's frames verdict before the native reviewer and lead.
    full General network qualification against controlled local fixtures,
    including redirects, subresources, service workers, DNS, ICE and
    QUIC/WebTransport. The isolated diagnostic's two loopback HTTP refusals
-   are scoped evidence. Keep methods pending and the engine hidden until
-   qualification and actual integration.
+   are scoped evidence. The browser method rows and `BROWSER_PROTOCOL` are
+   unassigned. Engine availability waits for qualification and integration.
 3. P2 binds the native pane, verified frame transport and profile clear to
    the pane registry. P3 consumes the existing composer and image paths. P4
    delivers the complete tool path and default-off host setting. After P4,
@@ -66,3 +69,7 @@ from exact receipts. The live diagnostic uses the exported artifact, pinned
 CfT and local fixtures under the non-root account. The profile is quarantined
 after the diagnostic. No preview units, desktop opener, external test sites,
 production pairing or local builds belong to this work.
+
+The host cleanup scan used the four owned diagnostic markers and found no
+remaining fixture browser, wrapper or exported-test process. This track
+started no fake fleet or virtual display.
