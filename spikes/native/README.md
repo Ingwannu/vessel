@@ -662,6 +662,28 @@ list again on a change (Paseo's `plugin_catalog_changed`). A machine below
 asked. A plugin failure shows the node's own words (Paseo's error message):
 they are about the person's own code on their own machine.
 
+A machine's plugin items (ADR 0115, "Catalog and invoke") are Paseo's client
+registry for the window. `view::plugins::Catalogs` holds each machine's last
+`plugin.catalog`. It decides what to ask: read the catalog, long-poll
+`plugin.watch` from its generation, and read again when the generation moves.
+`app/src/areas/plugin_items.rs` sends those calls on each fleet change. Their
+answers come back as `Event::PluginCatalog`, apart from the Settings page's
+calls.
+- A watcher belongs to one connection. A failed call stops it until the
+  machine connects again.
+- An offline machine keeps its catalog. A machine taken out of the book loses
+  it.
+- Command Center (the palette) lists each plugin's items in a section titled
+  with the plugin's id, after the app's own groups (`PaletteGroup::Plugin`).
+- The session composer's `/` menu offers the session machine's plugin slash
+  commands, after the built-ins and before the agent's own. A submitted
+  `/name args` runs the plugin's method with `{arguments}` and the session as
+  its context, and the composer empties.
+- Items appear only where the catalog says the caller may invoke
+  (`may_invoke`, Admin devices), and only in the context they declare.
+- A method's failure is a toast in the node's words. Success says nothing, as
+  in Paseo.
+
 `kit::screen_header::frame` is the shared screen/back-header renderer:
 `Content { title, leading, actions }` and typed desktop/compact density.
 The ordinary header and compact callback entry points delegate to it.
