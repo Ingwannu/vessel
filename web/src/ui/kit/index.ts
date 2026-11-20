@@ -61,6 +61,7 @@ export { StatusDot } from "./status-dot";
 export {
   moveActive,
   suggestionId,
+  type SuggestionCard,
   type SuggestionItem,
   Suggestions,
 } from "./suggestions";

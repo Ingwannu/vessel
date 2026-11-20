@@ -1,5 +1,6 @@
 // Milestone 11's conversation controls: the composer's suggestion list
-// for `/` and `@`, with a note in place of rows.
+// for `/` and `@`, with a note in place of rows. The commands carry the
+// card that shows over the list for the active one (TRACKER 834).
 
 import { useState } from "react";
 
@@ -11,13 +12,27 @@ const COMMANDS = [
     key: "compact",
     label: "/compact",
     detail: "Summarise the conversation · focus",
+    card: {
+      title: "/compact",
+      description: "Summarise the conversation",
+      hint: "focus",
+    },
   },
   {
     key: "review",
     label: "/review",
     detail: "Review the changes on this branch",
+    card: {
+      title: "/review",
+      description: "Review the changes on this branch",
+    },
   },
-  { key: "init", label: "/init", detail: "Write a guide to this repository" },
+  {
+    key: "init",
+    label: "/init",
+    detail: "Write a guide to this repository",
+    card: { title: "/init", description: "Write a guide to this repository" },
+  },
 ];
 
 const FILES = [
