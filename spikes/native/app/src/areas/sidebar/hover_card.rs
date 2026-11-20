@@ -24,18 +24,19 @@
 //!     ruling); Paseo's role `menu` named "Workspace scripts" is left over.
 //!   - No diff stat: Paseo's is a server field the node does not send yet
 //!     (TRACKER 819 adds its row after the pull request's).
-//!   - The checks row (TRACKER 824) leads with the forge's mark (the kit's
-//!     GitHub artwork in its own colours; Paseo tints a monochrome icon
-//!     muted), a forge this app does not know with the pull request's mark;
-//!     on hover it becomes the boxed outward arrow, as Paseo's. Its counts
-//!     are the node's tally (passed, failed, pending; no warning, action
-//!     required or manual); without a tally it says the checks' one state.
+//!   - The checks row (TRACKER 824) leads with the forge's mark tinted
+//!     muted, as Paseo's (GitHub's is single-colour; a forge whose official
+//!     mark has several colours would keep them), a forge this app does
+//!     not know with the pull request's mark; on hover it becomes the boxed
+//!     outward arrow. Its counts are the node's tally (passed, failed,
+//!     pending; no warning, action required or manual); without a tally it
+//!     says the checks' one state.
 //!   - The pull request badge's outward arrow is the kit's `ArrowUpRight`
 //!     (the inline link's).
 
 use std::time::Duration;
 
-use vessel_app_kit::agent_mark::{Forge, Size, forge_mark};
+use vessel_app_kit::agent_mark::{GITHUB, Size, Space, agent_mark_muted};
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::picker::glyph;
 use vessel_app_kit::theme::spacing;
@@ -303,7 +304,10 @@ fn checks_row(
         words.checks_counted(&counted)
     };
     let lead: AnyElement = match checks.forge {
-        ForgeKind::Github => forge_mark(Forge::GitHub, Size::Twelve, tokens).into_any_element(),
+        // GitHub's mark is single-colour: tinted muted, as Paseo's.
+        ForgeKind::Github => {
+            agent_mark_muted(Some(GITHUB), Size::Twelve, Space::Compact, tokens).into_any_element()
+        }
         ForgeKind::Unknown => {
             glyph(Glyph::PullRequest, GLYPH, neutral.foreground_muted).into_any_element()
         }
