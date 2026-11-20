@@ -108,7 +108,8 @@ impl TerminalSender {
                 *last_intent = ResizeIntent::Claim;
             }
         } else {
-            self.items.push_back(Outgoing::Resize { cols, rows, intent });
+            self.items
+                .push_back(Outgoing::Resize { cols, rows, intent });
         }
     }
 

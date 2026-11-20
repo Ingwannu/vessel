@@ -18,8 +18,8 @@ use vessel_app_view::layout::{
 };
 use vessel_app_view::terminal::Outgoing;
 use vessel_app_view::{Machine, Reach};
-use vessel_proto::{ResizeIntent, SessionId};
 use vessel_proto::terminals::{TerminalKind, TerminalList};
+use vessel_proto::{ResizeIntent, SessionId};
 
 struct Probe(Entity<Shell>, Receiver<Command>, SessionId, TabId);
 
@@ -523,17 +523,28 @@ fn a_node_that_waits_is_asked_again_only_when_the_list_moved(cx: &mut TestAppCon
             .collect()
     };
     shell.update_in(cx, |shell, _window, _cx| shell.terminal_tabs_poll());
-    assert_eq!(from(&sent(&probe, cx)), [None], "the first ask answers at once");
+    assert_eq!(
+        from(&sent(&probe, cx)),
+        [None],
+        "the first ask answers at once"
+    );
     shell.update_in(cx, |shell, _window, cx| {
         answer(shell, listed(&place, 4, true), cx);
     });
-    assert_eq!(from(&sent(&probe, cx)), [Some(4)], "then waits from what it saw");
+    assert_eq!(
+        from(&sent(&probe, cx)),
+        [Some(4)],
+        "then waits from what it saw"
+    );
     shell.update_in(cx, |shell, _window, _cx| shell.terminal_tabs_poll());
     assert!(from(&sent(&probe, cx)).is_empty(), "one ask in flight");
     shell.update_in(cx, |shell, _window, cx| {
         answer(shell, listed(&place, 4, true), cx);
     });
-    assert!(from(&sent(&probe, cx)).is_empty(), "an unmoved answer is not re-asked");
+    assert!(
+        from(&sent(&probe, cx)).is_empty(),
+        "an unmoved answer is not re-asked"
+    );
     shell.update_in(cx, |shell, _window, cx| {
         shell.terminal_tabs_poll();
         answer(shell, listed(&place, 5, true), cx);
