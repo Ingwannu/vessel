@@ -53,6 +53,8 @@ mod fleet_published;
 #[cfg(test)]
 mod forge;
 #[cfg(test)]
+mod forge_pane;
+#[cfg(test)]
 mod forge_repos;
 mod forge_rules;
 // A half-open TCP path, for the keepalive tests.
@@ -132,6 +134,9 @@ mod search;
 mod secrets_across;
 #[cfg(test)]
 mod secure;
+#[cfg(test)]
+#[cfg(unix)]
+mod shared_terminals;
 #[cfg(test)]
 mod side_questions;
 #[cfg(test)]

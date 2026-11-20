@@ -1,3 +1,31 @@
+Current worker state after the gate50c head merge: runtime remains pending
+union checks, full source review and owning whole gate. The next section is the
+integrated values-only carrier's preserved scope; the worker runtime continuation
+below it is separate and has not been adopted by that source verdict.
+
+## Resume status (2026-11-16)
+
+Current NODE source d45fbc880 is on announced ed4cd137 (counted17/18 with the
+named unrelated startSession/new intermittent). The canonical sequence migration
+module contains the unchanged owned claims append after listing21. Current
+strict is queued; prior de524 strict0, three-library835 and generated TS5 remain
+earlier-source evidence. W2 Relation/WorkspaceRole is canonical; its unassigned
+observation capability remains Unknown. Membership helper integration and the
+canonical lifecycle clock are not yet consumed. Five A5 methods stay None.
+
+Earlier checkpoints below are retained as source-specific history.
+
+Current source: canonical275024369 mergedde524128; the worker claims append
+remains22 after listing21, and its five pending rows follow skills.import_selection.
+Prior830 on939 passed five-crate all-target strict, actual vesseld build,980
+library tests and42 rollback tests. Current275 strict, three-library consumer
+tests and remote TypeScript generation are queued; no current whole is inferred.
+The docs correction separates server error recipient admission from native OS
+error suppression, without changing node runtime eligibility. Workspace marks
+remain design-only pending canonical membership, workspace-relative roles and
+lifecycle-owned updatedAt. Historical checkpoints below do not grant current
+whole, assigned-wire or A5 approval.
+
 # A5: existing node inbox and push boundary
 
 ## Ownership and scope
@@ -64,8 +92,9 @@ read/answered state and renewed leases are not inferred from registration time.
   push-service delivery proof is implied by the API.
 - No title, body preview, session id, path, prompt or file content crosses OS
   or push notification text. Clients reconnect to obtain authorized details.
-- The subscription lease is renewed by registration. Paseo heartbeat renewal
-  differs; the app must not assume reporting presence alone renews this API.
+- The integrated N1 base renews a subscription by registration. The staged A5
+  continuation below adds paired heartbeat renewal at or after half life; that
+  behavior is not part of the earlier integrated API evidence.
 - The existing session presence API is not a terminal attention API. The app
   package owns that extension and the single-recipient claim. New methods or
   request variants use the canonical metadata/version contract after its head
@@ -86,3 +115,537 @@ Use one package gate/review when the actual package is complete, with security
 changes retaining their per-commit review. Never prompt a real agent, use the
 preview node or claim live OS/phone delivery from fake-node tests. The current
 node gaps must be coordinated with the app package's owner, not duplicated.
+
+
+## Worker runtime continuation (not adopted by this values carrier)
+
+# A5 node: authoritative attention and recipient admission
+
+Status: staged source, pending changed-source checks and V3 acceptance. The one
+ATTENTION_NOTIFICATIONS_PROTOCOL constant remains None. No assigned-wire,
+complete package gate, native delivery or platform parity is claimed.
+
+## Reference and scope
+
+Paseo 0.15.4 reference paths:
+
+- `packages/server/src/server/agent-attention-policy.ts:3-79` and
+  `websocket-server.ts:2838-2888`: 180 s activity, focused-target suppression,
+  most-recent eligible local recipient, otherwise push.
+- `packages/server/src/terminal/activity/terminal-activity-tracker.ts:12-80`:
+  semantic working/idle/needs-input/clear/interrupt; unknown plain shells have
+  no inferred state.
+- `packages/server/src/server/push/token-store.ts:34-42,95-141`: 48 h lease, renewal
+  at or after half life, revoke/prune/persist. Vessel retains the ADR 0041 account-free
+  Web Push difference, not Expo/APNs/FCM or mobile permission/UI parity.
+- `packages/app/src/utils/agent-attention.ts:18-90` and
+  `hooks/use-agent-attention-clear.ts:112-150`: reading never answers permission;
+  attention arriving in place defers until real input/send/blur.
+- `packages/app/src/subagents/workspace-root-policy.ts:6-16` and
+  `utils/workspace-agent-activity.ts:22-48`: canonical workspace-relative roots
+  and the latest eligible non-archived root. Workspace mutation integration is
+  still owed; retained registry membership alone does not establish eligibility.
+
+## Decision Log
+
+- Purpose: one source of durable unread/waiting facts and one node decision about
+  local delivery or push, including terminals without fabricating session ids.
+- Existing assets/constraints: Inbox projection and marking writer, push service,
+  terminal registry/actor, generated method table, existing IPC transport and
+  authenticated connection principal already own these responsibilities.
+- Alternatives: client election, replayed logs, another read engine, PTY text
+  heuristics, a public hook endpoint or fabricated general-purpose principal.
+- Choice: modify/reuse those assets; keep values in proto, transactions in store,
+  connection admission in node and semantic terminal state in session runtime.
+- Why: existing transactions, lifetime fences and generated policy remain the
+  authorities. Standard Rust/existing dependencies suffice; no library is added.
+- Impact: new calls remain unavailable until the integrator assigns the shared
+  protocol; each future consumer must retain exact source/revision/context.
+
+## Contract and modules
+
+Five pending rows live only at the end of `vessel-proto/src/rpc/table.rs`:
+notification.claim, terminal.attention_clear, terminal.activity, inbox.attention,
+and inbox.read. Generated guards/envelopes/SDK share that table. The first,
+fourth and fifth are direct-person/nonforwardable; terminal operations retain
+existing forwarding/scope and target ownership checks. Agent/delegated contexts
+cannot consume a person's read or recipient grant.
+
+Optional terminal focus/idle age request fields use Call::since field rules.
+TerminalInfo attention is omitted for unsupported peers in direct/list/watch,
+script and nested fleet replies. Pending methods never acquire a provisional
+number. One durable claim migration follows the current store head; the node
+integrator owns final protocol/schema numbering at integration.
+
+| Module | Responsibility |
+| --- | --- |
+| `vessel-proto/{notifications,inbox_attention,push}` | Typed source/revision/activity/read values and pending capability |
+| `vessel-store/inbox`, `push`, `writer` | Exact shared marks, rollups, committed recipient claims and lease admission |
+| `vessel-node/service`, `sessions` | Authenticated admission, pending veto, cancellation-safe existing mark task |
+| `vessel-node/push` | Existing recipient policy, one coalescing delivery worker, generic payload |
+| `vessel-node/terminals` | Registry ownership, bounded metadata wakes and activity capability lifetime |
+| `vessel-session/terminals` | Semantic reducer, non-reused revisions, exact clear and once-only claim |
+
+## Local recipient and source authority
+
+Presence retains stable transport identity and node-timestamped actual activity.
+Focus-only/periodic reports do not refresh it. Optional OS idle evidence is aged
+at receipt; a cached sample does not keep a person present forever. Election
+rechecks current direct human/device Read authority and original connection.
+
+A session grant commits once per exact unread eligible Inbox cursor in the
+existing writer transaction. Durable rows cascade with their Inbox source.
+Authority, read/resolution/source and recipient/focus are rechecked after
+commit. A lost reply spends the opportunity; it never authorizes another display.
+Terminal grants use exact non-reused revision under a runtime mutex. No synthetic
+SessionId is used. Native OS delivery remains generic with a process-local
+opaque source map (ADR 0041/0089).
+
+Origin/side-question/archive eligibility is shared by candidate selection before
+LIMIT and final admission. Existing Creator filtering is not a replacement for
+W2 current parentage or W11 workspace-relative root ownership; that integration
+remains outstanding.
+
+## Shared read and badge projection
+
+inbox.attention accepts at most ATTENTION_BATCH distinct session identities and
+reads all their current Inbox rows in one read transaction, independent of the
+loaded sixteen-entry head. Missing/deleted sessions are omitted. unread/waiting/
+failed remain Inbox-derived counts; failed is independent of Seen.
+
+SessionAttention.explicit_unread separately reads committed sessions.marked_unread
+in that same transaction, including empty/pruned Inbox. Exact-entry Seen, answer
+or removal must not clear the deliberate whole-session choice. Existing whole
+Read does. Historical log attention/read watermarks are never OR-ed into counts.
+The native values consumer awaits reviewed handoff; it must use explicit flag OR
+unseen count with pending/failure/work priority intact.
+
+inbox.read is narrow direct-human Read authority through Sessions' existing
+marking lock and cancellation-safe task. Live pending requests and the writer's
+atomic durable pending veto both apply. The same Mark::Read transaction updates
+the actually observed exclusive watermark, including delayed appends, and wakes
+other readers after commit. General MarkSession scope is not widened.
+
+Drafted fixtures cover empty Inbox + Unread, exact Seen preserving the flag,
+whole Read clearing it, delayed append/pending veto, and two concurrent store
+readers racing writer-committed Read/Unread. The latter is not paired UI proof.
+
+## Terminal producer and lifetime
+
+Explicit semantic reports and known script/service lifecycle share the existing
+TerminalHandle info watch. Arbitrary PTY bytes cannot imply a job. Exact observed
+revisions reject stale clear/finish; revision exhaustion never wraps. End/removal/
+shutdown close producer admission. Ended attention may be read/cleared, but a
+producer cannot restart ended work.
+
+ActivityProducer's generated Handler owns only one TerminalHandle and rejects
+every other method, including future generated methods. Existing IPC uses a
+random terminal-scoped 256-bit secret, constant-time stored hash, redacted Debug
+and a closure token. Inherited activity variables are scrubbed before exact
+injection. Generation/admission stay off while the feature constant is None.
+No listener or Principal is invented. W17 owns the CLI grammar and bounded silent
+producer invocation; checked DTO/API handoff is still owed.
+
+## One push worker for both sources
+
+Inbox cursor and terminal revision watermarks are independent in one worker.
+Startup baselines exclude pre-existing attention. Metadata watchers retain only
+watch receivers, never a TerminalHandle, and stop on closed sender/shutdown.
+Unknown/cleared/failed/removed/foreign/regressed terminal metadata cannot push.
+No output watch, durable terminal replay or second delivery engine is added.
+
+Each lease/burst gets one generic encrypted request, coalesced across both
+sources. Crypto::encrypt -> Delivery::prepare (including DNS) -> final admission
+-> prepared.send is reused. There is no preparatory await after final admission.
+Factored lease SQL checks exact device/subscription/expiry, unexpired current
+Read and unrevoked/existing device. Inbox source+lease checks remain one SQL
+snapshot. Terminal admission awaits that lease check, then synchronously
+rechecks exact runtime revision and presence. No session identity is fabricated.
+Gone responses expire only the attempted stored lease; an old 410 cannot remove
+a newer renewal. Leases renew at or after half of PUSH_LEASE only while current;
+expired/revoked/missing/readless rows cannot resurrect.
+
+Existing real HTTP/encryption/preparation cancellation/restart fixtures remain.
+Their completion observer now requires the canonical Session source before
+asserting exact keys. The terminal fake-node fixture propagates its outer timeout.
+While the feature is None it proves only SDK refusal/no delivery. Assigned
+positive terminal delivery and restart/runtime proof remain explicit obligations.
+A preparation-barrier fixture now covers exact clear, newer Working, removal,
+focused recipient, revocation and exact lease renewal at both Crypto and
+Transport. It waits for attempt completion before shutdown, so shutdown cannot
+make an absent admission check pass. While pending, its explicit capability
+guard does not establish any positive cancellation proof.
+
+## Verification state
+
+V3 row162 inspected ba45a6e3..a032bfe65 and returned one A7 bound-duplication issue;
+no other inspected security defect was asserted. Named-bound corrections are
+committed. This was not a PASS or a review of the later terminal-push/explicit
+unread deltas. The next review packet must include actual changed-source checks.
+
+Actual immutable results retained in the private A5 evidence packet:
+
+- `wp-inbox-node-20261115T113109Z-15805629`: strict check failed only the own
+  writer apply function's 109/100 lines; helper extraction now reduces it.
+- `wp-inbox-unit-20261115T113109Z-15805629`: proto 301 passed/1 failed on own
+  forwardable-method expectation order; the two pending terminal names now match
+  their table-end position. Fail-fast prevented subsequent crate execution.
+- `wp-inbox-ts-20261115T112026Z-294d9cca`: 3 proto + 1 web generator tests passed;
+  rc1 records the generated tracked proto.ts diff. Its commit/status/patch and
+  hashes were verified before applying that exact artifact. Later explicit_unread
+  still requires regeneration; generated whitespace is retained.
+- Current strict/unit runs `wp-inbox-node/unit-20261115T123346Z-c2a75fda` are
+  queued, not compiler results. Later fixture-only source also needs checking.
+
+All new Cargo/rustc/build/test/generation runs use the build VM through
+vessel-remote-gate. Static size checks pass without increasing any ratchet.
+VM restart rc143 evidence remains an infrastructure interruption, not PASS.
+No whole root gate, V3 acceptance, final native gate/capture or V4 exists yet.
+Tests use fake agents/private temporary data; no production credential/service,
+file ownership/permission or infrastructure changes have been made.
+
+## Half-life boundary correction
+
+Rereading the actual v0.15.4 token-store.ts:34-42 exposed an own implementation
+off-by-one: the reference skips renewal only while remaining life is greater
+than half. The SQL now includes exact half life. The own new fixture checks no
+rewrite before half, renewal exactly at half, no second rewrite a step later,
+and late old 410 preservation. Device/read/revocation/expiry predicates and
+existing tests are retained. This intentionally changes only the own half-life
+expectation and is separate from V3's earlier bound-duplication correction.
+Changed-source execution remains owed.
+
+## Unknown cannot establish untracked activity
+
+The canonical pending DTO now has explicit Untracked. Known Shell construction
+uses it; Unknown remains default/serde(other) for missing/lost/future evidence.
+The runtime reducer accepts Untracked as a no-attention starting state, but only
+explicit Working followed by Idle creates Finished. Clear loses tracking and
+returns Unknown. This fixes an information-loss bug in the earlier native
+adapter proposal. No extra wire call/number/scope/schema is introduced; reviewed
+values adoption and regenerated TypeScript are still owed.
+
+Run wp-inbox-ts-20261115T125329Z-b4989aa4 completed actual 3 proto + 1 web
+generator tests, all passed. Its rc1 is only the generated tracked proto.ts diff.
+Commit/status/all artifact hashes were checked, then its exact patch was applied
+without hand-editing generated bytes. This adds explicit_unread from that source.
+Later explicit Untracked changes the enum and still requires fresh generation;
+this predecessor artifact is not claimed current for that variant.
+
+Latest-root ordering remains a projection gap: current rollups contain counts
+and deliberate flag, not canonical attentionTimestamp/updatedAt. Legacy activity
+or sixteen head entries must not silently substitute for that missing evidence.
+W11 keeps selection Unknown until authoritative ordering facts exist. The
+same-transaction membership lookup for workspace Read/Unread is also still a
+planned W11 adapter, not an available runtime API.
+
+Actual scoped Store integration: wp-inbox-store-20261115T125350Z-b4989aa4
+completed rc0, 2 passed/0 failed/0 ignored at 13:42:57 UTC. It executed pending
+veto/delayed append watermark and two read-pool snapshots racing writer-committed
+whole-session Read/Unread. This is neither paired-device UI nor a whole runtime
+gate. The later enum/fixture changes were not present in that immutable source.
+
+Exact wp-inbox-node-20261115T123346Z-c2a75fda strict result: rc101, old completion
+fixtures still accessed NotificationSource as a struct (already corrected in
+510a6be1a), plus three own lints: similar watch binding name, needless borrowed
+Store argument and missing doc backticks. Those three are now corrected without
+changing deadlines/admission. The queued corrected30e9 run predates these lint
+fixes; its immutable result must be retained rather than relabelled current.
+
+Corrected30e9 strict then reached two additional own test lints: the activity
+capability test was 106/100 lines and used an ambiguous Default constructor.
+Its unchanged unpolled/nonexistent-command handle fixture is extracted and uses
+Leftover::default explicitly. Assertions, denial boundaries and deadlines stay
+unchanged. The previously submitted dbf strict predates this test-only fix;
+its immutable evidence must not be called current.
+
+TS run wp-inbox-ts-20261115T134300Z-4d7ac8d6 returned rc101: all 3 proto TS tests
+and the web declaration test passed, but the newly selected web primitive-alias
+classification test failed on pre-existing LimitPercent. It remains declared as
+FiniteNumber; the stale-entry test considers only primitive aliases. The test,
+alias entry and usage type are unchanged by A5, including the approved82ae7c91
+source. This is reported for baseline-owner disposition, not fixed by deleting
+a head expectation. The step is NOT green.
+
+The generator's exact Untracked enum patch is applied after checking source
+commit/status/all artifact hashes. Proto/web generator inputs are byte-unchanged
+between4d7 and the current node source. This records generated-byte provenance
+and the passing declaration test, not a whole TS/strict/runtime PASS.
+
+The coordinator classified the sole TS failure as the known base LimitPercent
+alias defect, fixed centrally by 9dfdf0a1 (with ee43fee2) in the pending gate49
+batch. This run counts with that named defect; no head assertion is edited and
+no unchanged TS rerun is requested. Adopt the announced green node head later.
+
+Exact acf19 strict/unit runs both stopped before executing tests because the
+extracted fixture named Leftover in vessel-proc instead of its existing owner,
+vessel_session::terminals. The path is corrected; no product/admission behavior
+or assertion changes. Replacement narrow checks remain owed.
+
+Executed changed-source strict evidence: exact00a47d41094eb512152db0bf55a1e149ab356302,
+run wp-inbox-node-20261115T144650Z-00a47d41, five crates (proto/store/session/node/
+client), all targets, Clippy -D warnings: rc0/36s at15:07:16 UTC. Cargo log SHA256
+a22e3e5e221ff2e65fb0f2176b7ff444a90d3771fe37d065728b43410fa4f11a matches
+the recorded step. This settles compilation/lints only; same-source unit run
+is executing, and V3 source closure, whole root, assigned wire and native/CLI
+producer proof remain owed. No protocol number or runtime adoption follows.
+
+Same-source unit run wp-inbox-unit-20261115T144650Z-00a47d41 executed725 passed,
+one failed: the new no-resurrection fixture assumed a revoked subscription row
+remains. Existing devices::revoke deletes it transactionally, so QueryReturnedNoRows
+was correct product behavior. The fixture now asserts exact absence after revoke
+and unchanged expiry after scope loss/expiry; all three still assert no admitted
+lease. No product code, boundary, deadline or security expectation is weakened.
+The corrected test and changed-source strict checks remain owed.
+
+V3 row162 at15:31 UTC closed ONLY the original A7 source return after reading
+the complete7c926b41d correction and independently verifying exact00a strict
+spec/step/log hash. The725/1 failure remains recorded; V3 also read the test-only
+revoked-row correction against the canonical DELETE, without claiming execution.
+Later terminal-push, explicit-unread, Untracked, exact-half renewal and conditional
+cancellation additions remain outside source adoption and need separate complete
+reading/checks. No owning whole, native/CLI or assigned-wire approval follows.
+
+Source follow-up: the new lease test incorrectly treated internal list metadata
+as delivery authority after scope loss. Listing may retain the unrenewed row;
+current Read is rechecked at final admission. The node test now checks that
+actual predicate; revoke still requires exact absence and expired/readless
+leases retain no extended expiry. An explicit redundant trait import is removed
+after actual strict diagnostics. Prior failed test/strict runs remain red.
+
+Local OS failure attention was incorrectly sharing Web Push reason eligibility.
+Pinned websocket-server.ts:2899-2904 elects a local recipient for errors, while
+agent-attention-policy.ts:77-79 suppresses only error PUSH. The local store claim
+and native opportunity/current-form gates now accept failed sources, preserving
+exact identity, unread, authority, once-only and focus checks. Web Push filters
+remain unchanged. New real-store and native opportunity regressions are owed
+execution; no source/runtime PASS is inferred from this correction.
+
+Before the owning whole gate, the announced common node head82ae7c91 is merged
+as041c429cf. The merge is conflict-free; five pending attention rows and None
+remain unchanged, and the Store product/tests are byte-identical to8829d9856.
+Older queued Store checks retain their original immutable scope. A current
+five-crate union narrow is required after they finish, before a whole/gate or
+adoption claim. The known alias classification base defect still awaits the
+announced gate49 head; it is not repaired by editing A5 head expectations.
+
+## Gate50c merge resolution (A8)
+
+The canonical head9c150c6e retains all method rows/order, constants, detach/registry
+migrations, tests and paragraphs. Own five None/pending rows append after it;
+notification migration takes REGISTRY_SCHEMA plus one through its existing named
+constant. Claim SQL moves to its owning notification_claims module, keeping the
+schema file below500 lines. The node size record falls from the head's672 to the
+measured667; no record is raised.
+
+Independent setup/policy/error/answer variants are unioned. The head changed
+writer/apply only by adding Detach and Registry; its Mark logic was unchanged
+from82ae. Those additions are preserved with the own already-staged savepoint
+helper/read-veto/wake behavior, without changing head detach/registry behavior.
+Canonical shared test bodies remain byte-identical: FORWARDABLE appends only
+terminal.attention_clear and terminal.activity, the calls test keeps its complete
+git comparison case plus the own notifications module. The existing shared
+registry rollback helper prepends DROP TABLE notification_claims before the
+unchanged head SQL; the inbox rollback helper does the same. No assertion or
+head version is edited. Every conflicted file is listed in the private merge
+resolution packet for reviewer inspection.
+
+Generated proto.ts takes the canonical head bytes provisionally. A VM generator
+run must restore own declarations from the merged Rust source; no generated
+union is hand-edited. Canonical generator whitespace is retained. The old
+LimitPercent defect is fixed by the head; any further TS result must be recorded
+from this merged source, not inferred from the earlier named-defect run.
+
+Merged-source strict run wp-inbox-node-20261115T163510Z-b028853c failed
+only on writer/apply's103-line dispatch after the canonical registry/detach
+addition. The own notification claim arm is extracted into a private helper,
+retaining its identical isolated savepoint, typed answer and commit boundary.
+No head branch, transaction, assertion or deadline changes. Existing immutable
+unit/TS/rollback runs retain b028 scope; changed-source strict remains owed.
+
+Merged-source generation wp-inbox-ts-20261115T163510Z-b028853c actually
+compiled the affected Rust tree and passed all five TS/alias tests (proto3,
+web2). The step returned1 only because generated proto.ts differed from the
+provisional canonical snapshot, as expected. The exact VM patch and every
+artifact SHA were verified and applied without manual generated edits; bridge
+and calls snapshots are unchanged. Rust proto/web source is byte-identical to
+the tested commit. This settles the earlier named LimitPercent alias defect
+via announced9c, not an A5 assertion change. A clean-diff confirmation remains
+part of the owning whole gate; no whole/runtime/adoption result is implied.
+
+The announced gate52 node head1c762ccf is merged cleanly after the five-crate
+b028 unit result955/0/0 and the seven Store integration binaries42/0/0. The
+head assigns only six registry metadata methods to protocol25; A5's five
+methods and optional fields retain None. Store schema and own migration order
+are unchanged. New lifecycle candidate/listing schema is not consumed before
+its green announcement. The queued c957 strict run was superseded only after
+verified cancelled143; one normal-short replacement checks this merged source.
+No running unit/rollback execution was cancelled, and their b028 scope remains.
+
+Exact4ad52654 five-crate all-target strict passed after the gate52 merge and
+private claim savepoint extraction: wp-inbox-node-20261115T171238Z-4ad52654,
+rc0/116s, actual Node checked. The completed b028 units955/0/0 and Store
+integration42/0/0 remain their prior-source scope; the later Rust changes are
+that extraction plus canonical protocol/registry metadata assignment25.
+Owning whole gate, positive assigned-wire/hook runtime and complete later
+security source adoption remain owed. The workspace mutation-clock requirement
+now belongs lifecycle; A5 introduces no duplicate clock/schema/RPC for it.
+
+## Canonical lifecycle listing base
+
+Merged green93970acb (gate53); canonical listing schema21 remains first,
+and the worker claims append follows it as schema22. No mutation clock or
+workspace mark operation is installed by this merge. Five A5 protocols remain
+None. Earlier1c strict/units are prior-source; merged checks remain owed.
+
+
+## Canonical file/skills carrier base
+
+Merged green275024369 after the prior830 checks completed: five-crate strict0,
+980 library tests and42 rollback tests, following an actual vesseld build.
+Canonical file and skills rows precede the five owned pending attention rows;
+all owning constants remain None. The claim migration stays22 after listing21.
+Canonical generated TypeScript bytes are retained without manual splicing;
+remote regeneration/actual merged-head checks remain owed. No workspace-mark
+clock, roles or same-writer membership helper is adopted by this merge.
+
+
+## Credit-reset resume and shared base13
+
+Completed runs were recovered before any new submission. Prior APP root2d951e
+actual vesseld build and Proto+Node libraries passed740/0/0; native strict/test
+stopped before execution on the owned stale ListSessions unit construction.
+It now uses canonical ListSessions::default(), preserving full-list semantics.
+Prior NODEde524 strict0 and three-library835/0/0 remain exact earlier evidence.
+The resumed merge retains the canonical migrations/sequence.rs extraction and
+appends owned claim SQL there after listing21, without changing the SQL body or
+assigning a protocol. The canonical RPC caller-drop fence and relation values
+are adopted through their announced bases. Current merged checks remain owed;
+no whole, native or assigned positive-wire pass is inferred.
+
+
+## V3 Read admission lifetime return
+
+V3 found that the new read_attention ingress retained a TaskTracker task before
+acquiring the shared metadata/marking lock. Repeatedly cancelling pre-admission
+RPC waiters could therefore retain unbounded tasks despite RPC capacity. None
+still prevents public enablement; this is a source blocker, not a current
+unauthenticated exploit. Coordinator assigned the minimal Arc/owned-lease
+producer to lifecycle; no unreviewed clock branch is imported.
+
+The correction must acquire that SAME owned metadata lease before spawning
+accepted work and move it through actual Store commit and live publication.
+There is no second lock, operation lane or read engine. Two drafted regressions
+hold the actual shared lease while polling/dropping repeated real read futures,
+then hold a real SQLite writer transaction while dropping an already admitted
+caller and verify one operation/lease survives through durable+live drain.
+They are not executed evidence or assigned positive RPC proof. Existing scope,
+nonforwardability, pending veto, exact-through and unread semantics stay intact.
+
+
+Resource preflight also short-circuits an oversized attention batch before
+allocating its distinct-id set. Count/distinct validation, error text and
+ATTENTION_BATCH remain the same; only invalid-input allocation order changes.
+No additional bound, wire or authority is introduced.
+
+
+The held-SQL fixture queues a real write-first Pin ahead of the read on the
+existing Store FIFO. This prevents a legitimate SQLite deferred SELECT/write
+upgrade BUSY refusal from masquerading as a held ACK. It releases the external
+writer reservation, observes that real Pin commit and then the read's durable
+and live settlement; no production pause hook, fake ACK or extra lane is added.
+
+
+## Current-parent notification eligibility prerequisite
+
+The current shared SESSION predicate excludes immutable Creator::Agent. That
+conservatively suppresses a validated detached agent even though its current
+parent has been removed. Paseo agent-manager.ts:5351-5364 excludes a current
+delegated parent, and detachedAgentLabelPatch at :726-733 removes that label.
+Creator remains audit provenance and cannot stand in for current Parentage.
+
+Coordinator assigned W2 a separate canonical Store scalar, registered on every
+configured connection with the existing rusqlite functions feature. The leaf
+must reuse full Parentage validation, retain archive/side-question exclusions,
+apply before candidate LIMIT and remain in each source/lease SQL snapshot.
+Malformed receipts and missing registration must fail closed. It will be
+consumed only after checks, V3 and an announced receiving head; no receipt-NULL
+shortcut, duplicate classifier or post-LIMIT scan is installed here.
+
+ATTENTION_NOTIFICATIONS_PROTOCOL=None disables the new local claim and terminal
+push paths; it does not disable existing Inbox Web Push. The existing shared
+predicate therefore still matters today. Public detach is also unassigned, but
+that does not justify treating persisted/imported detached facts as impossible.
+
+The gate57 node base is received by merge, including the canonical same-writer
+membership decoder. This does not implement workspace mutations or supply the
+still-pending lifecycle clock. Queued earlier immutable checks retain their
+original source scope. The transferable marking lease now has scoped V3 and
+Rust-gate acceptance; its normal integrator receiving gate and announcement
+remain required before import. The read-admission lifetime return remains open
+pending that receiving head, the consumer fix and its actual regression results.
+
+
+## Actual notification consumer regression preparation
+
+[Decision Log]
+- Purpose: the canonical scalar tests do not execute A5's actual asynchronous
+  candidate, local claim/current-source and final push-lease consumers.
+- Existing assets: use public Store methods with a real temporary database and
+  its configured writer/pooled readers; no copied SQL or new auth producer.
+- Choice: draft consumer regressions beside store/inbox.rs so the page case
+  derives attached-row counts from the private PUSH_CANDIDATE_PAGE policy.
+  The existing root-after-attached-page regression is moved there unchanged in
+  purpose and extended with a valid Detached source; no public test-only policy
+  API or duplicated page bound is introduced.
+- Coverage: the same exact source is excluded while Attached, admitted after
+  actual durable detach with Creator unchanged, suppressed after Seen, and
+  restored after Unread without reopening the once-only claim. Actual device
+  revocation still vetoes its final push lease and person-device source check.
+- Limits: these tests are authored but unexecuted. The production SESSION
+  predicate still has its known conservative suppression until the checked
+  scalar's receiving head is announced and the consumer is changed. This is
+  Store mechanism coverage, not assigned RPC, encrypted delivery or real-device
+  proof. No external network or mobile service is invoked.
+
+
+## V3 local final-check snapshot return
+
+V3 independently confirmed that notification_current previously ran the
+authority SELECT and source SELECT without an encompassing read transaction.
+A revoke plus Seen-to-Unread interleaving could combine incompatible views.
+The narrow correction uses the same borrowed pooled connection's unchecked
+read transaction around the unchanged canonical admissible function, commits
+the read, then returns. No new SQL policy, async hold or grant is introduced.
+Actual two-order SQLite regressions, positive/Owner controls and changed-source
+checks remain owed. The separate pre-lock retained-task return stays open.
+
+Reviewing the new consumer fixture also corrected its drafted expectation:
+a revoked device gets false from notification_current and NotificationDenied
+from claim_notification. These existing API semantics are preserved; neither
+draft test was previously executed or claimed green.
+
+
+## Announced gate60 receiving union and corrections
+
+Merged announced ee8e34501 through an explicit merge commit. Its gate is
+17/18 plus named TRACKER774, not wholly green. Canonical runtime assembly and
+its early-stop regression remain; the existing A5 single push helper sits
+before the test module. The measured node.rs budget is lowered to646, never
+raised. Canonical same marking Arc/accessor and Parentage scalar are received
+without importing the unreviewed lifecycle clock/SessionCommit branch.
+
+The actual read_attention correction now acquires marking_lease before tracked
+task creation and moves the exact guard through existing veto/Store/live
+settlement. The shared notification predicate now calls the canonical scalar,
+preserving archive/side-question exclusions and every existing before-LIMIT,
+source and final lease join. No method, number, scope or schema is added.
+
+Forced snapshot tests now use actual notification_current with the private
+reader's temporary identity view of main.devices. A bounded observer pauses
+the real authority SELECT while the real writer commits revoke then Unread.
+The original snapshot must remain ineligible; writer-first, fresh Device and
+independent Owner/positive controls are included. No production pause hook or
+SQL authorization copy is introduced. The callback blocks only the existing
+reader blocking thread, with a named deadline. All new cases remain unexecuted
+until the changed-source remote checks run; the two V3 returns stay open.

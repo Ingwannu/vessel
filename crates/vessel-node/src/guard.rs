@@ -220,6 +220,11 @@ untargeted!(
     vessel_proto::usage::QueryUsage,
     vessel_proto::inbox::ListInbox,
     vessel_proto::inbox::MarkInbox,
+    vessel_proto::inbox_attention::GetInboxAttention,
+    vessel_proto::inbox_attention::ReadInboxThrough,
+    vessel_proto::notifications::ClaimNotification,
+    vessel_proto::notifications::ClearTerminalAttention,
+    vessel_proto::notifications::ReportTerminalActivity,
     vessel_proto::inbox::GetInboxEntry,
     vessel_proto::diagnostics::GetDiagnostics,
     // ADR 0111: an agent's diagnostic and the node's log are no session's.
@@ -392,6 +397,9 @@ untargeted!(
     vessel_proto::forge::SearchRepositories,
     vessel_proto::forge::ListPullRequests,
     vessel_proto::forge::GetPullRequest,
+    // ADR 0088: the pane's reads, as `pr.get`.
+    vessel_proto::forge::GetPullTimeline,
+    vessel_proto::forge::GetCheckDetails,
     // Protocol 11 (ADR 0031): a terminal names a session it is beside, not
     // one it operates; who may open one and use it is the terminals' rule
     // (`service::terminals`), which checks an agent's ownership of the

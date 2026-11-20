@@ -10,14 +10,8 @@ import { expect, type Page, test } from "@playwright/test";
 
 import { choose, newSessionPage } from "./kit";
 import { openUi } from "./open";
+import { panelTab as tab, openPanelTab } from "./shop";
 import { shot } from "./shot";
-
-/** The session panel's tab named `name`. */
-function tab(page: Page, name: string) {
-  return page
-    .getByRole("tablist", { name: "Session panel" })
-    .getByRole("tab", { name });
-}
 
 /** On the new-session page: the project `name`, then where it runs. */
 async function place(
@@ -107,7 +101,7 @@ test("the code on the page", async ({ page }) => {
   await again.getByRole("button", { name: "Send" }).click();
   await expect(page).toHaveURL(/\/sessions\/[^/]+\/[^/]+$/);
   const folderSession = page.url();
-  await tab(page, "Changes").click();
+  await openPanelTab(page, "Diff");
   const list = page.getByRole("region", { name: "Changed files" });
   await expect(list.locator(".d-line.add").first()).toBeVisible();
   await shot(page, "20-changes");
@@ -122,7 +116,7 @@ test("the code on the page", async ({ page }) => {
   await shot(page, "21b-commit-dialog");
   await page.keyboard.press("Escape");
 
-  await tab(page, "Files").click();
+  await openPanelTab(page, "Files");
   await page.getByRole("button", { name: "src" }).click();
   await page.getByRole("button", { name: "cart.ts" }).click();
   await expect(page.locator(".f-line").first()).toBeVisible();
@@ -137,7 +131,7 @@ test("the code on the page", async ({ page }) => {
   await shot(page, "23-find");
 
   await page.emulateMedia({ colorScheme: "dark" });
-  await tab(page, "Changes").click();
+  await openPanelTab(page, "Diff");
   await expect(list.locator(".d-line.add").first()).toBeVisible();
   await shot(page, "24-changes-dark");
 
@@ -175,9 +169,7 @@ test("the code on the page", async ({ page }) => {
   await page
     .getByRole("button", { name: /^Project shop: show changes$/ })
     .click();
-  await expect(
-    page.getByRole("dialog", { name: "Session panel" }),
-  ).toBeVisible();
+  await expect(page.getByRole("tabpanel", { name: "Changes" })).toBeVisible();
   await shot(page, "25-changes-phone");
   await page.emulateMedia({ colorScheme: "dark" });
   await shot(page, "25b-changes-phone-dark");

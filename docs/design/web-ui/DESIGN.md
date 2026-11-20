@@ -469,14 +469,14 @@ title bar 36px (the frame's): mark · title (rename in place) · ⎇ branch · s
 The log and the composer share one column, at most 768px and centred
 (agent-orchestrator's transcript; Appearance's Wide is 1152px and Full
 the frame's width); the composer's dock is 16px in and 12px off the
-frame's foot. The panel beside it is agent-orchestrator's inspector: a
-36px head of icon tabs (the kit's `PanelTabs`), Summary, Changes and
-Files. Summary is 340px of sections (plan, files touched, model calls,
-Details); Changes and Files are the code panel (§6.18), 500px (the
-reference's default) and never past 45% of the window. The panel leaves
-below 1280px of window, where the branch's chip opens it as a sheet from
-the right instead, and hides with its shortcut (`⌘⇧B`). Over the log:
-the find bar at its top right and the outline on its left edge (§6.16).
+frame's foot. Summary is 340px of sections (plan, files touched, model
+calls, Details). It is visible at 1280px and above and has the
+`⌘⇧B` shortcut. Below 1280px, the Summary button opens a sheet. Above the session, the workspace tab strip holds agent
+views, terminals, Changes, Diff, Files and individual file editors
+(ADR 0118). At widths below 600px, the tab count opens the switcher and
+Changes shows inline diffs. The branch chip opens Changes at any width.
+The log's find bar sits at the top right and the outline on its left
+edge (§6.16).
 
 **Terminal session.** The same title bar, a reconnecting banner if
 needed, then the terminal consumes all remaining height. No summary.
@@ -2075,13 +2075,11 @@ control, GOAT), on purpose:
 10. **Terminal or timeline is chosen once, at creation** ("Open as
     terminal"). The reference switches a session's interface later; a
     Vessel session's mode is fixed by the protocol.
-11. **The inspector has three tabs** (Summary, Changes, Files) where the
-    reference has more (Reviews, Browser, Side chat, Artifacts: other
-    tracks' or not built), and Summary keeps 340px, the reference's
-    narrowest, so the timeline's column keeps 768px beside it at 1440px;
-    Changes and Files take the reference's 500px. It is not resizable.
-12. **A session is named in the frame's title bar**, as the page's
-    heading, where the reference has a strip of session tabs.
+11. **Workspace tab layout is browser-local.** The workspace keeps tab
+    order and selection on this browser. Summary remains beside the active
+    session at desktop widths.
+12. **Session URLs remain deep links.** The frame gives the active session
+    its title, project, and actions above the strip, whichever tab is selected.
 13. **Settings is a column, not the full pane.** agent-orchestrator's
     settings body is up to 1152px wide; this one is GOAT's 896px reading
     width, so a row's control stays near its label on a wide window.

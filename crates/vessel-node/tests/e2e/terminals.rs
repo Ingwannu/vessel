@@ -219,6 +219,7 @@ async fn a_shell_beside_a_session_runs_what_is_typed_and_ends_when_asked() {
         let listed = owner
             .call(ListTerminals {
                 place: Some(beside(session.id)),
+                changed_from: None,
             })
             .await
             .unwrap();
@@ -476,7 +477,7 @@ async fn scripts_run_once_approved_and_a_service_holds_its_project() {
             })
             .await
             .unwrap();
-        let left = owner.call(ListTerminals { place: None }).await.unwrap();
+        let left = owner.call(ListTerminals::default()).await.unwrap();
         assert!(left.terminals.is_empty(), "{left:?}");
         node.stop().await.unwrap();
     })
@@ -604,7 +605,7 @@ async fn an_agent_opens_terminals_only_where_a_person_allowed_and_uses_only_its_
             ),
             ErrorCode::Forbidden
         );
-        let seen = agent.call(ListTerminals { place: None }).await.unwrap();
+        let seen = agent.call(ListTerminals::default()).await.unwrap();
         assert_eq!(seen.terminals.len(), 4);
         assert!(seen.terminals.iter().all(|info| info.id != persons.id));
 

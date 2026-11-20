@@ -19,6 +19,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use super::names::{CheckName, ForgeHost, ForgeLogin, ForgeUrl, PullNumber, PullTitle, RepoPath};
+use super::pane::RunId;
 use crate::workspace::{BranchName, CommitId};
 
 /// Which kind of forge a repository is on.
@@ -112,6 +113,39 @@ pub struct CheckRun {
     /// Its page on the forge, when it gave an `https` one.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub url: Option<ForgeUrl>,
+    /// The check run's id, for `pr.check` (a status context has none;
+    /// `PULL_REQUEST_PANE_PROTOCOL`, ADR 0088).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub run: Option<RunId>,
+    /// The workflow run it is part of (GitHub Actions).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub workflow_run: Option<RunId>,
+    /// Its workflow's name.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub workflow: Option<CheckName>,
+    /// When it started.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub started_at: Option<DateTime<Utc>>,
+    /// When it ended.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub completed_at: Option<DateTime<Utc>>,
+}
+
+impl CheckRun {
+    /// A check known by its name, result and page only.
+    #[must_use]
+    pub const fn named(name: CheckName, state: CheckState, url: Option<ForgeUrl>) -> Self {
+        Self {
+            name,
+            state,
+            url,
+            run: None,
+            workflow_run: None,
+            workflow: None,
+            started_at: None,
+            completed_at: None,
+        }
+    }
 }
 
 /// A head commit's checks.
@@ -130,11 +164,19 @@ pub struct Checks {
     pub truncated: bool,
     /// The failing ones, at most [`Checks::MAX_FAILING`].
     pub failing: Vec<CheckRun>,
+    /// Every check, one per name (the newest), by name, at most
+    /// [`Checks::MAX_RUNS`]; empty from a node before
+    /// `PULL_REQUEST_PANE_PROTOCOL` (ADR 0088), whose clients draw counts and
+    /// `failing` only.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub runs: Vec<CheckRun>,
 }
 
 impl Checks {
     /// The most failing checks named.
     pub const MAX_FAILING: usize = 20;
+    /// The most checks listed (one read's contexts).
+    pub const MAX_RUNS: usize = 100;
 
     /// No checks known.
     #[must_use]
@@ -146,7 +188,43 @@ impl Checks {
             pending: 0,
             truncated: false,
             failing: Vec::new(),
+            runs: Vec::new(),
         }
+    }
+}
+
+/// A head's checks counted by outcome: what a row's check glyph fills from
+/// (Paseo's `CheckSummary` completed of total, ADR 0088).
+///
+/// [Decision Log]
+/// - Purpose: the sidebar's pie fills by quarters as checks land; a row
+///   has only [`PullSummary`], whose [`ChecksState`] says no fraction.
+/// - Choice: the three counts [`Checks`] already carries, copied onto the
+///   summary (12 bytes a row), not the list of runs (up to 100 a row in a
+///   listing every client polls).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+pub struct CheckTally {
+    /// How many passed (neutral and skipped included).
+    pub passed: u32,
+    /// How many failed.
+    pub failed: u32,
+    /// How many run or wait.
+    pub pending: u32,
+}
+
+impl CheckTally {
+    /// `checks` counted; `None` when nothing was counted.
+    #[must_use]
+    pub const fn of(checks: &Checks) -> Option<Self> {
+        if checks.passed == 0 && checks.failed == 0 && checks.pending == 0 {
+            return None;
+        }
+        Some(Self {
+            passed: checks.passed,
+            failed: checks.failed,
+            pending: checks.pending,
+        })
     }
 }
 
@@ -242,6 +320,10 @@ pub struct PullSummary {
     pub mergeable: Mergeable,
     /// When it last changed on the forge.
     pub updated_at: DateTime<Utc>,
+    /// Its checks counted, for a row's progress; none from a node before
+    /// `PULL_REQUEST_PANE_PROTOCOL` (ADR 0088) or when none were counted.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tally: Option<CheckTally>,
 }
 
 /// A pull request, whole: what `pr.get` answers.

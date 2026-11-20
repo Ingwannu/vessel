@@ -112,7 +112,7 @@ pub(super) fn spawn(
                     Item::Keys(keys) => TerminalInput::Data {
                         data: TerminalBytes::new(Bytes::from(keys)),
                     },
-                    Item::Resize(size) => TerminalInput::Resize { size },
+                    Item::Resize(size) => TerminalInput::Resize { size, intent: None },
                 };
                 let Some(client) = current(&mut clients).await else {
                     return Ok(());

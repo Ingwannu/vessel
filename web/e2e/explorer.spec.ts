@@ -23,7 +23,7 @@ import { expect, type Locator, type Page, test } from "@playwright/test";
 
 import { loadEnv } from "./fleet";
 import { openUi } from "./open";
-import { panelTab, startInShop } from "./shop";
+import { openPanelTab, startInShop } from "./shop";
 
 /** The menu a right click on `row` opens, and its rows' words. */
 async function menuOf(page: Page, row: Locator) {
@@ -46,7 +46,7 @@ test("a tree row's right click offers Paseo's file actions, and each does its wo
   await openUi(page);
   await startInShop(page, "Local", "Look at the files");
   await expect(page).toHaveURL(/\/sessions\/[^/]+\/[^/]+$/);
-  await panelTab(page, "Files").click();
+  await openPanelTab(page, "Files");
   const tree = page.getByRole("region", { name: "Files" });
   const src = tree.getByRole("button", { name: "src", exact: true });
   await src.click();
@@ -91,6 +91,7 @@ test("a tree row's right click offers Paseo's file actions, and each does its wo
     "@src/cart.ts ",
   );
 
+  await openPanelTab(page, "Files");
   // An open folder: Collapse in a group of its own, no Download or Add
   // to chat.
   menu = await menuOf(page, src);
@@ -133,7 +134,7 @@ test("New file and folder, Rename, Duplicate and Delete change the files as Pase
   await openUi(page);
   await startInShop(page, "Local", "Change the files");
   await expect(page).toHaveURL(/\/sessions\/[^/]+\/[^/]+$/);
-  await panelTab(page, "Files").click();
+  await openPanelTab(page, "Files");
   const tree = page.getByRole("region", { name: "Files" });
   await expect(
     tree.getByRole("button", { name: "src", exact: true }),
@@ -284,7 +285,7 @@ test("the sort trigger orders a folder by name, last change or size, as Paseo's"
     await openUi(page);
     await startInShop(page, "Local", "Sort the files");
     await expect(page).toHaveURL(/\/sessions\/[^/]+\/[^/]+$/);
-    await panelTab(page, "Files").click();
+    await openPanelTab(page, "Files");
     const tree = page.getByRole("region", { name: "Files" });
     await tree.getByRole("button", { name: "sorting", exact: true }).click();
     const order = () =>
@@ -299,8 +300,8 @@ test("the sort trigger orders a folder by name, last change or size, as Paseo's"
     await expect(sort).toHaveText("Size");
     await expect.poll(order).toEqual(["a.txt", "c.txt", "b.txt"]);
     // Kept by the bridge: the next Files tab opens in the same order.
-    await panelTab(page, "Changes").click();
-    await panelTab(page, "Files").click();
+    await openPanelTab(page, "Changes");
+    await openPanelTab(page, "Files");
     await expect(page.getByRole("button", { name: /^Sort: / })).toHaveText(
       "Size",
     );

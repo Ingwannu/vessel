@@ -104,13 +104,19 @@ impl NodeService {
         )
         .with_creator(creator(principal))
         .with_title(request.title);
+        let activity = terminals::producer_auth(id).map_err(wire)?;
         let handle = self
-            .start_shell(&shell, info, &folder, size)
+            .start_shell(&shell, info, &folder, size, activity.as_ref())
             .await
             .map_err(wire)?;
         // Registered and watched before anything else is awaited: a caller
         // that stops waiting now leaves a terminal the node still ends.
         self.terminals.register(reservation, handle.clone(), None);
+        if let Some(activity) = &activity {
+            self.terminals
+                .install_producer(id, &activity.secret)
+                .map_err(wire)?;
+        }
         // Registered, it is one of the live terminals a removal reads.
         drop(hold);
         let here = self.links.node();
@@ -129,11 +135,14 @@ impl NodeService {
         info: TerminalInfo,
         folder: &std::path::Path,
         size: TerminalSize,
+        activity: Option<&vessel_proto::notifications::TerminalActivityAuth>,
     ) -> Result<TerminalHandle, TerminalsError> {
         let runner = &self.terminals.runner;
+        let spec = terminals::shell_spec(shell, folder, &runner.config.removed);
+        let spec = terminals::producer_env(spec, activity, runner.endpoint.path());
         start_shell(ShellStart {
             info,
-            spec: terminals::shell_spec(shell, folder, &runner.config.removed),
+            spec,
             size,
             scrollback: runner.config.scrollback,
             shutdown: runner.shutdown.clone(),
@@ -149,16 +158,25 @@ impl NodeService {
         })
     }
 
-    /// `terminal.list`.
-    #[expect(
-        clippy::unused_async,
-        reason = "every call has the same async shape, so the guard's rows are uniform"
-    )]
+    /// `terminal.list`: with `changed_from`, a long poll in the caller's
+    /// wait shares until the list's revision moves (ADR 0116), answered at
+    /// once when forwarded. The revision is read before the list, so a
+    /// change between the two answers the next poll at once.
     pub(crate) async fn list_terminals(
         &self,
         connection: &Connection,
         request: ListTerminals,
     ) -> Result<TerminalList, WireError> {
+        let mut wait = request.changed_from.map(|_| MAX_WAIT_SECS);
+        let _slot = self.terminal_wait(connection, &mut wait);
+        if let (Some(from), Some(seconds)) = (request.changed_from, wait) {
+            let mut changes = self.terminals.list_changes();
+            let moved = changes.wait_for(|revision| *revision != from);
+            let _timed_out =
+                tokio::time::timeout(std::time::Duration::from_secs(u64::from(seconds)), moved)
+                    .await;
+        }
+        let revision = self.terminals.list_revision();
         let principal = connection.principal();
         let terminals = self.terminals.list(|info| {
             may_use(principal, info)
@@ -169,7 +187,10 @@ impl NodeService {
                     }
                 })
         });
-        Ok(TerminalList { terminals })
+        Ok(TerminalList {
+            terminals,
+            revision,
+        })
     }
 
     /// `terminal.get`: with `changed_from`, a long poll in the caller's
@@ -295,6 +316,13 @@ impl NodeService {
             return Err(wire(TerminalsError::Invalid(
                 "at most 64 KiB of input a call".to_owned(),
             )));
+        }
+        if let TerminalInput::Resize { intent, .. } = &request.input
+            && !crate::size_owner::admit(&entry.size_owner, &connection.life().owner(), *intent)
+        {
+            // Another connection sizes it (ADR 0116): dropped, and answered
+            // as done, as Paseo's returns `false` without an error.
+            return Ok(Ack);
         }
         entry
             .handle

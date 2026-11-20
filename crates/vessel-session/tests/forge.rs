@@ -51,6 +51,7 @@ mod fixtures {
                     review: ReviewDecision::None,
                     mergeable: Mergeable::Unstable,
                     updated_at: at,
+                    tally: None,
                 }),
                 feedback: false,
             },
