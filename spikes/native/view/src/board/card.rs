@@ -95,6 +95,14 @@ pub enum RunsIn {
     Worktree(ProjectId),
 }
 
+/// The worktree `session` runs in, when it runs in one.
+fn worktree_of(session: &SessionInfo) -> Option<WorktreeId> {
+    session
+        .workspace
+        .as_ref()
+        .and_then(|workspace| workspace.worktree)
+}
+
 impl RunsIn {
     /// Where `session` runs, when its node placed it in a project.
     fn of(session: &SessionInfo) -> Option<Self> {
@@ -192,10 +200,7 @@ impl Card {
                 .map(ToString::to_string),
             project: RunsIn::of(session).and_then(RunsIn::checkout),
             runs_in: RunsIn::of(session),
-            worktree: session
-                .workspace
-                .as_ref()
-                .and_then(|workspace| workspace.worktree),
+            worktree: worktree_of(session),
             profile: session
                 .profile
                 .as_ref()
