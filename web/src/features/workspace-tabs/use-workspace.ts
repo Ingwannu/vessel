@@ -223,6 +223,19 @@ export function useWorkspace(
         select({ kind: "changes" });
       },
     },
+    // Paseo's pane sits after Changes; offered while the session has a
+    // pull request read (TRACKER 430).
+    ...(anchor.pull_request?.summary == null
+      ? []
+      : [
+          {
+            label: words.pullRequest,
+            icon: "git-pull-request" as const,
+            run: () => {
+              select({ kind: "pull" });
+            },
+          },
+        ]),
     {
       label: words.diff,
       icon: "git-compare",
