@@ -33,9 +33,11 @@ use std::sync::{Arc, Mutex, PoisonError};
 use std::time::Duration;
 
 use axum::Json;
-use axum::body::Bytes;
-use axum::extract::{Path, State};
-use axum::http::header::{CACHE_CONTROL, CONTENT_SECURITY_POLICY, CONTENT_TYPE, X_FRAME_OPTIONS};
+use axum::body::{Bytes, to_bytes};
+use axum::extract::{Path, Request, State};
+use axum::http::header::{
+    CACHE_CONTROL, CONTENT_LENGTH, CONTENT_SECURITY_POLICY, CONTENT_TYPE, X_FRAME_OPTIONS,
+};
 use axum::http::{HeaderMap, HeaderValue, StatusCode};
 use axum::response::{IntoResponse as _, Response};
 use serde::Serialize;
@@ -95,16 +97,27 @@ pub(crate) enum Refused {
 
 impl Previews {
     /// Keep `body` for `slot`, replacing that panel's last document; its id.
+    /// The same document posted again for its panel keeps its id and starts
+    /// its idle time again, so a panel that reposts while it is shown keeps
+    /// its frame's address alive.
     pub(crate) fn put(&self, slot: &str, body: Bytes, now: Instant) -> Result<String, Refused> {
         if body.len() > MAX_BYTES {
             return Err(Refused::TooLarge);
         }
-        let id = fresh_id().ok_or(Refused::NoId)?;
         let mut documents = self
             .documents
             .lock()
             .unwrap_or_else(PoisonError::into_inner);
-        documents.retain(|_, kept| kept.slot != slot && !expired(kept, now));
+        documents.retain(|_, kept| !expired(kept, now));
+        if let Some((id, kept)) = documents
+            .iter_mut()
+            .find(|(_, kept)| kept.slot == slot && kept.body == body)
+        {
+            kept.used = now;
+            return Ok(id.clone());
+        }
+        let id = fresh_id().ok_or(Refused::NoId)?;
+        documents.retain(|_, kept| kept.slot != slot);
         while documents.len() >= MAX_DOCUMENTS
             || total(&documents).saturating_add(body.len()) > MAX_BYTES
         {
@@ -179,16 +192,32 @@ struct Placed {
 }
 
 /// `POST /api/preview`: keep the page's document, answer its address.
+///
+/// The session key and the panel are checked before the body is read, so a
+/// caller without the key cannot make the server take in 64 MiB.
 pub(crate) async fn put<S: NodeSource>(
     State(ui): State<Arc<Ui<S>>>,
-    headers: HeaderMap,
-    body: Bytes,
+    request: Request,
 ) -> Response {
-    if !authorized(&ui.auth, &headers) {
+    let (parts, body) = request.into_parts();
+    if !authorized(&ui.auth, &parts.headers) {
         return StatusCode::UNAUTHORIZED.into_response();
     }
-    let Some(slot) = slot(&headers) else {
+    let Some(slot) = slot(&parts.headers) else {
         return (StatusCode::BAD_REQUEST, "no preview slot").into_response();
+    };
+    let declared = parts
+        .headers
+        .get(CONTENT_LENGTH)
+        .and_then(|length| length.to_str().ok())
+        .and_then(|length| length.parse::<usize>().ok());
+    if declared.is_some_and(|length| length > MAX_BYTES) {
+        return StatusCode::PAYLOAD_TOO_LARGE.into_response();
+    }
+    let body = match to_bytes(body, MAX_BYTES).await {
+        Ok(body) => body,
+        // Past the cap without a declared length, or the body broke off.
+        Err(_) => return (StatusCode::BAD_REQUEST, "the document was not read").into_response(),
     };
     if std::str::from_utf8(&body).is_err() {
         return (StatusCode::BAD_REQUEST, "the document is not UTF-8").into_response();

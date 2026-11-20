@@ -109,3 +109,26 @@ async fn a_posted_document_is_framed_under_its_own_sandboxed_policy() {
     assert!(csp.contains("frame-ancestors 'none'"), "{csp}");
     assert_eq!(header(&headers, "x-frame-options"), Some("DENY"));
 }
+
+#[tokio::test]
+async fn a_body_is_not_read_before_the_key_and_the_panel_pass() {
+    let ui = Ui::start(Source::default()).await;
+    let _tab = ui.tab().await;
+    // 50 MB declared and never sent: without the key it is refused at once.
+    let unkeyed = format!(
+        "POST /api/preview HTTP/1.1\r\nHost: {}\r\nOrigin: {}\r\nX-Vessel-Preview-Slot: p\r\nContent-Length: 50000000\r\nConnection: close\r\n\r\n",
+        ui.host(),
+        ui.origin()
+    );
+    let (code, _headers, _body) = http(ui.address, &unkeyed).await;
+    assert_eq!(code, 401);
+    // With the key, a declared length past the cap is refused unread.
+    let oversized = format!(
+        "POST /api/preview HTTP/1.1\r\nHost: {}\r\nOrigin: {}\r\nAuthorization: Bearer {}\r\nX-Vessel-Preview-Slot: p\r\nContent-Length: 67108865\r\nConnection: close\r\n\r\n",
+        ui.host(),
+        ui.origin(),
+        ui.session.lock().await.as_ref().unwrap()
+    );
+    let (code, _headers, _body) = http(ui.address, &oversized).await;
+    assert_eq!(code, 413);
+}
