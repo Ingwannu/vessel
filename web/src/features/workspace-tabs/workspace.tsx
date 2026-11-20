@@ -208,6 +208,7 @@ export function Workspace({
       {lifecycle.confirmation === null ? null : (
         <Dialog
           title={lifecycle.confirmation.title}
+          sheet="content"
           onClose={lifecycle.cancel}
           footer={
             <>
@@ -228,6 +229,7 @@ export function Workspace({
       {state.leave.status === "blocked" ? (
         <Dialog
           title={words.leaveTitle}
+          sheet="content"
           onClose={state.leave.reset}
           footer={
             <>

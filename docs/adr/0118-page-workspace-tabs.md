@@ -25,13 +25,16 @@ Only the visible editor observes disk changes. Closing a modified editor
 or leaving the workspace requires confirmation.
 
 Run the existing archive and terminal close calls one by one after a
-single bulk confirmation. Remove each tab when its action succeeds and
+single bulk confirmation. Compact confirmations fit the content, so
+the sheet leaves the workspace visible above it. Remove each tab when its action succeeds and
 keep failures available for retry. A child agent's close affects layout
 only. This differs from Paseo's single closeItems call. Project terminals
 belong to the project root. For a worktree or unregistered folder, the
 existing terminal contract uses a session in that location. A successful
 list carrying an ended terminal clears its tab. Failed or incomplete
-lists leave existing targets alone.
+lists leave existing targets alone. The page retains its existing xterm
+input policy, which forwards user input and suppresses automatic query
+replies.
 
 ## Alternatives and consequences
 
