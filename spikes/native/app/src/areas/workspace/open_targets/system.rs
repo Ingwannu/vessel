@@ -81,6 +81,10 @@ impl Probe for Computer {
         path.exists()
     }
 
+    fn is_file(&self, path: &Path) -> bool {
+        path.is_file()
+    }
+
     fn entries(&self, dir: &Path) -> io::Result<Vec<Entry>> {
         std::fs::read_dir(dir)?
             .map(|entry| {

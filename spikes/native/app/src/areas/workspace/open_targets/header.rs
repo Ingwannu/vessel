@@ -99,6 +99,19 @@ fn file_name(file: &Path) -> String {
         .unwrap_or_default()
 }
 
+/// The primary's name (Paseo's `accessibilityLabel`): the shown file's
+/// name in it when the Files tab shows one, else the workspace.
+pub(super) fn primary_name(
+    shown: &Shown,
+    primary: TargetId,
+    words: &vessel_app_view::OpenTargetWords,
+) -> String {
+    match &shown.file {
+        Some((file, _)) => words.open_file_in(&file_name(file), primary),
+        None => words.open_workspace_in(primary),
+    }
+}
+
 /// A target's icon at 16: its mark in its own colours, else Paseo's
 /// symbol in the muted ink.
 fn icon(target: TargetId, tokens: &Tokens) -> AnyElement {
@@ -132,10 +145,7 @@ pub(crate) fn open_button(
     let neutral = tokens.neutral;
     let size = if narrow { HEIGHT_NARROW } else { HEIGHT };
     let hover = neutral.surface2;
-    let name = match &shown.file {
-        Some((file, _)) => words.open_file_in(&file_name(file), primary),
-        None => words.open_workspace_in(primary),
-    };
+    let name = primary_name(&shown, primary, words);
     let chooser = &shell.areas.workspace.open.chooser;
     let opened = shown.clone();
     let main = div()
@@ -146,7 +156,10 @@ pub(crate) fn open_button(
         .justify_center()
         .cursor_pointer()
         .hover(move |style| style.bg(hover))
-        .debug_selector(move || format!("open-in-editor-primary:{name}"))
+        .debug_selector(|| "open-in-editor-primary".to_owned())
+        // Paseo's `accessibilityLabel` (button.tsx 233-241).
+        .role(gpui::Role::Button)
+        .aria_label(SharedString::from(name))
         .child(icon(primary, tokens))
         .on_click(cx.listener(move |shell, _event, _window, cx| {
             shell.open_shown(opened.clone(), primary, cx);
@@ -178,6 +191,10 @@ pub(crate) fn open_button(
             })
             .hover(move |style| style.bg(hover))
             .debug_selector(|| "open-in-editor-caret".to_owned())
+            // Paseo's "Choose editor" trigger (button.tsx 263-266).
+            .role(gpui::Role::Button)
+            .aria_label(words.choose_editor)
+            .aria_expanded(chooser.is_open())
             .child(glyph(
                 Glyph::ChevronDown,
                 16.0,

@@ -305,3 +305,74 @@ fn a_missing_folder_says_paseo_s_words_and_a_machine_elsewhere_offers_nothing(
         assert_eq!(shell.files_open_targets(cx), (None, None));
     });
 }
+
+/// Every `aria` object of GPUI's accessibility tree after a fresh frame
+/// (`plugins/rows/tests.rs`'s reading); no raw tree is printed.
+fn arias(cx: &mut VisualTestContext) -> Vec<String> {
+    cx.update(|window, _| window.refresh());
+    cx.run_until_parked();
+    let json = cx.update(|window, _| window.debug_a11y_tree_json().unwrap());
+    json.split("\"aria\":")
+        .skip(1)
+        .filter_map(|rest| rest.split_once('}').map(|(aria, _)| aria.to_owned()))
+        .collect()
+}
+
+/// The one node labelled `label`.
+fn node(arias: &[String], label: &str) -> String {
+    let wanted = format!(r#""label": "{label}""#);
+    let found: Vec<&String> = arias.iter().filter(|aria| aria.contains(&wanted)).collect();
+    assert_eq!(found.len(), 1, "{label}");
+    found[0].clone()
+}
+
+#[gpui::test]
+fn the_header_s_open_and_its_caret_are_named_buttons(cx: &mut TestAppContext) {
+    let (bin, work) = (Scratch::new("bin"), Scratch::new("work"));
+    let zed = bin.file("zed");
+    let root = work.0.clone();
+    let mut fixture = setup(cx, &root, &bin.0);
+    let handle = fixture.cx.update(|window, _| window.window_handle());
+    assert!(fixture.cx.simulate_accessibility_activation(handle));
+    fixture.shell.update(fixture.cx, |shell, cx| {
+        shell.route = crate::routes::Route::Session;
+        cx.notify();
+    });
+    assert_eq!(
+        listed(&mut fixture, &root),
+        Some(vec![TargetId::Zed, TargetId::FileManager])
+    );
+    // Paseo's names (button.tsx 233-266): the primary says what it opens
+    // and where, the caret is "Choose editor", collapsed.
+    let shown = arias(fixture.cx);
+    let open = node(&shown, "Open workspace in Zed");
+    assert!(open.contains(r#""Button""#) && open.contains(r#""Click""#), "{open}");
+    let caret = node(&shown, "Choose editor");
+    assert!(caret.contains(r#""Button""#) && caret.contains(r#""expanded": false"#), "{caret}");
+    // The primary's press opens the workspace in Zed.
+    let primary = fixture.cx.debug_bounds("open-in-editor-primary").unwrap();
+    fixture.cx.simulate_click(primary.center(), gpui::Modifiers::none());
+    fixture.cx.run_until_parked();
+    assert_eq!(
+        fixture.launched.asked(),
+        [Launched::Start(zed, vec![root.clone().into_os_string()])]
+    );
+    // The caret's press opens the list: expanded.
+    let chevron = fixture.cx.debug_bounds("open-in-editor-caret").unwrap();
+    fixture.cx.simulate_click(chevron.center(), gpui::Modifiers::none());
+    fixture.cx.run_until_parked();
+    let caret = node(&arias(fixture.cx), "Choose editor");
+    assert!(caret.contains(r#""expanded": true"#), "{caret}");
+    // With a file shown in Files, the primary names the file.
+    let file = super::header::Shown {
+        machine: fixture.machine.clone(),
+        project: Some(fixture.project),
+        root: root.clone(),
+        file: Some((root.join("src/main.rs"), Some(3))),
+    };
+    let words = vessel_app_view::Lang::En.open_targets();
+    assert_eq!(
+        super::header::primary_name(&file, TargetId::Zed, words),
+        "Open main.rs in Zed"
+    );
+}

@@ -1,7 +1,10 @@
 //! Open in editor and reveal's words (TRACKER 467): Paseo's English and
 //! Korean (`i18n/resources/en.ts`, `ko.ts`, pinned 0.15.4) for its items,
 //! and Vessel's own for the reasons a launch is refused, which Paseo's
-//! desktop says in English only. Target names are proper nouns.
+//! desktop says in English only (so Paseo's fallbacks "Failed to open
+//! workspace" and "Failed to reveal entry", shown when its error has no
+//! message, have no use here; nor its "Open", the header being icon only).
+//! Target names are proper nouns.
 use std::path::Path;
 
 use super::Lang;
@@ -10,18 +13,12 @@ use crate::open_targets::{Refused, TargetId, Unavailable};
 /// Open in editor and reveal's words.
 #[derive(Debug)]
 pub struct OpenTargetWords {
-    /// The header button's word (`openInEditor.open`).
-    pub open: &'static str,
     /// The caret's name (`openInEditor.chooseEditor`).
     pub choose_editor: &'static str,
-    /// A failed open from the header (`openInEditor.failedOpen`).
-    pub failed_open: &'static str,
     /// The sidebar's item (`sidebar.project.actions.openFolder`).
     pub open_folder: &'static str,
     /// Its failure (`openFolderFailed`).
     pub open_folder_failed: &'static str,
-    /// A failed reveal (`fileExplorer.errors.revealFailed`).
-    pub reveal_failed: &'static str,
     lang: Lang,
 }
 
@@ -37,22 +34,16 @@ impl Lang {
 }
 
 const EN: OpenTargetWords = OpenTargetWords {
-    open: "Open",
     choose_editor: "Choose editor",
-    failed_open: "Failed to open workspace",
     open_folder: "Open in file manager",
     open_folder_failed: "Couldn't open folder",
-    reveal_failed: "Failed to reveal entry",
     lang: Lang::En,
 };
 
 const KO: OpenTargetWords = OpenTargetWords {
-    open: "열기",
     choose_editor: "편집기 선택",
-    failed_open: "워크스페이스를 열지 못했습니다",
     open_folder: "파일 관리자에서 열기",
     open_folder_failed: "폴더를 열 수 없습니다.",
-    reveal_failed: "항목을 표시하지 못했습니다",
     lang: Lang::Ko,
 };
 

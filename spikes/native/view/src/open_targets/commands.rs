@@ -210,7 +210,9 @@ pub(super) fn mac_bundles(app: &str, platform: Platform, env: &Env) -> Vec<PathB
     found
 }
 
-/// The PATH folders, split as the platform does.
+/// The PATH folders, split as the platform does. A relative folder (`.`,
+/// `bin`) would resolve against the app's working directory, not a place
+/// the person installed an editor, so it is left out (Paseo keeps it).
 pub(super) fn path_folders(platform: Platform, env: &Env) -> Vec<PathBuf> {
     let delimiter = if platform == Platform::Windows {
         ';'
@@ -221,9 +223,22 @@ pub(super) fn path_folders(platform: Platform, env: &Env) -> Vec<PathBuf> {
         .as_deref()
         .unwrap_or_default()
         .split(delimiter)
-        .filter(|folder| !folder.is_empty())
+        .filter(|folder| absolute(platform, folder))
         .map(PathBuf::from)
         .collect()
+}
+
+/// Whether `folder` is absolute on `platform` (`/…`; Windows `C:\…`, `C:/…`
+/// or `\\server\…`), read as text so the rule is the same on every host.
+fn absolute(platform: Platform, folder: &str) -> bool {
+    if platform != Platform::Windows {
+        return folder.starts_with('/');
+    }
+    let mut chars = folder.chars();
+    let drive = chars.next().is_some_and(|letter| letter.is_ascii_alphabetic())
+        && chars.next() == Some(':')
+        && matches!(chars.next(), Some('\\' | '/'));
+    drive || folder.starts_with(r"\\")
 }
 
 /// A name's forms on this platform: Windows tries `.exe .cmd .bat .com`

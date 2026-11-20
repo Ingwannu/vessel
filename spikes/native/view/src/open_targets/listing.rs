@@ -34,8 +34,10 @@ pub trait Probe {
     fn platform(&self) -> Platform;
     /// The variables a lookup reads.
     fn env(&self) -> &Env;
-    /// Whether `path` exists.
+    /// Whether `path` exists (an app bundle is a folder).
     fn exists(&self, path: &Path) -> bool;
+    /// Whether `path` is a file (a command; a folder of that name is not).
+    fn is_file(&self, path: &Path) -> bool;
     /// `dir`'s entries.
     ///
     /// # Errors
@@ -60,12 +62,12 @@ pub fn command(target: TargetId, probe: &dyn Probe) -> Option<PathBuf> {
     candidates(target, platform, env)
         .into_iter()
         .find_map(|candidate| match candidate {
-            Candidate::Path(path) => probe.exists(&path).then_some(path),
+            Candidate::Path(path) => probe.is_file(&path).then_some(path),
             Candidate::Name(name) => folders.iter().find_map(|folder| {
                 name_forms(name, platform)
                     .into_iter()
                     .map(|form| folder.join(form))
-                    .find(|path| probe.exists(path))
+                    .find(|path| probe.is_file(path))
             }),
         })
 }

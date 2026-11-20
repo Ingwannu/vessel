@@ -54,6 +54,10 @@ impl Probe for Fake {
         self.exists.contains(path)
     }
 
+    fn is_file(&self, path: &Path) -> bool {
+        self.exists.contains(path) && !self.entries.contains_key(path)
+    }
+
     fn entries(&self, dir: &Path) -> io::Result<Vec<Entry>> {
         self.entries
             .get(dir)
@@ -388,4 +392,15 @@ fn the_preferred_target_is_the_stored_one_while_listed_else_the_first() {
     );
     assert_eq!(preferred(&listed, None), Some(TargetId::Zed));
     assert_eq!(preferred(&[], Some(TargetId::Zed)), None);
+}
+
+#[test]
+fn relative_path_folders_and_folders_named_like_a_command_are_not_commands() {
+    let mut fake = Fake::on(Platform::Other, "bin:/usr/bin").with(&["bin/zed", "/usr/bin/code"]);
+    let _old = fake
+        .entries
+        .insert(PathBuf::from("/usr/bin/code"), Vec::new());
+    assert_eq!(list(&fake, None), [TargetId::FileManager]);
+    let windows = Fake::on(Platform::Windows, r"tools;C:\bin").with(&[r"tools/zed.exe", r"C:\bin/code.cmd"]);
+    assert_eq!(list(&windows, None), [TargetId::VsCode, TargetId::Explorer]);
 }
