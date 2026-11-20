@@ -18,7 +18,7 @@ use vessel_app_view::toasts::ToastTone;
 use vessel_proto::TerminalId;
 use vessel_proto::terminals::{TerminalInfo, TerminalList, TerminalPlace};
 
-use super::{Creating, Pane, PaneKey, pane_key, place_of};
+use super::{Creating, Listing, Pane, PaneKey, pane_key, place_of};
 use crate::routes::Route;
 use crate::shell::Shell;
 
@@ -33,6 +33,21 @@ pub(crate) fn closes_terminal(scope: CloseScope, plans: &[ClosePlan]) -> bool {
 }
 
 /// The terminal ids a layout shows as tabs.
+/// The terminal the focused pane shows, if it shows one.
+fn shown_terminal(layout: &vessel_app_view::layout::Layout) -> Option<TerminalId> {
+    let tab = layout
+        .root()
+        .panes()
+        .into_iter()
+        .find(|pane| pane.id() == layout.focused_pane())
+        .and_then(vessel_app_view::layout::Pane::focused)?;
+    if let Target::Terminal(id) = layout.tab(tab)?.target() {
+        Some(*id)
+    } else {
+        None
+    }
+}
+
 fn terminal_tabs(layout: &vessel_app_view::layout::Layout) -> BTreeSet<TerminalId> {
     layout
         .tabs()
@@ -165,9 +180,11 @@ impl Shell {
 
     /// Ask for the shown workspace's terminals (every fleet read, and after
     /// a create, a close or an end), as Paseo's `terminals_changed` keeps
-    /// its list.
+    /// its list. From protocol 37 the ask waits for the list to move (ADR
+    /// 0116): while it waits, these asks are skipped, and its answer asks
+    /// again (`terminal_tabs_listed`).
     pub(crate) fn terminal_tabs_poll(&mut self) {
-        if self.route != Route::Session || self.areas.terminal_tabs.listing.is_some() {
+        if self.route != Route::Session {
             return;
         }
         let Ok(workspace) = crate::areas::layout::current_key(self) else {
@@ -178,50 +195,78 @@ impl Shell {
             return;
         };
         let machine = machine.as_str().to_owned();
-        if !self.machine_online(&machine) {
+        let tabs = &self.areas.terminal_tabs;
+        if tabs
+            .listing
+            .as_ref()
+            .is_some_and(|asked| asked.machine == machine && asked.place == place)
+            || !self.machine_online(&machine)
+        {
             return;
         }
-        self.areas.terminal_tabs.listing = Some((machine.clone(), place.clone()));
+        let from = tabs
+            .revision
+            .as_ref()
+            .filter(|(seen, at, _)| *seen == machine && *at == place)
+            .map(|&(_, _, revision)| revision);
+        self.areas.terminal_tabs.listing = Some(Listing {
+            machine: machine.clone(),
+            place: place.clone(),
+            from,
+        });
         self.command(Command::Terminals(Ask {
             machine,
-            request: Request::List { place },
+            request: Request::List {
+                place,
+                changed_from: from,
+            },
         }));
     }
 
     /// A list answered: kept for the next frame's reconcile.
+    ///
+    /// A node that waits (protocol 37) is asked again at once when the list
+    /// moved, so the next answer comes with the next change (one ask in
+    /// flight, so a burst of changes is one refresh, as Paseo coalesces).
+    /// An answer that did not move (the node's 30 s bound, or a wait it had
+    /// no room for) leaves the next ask to the fleet read, so a node out of
+    /// wait room is never asked in a loop.
     pub(super) fn terminal_tabs_listed(
         &mut self,
         machine: &str,
         place: &TerminalPlace,
         list: Option<&TerminalList>,
+        waits: bool,
     ) {
         let tabs = &mut self.areas.terminal_tabs;
-        if tabs
+        let asked = tabs
             .listing
-            .as_ref()
-            .is_some_and(|(asked, at)| asked == machine && at == place)
-        {
-            tabs.listing = None;
-        }
+            .take_if(|asked| asked.machine == machine && asked.place == *place);
         let Some(list) = list else {
             return;
         };
-        let Ok(workspace) = crate::areas::layout::current_key(self) else {
-            return;
-        };
-        let shown = matches!(
-            &workspace,
-            LayoutKey::Session { machine: alias, .. } if alias.as_str() == machine
-        );
-        if shown && place_of(&workspace).as_ref() == Some(place) {
-            for info in &list.terminals {
-                if let Some(key) = pane_key(&workspace, info.id)
-                    && let Some(pane) = self.areas.terminal_tabs.panes.get_mut(&key)
-                {
-                    pane.info = Some(info.clone());
+        if asked.is_some() {
+            tabs.revision = Some((machine.to_owned(), place.clone(), list.revision));
+        }
+        let again = waits && asked.is_some_and(|asked| asked.from != Some(list.revision));
+        if let Ok(workspace) = crate::areas::layout::current_key(self) {
+            let shown = matches!(
+                &workspace,
+                LayoutKey::Session { machine: alias, .. } if alias.as_str() == machine
+            );
+            if shown && place_of(&workspace).as_ref() == Some(place) {
+                for info in &list.terminals {
+                    if let Some(key) = pane_key(&workspace, info.id)
+                        && let Some(pane) = self.areas.terminal_tabs.panes.get_mut(&key)
+                    {
+                        pane.info = Some(info.clone());
+                    }
                 }
+                self.areas.terminal_tabs.listed = Some((workspace, standalone(list, place)));
             }
-            self.areas.terminal_tabs.listed = Some((workspace, standalone(list, place)));
+        }
+        if again {
+            self.terminal_tabs_poll();
         }
     }
 
@@ -333,10 +378,22 @@ impl Shell {
         self.layout_close_settled(&workspace, &plan, Ok(()), cx);
         if let Some(key) = pane_key(&workspace, terminal) {
             let _pane = self.areas.terminal_tabs.panes.remove(&key);
+            if self.areas.terminal_tabs.focused.as_ref() == Some(&key) {
+                self.areas.terminal_tabs.focused = None;
+            }
             self.command(Command::Terminals(Ask {
                 machine: key.machine,
                 request: Request::Close { terminal },
             }));
+        }
+        // The dialog gave the keyboard back to its opener, the closed pane,
+        // which is gone: the shell the focused pane now shows takes it, as
+        // Paseo's workspace focuses the tab a close selects (P1 review
+        // note 4). Another kind of tab is left as any other close leaves it.
+        if let Some(next) = crate::areas::layout::read_layout(self, &workspace, shown_terminal)
+            .and_then(|shown| pane_key(&workspace, shown))
+        {
+            self.areas.terminal_tabs.focus_next = Some(next);
         }
         cx.notify();
     }
