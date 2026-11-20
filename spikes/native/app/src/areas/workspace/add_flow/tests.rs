@@ -3,7 +3,8 @@
 //! machine and text; a folder chosen is added; an older machine is not
 //! asked and gets no New directory; a refusal is said on its page; a
 //! success closes the sheet and moves on; a language change keeps the
-//! field.
+//! field. The GitHub page searches its machine and keeps typed rows
+//! while it searches and under an error.
 use super::*;
 use gpui::TestAppContext;
 use vessel_app_link::Event;
@@ -244,4 +245,119 @@ fn a_language_change_keeps_the_field(cx: &mut TestAppContext) {
         |shell| &shell.areas.workspace.add_flow.field,
         |shell| assert!(shell.areas.workspace.add_flow.is_open()),
     );
+}
+
+#[gpui::test]
+fn github_repositories_are_searched_kept_with_their_text_and_typed_rows_stay(
+    cx: &mut TestAppContext,
+) {
+    use vessel_app_view::workspace::add_flow::repositories::{REPOSITORY_ROWS, SearchError};
+    use vessel_app_view::workspace::add_flow::rows::RowNote;
+    use vessel_proto::forge::{
+        ForgeAccess, GhState, REPOSITORY_SEARCH_PROTOCOL, Repository, RepositoryList, Visibility,
+    };
+    let (shell, cx, mut scene) = setup(cx);
+    let name = shell.update_in(cx, |shell, window, cx| {
+        let name = machine(shell, &scene, REPOSITORY_SEARCH_PROTOCOL);
+        shell.open_add_flow(None, window, cx);
+        shell.add_flow_choose(RowAction::Method(Method::Github), window, cx);
+        assert_eq!(page_id(shell), Some(PageId::GithubSearch));
+        name
+    });
+    // The empty field lists the account's repositories, 30 of them.
+    shell.update_in(cx, |shell, _window, cx| {
+        let first = scene.request(shell.fixture_link());
+        assert!(
+            matches!(&first, Ok(Call::SearchRepositories(ask)) if ask.query.as_str().is_empty() && ask.limit.get() == REPOSITORY_ROWS),
+            "{first:?}"
+        );
+        let open = shell.areas.workspace.add_flow.open.as_ref().unwrap();
+        assert!(repositories::shown(open).loading, "asked, not answered");
+        let found = RepositoryList {
+            access: ForgeAccess::Ready { login: None },
+            repositories: vec![Repository {
+                path: "acme/widgets".parse().unwrap(),
+                description: Some("The widgets".parse().unwrap()),
+                visibility: Visibility::Private,
+                updated_at: chrono::DateTime::UNIX_EPOCH,
+                clone_url: "git@github.com:acme/widgets.git".parse().unwrap(),
+            }],
+        };
+        scene
+            .reply(shell.fixture_link(), Outcome::Ok(Reply::SearchRepositories(found)))
+            .unwrap();
+        let (from, answer) = workspace_answer(&mut scene, shell);
+        assert_eq!(from, name);
+        assert!(shell.workspace_answer(&from, answer, cx));
+        let rows = render::rows_of(shell);
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].id, "repository:acme/widgets");
+        assert_eq!(rows[0].note, Some(RowNote::Text("The widgets".to_owned())));
+    });
+    // Typed text searches again; under a signed-out answer the typed rows
+    // stay and the page says why (Paseo's rule).
+    type_keys(&shell, cx, &["acme/gad", "acme/gadgets"]);
+    shell.update_in(cx, |shell, _window, cx| {
+        let asked = scene.request(shell.fixture_link());
+        assert!(
+            matches!(&asked, Ok(Call::SearchRepositories(ask)) if ask.query.as_str() == "acme/gadgets"),
+            "{asked:?}"
+        );
+        let open = shell.areas.workspace.add_flow.open.as_ref().unwrap();
+        assert!(repositories::shown(open).loading);
+        assert_eq!(render::rows_of(shell).len(), 2, "typed rows while it searches");
+        let refused = RepositoryList {
+            access: ForgeAccess::SignedOut {
+                host: "github.com".parse().unwrap(),
+                gh: GhState::Missing,
+            },
+            repositories: Vec::new(),
+        };
+        scene
+            .reply(shell.fixture_link(), Outcome::Ok(Reply::SearchRepositories(refused)))
+            .unwrap();
+        let (from, answer) = workspace_answer(&mut scene, shell);
+        assert!(shell.workspace_answer(&from, answer, cx));
+        let open = shell.areas.workspace.add_flow.open.as_ref().unwrap();
+        assert_eq!(repositories::shown(open).error, Some(SearchError::GhMissing));
+        assert_eq!(render::rows_of(shell).len(), 2, "typed rows under the error");
+        // An answer for other text is not this field's.
+        shell.add_flow_repositories(&from, "acme/old", Err(Problem::Unsent));
+        let open = shell.areas.workspace.add_flow.open.as_ref().unwrap();
+        assert!(repositories::shown(open).loading);
+        shell.add_flow_repositories(&from, "acme/gadgets", Err(Problem::Unsent));
+        let open = shell.areas.workspace.add_flow.open.as_ref().unwrap();
+        assert_eq!(repositories::shown(open).error, Some(SearchError::Failed));
+        scene.close(shell.fixture_link()).unwrap();
+    });
+}
+
+#[gpui::test]
+fn an_older_machine_is_not_searched(cx: &mut TestAppContext) {
+    let (shell, cx, mut scene) = setup(cx);
+    shell.update_in(cx, |shell, window, cx| {
+        let older = vessel_proto::forge::REPOSITORY_SEARCH_PROTOCOL
+            .map(|needs| ProtocolVersion::new(needs.get().saturating_sub(1)));
+        let _name = machine(shell, &scene, older);
+        shell.open_add_flow(None, window, cx);
+        shell.add_flow_choose(RowAction::Method(Method::Github), window, cx);
+        assert_eq!(page_id(shell), Some(PageId::GithubSearch));
+    });
+    type_keys(&shell, cx, &["acme/widgets"]);
+    shell.update_in(cx, |shell, _window, _cx| {
+        let open = shell.areas.workspace.add_flow.open.as_ref().unwrap();
+        assert_eq!(
+            repositories::shown(open),
+            vessel_app_view::workspace::add_flow::repositories::Searched::default(),
+            "not asked: no loading, no error"
+        );
+        assert_eq!(render::rows_of(shell).len(), 2, "the typed rows only");
+        let calls = scene.transcript(shell.fixture_link()).unwrap();
+        assert!(
+            !calls
+                .iter()
+                .any(|call| matches!(call, Call::SearchRepositories(_)))
+        );
+        scene.close(shell.fixture_link()).unwrap();
+    });
 }

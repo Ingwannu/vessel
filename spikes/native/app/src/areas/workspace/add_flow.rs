@@ -21,6 +21,7 @@
 
 mod calls;
 mod render;
+mod repositories;
 
 pub(crate) use render::render;
 #[cfg(test)]
@@ -40,6 +41,7 @@ use vessel_app_view::workspace::add_flow::model::{
     Direction, Flow, Machine, PageId, move_selection,
 };
 use vessel_app_view::workspace::add_flow::options::Method;
+use vessel_app_view::workspace::add_flow::repositories::can_search;
 use vessel_app_view::workspace::add_flow::rows::{RowAction, searches_directories};
 use vessel_app_view::workspace::host_folders::{FOLDERS, PAUSE, offered};
 use vessel_app_view::workspace::problem::Problem;
@@ -67,6 +69,7 @@ pub(super) struct Open {
     flow: Flow,
     preferred: Option<String>,
     folders: Option<Folders>,
+    repositories: Option<repositories::Repositories>,
     /// The latest key's pause: a pause that ends after another key asks
     /// nothing.
     wait: u64,
@@ -141,7 +144,7 @@ impl Shell {
                 // TRACKER 816: on once the app knows its own machine.
                 can_browse: false,
                 can_clone: can_clone(self.areas.workspace.projects.get(&machine.name)),
-                can_search_github: false,
+                can_search_github: can_search(machine.protocol),
                 can_create_directory: reads_tilde(machine.protocol),
             })
             .collect()
@@ -171,6 +174,7 @@ impl Shell {
             flow: Flow::open(machines, preferred.as_deref()),
             preferred,
             folders: None,
+            repositories: None,
             wait: 0,
         });
         self.add_flow_shown(window, cx);
@@ -211,6 +215,7 @@ impl Shell {
             .scroll
             .set_offset(point(px(spacing::S0), px(spacing::S0)));
         self.add_flow_ask_folders();
+        self.add_flow_ask_repositories();
         cx.notify();
     }
 
@@ -253,6 +258,7 @@ impl Shell {
                     .map(|open| open.wait);
                 if current == Some(wait) {
                     shell.add_flow_ask_folders();
+                    shell.add_flow_ask_repositories();
                     cx.notify();
                 }
             });
