@@ -14,11 +14,12 @@
 
 import "./palette.css";
 
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useMemo } from "react";
 
 import { openNewSession, useFleet, useFleetState } from "../../context";
 import { openAddMachine } from "../../data/add-machine";
+import type { FleetState } from "../../data/fleet";
 import { labelManager } from "../../data/workspace-labels/hub";
 import {
   type PaletteEntry,
@@ -27,6 +28,13 @@ import {
 } from "../../data/commands";
 import { selectedNode } from "../../data/nodes";
 import { closePalette, openPalette, palette } from "../../data/palette";
+import {
+  invokePlugin,
+  type PluginPlace,
+  pluginCatalogs,
+  pluginCommands,
+} from "../../data/plugin-catalog";
+import { problemWords } from "../../data/plugins";
 import { useStore } from "../../data/store";
 import { chooseTheme } from "../../data/theme";
 import {
@@ -36,6 +44,7 @@ import {
   type IconName,
   Kbd,
 } from "../../ui/kit";
+import { toast } from "../../ui/toasts";
 import { sectionIcon } from "../settings/section-icon";
 import { useShortcut } from "../shortcuts/handlers";
 import { useShortcutWords } from "../shortcuts/use-keys";
@@ -70,12 +79,60 @@ function iconOf(place: PalettePlace): IconName {
   }
 }
 
+/** Where the palette was opened, for a plugin item's context: the open
+ * session (`/sessions/<node>/<id>`), or no session. */
+function placeOf(pathname: string, state: FleetState): PluginPlace {
+  const match = /^\/sessions\/([^/]+)\/([^/]+)/.exec(pathname);
+  if (match === null) return { kind: "global" };
+  const named = decodeURIComponent(match[1] ?? "");
+  const id = decodeURIComponent(match[2] ?? "");
+  const node = (state.book ?? []).find((entry) => entry.key === named)?.key;
+  if (node === undefined) return { kind: "global" };
+  const session = (state.sessions[node] ?? []).find(
+    (candidate) => candidate.id === id,
+  );
+  return session === undefined
+    ? { kind: "global" }
+    : {
+        kind: "session",
+        node,
+        agent: session.id,
+        workspace: session.workspace ?? null,
+      };
+}
+
 /** The palette, while open: what it lists comes from the fleet as it is
- * now. */
+ * now, then the machines' plugin items (Paseo's Command Center: a section
+ * per plugin, after the app's own; an error is a toast, success is the
+ * plugin's own). */
 function Palette() {
   const navigate = useNavigate();
   const fleet = useFleet();
   const state = useFleetState((value) => value);
+  const catalogs = useStore(pluginCatalogs, (value) => value);
+  const pathname = useRouterState({
+    select: (router) => router.location.pathname,
+  });
+  const plugins = useMemo(
+    () =>
+      pluginCommands(catalogs, placeOf(pathname, state)).map(
+        (command): Command => ({
+          id: command.id,
+          label: command.title,
+          ...(command.keywords.length === 0
+            ? {}
+            : { keywords: command.keywords.join(" ") }),
+          icon: "blocks",
+          group: command.plugin,
+          run: () => {
+            void invokePlugin(fleet, command.call).then((outcome) => {
+              if (!outcome.ok) toast(problemWords(outcome), "error");
+            });
+          },
+        }),
+      ),
+    [catalogs, pathname, state, fleet],
+  );
   const commands = useMemo(
     () =>
       paletteEntries(state, selectedNode(state, undefined)).map(
@@ -110,7 +167,8 @@ function Palette() {
       ),
     [state, navigate, fleet],
   );
-  return <CommandPalette commands={commands} onClose={closePalette} />;
+  const all = useMemo(() => [...commands, ...plugins], [commands, plugins]);
+  return <CommandPalette commands={all} onClose={closePalette} />;
 }
 
 /** The palette and its shortcut, once, in the shell. */
