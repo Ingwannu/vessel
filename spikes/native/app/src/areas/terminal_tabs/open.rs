@@ -9,8 +9,8 @@ use vessel_app_kit::ui::{Context, Window};
 use vessel_app_link::Command;
 use vessel_app_link::terminals::{Ask, Request};
 use vessel_app_view::layout::{
-    AgentRole, CloseEffect, ClosePlan, EntitySnapshot, Hydration, LayoutKey, LayoutMode,
-    OpenIntent, Placement, RetargetRequest, TabId, Target,
+    AgentRole, CloseEffect, ClosePlan, CloseScope, EntitySnapshot, Hydration, LayoutKey,
+    LayoutMode, OpenIntent, Placement, RetargetRequest, TabId, Target,
 };
 use vessel_app_view::terminal::Origin;
 use vessel_app_view::terminal_tabs::{Failure, standalone};
@@ -22,11 +22,14 @@ use super::{Creating, Pane, PaneKey, pane_key, place_of};
 use crate::routes::Route;
 use crate::shell::Shell;
 
-/// Whether a set of close plans is one terminal tab, which this area
-/// closes after the person confirms. Several tabs with a terminal among
-/// them stay refused (Paseo's bulk confirm is not drawn).
-pub(crate) fn closes_terminal(plans: &[ClosePlan]) -> bool {
-    matches!(plans, [plan] if matches!(plan.effect(), CloseEffect::CloseTerminal(_)))
+/// Whether a close is a terminal tab's own Close, which this area does
+/// after the person confirms. A bulk close (left, right, others, pane)
+/// that would close a terminal stays refused, even when it is the only
+/// tab it closes: Paseo asks those with its bulk confirm ("Close tabs to
+/// the right?" and a count), which is not drawn yet.
+pub(crate) fn closes_terminal(scope: CloseScope, plans: &[ClosePlan]) -> bool {
+    matches!(scope, CloseScope::Current)
+        && matches!(plans, [plan] if matches!(plan.effect(), CloseEffect::CloseTerminal(_)))
 }
 
 /// The terminal ids a layout shows as tabs.

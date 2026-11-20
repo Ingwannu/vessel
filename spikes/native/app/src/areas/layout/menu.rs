@@ -63,7 +63,7 @@ pub(super) fn close_item(
         layout.close_plans(tab, scope).map(|plans| {
             plans.is_empty()
                 || (plans.iter().any(|plan| plan.effect() != CloseEffect::Local)
-                    && !crate::areas::terminal_tabs::closes_terminal(&plans))
+                    && !crate::areas::terminal_tabs::closes_terminal(scope, &plans))
         })
     })
     .unwrap_or(true);

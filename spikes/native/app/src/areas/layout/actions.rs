@@ -101,7 +101,7 @@ impl Shell {
                 });
                 match plans {
                     // One terminal tab: its owner asks first (TRACKER 342).
-                    Ok(plans) if crate::areas::terminal_tabs::closes_terminal(&plans) => {
+                    Ok(plans) if crate::areas::terminal_tabs::closes_terminal(scope, &plans) => {
                         match (super::key(self), plans.into_iter().next()) {
                             (Ok(workspace), Some(plan)) => {
                                 self.terminal_tab_ask_close(workspace, plan, window, cx);

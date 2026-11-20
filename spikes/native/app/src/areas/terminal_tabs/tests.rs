@@ -14,7 +14,7 @@ use vessel_app_kit::ui::{IntoElement, div};
 use vessel_app_link::Command;
 use vessel_app_link::terminals::{Answer, Reply, Request};
 use vessel_app_view::layout::{
-    AgentRole, LayoutAction, LayoutMode, OpenIntent, Placement, TabId, Target,
+    AgentRole, CloseScope, LayoutAction, LayoutMode, OpenIntent, Placement, TabId, Target,
 };
 use vessel_app_view::terminal::Outgoing;
 use vessel_app_view::{Machine, Reach};
@@ -286,6 +286,42 @@ fn a_tab_that_lost_its_machine_follows_again_once_it_is_back(cx: &mut TestAppCon
         sent(&probe, cx).as_slice(),
         [Request::Follow { terminal: followed, .. }] if *followed == terminal
     ));
+}
+
+#[gpui::test]
+fn only_a_terminal_tabs_own_close_asks_to_close_it(cx: &mut TestAppContext) {
+    let (probe, cx) = open(cx);
+    let (session, new_tab) = probe.read_with(cx, |probe, _| (probe.2, probe.3));
+    let shell = probe.read_with(cx, |probe, _| probe.0.clone());
+    shell.update_in(cx, |shell, window, cx| {
+        shell.terminal_tab_new(Some(new_tab), window, cx);
+        answer(
+            shell,
+            Reply::Created {
+                place: TerminalPlace::Session { session },
+                result: Ok(Box::new(shell_info(session))),
+            },
+            cx,
+        );
+        let key = crate::areas::layout::current_key(shell).unwrap();
+        // The agent's tab, then the terminal's: "close to the right" of the
+        // agent would close only the terminal.
+        let (own, right) = crate::areas::layout::read_layout(shell, &key, |layout| {
+            let agent = layout
+                .tabs()
+                .find(|tab| matches!(tab.target(), Target::Agent(_)))
+                .map(vessel_app_view::layout::Tab::id);
+            (
+                layout.close_plans(new_tab, CloseScope::Current).ok(),
+                agent.and_then(|agent| layout.close_plans(agent, CloseScope::After).ok()),
+            )
+        });
+        let (own, right) = (own.unwrap(), right.unwrap());
+        assert_eq!(right.len(), 1);
+        assert!(closes_terminal(CloseScope::Current, &own));
+        // Paseo asks a bulk close with its own confirm, not drawn yet.
+        assert!(!closes_terminal(CloseScope::After, &right));
+    });
 }
 
 #[gpui::test]

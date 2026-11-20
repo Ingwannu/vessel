@@ -90,8 +90,9 @@ Read from Paseo 0.15.4 (`packages/app/src`).
   are not shown), where Paseo toasts its reason.
 - "Terminal exited" and "Terminal not found" are translated in Korean;
   Paseo shows them in English in every language.
-- Close left/right/others stay disabled when they would close a terminal
-  (Paseo's bulk confirm is not drawn).
+- Close left/right/others stay disabled when they would close a terminal,
+  even when it is the only tab they close (Paseo's bulk confirm, "Close
+  tabs to the right?" with a count, is not drawn).
 - No kitty keyboard or win32 input mode (the grid does not track them): a
   modified Enter is a carriage return.
 - Not in this packet: selection, copy and find (P3), the key bar (P4),
@@ -107,7 +108,8 @@ Read from Paseo 0.15.4 (`packages/app/src`).
   so; keys and a paste wait in order until live and then one send at a
   time; Close asks, Cancel keeps, Close removes the tab and closes on the
   node; a list adds the place's shells and drops an ended one; a focused
-  tab is the shortcuts' terminal scope; a second create waits for the
+  tab is the shortcuts' terminal scope; only a terminal tab's own Close
+  asks to close it (a bulk close stays refused); a second create waits for the
   first; a tab whose connection dropped follows again once its machine is
   back.
 - Unit tests start no shell (the link is a channel). Captures run
