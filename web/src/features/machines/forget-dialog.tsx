@@ -9,7 +9,7 @@ import { useState } from "react";
 
 import { useFleet } from "../../context";
 import { forgetMachine } from "../../data/book";
-import { nextStep, type Problem } from "../../data/outcome";
+import { withNextStep, type Problem } from "../../data/outcome";
 import type { BookNode } from "../../wire/bridge";
 import { Banner, Button, Dialog } from "../../ui/kit";
 import { toast } from "../../ui/toasts";
@@ -66,9 +66,7 @@ export function ForgetDialog({
         </p>
       </div>
       {problem === null ? null : (
-        <Banner tone="error">
-          {problem.message} {nextStep(problem)}
-        </Banner>
+        <Banner tone="error">{withNextStep(problem)}</Banner>
       )}
     </Dialog>
   );

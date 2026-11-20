@@ -15,7 +15,7 @@ import { openNewSession, useFleet, useFleetState } from "../../context";
 import { addMachine, closeAddMachine } from "../../data/add-machine";
 import { inspectLink, type Offer, pairMachine } from "../../data/book";
 import { nameProblem } from "../../data/machines";
-import { nextStep } from "../../data/outcome";
+import { withNextStep } from "../../data/outcome";
 import {
   checklistState,
   type Pairing,
@@ -79,7 +79,7 @@ function AddMachineDialog({ onClose }: { onClose: () => void }) {
                 outcome.problem.from === "op" &&
                 outcome.problem.reason === "failed"
                   ? `This is not a pairing link Vessel can read: ${outcome.problem.message}`
-                  : `${outcome.problem.message} ${nextStep(outcome.problem)}`,
+                  : withNextStep(outcome.problem),
             },
       );
     });

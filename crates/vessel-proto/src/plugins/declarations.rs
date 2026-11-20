@@ -180,8 +180,11 @@ pub struct Surface {
 }
 
 /// Each control has an identity for retained focus and captured edit state.
+/// In TypeScript `PluginControl`: the bridge's declarations say "Control"
+/// as a key's name, and the generator imports every base name its text
+/// mentions.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(rename = "PluginControl"))]
 #[serde(deny_unknown_fields)]
 pub struct Control {
     /// Unique within the contribution surface, including nested containers.
@@ -264,8 +267,10 @@ pub enum ControlContent {
 }
 
 /// A choice option carries a stable value independent of translated labels.
+/// In TypeScript `PluginChoiceOption`: a question's `ChoiceOption` already
+/// has the name in the generated declarations.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(rename = "PluginChoiceOption"))]
 #[serde(deny_unknown_fields)]
 pub struct ChoiceOption {
     /// Stable submitted value.

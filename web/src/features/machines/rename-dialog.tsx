@@ -7,7 +7,7 @@ import { useState } from "react";
 import { useFleet, useFleetState } from "../../context";
 import { renameMachine } from "../../data/book";
 import { nameProblem } from "../../data/machines";
-import { nextStep, type Problem } from "../../data/outcome";
+import { withNextStep, type Problem } from "../../data/outcome";
 import type { BookNode } from "../../wire/bridge";
 import { Banner, Button, Dialog, Field, TextField } from "../../ui/kit";
 import { toast } from "../../ui/toasts";
@@ -84,9 +84,7 @@ export function RenameDialog({
         />
       </Field>
       {problem === null ? null : (
-        <Banner tone="error">
-          {problem.message} {nextStep(problem)}
-        </Banner>
+        <Banner tone="error">{withNextStep(problem)}</Banner>
       )}
     </Dialog>
   );

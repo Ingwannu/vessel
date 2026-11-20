@@ -68,6 +68,27 @@ no runtime to compile. The package that serves the method changes `staged`
 to `pending` in the commit that adds its handler; from then on the guard
 requires the handler, as for every assigned or pending row.
 
+## Version 41 (2026-11-20, milestone 12): a node's plugin catalog and plugin method calls (impl P, ADR 0115 "Catalog and invoke")
+
+Assigned 41 (`PLUGIN_CATALOG_PROTOCOL`, `PROTOCOL_VERSION` 41) at its node-line merge, the next after the workspace-folder
+terminals' 40. Both methods are unary and not forwardable.
+
+- `plugin.catalog {}` (`read`) answers `{generation, catalog: {node, installations: [{address, required_client,
+  document}]}, may_invoke}` (`may_invoke`: whether this caller may call `plugin.invoke`): every running
+  installation's validated client declarations (ADR 0079's `ClientDocument`), none
+  that is stopped, failed, disabled or off. `generation` is `plugin.watch`'s count. It needs `read` where Paseo's
+  catalog needs `daemon.manage`: the data holds no path and no code, and a Read device draws a machine's themes.
+- `plugin.invoke {plugin, generation, method, input, context}` (`admin`; refused to agents) answers `{output}`: one
+  method the running helper declared, with opaque JSON in and out within the helper payload budget. `generation` is
+  the catalog entry's run; `context` is `{kind: global}`, `{kind: workspace, project, worktree?}` or `{kind: agent,
+  project, worktree?, agent}` (a session's `workspace` and id); the helper receives `{input, context}`. `conflict`
+  when the run has changed since; `not_found` for an undeclared method or a client-only plugin; `unavailable` when it is not running or is busy; `invalid_request` when
+  it refuses or the input is too large; `internal` when its method failed. The helper's own text is never in the
+  reply.
+- `plugin.install` and `plugin.inspect` refuse a source or path over 4 KiB and a ref over 256 bytes
+  (`invalid_request`).
+- The minimum protocol remains 2. The store schema is unchanged.
+
 ## Version 40 (2026-11-20, milestone 12): terminals that belong to a workspace folder (implementer T2, TRACKER 817 R1, ADR 0121)
 
 Drafted 39; assigned 40 (`WORKSPACE_TERMINALS_PROTOCOL`, `PROTOCOL_VERSION` 40) at its node-line merge, after ADR

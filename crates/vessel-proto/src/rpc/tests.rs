@@ -75,6 +75,8 @@ fn every_method_declares_authority_and_admin_is_rare() {
             "plugin.disable",
             "plugin.reload",
             "plugin.remove",
+            // Running a plugin's method runs its code with the node's access.
+            "plugin.invoke",
         ]
     );
     assert_eq!(
@@ -781,6 +783,32 @@ fn the_pane_reads_know_their_version_scope_and_shape() {
         "params": {"session": crate::SessionId::random(), "run": 0},
     }));
     assert!(refused.is_err());
+}
+
+/// ADR 0115's catalog and invoke (`PLUGIN_CATALOG_PROTOCOL`): the catalog
+/// is declarative data a Read device draws; a method call runs plugin code,
+/// so it is an administrator's. Neither crosses a fleet hop.
+#[test]
+fn the_plugin_catalog_and_invoke_come_after_the_manager() {
+    use crate::plugins::{PLUGIN_CATALOG_PROTOCOL, PLUGINS_PROTOCOL};
+    let methods: Vec<_> = Method::ALL
+        .iter()
+        .filter(|method| method.since() == PLUGIN_CATALOG_PROTOCOL)
+        .inspect(|method| {
+            assert_eq!(method.shape(), MethodShape::Unary, "{method:?}");
+            assert!(!method.forwardable(), "{method:?}");
+        })
+        .map(|method| (method.as_str(), method.scope()))
+        .collect();
+    assert_eq!(
+        methods,
+        [
+            ("plugin.catalog", Some(Scope::Read)),
+            ("plugin.invoke", Some(Scope::Admin))
+        ]
+    );
+    assert!(PLUGINS_PROTOCOL < PLUGIN_CATALOG_PROTOCOL);
+    assert_eq!(PLUGIN_CATALOG_PROTOCOL, Some(crate::PROTOCOL_VERSION));
 }
 
 #[test]

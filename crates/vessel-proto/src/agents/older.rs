@@ -346,7 +346,10 @@ impl Reply {
             | Self::DisablePlugin(_)
             | Self::ReloadPlugin(_)
             | Self::RemovePlugin(_)
-            | Self::WatchPlugins(_) => None,
+            | Self::WatchPlugins(_)
+            // The plugin catalog and method calls (ADR 0115): the same.
+            | Self::GetPluginCatalog(_)
+            | Self::InvokePlugin(_) => None,
         }
     }
 }
