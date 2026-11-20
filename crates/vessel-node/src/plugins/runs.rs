@@ -9,6 +9,9 @@ use vessel_proto::plugins::{PluginAddress, PluginId, RuntimeGeneration};
 use super::rows::{host_line, read_manifest};
 use super::{PluginError, Plugins, Run, host};
 
+/// A helper that ended on its own, before its shutdown says more.
+const STOPPED_ON_ITS_OWN: &str = "plugin helper stopped";
+
 impl Plugins {
     /// At node start: run every enabled installation that is not running
     /// yet, when plugins are on (Paseo's `start`); failures are recorded on
@@ -187,7 +190,14 @@ impl Plugins {
             match rows.rows.get_mut(&plugin) {
                 Some(row) if row.attempt == attempt => {
                     match std::mem::replace(&mut row.run, Run::Stopped) {
-                        Run::Helper(supervisor) => Some((supervisor, row.logs.clone())),
+                        Run::Helper(supervisor) => {
+                            // Failed and a reason appear together: a reader
+                            // between this lock and the shutdown's answer
+                            // must not see a failed row with no reason. The
+                            // shutdown's own reason replaces it below.
+                            row.error = Some(STOPPED_ON_ITS_OWN.to_owned());
+                            Some((supervisor, row.logs.clone()))
+                        }
                         other @ (Run::Stopped | Run::Client { .. }) => {
                             row.run = other;
                             None
@@ -202,7 +212,7 @@ impl Plugins {
         };
         let reason = match supervisor.shutdown().await {
             Err(error) => host::reason(&error),
-            Ok(_receipt) => "plugin helper stopped".to_owned(),
+            Ok(_receipt) => STOPPED_ON_ITS_OWN.to_owned(),
         };
         host_line(&logs, &format!("stopped: {reason}"));
         if let Some(row) = self.state().rows.get_mut(&plugin)
