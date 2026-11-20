@@ -54,10 +54,11 @@ fn a_linked_file_stays_a_link_and_its_target_takes_the_hooks() {
             .file_type()
             .is_symlink()
     );
-    assert_eq!(
-        read(&target),
-        serde_json::from_str::<serde_json::Value>(original).unwrap()
-    );
+    // Off leaves the target without Vessel's entries. As in Paseo, an
+    // emptied `hooks` object stays (node review note 4).
+    let off = read(&target);
+    assert_eq!(off["model"], "opus");
+    assert_eq!(off["hooks"], serde_json::json!({}));
 }
 
 /// The first backup is the file as it was before Vessel's first change, and
