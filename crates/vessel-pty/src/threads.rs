@@ -63,9 +63,6 @@ pub(crate) fn start(
     waiter: Reaper,
     lifetime: ProcessLifetimeGuard,
 ) -> Result<Threads, PtyError> {
-    let attach = |error: &dyn std::fmt::Display| PtyError::Attach {
-        message: error.to_string(),
-    };
     let ends = master
         .try_clone_reader()
         .and_then(|reader| Ok((reader, master.take_writer()?)));
@@ -73,7 +70,7 @@ pub(crate) fn start(
         Ok(ends) => ends,
         Err(error) => {
             crate::process::stop_and_reap(child);
-            return Err(attach(&error));
+            return Err(PtyError::Attach(error));
         }
     };
 
