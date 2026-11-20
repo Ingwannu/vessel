@@ -13,6 +13,7 @@ import type { NodeKey } from "../../wire/bridge";
 import type { ProjectId, Snapshot } from "../../wire/proto";
 import { SettingsSection } from "../settings/settings-page";
 import { ConfirmDrop } from "../workspace/confirm-drop";
+import type { ActionFailure } from "./action-failure";
 
 export function ProjectSnapshots({
   node,
@@ -25,7 +26,7 @@ export function ProjectSnapshots({
   project: ProjectId;
   snapshots: readonly Snapshot[];
   onDropped: () => void;
-  onFailed: (message: string) => void;
+  onFailed: (failure: ActionFailure) => void;
 }) {
   const fleet = useFleet();
   const [dropping, setDropping] = useState<Snapshot["worktree"] | null>(null);
@@ -60,9 +61,10 @@ export function ProjectSnapshots({
                     ).then((dropped) => {
                       setDropping(null);
                       if (!dropped.ok) {
-                        onFailed(
-                          `The snapshot of ${name} was not dropped: ${dropped.problem.message}`,
-                        );
+                        onFailed({
+                          title: `The snapshot of ${name} was not dropped`,
+                          message: dropped.problem.message,
+                        });
                       }
                       onDropped();
                     });

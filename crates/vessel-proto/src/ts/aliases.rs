@@ -97,6 +97,11 @@
 //!   counters, quantities; `Caption`, `ContentText` and `LogText` are a
 //!   manifest's name and description and a helper's log line, carried
 //!   content.
+//! - The plugin catalog (ADR 0115, catalog and invoke): `RuntimeGeneration`
+//!   is the node's handle for one run of an installation, branded;
+//!   `ContributionId`, `RpcName`, `ThemeName`, `FileExtension`,
+//!   `FileNamePattern` and `HexColor` are what a plugin's author names or
+//!   writes, plain.
 
 /// What a primitive alias is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -144,6 +149,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("ConfigKey", Alias::Named),
     ("ContentHash", Alias::Handle),
     ("ContentText", Alias::Content),
+    ("ContributionId", Alias::Named),
     ("CostUnit", Alias::Named),
     ("CronExpr", Alias::Named),
     ("CustomAgentSlot", Alias::Quantity),
@@ -159,7 +165,9 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("EverySeconds", Alias::Quantity),
     ("FieldName", Alias::Handle),
     ("FileBytes", Alias::Content),
+    ("FileExtension", Alias::Named),
     ("FileModifiedMillis", Alias::Quantity),
+    ("FileNamePattern", Alias::Named),
     ("FileOffset", Alias::Quantity),
     ("FilePath", Alias::Named),
     ("FileSize", Alias::Quantity),
@@ -172,11 +180,11 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("ForgePath", Alias::Named),
     ("ForgeUrl", Alias::Named),
     ("Generation", Alias::Quantity),
-    // A hunk continuation is a count/offset, never a byte offset or id.
     ("GitHunkOffset", Alias::Quantity),
     ("GrepQuery", Alias::Named),
     ("HarnessSessionId", Alias::Handle),
     ("HeaderName", Alias::Named),
+    ("HexColor", Alias::Named),
     ("HttpUrl", Alias::Named),
     ("IconBytes", Alias::Content),
     ("IdleMinutes", Alias::Quantity),
@@ -246,8 +254,10 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("ReportCount", Alias::Quantity),
     ("Revision", Alias::Quantity),
     ("RouteUrl", Alias::Named),
+    ("RpcName", Alias::Named),
     ("RunId", Alias::Named),
     ("RunNumber", Alias::Quantity),
+    ("RuntimeGeneration", Alias::Handle),
     ("SavedPromptId", Alias::Handle),
     ("ScheduleId", Alias::Handle),
     ("ScheduleName", Alias::Named),
@@ -277,6 +287,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("TerminalAttentionRevision", Alias::Quantity),
     ("TerminalBytes", Alias::Content),
     ("TerminalId", Alias::Handle),
+    ("ThemeName", Alias::Named),
     ("TicketMac", Alias::Secret),
     ("TimeZoneName", Alias::Named),
     ("TokenCount", Alias::Quantity),

@@ -182,6 +182,8 @@ macro_rules! methods {
             reload_plugin: vessel_proto::plugins::ReloadPlugin => vessel_proto::plugins::PluginListItem;
             remove_plugin: vessel_proto::plugins::RemovePlugin => Ack;
             watch_plugins: vessel_proto::plugins::WatchPlugins => vessel_proto::plugins::PluginGeneration;
+            plugin_catalog: vessel_proto::plugins::GetPluginCatalog => vessel_proto::plugins::PluginCatalog;
+            invoke_plugin: vessel_proto::plugins::InvokePlugin => vessel_proto::plugins::PluginOutput;
             node_settings: vessel_proto::settings::GetNodeSettings => vessel_proto::settings::NodeSettings;
             set_node_settings: vessel_proto::settings::SetNodeSettings => vessel_proto::settings::NodeSettings;
             fork_session: vessel_proto::forking::ForkSession => SessionInfo;

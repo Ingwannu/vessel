@@ -9,6 +9,9 @@ use vessel_proto::plugins::{PluginAddress, PluginId, RuntimeGeneration};
 use super::rows::{host_line, read_manifest};
 use super::{PluginError, Plugins, Run, host};
 
+/// A helper that ended on its own, before its shutdown says more.
+const STOPPED_ON_ITS_OWN: &str = "plugin helper stopped";
+
 impl Plugins {
     /// At node start: run every enabled installation that is not running
     /// yet, when plugins are on (Paseo's `start`); failures are recorded on
@@ -135,7 +138,7 @@ impl Plugins {
     ) {
         let watched = match &started {
             host::Started::Helper(supervisor) => Some(supervisor.handle().subscribe()),
-            host::Started::Client => None,
+            host::Started::Client { .. } => None,
         };
         let late = {
             let mut state = self.state();
@@ -143,7 +146,9 @@ impl Plugins {
                 Some(row) if row.attempt == attempt => {
                     row.run = match started {
                         host::Started::Helper(supervisor) => Run::Helper(supervisor),
-                        host::Started::Client => Run::Client,
+                        host::Started::Client { address, document } => {
+                            Run::Client { address, document }
+                        }
                     };
                     None
                 }
@@ -163,7 +168,8 @@ impl Plugins {
         }
     }
 
-    /// Mark the row failed when its helper ends on its own.
+    /// Move the generation when the helper declares again (a new catalog
+    /// entry), and mark the row failed when it ends on its own.
     pub(super) async fn watch_helper(
         &self,
         plugin: PluginId,
@@ -171,18 +177,28 @@ impl Plugins {
         mut state: watch::Receiver<RuntimeState>,
     ) {
         // A closed sender also means the actor ended; the row is checked
-        // either way. The watch reference is not kept across the awaits below.
-        let _ended = state
-            .wait_for(|state| matches!(state, RuntimeState::Stopped))
-            .await
-            .is_ok();
+        // either way. The watch reference is not kept across an await.
+        loop {
+            let stopped = matches!(*state.borrow_and_update(), RuntimeState::Stopped);
+            if stopped || state.changed().await.is_err() {
+                break;
+            }
+            self.bump();
+        }
         let supervisor = {
             let mut rows = self.state();
             match rows.rows.get_mut(&plugin) {
                 Some(row) if row.attempt == attempt => {
                     match std::mem::replace(&mut row.run, Run::Stopped) {
-                        Run::Helper(supervisor) => Some((supervisor, row.logs.clone())),
-                        other @ (Run::Stopped | Run::Client) => {
+                        Run::Helper(supervisor) => {
+                            // Failed and a reason appear together: a reader
+                            // between this lock and the shutdown's answer
+                            // must not see a failed row with no reason. The
+                            // shutdown's own reason replaces it below.
+                            row.error = Some(STOPPED_ON_ITS_OWN.to_owned());
+                            Some((supervisor, row.logs.clone()))
+                        }
+                        other @ (Run::Stopped | Run::Client { .. }) => {
                             row.run = other;
                             None
                         }
@@ -196,7 +212,7 @@ impl Plugins {
         };
         let reason = match supervisor.shutdown().await {
             Err(error) => host::reason(&error),
-            Ok(_receipt) => "plugin helper stopped".to_owned(),
+            Ok(_receipt) => STOPPED_ON_ITS_OWN.to_owned(),
         };
         host_line(&logs, &format!("stopped: {reason}"));
         if let Some(row) = self.state().rows.get_mut(&plugin)
@@ -231,7 +247,7 @@ impl Plugins {
                 }
                 host_line(&logs, "stopped");
             }
-            Run::Client => host_line(&logs, "stopped"),
+            Run::Client { .. } => host_line(&logs, "stopped"),
             Run::Stopped => {}
         }
     }
