@@ -166,7 +166,9 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("FiniteNumber", Alias::Quantity),
     ("FolderName", Alias::Named),
     ("ForgeHost", Alias::Named),
+    ("ForgeItemId", Alias::Named),
     ("ForgeLogin", Alias::Named),
+    ("ForgePath", Alias::Named),
     ("ForgeUrl", Alias::Named),
     ("Generation", Alias::Quantity),
     // A hunk continuation is a count/offset, never a byte offset or id.
@@ -242,6 +244,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("ReportCount", Alias::Quantity),
     ("Revision", Alias::Quantity),
     ("RouteUrl", Alias::Named),
+    ("RunId", Alias::Named),
     ("RunNumber", Alias::Quantity),
     ("SavedPromptId", Alias::Handle),
     ("ScheduleId", Alias::Handle),

@@ -2,9 +2,9 @@
 //! Conditional state retains only real pull/branch keys; explicit refusals
 //! never mutate facts, and file fixtures bound open/merge history.
 use super::{
-    Answer, BranchName, CommitId, FakeForge, Forge, ForgeError, ForgeHost, ForgeKind, ForgeLogin,
-    Found, Fresh, MergeMethod, Merged, Opened, Opening, Priority, PullNumber, PullState, Read,
-    RepoLimit, RepoRef, Repository, Utc, pull,
+    Answer, BranchName, CheckReport, CommitId, FakeForge, Forge, ForgeError, ForgeHost, ForgeKind,
+    ForgeLogin, Found, Fresh, MergeMethod, Merged, Opened, Opening, Priority, PullNumber,
+    PullState, Read, RepoLimit, RepoRef, Repository, RunId, Timeline, Utc, pull,
 };
 
 impl Forge for FakeForge {
@@ -196,6 +196,35 @@ impl Forge for FakeForge {
         Box::pin(async move {
             let state = self.enter_repo("can_write", repo)?;
             Ok(state.writers.contains(login))
+        })
+    }
+
+    /// The seeded activity, empty when none was put.
+    fn timeline<'a>(&'a self, repo: &'a RepoRef, number: PullNumber) -> Answer<'a, Timeline> {
+        Box::pin(async move {
+            let state = self.enter_repo("timeline", repo)?;
+            Ok(state
+                .timelines
+                .get(&(repo.clone(), number))
+                .cloned()
+                .unwrap_or_default())
+        })
+    }
+
+    /// The seeded check run; `NotFound` when none was put.
+    fn check<'a>(
+        &'a self,
+        repo: &'a RepoRef,
+        run: RunId,
+        _workflow_run: Option<RunId>,
+    ) -> Answer<'a, CheckReport> {
+        Box::pin(async move {
+            let state = self.enter_repo("check", repo)?;
+            state
+                .reports
+                .get(&(repo.clone(), run))
+                .cloned()
+                .ok_or(ForgeError::NotFound)
         })
     }
 

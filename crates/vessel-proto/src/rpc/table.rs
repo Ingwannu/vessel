@@ -491,6 +491,10 @@ macro_rules! method_table {
             RemovePlugin / remove_plugin / "plugin.remove" [Admin, (pending $crate::plugins::PLUGINS_PROTOCOL), unary]: $crate::plugins::RemovePlugin => $crate::Ack;
             /// Wait for the plugin generation to move, a long poll as fleet.watch (ADR 0115).
             WatchPlugins / watch_plugins / "plugin.watch" [Read, (pending $crate::plugins::PLUGINS_PROTOCOL), unary]: $crate::plugins::WatchPlugins => $crate::plugins::PluginGeneration;
+            /// A session's pull request's reviews, comments and review threads, as Paseo's pane (ADR 0088).
+            GetPullTimeline / pull_timeline / "pr.timeline" [Read, (pending $crate::forge::PULL_REQUEST_PANE_PROTOCOL), unary]: $crate::forge::GetPullTimeline => $crate::forge::PullTimeline;
+            /// One check of a session's pull request, with its failed jobs' log tails (ADR 0088).
+            GetCheckDetails / check_details / "pr.check" [Read, (pending $crate::forge::PULL_REQUEST_PANE_PROTOCOL), unary]: $crate::forge::GetCheckDetails => $crate::forge::CheckDetails;
         }
     };
 }

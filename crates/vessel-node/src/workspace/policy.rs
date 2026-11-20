@@ -233,6 +233,9 @@ const fn refused(method: Method) -> bool {
         // pushing (`forge::open`).
         | Method::GetPullRequest
         | Method::OpenPullRequest
+        // The pane's reads (ADR 0088): what `pr.get` shows, in full.
+        | Method::GetPullTimeline
+        | Method::GetCheckDetails
         // Not workspace calls: held to the scopes, ownership and limits
         // every agent is (ADR 0013, `guard`), not to this rule.
         // Schedules (protocol 11) are held to theirs (ADR 0033,
@@ -454,6 +457,8 @@ mod tests {
             // the agent may operate (the forge's rule, ADR 0029).
             Method::GetPullRequest,
             Method::OpenPullRequest,
+            Method::GetPullTimeline,
+            Method::GetCheckDetails,
         ] {
             assert!(refuse_agents(&agent, allowed).is_ok(), "{allowed:?}");
         }

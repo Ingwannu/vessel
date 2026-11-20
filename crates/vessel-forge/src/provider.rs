@@ -28,8 +28,9 @@ use std::pin::Pin;
 
 use chrono::{DateTime, Utc};
 use vessel_proto::forge::{
-    CheckName, ForgeHost, ForgeKind, ForgeLogin, ForgeUrl, GhState, MergeMethod, PullBody,
-    PullNumber, PullRequest, PullState, PullTitle, RefusedReason, RepoLimit, RepoRef, Repository,
+    CheckName, CheckReport, ForgeHost, ForgeKind, ForgeLogin, ForgeUrl, GhState, MergeMethod,
+    PullBody, PullNumber, PullRequest, PullState, PullTitle, RefusedReason, RepoLimit, RepoRef,
+    Repository, RunId, TimelineItem,
 };
 use vessel_proto::workspace::{BranchName, CommitId};
 
@@ -183,6 +184,15 @@ pub struct Read {
     pub pull: PullRequest,
     /// What feedback needs.
     pub discussion: Discussion,
+}
+
+/// A pull request's activity for the pane (ADR 0088).
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Timeline {
+    /// Reviews, comments and thread comments, oldest first, then by id.
+    pub items: Vec<TimelineItem>,
+    /// A kind had more than one read takes.
+    pub truncated: bool,
 }
 
 /// What to open.
@@ -345,4 +355,18 @@ pub trait Forge: Send + Sync + fmt::Debug {
         query: &'a str,
         limit: RepoLimit,
     ) -> Answer<'a, Vec<Repository>>;
+
+    /// `number`'s reviews, conversation comments and review threads for
+    /// the pane (ADR 0088). A person's call.
+    fn timeline<'a>(&'a self, repo: &'a RepoRef, number: PullNumber) -> Answer<'a, Timeline>;
+
+    /// The check run `run` read whole, with the failed jobs of its
+    /// workflow run (`workflow_run`, when it has one) and their log tails
+    /// (ADR 0088). A person's call.
+    fn check<'a>(
+        &'a self,
+        repo: &'a RepoRef,
+        run: RunId,
+        workflow_run: Option<RunId>,
+    ) -> Answer<'a, CheckReport>;
 }

@@ -1,7 +1,7 @@
 //! Runtime capacity is checked through concurrent real provider operations.
 use std::sync::Arc;
 
-use super::{MAX_PULLS, Merge, Pull, decode, document, repo};
+use super::{MAX_PULLS, Merge, SeededPull, decode, document, repo};
 use crate::{Forge as _, Opened, Opening};
 use vessel_proto::forge::{PullNumber, PullState};
 
@@ -13,9 +13,12 @@ async fn concurrent_opens_share_one_capacity_admission() {
         let mut pull = preserved.clone();
         pull.summary.number = PullNumber::new(u64::try_from(number).unwrap()).unwrap();
         pull.summary.state = PullState::Closed;
-        raw.repositories[0].pulls.push(Pull {
+        raw.repositories[0].pulls.push(SeededPull {
             pull,
             merge: Merge::Normal,
+            timeline: Vec::new(),
+            truncated: false,
+            reports: Vec::new(),
         });
     }
     let forge = decode(&raw).into_forge();
