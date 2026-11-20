@@ -7,8 +7,8 @@
 //! shapes take points, so each bar is its percent of the panel's default
 //! content width (440 less 32), the same at the default width.
 
-use vessel_app_kit::theme::spacing;
 use vessel_app_kit::skeleton::{Opacity, Rounding, Shape, pulse, shape};
+use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{AnyElement, Div, ParentElement as _, Styled as _, div, px, size};
 use vessel_app_kit::{Tokens, Type, TypeExt as _};
 

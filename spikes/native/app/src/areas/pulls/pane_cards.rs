@@ -16,11 +16,11 @@
 //!   GitHub) is not drawn; a press on a card without words opens it on
 //!   the forge, as Paseo's does.
 
-use vessel_app_kit::theme::spacing;
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::picker::glyph;
 use vessel_app_kit::theme::SidebarSurfaces;
 use vessel_app_kit::theme::identity::{Hue, fill};
+use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
     AnyElement, Context, Div, InteractiveElement as _, IntoElement as _, ParentElement as _,
     SharedString, StatefulInteractiveElement as _, Styled as _, div, px,
@@ -140,7 +140,12 @@ impl Cards<'_> {
 
     /// Paseo's `ActivityHeader`: avatar, author, verb, and the age at the
     /// end.
-    pub(super) fn header_row(&self, item: &TimelineItem, avatar: f32, extra: Option<AnyElement>) -> Div {
+    pub(super) fn header_row(
+        &self,
+        item: &TimelineItem,
+        avatar: f32,
+        extra: Option<AnyElement>,
+    ) -> Div {
         let neutral = self.tokens.neutral;
         let status = self.tokens.status();
         let words = self.shell.words;
@@ -257,7 +262,13 @@ impl Cards<'_> {
         let mut card = self.card().child(head);
         if !folded {
             card = card
-                .child(div().px(px(spacing::S3)).pt(px(spacing::S2)).pb(px(spacing::S3)).child(text))
+                .child(
+                    div()
+                        .px(px(spacing::S3))
+                        .pt(px(spacing::S2))
+                        .pb(px(spacing::S3))
+                        .child(text),
+                )
                 .children(
                     (self.attach && super::pane_attach::addable(item))
                         .then(|| self.footer(Adds::Item(item.id().as_str().to_owned()), cx)),
@@ -321,30 +332,37 @@ impl Cards<'_> {
         let mut card = self.card().child(head);
         if !folded {
             card = card
-                .children(
-                    Self::markdown(review)
-                        .map(|text| div().px(px(spacing::S3)).pt(px(spacing::S2)).pb(px(spacing::S3)).child(text)),
-                )
+                .children(Self::markdown(review).map(|text| {
+                    div()
+                        .px(px(spacing::S3))
+                        .pt(px(spacing::S2))
+                        .pb(px(spacing::S3))
+                        .child(text)
+                }))
                 .children(
                     (self.attach && super::pane_attach::addable(review))
                         .then(|| self.footer(Adds::Item(review.id().as_str().to_owned()), cx)),
                 )
-                .child(div().flex().flex_col().pt(px(spacing::S1)).pb(px(spacing::S1)).children(
-                    threads.iter().map(|thread| {
-                        div()
-                            .mx(px(spacing::S3))
-                            .mb(px(spacing::S2))
-                            .border_1()
-                            .border_color(self.tokens.neutral.border)
-                            .rounded(px(spacing::S1_5))
-                            .overflow_hidden()
-                            .child(self.thread(thread, cx))
-                    }),
-                ));
+                .child(
+                    div()
+                        .flex()
+                        .flex_col()
+                        .pt(px(spacing::S1))
+                        .pb(px(spacing::S1))
+                        .children(threads.iter().map(|thread| {
+                            div()
+                                .mx(px(spacing::S3))
+                                .mb(px(spacing::S2))
+                                .border_1()
+                                .border_color(self.tokens.neutral.border)
+                                .rounded(px(spacing::S1_5))
+                                .overflow_hidden()
+                                .child(self.thread(thread, cx))
+                        })),
+                );
         }
         card.into_any_element()
     }
-
 }
 
 /// An item's author's login.
