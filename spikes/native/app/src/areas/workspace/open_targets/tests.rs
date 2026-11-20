@@ -104,8 +104,8 @@ fn setup<'a>(cx: &'a mut TestAppContext, root: &Path, bin: &Path) -> Fixture<'a>
             binding: None,
         });
         shell.add_flow_this_computer(vec![context.node()], cx);
-        let launcher: Arc<dyn super::Launcher> = Arc::clone(&launched);
-        shell.areas.workspace.open.set_computer(computer, launcher);
+        let seam: Arc<dyn super::Launcher> = Arc::<Recording>::clone(&launched);
+        shell.areas.workspace.open.set_computer(computer, seam);
     });
     Fixture {
         shell,
