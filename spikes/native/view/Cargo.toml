@@ -1,6 +1,6 @@
 [package]
 name = "vessel-app-view"
-description = "What the app's screens mean (board, conversation), with no UI and no I/O"
+description = "What the app's screens mean (board, conversation, a terminal grid), with no UI and no I/O"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -18,6 +18,10 @@ thiserror.workspace = true
 vessel-proto.workspace = true
 serde_json.workspace = true
 unicode-normalization.workspace = true
+unicode-width.workspace = true
+# Parser only (ADR 0073). The crate's default feature is `std` (memchr).
+# `ansi` and `serde` are not defaults and are not enabled.
+vte.workspace = true
 qrcode.workspace = true
 
 fluent-bundle.workspace = true

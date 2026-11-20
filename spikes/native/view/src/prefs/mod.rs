@@ -129,6 +129,14 @@ pub struct Preferences {
     /// What new sessions start with, by machine.
     #[serde(deserialize_with = "lenient_entries")]
     pub defaults: BTreeMap<NodeId, MachineDefaults>,
+    /// Lines the terminal grid keeps above the screen. Absent is 10,000
+    /// (Paseo's terminal scrollback). The settings row is not drawn here.
+    #[serde(
+        default,
+        deserialize_with = "lenient",
+        skip_serializing_if = "crate::terminal::ScrollbackLines::is_default"
+    )]
+    pub terminal_scrollback: crate::terminal::ScrollbackLines,
 }
 
 /// Which panels show.

@@ -239,10 +239,13 @@ grid, and that an unchanged generation draws nothing), not described.
   and the program waits. The two grid tests are named above. `vte` is
   reserved to `vessel-app-view`. No settings key on the node, no new
   call, no number at merge.
-- Half-done: nothing in the commits. A draft of `types.rs` and `grid.rs`
-  may sit uncommitted in the worktree; it is not part of a commit until
-  the parser, keys, paste, find and tests build with it. That draft
-  still answers from every `feed`. The duty rule is not in it yet.
-- Next: finish that grid, including `query_duty` and the two tests
-  named above, then the native gate once, in one slot. Do not start
-  `link` or `kit` in that commit.
+- Done in the grid commit: the model in `view` (`TerminalModel`),
+  `query_duty`, path quoting, keys, paste, find, and the tests named
+  above. Scrollback is `Preferences.terminal_scrollback` (absent is
+  10,000; a value past 1,000,000 reads as the default, the same lenient
+  rule as the other preferences). No `PreferenceChange` variant: the
+  settings row is another worker's. No `link` and no `kit`.
+- Half-done: nothing. The link's attach and the kit's cells are later
+  slices.
+- Next: slice 3, the link's attach and input, against the testkit's
+  fake shell. Not started.

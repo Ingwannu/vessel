@@ -151,6 +151,12 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 # NFD for find's folding of accents (MIT or Apache-2.0).
 unicode-normalization = "0.1"
+# UAX #11 scalar width for the terminal grid (ADR 0073). Already in the
+# lock through the component layer; the grid names it itself.
+unicode-width = "0.2.3"
+# VT parser only (ADR 0073). Apache-2.0 OR MIT, 57,487 bytes. The `std`
+# feature is memchr; `ansi` and `serde` are not used.
+vte = "0.15.0"
 qrcode = { version = "0.14", default-features = false }
 
 [profile.release]
