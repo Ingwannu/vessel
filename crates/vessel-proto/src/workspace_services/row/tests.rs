@@ -176,7 +176,7 @@ fn a_rows_terminal_is_cut_like_any_terminal() {
     use crate::workspace_services::{ServiceSnapshotId, WorkspaceScriptOutcome};
     let before = crate::notifications::ATTENTION_NOTIFICATIONS_PROTOCOL
         .map_or(crate::PROTOCOL_VERSION, |since| {
-            crate::ProtocolVersion::new(since.get().saturating_sub(1))
+            ProtocolVersion::new(since.get().saturating_sub(1))
         });
     let running = terminal();
     assert!(
