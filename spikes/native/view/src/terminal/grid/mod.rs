@@ -31,6 +31,7 @@ mod resize;
 mod screen;
 mod sgr;
 mod tabs;
+mod text;
 mod width;
 
 #[cfg(test)]
@@ -41,6 +42,7 @@ pub use history::CELL_LIMIT;
 pub(crate) use history::HistoryRow;
 pub use modes::{Bracketed, CursorKeys, Shown, Visibility};
 pub use pen::{Colour, Concealment, Pen, Polarity, Rgb, Slant, Strike, Underline, Weight};
+pub use text::TextAt;
 
 use history::History;
 use modes::{At, Modes, Saved};
@@ -178,6 +180,14 @@ impl Grid {
     #[must_use]
     pub const fn generation(&self) -> Generation {
         self.generation
+    }
+
+    /// Keep `scrollback` lines of history from now on; a lower bound drops
+    /// the oldest lines at once.
+    pub fn set_scrollback(&mut self, scrollback: ScrollbackLines) {
+        if self.history.set_limit(scrollback) {
+            self.changed();
+        }
     }
 
     /// Lines of history held.

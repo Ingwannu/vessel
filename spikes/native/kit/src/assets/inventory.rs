@@ -283,6 +283,8 @@ glyph_inventory! {
     /// Open on the forge (Paseo's `ExternalLink`, a card menu's row): a
     /// box with an arrow leaving its corner.
     ExternalLink => "kit/external-link.svg",
+    /// Find's next match (Paseo's pane find, Lucide `ArrowDown`).
+    ArrowDown => "kit/arrow-down.svg",
     /// A pull request's checks all passed (Paseo's `CheckIndicator`): the
     /// ring with a check inside.
     ChecksPassed => "kit/checks-passed.svg",

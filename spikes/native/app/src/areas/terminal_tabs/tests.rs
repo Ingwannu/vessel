@@ -335,7 +335,7 @@ fn keys_and_a_paste_wait_in_order_until_the_shell_is_live(cx: &mut TestAppContex
         terminal: info.id,
     };
     shell.update_in(cx, |shell, _window, cx| {
-        let pane = Pane::new(Origin::Opened, cx, &key);
+        let pane = Pane::new(Origin::Opened, ScrollbackLines::default(), cx, &key);
         let _none = shell.areas.terminal_tabs.panes.insert(key.clone(), pane);
         shell.terminal_tab_type(&key, "ls", cx);
         shell.terminal_tab_type(&key, "\r", cx);
@@ -478,7 +478,7 @@ fn a_focused_tab_is_the_shortcuts_terminal_scope(cx: &mut TestAppContext) {
         terminal: shell_info(session).id,
     };
     shell.update_in(cx, |shell, window, cx| {
-        let pane = Pane::new(Origin::Opened, cx, &key);
+        let pane = Pane::new(Origin::Opened, ScrollbackLines::default(), cx, &key);
         let _none = shell.areas.terminal_tabs.panes.insert(key.clone(), pane);
         assert!(!shell.terminal_focused(window));
         shell.terminal_tab_focus(&key, window, cx);
@@ -600,7 +600,7 @@ fn a_pane_claims_its_size_on_focus_and_updates_it_after(cx: &mut TestAppContext)
         );
     };
     shell.update_in(cx, |shell, window, cx| {
-        let mut pane = Pane::new(Origin::Opened, cx, &key);
+        let mut pane = Pane::new(Origin::Opened, ScrollbackLines::default(), cx, &key);
         pane.stage = Stage::Live;
         pane.fit = fit(80, 24);
         let _none = shell.areas.terminal_tabs.panes.insert(key.clone(), pane);
@@ -699,3 +699,5 @@ fn a_listed_tab_not_yet_opened_shows_its_title(cx: &mut TestAppContext) {
         assert_eq!(label(shell, id), "Opened by the CLI");
     });
 }
+
+mod p3;
