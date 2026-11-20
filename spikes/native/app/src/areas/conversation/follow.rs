@@ -183,6 +183,30 @@ impl Shell {
         }
     }
 
+    /// A fleet read. The bar's lost line follows the machine's link:
+    /// online clears it and a structured session's follow opens again.
+    /// Terminals already rejoin this way; an idle session would otherwise
+    /// keep the line, because no new record arrives to clear it.
+    pub(crate) fn session_header_follows_link(&mut self, cx: &mut Context<'_, Self>) {
+        let Some(shown) = self.areas.conversation.shown.clone() else {
+            return;
+        };
+        let online = self.fleet.online().any(|machine| machine.name == shown.machine);
+        if !self.areas.conversation.link_back(online) {
+            return;
+        }
+        let reopen = self.areas.session.open.as_ref().is_some_and(|open| {
+            open.structured && open.machine == shown.machine && open.session == shown.session
+        });
+        if reopen {
+            self.command(Command::Open {
+                machine: shown.machine,
+                session: shown.session,
+            });
+        }
+        cx.notify();
+    }
+
     /// Bring record `seq` of the session shown into view (the inbox
     /// opening a session at what it lists; call it after the session area
     /// opened the session).

@@ -83,6 +83,18 @@ impl ConversationArea {
         Followup::None
     }
 
+    /// The shown machine's link is `online`: the bar drops the lost line.
+    /// An idle session sends no records, so the link is what clears it
+    /// (Paseo's header follows the host connection). An offline link
+    /// leaves the line. Whether it was cleared.
+    pub(crate) fn link_back(&mut self, online: bool) -> bool {
+        if !online || self.lost.is_none() {
+            return false;
+        }
+        self.lost = None;
+        true
+    }
+
     /// Fold in `records` of `session`, when it is the session shown:
     /// whether a row changed (the list is told which).
     pub(crate) fn take(&mut self, session: &SessionId, records: &[EventRecord]) -> bool {
