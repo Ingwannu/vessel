@@ -17,8 +17,11 @@ fn folder() -> TerminalPlace {
     }
 }
 
+/// A shell without attention (ADR 0089): attention is cut for every peer
+/// until `ATTENTION_NOTIFICATIONS_PROTOCOL` is assigned, and these tests are
+/// about places alone.
 fn shell(place: TerminalPlace) -> TerminalInfo {
-    TerminalInfo::new(
+    let mut info = TerminalInfo::new(
         TerminalId::random(),
         place,
         PathBuf::from("/work/site"),
@@ -26,7 +29,9 @@ fn shell(place: TerminalPlace) -> TerminalInfo {
             program: PathBuf::from("/bin/sh"),
         },
         chrono::Utc::now(),
-    )
+    );
+    info.attention = None;
+    info
 }
 
 #[test]
