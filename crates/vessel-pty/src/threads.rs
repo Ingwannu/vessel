@@ -70,7 +70,7 @@ pub(crate) fn start(
         Ok(ends) => ends,
         Err(error) => {
             crate::process::stop_and_reap(child);
-            return Err(PtyError::Attach(error));
+            return Err(PtyError::Attach(std::io::Error::other(error)));
         }
     };
 
