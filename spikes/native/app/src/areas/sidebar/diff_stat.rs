@@ -83,14 +83,6 @@ impl Shell {
             })
             .cloned()
             .collect();
-        for name in &wanted {
-            self.areas
-                .sidebar
-                .diff
-                .hosts
-                .entry(name.clone())
-                .or_default();
-        }
         for name in &idle {
             self.diff_stat_send(name);
         }
@@ -166,7 +158,7 @@ impl Shell {
                 wait,
                 changed,
             } => {
-                self.diff_stat_rest(machine, rest, wait, cx);
+                Self::diff_stat_rest(machine, rest, wait, cx);
                 changed
             }
         }
@@ -174,9 +166,7 @@ impl Shell {
 
     fn diff_stat_send(&mut self, machine: &str) {
         let changed_from = {
-            let Some(host) = self.areas.sidebar.diff.hosts.get_mut(machine) else {
-                return;
-            };
+            let host = self.areas.sidebar.diff.hosts.entry(machine.to_owned()).or_default();
             if host.phase != Phase::Idle {
                 return;
             }
@@ -192,13 +182,7 @@ impl Shell {
         );
     }
 
-    fn diff_stat_rest(
-        &mut self,
-        machine: &str,
-        rest: u64,
-        wait: Duration,
-        cx: &mut Context<'_, Self>,
-    ) {
+    fn diff_stat_rest(machine: &str, rest: u64, wait: Duration, cx: &mut Context<'_, Self>) {
         let machine = machine.to_owned();
         cx.spawn(async move |this, cx| {
             cx.background_executor().timer(wait).await;
