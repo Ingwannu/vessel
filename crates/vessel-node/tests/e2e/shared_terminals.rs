@@ -36,10 +36,7 @@ fn resize(cols: u16, rows: u16, intent: Option<ResizeIntent>) -> TerminalInput {
 }
 
 async fn send(client: &NodeClient, terminal: TerminalId, input: TerminalInput) {
-    let _ack = client
-        .call(SendTerminal { terminal, input })
-        .await
-        .unwrap();
+    let _ack = client.call(SendTerminal { terminal, input }).await.unwrap();
 }
 
 async fn size_of(client: &NodeClient, terminal: TerminalId) -> Option<TerminalSize> {

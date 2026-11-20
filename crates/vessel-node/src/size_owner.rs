@@ -121,6 +121,11 @@ mod tests {
         assert!(sizes.admit(ended, &connection.owner(), None, |_| true));
         assert!(sizes.admit(live, &connection.owner(), None, |id| id == live));
         assert_eq!(lock(&sizes.owners).len(), 1);
-        assert!(sizes.admit(live, &connection.owner(), Some(ResizeIntent::Update), |_| true));
+        assert!(sizes.admit(
+            live,
+            &connection.owner(),
+            Some(ResizeIntent::Update),
+            |_| true
+        ));
     }
 }

@@ -114,9 +114,10 @@ impl Call {
                 // A resize naming its intent (ADR 0116): an older node would
                 // apply another client's update as a claim.
                 SessionInput::Terminal {
-                    input: TerminalInput::Resize {
-                        intent: Some(_), ..
-                    },
+                    input:
+                        TerminalInput::Resize {
+                            intent: Some(_), ..
+                        },
                 } => Some(crate::terminals::SHARED_TERMINALS_PROTOCOL?.get()),
                 SessionInput::Terminal { .. } | SessionInput::AnswerPermission { .. } => None,
             },
