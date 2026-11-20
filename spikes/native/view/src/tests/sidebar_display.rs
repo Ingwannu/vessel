@@ -100,7 +100,10 @@ fn a_page_checks_the_choice_in_effect_and_only_grouping_carries_marks() {
     assert_eq!(
         trailing
             .iter()
-            .map(|row| (row.label, matches!(row.kind, RowKind::Choice { checked: true, .. })))
+            .map(|row| (
+                row.label,
+                matches!(row.kind, RowKind::Choice { checked: true, .. })
+            ))
             .collect::<Vec<_>>(),
         vec![("Diff 통계", false), ("마지막 활동", true)]
     );

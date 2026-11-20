@@ -184,9 +184,9 @@ impl DisplayPage {
             Self::Sort => SORTS
                 .get(index)
                 .map(|&sort| DisplayAct::Choose(PreferenceChange::SidebarSort(sort))),
-            Self::Trailing => TRAILING.get(index).map(|&trailing| {
-                DisplayAct::Choose(PreferenceChange::SidebarTrailing(trailing))
-            }),
+            Self::Trailing => TRAILING
+                .get(index)
+                .map(|&trailing| DisplayAct::Choose(PreferenceChange::SidebarTrailing(trailing))),
         }
     }
 }

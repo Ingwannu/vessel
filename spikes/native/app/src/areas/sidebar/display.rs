@@ -150,9 +150,13 @@ const fn page_id(page: DisplayPage) -> Option<&'static str> {
 
 /// The page named `id`.
 fn page_named(id: &str) -> Option<DisplayPage> {
-    [DisplayPage::Grouping, DisplayPage::Sort, DisplayPage::Trailing]
-        .into_iter()
-        .find(|page| page_id(*page) == Some(id))
+    [
+        DisplayPage::Grouping,
+        DisplayPage::Sort,
+        DisplayPage::Trailing,
+    ]
+    .into_iter()
+    .find(|page| page_id(*page) == Some(id))
 }
 
 /// The trigger at the heading's right.

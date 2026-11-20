@@ -46,7 +46,11 @@ enum Phase {
 
 enum Step {
     Stop,
-    Rest { rest: u64, wait: Duration, changed: bool },
+    Rest {
+        rest: u64,
+        wait: Duration,
+        changed: bool,
+    },
 }
 
 impl Shell {
@@ -140,7 +144,10 @@ impl Shell {
                     let next = served(&rows);
                     let changed = host.stats != next;
                     host.stats = next;
-                    host.revision = rows.iter().find_map(|row| row.stat_revision).or(host.revision);
+                    host.revision = rows
+                        .iter()
+                        .find_map(|row| row.stat_revision)
+                        .or(host.revision);
                     host.rest = host.rest.wrapping_add(1);
                     let rest = host.rest;
                     host.phase = Phase::Resting;
@@ -154,7 +161,11 @@ impl Shell {
         };
         match step {
             Step::Stop => false,
-            Step::Rest { rest, wait, changed } => {
+            Step::Rest {
+                rest,
+                wait,
+                changed,
+            } => {
                 self.diff_stat_rest(machine, rest, wait, cx);
                 changed
             }

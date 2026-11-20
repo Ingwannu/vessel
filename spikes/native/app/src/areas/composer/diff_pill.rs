@@ -4,8 +4,8 @@
 
 use gpui::ClickEvent;
 use vessel_app_kit::ui::{
-    AnyElement, Context, InteractiveElement as _, IntoElement as _, MouseButton, ParentElement as _,
-    StatefulInteractiveElement as _, Styled as _, Window, div, px,
+    AnyElement, Context, InteractiveElement as _, IntoElement as _, MouseButton,
+    ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _};
 use vessel_app_view::diff_count::format_diff_count;

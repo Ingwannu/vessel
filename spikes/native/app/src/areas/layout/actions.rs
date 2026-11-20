@@ -28,11 +28,7 @@ impl Shell {
 
     /// The composer's diff count opens this session's Changes tab (Paseo's
     /// pill). It is the tab the layout already has, not a second pane.
-    pub(crate) fn layout_open_changes(
-        &mut self,
-        window: &mut Window,
-        cx: &mut Context<'_, Self>,
-    ) {
+    pub(crate) fn layout_open_changes(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
         if let Ok(workspace) = super::key(self) {
             let _opened = self.layout_open_target(
                 &workspace,
