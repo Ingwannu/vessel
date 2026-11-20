@@ -1,5 +1,6 @@
 /* Settings › Plugins (plugins-section.tsx), Paseo's host Plugins page:
-   the install card (the field over its button, 16 inside, 12 between),
+   the install card (the field over its button, both the column's width as
+   Paseo's stretched column draws them, 16 inside, 12 between),
    the empty list's words centred in the card (Paseo's styles.empty: 16
    inside, the row hint's muted 12px),
    a row's status badge beside its id, the description, source and error
@@ -10,15 +11,47 @@
 .plugin-install {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: stretch;
   gap: 12px;
   padding: 16px;
   border-radius: var(--r-2);
   background: var(--bg-surface);
 }
 
-.plugin-install > .field {
-  align-self: stretch;
+/* Paseo's StatusBadge (status-badge.tsx): a full pill, 3 by 8 inside, 12px
+   regular; success and error a tint of their colour (Paseo's 12% light,
+   16% dark) with no border, anything else the muted surface3 fill with the
+   border. */
+.plugin-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  background: var(--quota-surface-3);
+  color: var(--text-secondary);
+  font: 400 12px / 16px var(--font-sans);
+}
+
+.plugin-status.ok,
+.plugin-status.danger {
+  border-color: transparent;
+}
+
+.plugin-status.ok {
+  background: light-dark(
+    color-mix(in srgb, var(--online) 12%, transparent),
+    color-mix(in srgb, var(--online) 16%, transparent)
+  );
+  color: var(--online);
+}
+
+.plugin-status.danger {
+  background: light-dark(
+    color-mix(in srgb, var(--danger) 12%, transparent),
+    color-mix(in srgb, var(--danger) 16%, transparent)
+  );
+  color: var(--danger);
 }
 
 .plugin-title {

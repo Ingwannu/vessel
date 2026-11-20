@@ -1,5 +1,7 @@
 // Settings › Plugins' list (ADR 0115): Paseo's catalog card and its
-// `PluginRow` (plugins-page.tsx): the id with its status badge, the
+// `PluginRow` (plugins-page.tsx): the id with its status badge (Paseo's
+// StatusBadge, drawn here: a tinted pill without a dot, its own rule in
+// plugins-section.css; the kit's Badge keeps its look elsewhere), the
 // description, source and error under it, the enable switch, and a menu
 // of Logs, Reload (only while enabled) and Remove; or the list's loading
 // (an sm Alert), error (an sm error Alert with an outline Retry) and empty
@@ -17,7 +19,6 @@ import {
 import type { PluginListItem } from "../../wire/proto";
 import {
   Alert,
-  Badge,
   Button,
   IconButton,
   Menu,
@@ -126,7 +127,7 @@ function PluginRow({
       title={
         <span className="plugin-title">
           {plugin.id}
-          <Badge tone={look.tone}>{look.word}</Badge>
+          <span className={`plugin-status ${look.tone}`}>{look.word}</span>
         </span>
       }
       {...(hinted
