@@ -203,7 +203,7 @@ fn terminals_alone_are_closed_with_the_removal_after_the_count_is_read_again(
 }
 
 #[gpui::test]
-fn a_live_session_or_an_older_node_keeps_the_panel_as_before(cx: &mut TestAppContext) {
+fn a_live_session_in_the_worktree_keeps_the_panel_as_before(cx: &mut TestAppContext) {
     let worktree = worktree();
     let in_it = Card {
         session: SessionId::random(),
@@ -236,7 +236,11 @@ fn a_live_session_or_an_older_node_keeps_the_panel_as_before(cx: &mut TestAppCon
             "a live session keeps it"
         );
     });
+}
 
+#[gpui::test]
+fn below_40_nothing_is_counted(cx: &mut TestAppContext) {
+    let worktree = worktree();
     let older = vessel_proto::terminals::WORKSPACE_TERMINALS_PROTOCOL
         .map(|since| ProtocolVersion::new(since.get().saturating_sub(1)))
         .unwrap();
