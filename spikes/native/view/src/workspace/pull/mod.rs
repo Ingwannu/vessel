@@ -17,14 +17,20 @@
 //!   [`open`] makes `pr.open`'s request; [`facts`] reads what is shown.
 //! - Cost: a newer node's unknown values read as "not known" in each enum.
 
+pub mod attach;
 pub mod bases;
 pub mod card;
+pub mod card_menu;
+pub mod checks;
+pub mod checks_words;
 pub mod entry;
 pub mod facts;
 pub mod menu;
 pub mod merge;
 pub mod merge_words;
 pub mod open;
+pub mod timeline;
+pub mod timeline_words;
 pub mod words;
 
 #[cfg(test)]

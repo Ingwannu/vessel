@@ -21,6 +21,8 @@
 //   is added in this file and nowhere else; the label, the group and the
 //   address follow from it, and the switches below stop compiling until
 //   the new one is given each.
+// - ADR 0115 adds Plugins, under Machines: a machine's plugins, as
+//   Paseo's host-scoped Plugins page.
 // - Not here: icons and what a section contains. Those are components'.
 
 /** Every section, in the order the list shows them. */
@@ -36,6 +38,7 @@ export const SETTINGS_SECTIONS = [
   "devices",
   "usage",
   "sync",
+  "plugins",
   "diagnostics",
   "about",
 ] as const;
@@ -83,6 +86,8 @@ export function settingsSectionLabel(section: SettingsSection): string {
       return "Devices";
     case "sync":
       return "Sync";
+    case "plugins":
+      return "Plugins";
     case "diagnostics":
       return "Diagnostics";
     case "about":
@@ -106,6 +111,7 @@ export function settingsGroupOf(section: SettingsSection): SettingsGroup {
     case "devices":
     case "usage":
     case "sync":
+    case "plugins":
       return "machines";
     case "diagnostics":
     case "about":

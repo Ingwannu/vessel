@@ -16,7 +16,9 @@
 //!   answer, and an `Origin` there, when present, must be ours too. No CORS
 //!   header is ever sent.
 //! - Headers: a Content Security Policy with no inline script and no other
-//!   origin, no framing, no `Referer`, no type sniffing.
+//!   origin, no framing, no `Referer`, no type sniffing. The one exception
+//!   is an HTML preview's document (ADR 0122), which keeps its own policy
+//!   (Paseo's, sandboxed) and may be framed by our pages only.
 //! - Alternatives: an allowlist that accepts any literal IP (Paseo's
 //!   default: a rebinding site's own IP passes); trusting a missing
 //!   `Origin` on the upgrade (a non-browser client could, but it has no
@@ -113,10 +115,19 @@ pub(crate) async fn guard(
             .headers_mut()
             .insert("connection", HeaderValue::from_static("close"));
     }
+    // An HTML preview's document keeps the policy and framing it was given
+    // (ADR 0122: Paseo's preview policy, sandboxed, framed by our pages
+    // only); every other answer gets the page's.
+    let own_policy = response
+        .extensions()
+        .get::<crate::preview::PreviewDocument>()
+        .is_some();
     let headers = response.headers_mut();
-    let _previous = headers.insert(CONTENT_SECURITY_POLICY, HeaderValue::from_static(CSP));
+    if !own_policy {
+        let _previous = headers.insert(CONTENT_SECURITY_POLICY, HeaderValue::from_static(CSP));
+        let _previous = headers.insert(X_FRAME_OPTIONS, HeaderValue::from_static("DENY"));
+    }
     let _previous = headers.insert(X_CONTENT_TYPE_OPTIONS, HeaderValue::from_static("nosniff"));
-    let _previous = headers.insert(X_FRAME_OPTIONS, HeaderValue::from_static("DENY"));
     let _previous = headers.insert(REFERRER_POLICY, HeaderValue::from_static("no-referrer"));
     let _previous = response.headers_mut().insert(
         "cross-origin-opener-policy",

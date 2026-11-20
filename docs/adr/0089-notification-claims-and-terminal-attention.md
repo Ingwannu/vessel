@@ -206,7 +206,8 @@ variant. No fabricated SessionId, new payload, principal, listener or transport
 is introduced. The observer retains the canonical registry owner and metadata revisions, never
 an individual terminal handle or a second PTY/follow task. Pruning releases the
 registry entry; closed change watches and node cancellation end the worker. This path stays off
-while the feature constant is unassigned.
+while the feature constant is unassigned. One terminal's pushes are spaced apart, a minute after
+a push and up to an hour for a terminal that keeps asking (item 1 of the owed list below).
 
 One factored lease predicate checks exact device, serialized subscription and
 expiry, current Read, revocation and expiry time. Inbox admission keeps that
@@ -292,37 +293,40 @@ proof. Changed-source checks and the actual drafted regressions are pending.
 
 The node review of TRACKER 815 (2026-11-20, the staging line merged onto the
 node line with the constant still None) accepted the source and listed what must
-be done before a number is assigned:
+be done before a number is assigned. The packet after it (branch
+backend/m12-impl-usage-815-owed) answers each:
 
 1. Push flood. An agent may report its own terminal's activity, and a hook can
-   loop Working/Idle. Each Idle makes a new Finished revision, and with no
-   client present the worker pushes once per lease per 250 ms burst, up to
-   about four a second per device. A service that crashes about every 61 s
-   pushes "finished" indefinitely. Throttle per terminal.
-2. Workspace script rows. `WorkspaceScriptRow.terminal`
-   (`vessel-proto/src/workspace_services/row.rs`) does not pass through
-   `titles::terminal` / `TerminalInfo::for_protocol` in its `for_protocol`
-   (`page.rs`, `operation.rs`). If WORKSPACE_SERVICES is assigned first, every
-   peer would get `attention`.
-3. The environment scrub. `terminals/env.rs` `credentials_in` matches
-   `VESSEL_TERMINAL_ACTIVITY_*`. A node started from a Vessel terminal would
-   then strip the user's `ANTHROPIC_BASE_URL`/`AUTH_TOKEN` from its terminals,
-   and the comment still says "a session's process tree".
-4. `create_terminal`: `install_producer(..)?` comes after `register`. A failure
-   skips `watch_for_agents` and `still_placed` and errors for a live terminal.
-   Install the producer before `register`, or log the failure.
-5. Tests weaker than their names:
-   - `terminal_delivery.rs` asserts the client-side `UnassignedProtocol`, so the
-     node is never reached;
-   - nothing drives `ipc::admit` to `admit_producer`, or a producer closed by
-     end or forget;
-   - the push renewal's "revoked" case cannot fail, because `devices::revoke`
-     deletes the subscription first;
-   - no claim pairs a valid cursor with another session's key;
-   - the "one snapshot" badge test uses one session.
-6. The terminal list wake. T2's `terminals/listed.rs` `Shown` compares status,
-   title, service and end, not `attention`, so an attention change does not wake
-   a `terminal.list` poller. Add `attention` to `Shown`.
+   loop Working/Idle; each Idle made a new Finished revision pushed once per
+   250 ms burst. Done: a push opens a per-terminal gap of a minute, doubled up
+   to an hour by a push at its end and reset after twice the gap of quiet; the
+   worker records the terminals a burst pushed once per burst
+   (`vessel-node/src/push/terminal/spacing.rs`). Paseo has no such limit; this
+   is a deliberate difference.
+2. Workspace script rows. Done: `WorkspaceScriptRow::for_protocol` passes its
+   terminal through `TerminalInfo::for_protocol`, and `ServicePage` and
+   `WorkspaceScriptOutcome` (Accepted, Already) use it.
+3. The environment scrub. Done: the terminal activity variables are removed
+   like credentials but do not count as a session's process tree, so a node
+   started from a Vessel terminal keeps the user's model route.
+4. `create_terminal`. Done: `register` takes the capability's secret and the
+   entry holds its producer from the start; `install_producer` is gone.
+5. Tests weaker than their names. Done:
+   - while unassigned, `terminal_delivery` drives the node's own path (the
+     terminal's handle goes Working then Finished) and sees no Web Push;
+   - a capability admits only its terminal with its own secret and closes on
+     forget and on end (`admit_assigned` holds `admit_producer`'s checks
+     behind the gate; a test-only `give_producer` stands in for the
+     capability the node gives once assigned);
+   - a renewal for a device revoked with its subscription row still there is
+     refused by the renewal's own check;
+   - a current cursor paired with another session's key claims nothing;
+   - `inbox.attention` reads two sessions from one snapshot.
+   Still owed at assignment: the IPC route (`ipc::admit` to `admit_producer`
+   to a report) with the assigned protocol, as the wire test the
+   "Activity-only local producer capability" section already requires.
+6. The terminal list wake. Done: T2's `Shown` holds the attention once the
+   feature is assigned (left out while unassigned, when every peer has it cut).
 
 Recorded, not owed (they fail closed or are allowed by the design):
 - one malformed parentage row fails a whole `pending_push` page through

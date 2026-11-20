@@ -28,7 +28,7 @@ use crate::routes::Route;
 use crate::shell::Shell;
 
 mod open;
-pub(crate) use open::Open;
+pub(crate) use open::{Open, follow_command};
 mod body;
 
 /// A session asked for from the draft and not created yet.

@@ -93,6 +93,7 @@ impl Shell {
         // 2 s, measured by the coordinator on 0.0.0.0.13).
         if self.loaded && fleet.machines == self.fleet.machines {
             self.fleet.read_at = fleet.read_at;
+            self.session_header_follows_link(cx);
             if self.route == Route::Settings {
                 self.agent_load(false, cx);
             }
@@ -123,6 +124,7 @@ impl Shell {
         if self.route == Route::Settings {
             self.agent_load(false, cx);
         }
+        self.session_header_follows_link(cx);
         true
     }
 

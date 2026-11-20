@@ -4,6 +4,7 @@
 use vessel_app_view::workspace::file_panels::DownloadFailure;
 use vessel_app_view::workspace::problem::Problem;
 use vessel_app_view::workspace::save::{SaveFailure, Saved};
+use vessel_proto::forge::RepositoryList;
 use vessel_proto::workspace::directory_metadata::{InspectDirectory, InspectedDirectory};
 use vessel_proto::workspace::host_folders::{FolderSuggestions, IconImage};
 use vessel_proto::workspace::panel_files::{
@@ -20,8 +21,8 @@ use vessel_proto::workspace::{
 use vessel_proto::{ProjectId, SessionId, SessionInfo, WorktreeId};
 
 use super::{
-    Ask, Download, FileAsk, GitAsk, GitWrite, PathChange, ProjectAsk, ReadImage, StartEnded,
-    StartKey, WorktreeAsk,
+    Ask, Download, FileAsk, GitAsk, GitWrite, ImageBytes, PathChange, ProjectAsk, ReadImage,
+    StartEnded, StartKey, WorktreeAsk,
 };
 
 /// What a git write answered.
@@ -60,6 +61,13 @@ pub enum Answer {
         query: String,
         /// The folders, or why not.
         result: Result<FolderSuggestions, Problem>,
+    },
+    /// Add project's GitHub repositories for what was typed (ADR 0088).
+    Repositories {
+        /// The query asked.
+        query: String,
+        /// The repositories, or why not.
+        result: Result<RepositoryList, Problem>,
     },
     /// A project's own icon, or none (ADR 0112).
     Icon {
@@ -354,6 +362,10 @@ fn project_refused(ask: ProjectAsk, problem: &Problem) -> Answer {
             query: ask.query.as_str().to_owned(),
             result: no(problem),
         },
+        ProjectAsk::SearchRepositories(ask) => Answer::Repositories {
+            query: ask.query.as_str().to_owned(),
+            result: no(problem),
+        },
         ProjectAsk::Icon(project) => Answer::Icon {
             project,
             result: no(problem),
@@ -480,14 +492,4 @@ fn took_failed(form: Form, problem: &Problem) -> Answer {
         form,
         result: no(problem),
     }
-}
-
-/// An image's bytes and the version they are (`file.read_bytes`, checked
-/// whole against its hash).
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ImageBytes {
-    /// The file's bytes.
-    pub bytes: std::sync::Arc<[u8]>,
-    /// Their version.
-    pub revision: vessel_proto::workspace::panel_files::FileRevision,
 }

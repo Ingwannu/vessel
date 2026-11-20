@@ -123,6 +123,9 @@ impl Glyph {
             Self::CircleDot => {
                 line_glyph!(r#"<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="1"/>"#)
             }
+            Self::CircleSlash => {
+                line_glyph!(r#"<circle cx="12" cy="12" r="9"/><path d="M9 15l6-6"/>"#)
+            }
             Self::SquareCheck => line_glyph!(
                 r#"<rect x="3.5" y="3.5" width="17" height="17" rx="2.5"/><path d="M8.5 12l2.5 2.5 4.5-5"/>"#
             ),
@@ -271,6 +274,12 @@ impl Glyph {
             // 16 grid at a stroke of 1), at one and a half times.
             Self::Terminal => line_glyph!(r#"<path d="m6 7.5 4.5 4.5-4.5 4.5M12 16.5h6"/>"#),
             Self::Message => line_glyph!(r#"<path d="M4.5 6.75h15v10.5H9l-4.5 3v-13.5z"/>"#),
+            Self::MessagePlus => line_glyph!(
+                r#"<path d="M4.5 6.75h15v10.5H9l-4.5 3v-13.5z"/><path d="M12 9.5v5M9.5 12h5"/>"#
+            ),
+            Self::ExternalLink => line_glyph!(
+                r#"<path d="M15 3h6v6M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>"#
+            ),
             Self::Archive => line_glyph!(
                 r#"<rect x="3" y="4.5" width="18" height="5.25" rx="1.5"/><path d="M4.8 9.75v7.5A2.25 2.25 0 0 0 7.05 19.5h9.9a2.25 2.25 0 0 0 2.25-2.25v-7.5"/><path d="M9.75 13.95h4.5"/>"#
             ),
