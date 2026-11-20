@@ -13,7 +13,7 @@ use vessel_app_view::layout::{
     LayoutMode, OpenIntent, Placement, RetargetRequest, TabId, Target,
 };
 use vessel_app_view::terminal::Origin;
-use vessel_app_view::terminal_tabs::{Failure, standalone};
+use vessel_app_view::terminal_tabs::{Failure, in_place, shows_as_tab};
 use vessel_app_view::toasts::ToastTone;
 use vessel_proto::TerminalId;
 use vessel_proto::terminals::{TerminalInfo, TerminalList, TerminalPlace};
@@ -88,7 +88,8 @@ impl Shell {
         let Ok(workspace) = crate::areas::layout::current_key(self) else {
             return;
         };
-        let (Some(place), LayoutKey::Session { machine, .. }) = (place_of(&workspace), &workspace)
+        let (Some(place), LayoutKey::Session { machine, .. }) =
+            (place_of(self, &workspace), &workspace)
         else {
             return;
         };
@@ -191,11 +192,15 @@ impl Shell {
         let Ok(workspace) = crate::areas::layout::current_key(self) else {
             return;
         };
-        let (Some(place), LayoutKey::Session { machine, .. }) = (place_of(&workspace), &workspace)
+        let (Some(place), LayoutKey::Session { machine, .. }) =
+            (place_of(self, &workspace), &workspace)
         else {
             return;
         };
         let machine = machine.as_str().to_owned();
+        if self.machine_online(&machine) {
+            self.terminal_tabs_poll_beside(&machine, &workspace, &place);
+        }
         let tabs = &self.areas.terminal_tabs;
         if tabs
             .listing
@@ -255,7 +260,7 @@ impl Shell {
                 &workspace,
                 LayoutKey::Session { machine: alias, .. } if alias.as_str() == machine
             );
-            if shown && place_of(&workspace).as_ref() == Some(place) {
+            if shown && place_of(self, &workspace).as_ref() == Some(place) {
                 for info in &list.terminals {
                     if let Some(key) = pane_key(&workspace, info.id)
                         && let Some(pane) = self.areas.terminal_tabs.panes.get_mut(&key)
@@ -263,12 +268,17 @@ impl Shell {
                         pane.info = Some(info.clone());
                     }
                 }
-                self.areas.terminal_tabs.listed_infos = list
+                // The place's live shells, a project's every dir (ADR 0121
+                // as ruled on 832's review R2), merged with the shells
+                // beside the workspace's sessions.
+                let shells = list
                     .terminals
                     .iter()
-                    .map(|info| (info.id, info.clone()))
+                    .filter(|info| in_place(info, place) && shows_as_tab(info))
+                    .cloned()
                     .collect();
-                self.areas.terminal_tabs.listed = Some((workspace, standalone(list, place)));
+                self.areas.terminal_tabs.place_shells = Some((workspace.clone(), shells));
+                self.terminal_tabs_merge(&workspace);
             }
         }
         if again {

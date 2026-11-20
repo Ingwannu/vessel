@@ -22,9 +22,12 @@
 //!   by machine and terminal, in the shell's state; the grid stays its own
 //!   cached view (`TerminalGrid`), and one small entity per pane is the
 //!   platform's text input (IME) for that pane, forwarding to the shell.
-//! - Place: today a workspace layout is a session's (`LayoutKey::Session`),
-//!   so a shell is opened beside that session (`TerminalPlace::Session`, in
-//!   its folder), where Paseo opens one in the workspace's directory.
+//! - Place: a workspace layout is a session's (`LayoutKey::Session`). From
+//!   protocol 40 (ADR 0121) its shells are the session's workspace's: its
+//!   worktree, its project, or its folder, as Paseo keys them by workspace
+//!   directory (`place_of`). Below 40, or for a session with no folder, they
+//!   are beside the session. The strip also shows the live shells beside
+//!   the workspace's sessions (`beside`).
 //! - List: the node pushes no list of terminals (ADR 0031); the app asks
 //!   for the open workspace's on each fleet read (every 2 s, as the
 //!   sessions are listed) and after its own create, close or an end, and
@@ -46,6 +49,7 @@
 //!   whole and sent in parts the node takes (the view's `TerminalSender`);
 //!   Settings > Terminal's scrollback applies to open tabs at once.
 
+mod beside;
 mod body;
 mod draw;
 mod find;
@@ -209,6 +213,12 @@ pub(crate) struct TerminalTabs {
     /// The shown place's terminals as last listed: a tab the list added
     /// and nobody opened yet has no pane, and still shows its title.
     listed_infos: HashMap<TerminalId, TerminalInfo>,
+    /// The shown place's live shells as its list last answered, before the
+    /// shells beside the workspace's sessions are merged in (`beside`).
+    place_shells: Option<(LayoutKey, Vec<TerminalInfo>)>,
+    /// The shells beside the workspace's sessions (ADR 0121's native
+    /// consumer).
+    beside: beside::Beside,
     /// The Close asked of the person.
     confirm: Option<(LayoutKey, ClosePlan)>,
     pub(crate) dialog: DialogState,
@@ -226,6 +236,8 @@ impl TerminalTabs {
             listing: None,
             revision: None,
             listed_infos: HashMap::new(),
+            place_shells: None,
+            beside: beside::Beside::default(),
             focus_next: None,
             listed: None,
             confirm: None,
@@ -343,12 +355,32 @@ pub(crate) fn label(shell: &Shell, terminal: TerminalId) -> String {
         )
 }
 
-/// The place a workspace opens its shells in.
-pub(crate) fn place_of(workspace: &LayoutKey) -> Option<TerminalPlace> {
-    match workspace {
-        LayoutKey::Session { session, .. } => Some(TerminalPlace::Session { session: *session }),
-        LayoutKey::Workspace { .. } => None,
-    }
+/// The place a workspace opens and lists its shells in (ADR 0121): from
+/// protocol 40 the shown session's workspace (its worktree, its project,
+/// or its folder), else beside the session
+/// (`vessel_app_view::terminal_tabs::place_for`). A session the fleet read
+/// does not list yet keeps the session place.
+pub(crate) fn place_of(shell: &Shell, workspace: &LayoutKey) -> Option<TerminalPlace> {
+    let LayoutKey::Session { machine, session } = workspace else {
+        return None;
+    };
+    let beside = TerminalPlace::Session { session: *session };
+    let Some(on) = shell
+        .fleet
+        .machines
+        .iter()
+        .find(|on| on.name == machine.as_str())
+    else {
+        return Some(beside);
+    };
+    Some(
+        on.sessions
+            .iter()
+            .find(|card| card.session == *session)
+            .map_or(beside, |card| {
+                vessel_app_view::terminal_tabs::place_for(card, on.protocol)
+            }),
+    )
 }
 
 impl Shell {
