@@ -12,7 +12,7 @@ use super::*;
 use crate::launch::{Plan, ProxyEndpoint};
 use crate::preparation::Preparation;
 use crate::profile::{Profile, ProfileError};
-use crate::targets::TargetNotice;
+use crate::targets::{TargetNotice, TargetWatch};
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::net::TcpListener;
@@ -93,8 +93,9 @@ async fn approved_candidate_uses_real_rust_driver_and_private_child_pipe() {
         } else {
             None
         };
-        let actor = Actor::start(owner);
+        let actor = Actor::start(owner, network.policy());
         let driven = exercise_actor(&actor).await;
+        let revoked = exercise_proxy_loss(&actor, &network).await;
         let stopped = actor.shutdown().await.unwrap();
         let receipt = stopped.receipt.as_ref().unwrap();
         let previous_root = root.clone();
@@ -115,6 +116,7 @@ async fn approved_candidate_uses_real_rust_driver_and_private_child_pipe() {
         assert!(held);
         page.unwrap().unwrap().verify();
         driven.unwrap();
+        revoked.unwrap();
         candidate_reuse::relaunch(&scope, root.clone(), temporary, endpoint, stopped).await;
         proxy.finish().await;
         scope
@@ -184,11 +186,27 @@ async fn exercise_actor(actor: &Actor) -> Result<(), ActorError> {
     ));
     actor.close(workspace, id).await?;
     assert!(watched.frames.has_changed().is_err());
-    let ended = loop {
-        if let TargetNotice::Ended(reason) = watched.notices.recv().await.unwrap() {
-            break reason;
-        }
-    };
-    assert_eq!(ended, BrowserFailure::Closed);
+    assert_eq!(end_reason(&mut watched).await, BrowserFailure::Closed);
     Ok(())
+}
+
+async fn exercise_proxy_loss(actor: &Actor, network: &NetworkFixture) -> Result<(), ActorError> {
+    let workspace = WorkspaceId::random();
+    let side = ViewportSide::try_from(390).unwrap();
+    let viewport = ViewportSize { width: side, height: side };
+    let original = "http://fixture.test/".parse().unwrap();
+    let tab = actor.open(workspace, original, viewport).await?;
+    let mut watched = actor.watch(workspace, tab).await?;
+    network.stop_policy();
+    assert_eq!(end_reason(&mut watched).await, BrowserFailure::NoEngine);
+    assert!(watched.frames.has_changed().is_err());
+    Ok(())
+}
+
+async fn end_reason(watched: &mut TargetWatch) -> BrowserFailure {
+    loop {
+        if let TargetNotice::Ended(reason) = watched.notices.recv().await.unwrap() {
+            return reason;
+        }
+    }
 }

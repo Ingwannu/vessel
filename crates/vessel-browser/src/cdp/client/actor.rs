@@ -5,7 +5,7 @@ use std::sync::Arc;
 use tokio::sync::{mpsc, oneshot};
 use tokio::task::JoinHandle;
 use tokio::time::Instant;
-use tokio_util::sync::CancellationToken;
+use tokio_util::sync::{CancellationToken, WaitForCancellationFutureOwned};
 use vessel_proc::OwnedGroupExit;
 use vessel_proto::WorkspaceId;
 use vessel_proto::browser::{
@@ -18,6 +18,7 @@ use super::owner::{Owner, OwnerError};
 use crate::cdp::wire::{Event, EventKind, GuestAddress, GuestNavigation};
 use crate::delivery::{Attempt, Caller};
 use crate::page::PageError;
+use crate::proxy::PublicProxy;
 use crate::targets::{Binding, TargetError, TargetWatch, Targets};
 
 const COMMAND_CAPACITY: usize = 64;
@@ -77,10 +78,10 @@ pub(super) struct Shutdown {
 }
 
 impl Actor {
-    pub(super) fn start(owner: Owner) -> Self {
+    pub(super) fn start(owner: Owner, proxy: &PublicProxy) -> Self {
         let (commands, requests) = mpsc::channel(COMMAND_CAPACITY);
         let stop = CancellationToken::new();
-        let task = tokio::spawn(run(owner, requests, stop.clone()));
+        let task = tokio::spawn(run(owner, requests, stop.clone(), proxy.stopping()));
         Self {
             commands,
             stop,
@@ -188,13 +189,16 @@ async fn run(
     mut owner: Owner,
     mut requests: mpsc::Receiver<Queued>,
     stop: CancellationToken,
+    policy_stopping: WaitForCancellationFutureOwned,
 ) -> Shutdown {
     if let Some((client, events)) = owner.controller() {
         let mut targets = Targets::default();
+        tokio::pin!(policy_stopping);
         let ended = loop {
             let deadline = targets.next_capture();
             tokio::select! {
                 () = stop.cancelled() => break BrowserFailure::Closed,
+                () = &mut policy_stopping => break BrowserFailure::NoEngine,
                 next = requests.recv() => {
                     let Some(queued) = next else { break BrowserFailure::Closed };
                     if stop.is_cancelled() {

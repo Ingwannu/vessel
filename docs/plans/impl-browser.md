@@ -111,6 +111,12 @@ both document stamps around the screenshot instead of using the small signal
 image as the display frame. This keeps the CDP event queue bounded and lets
 the node drop intermediate paints while retaining the last scheduled update.
 
+The actor observes the mandatory policy proxy's own cancellation signal.
+Losing that proxy ends watches with `NoEngine` and closes the owned runtime.
+The local fixture requests real proxy shutdown while a second watch is
+active, then checks the terminal notice and frame-channel closure. The live
+result for this extension is pending.
+
 The Linux relaunch fixture reopens a private profile only after the prior
 child's acknowledged close and a fresh bounded observation of its original
 process group and exact profile marker. A separate launch must return a

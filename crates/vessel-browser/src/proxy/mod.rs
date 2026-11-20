@@ -26,7 +26,7 @@ use hyper_util::rt::{TokioIo, TokioTimer};
 use tokio::net::TcpListener;
 use tokio::sync::{OwnedSemaphorePermit, Semaphore};
 use tokio::task::JoinHandle;
-use tokio_util::sync::CancellationToken;
+use tokio_util::sync::{CancellationToken, WaitForCancellationFutureOwned};
 use tokio_util::task::TaskTracker;
 
 /// A finite socket/task admission bound, including upgraded tunnels.
@@ -103,6 +103,15 @@ impl PublicProxy {
         self.address
     }
 
+    /// Loss of the mandatory proxy revokes this engine's control and frames.
+    pub(crate) fn stopping(&self) -> WaitForCancellationFutureOwned {
+        self.cancel.clone().cancelled_owned()
+    }
+
+    pub(crate) fn request_shutdown(&self) {
+        self.cancel.cancel();
+    }
+
     /// Stop listeners and every stream/tunnel before releasing a profile.
     ///
     /// # Errors
@@ -119,13 +128,13 @@ impl PublicProxy {
     /// The process supervisor must retain this until its wait produces a receipt;
     /// an error/timeout never grants permission to release the profile or slot.
     pub(crate) fn begin_close(mut self) -> ClosingProxy {
-        self.cancel.cancel();
+        self.request_shutdown();
         ClosingProxy::new(self.actor.take(), self.cancel.clone())
     }
 }
 impl Drop for PublicProxy {
     fn drop(&mut self) {
-        self.cancel.cancel();
+        self.request_shutdown();
     }
 }
 

@@ -227,6 +227,14 @@ impl NetworkFixture {
         self.routes
     }
 
+    pub(super) const fn policy(&self) -> &PublicProxy {
+        &self.proxy
+    }
+
+    pub(super) fn stop_policy(&self) {
+        self.proxy.request_shutdown();
+    }
+
     pub(super) async fn finish(self) {
         self.proxy.close().await.unwrap();
         // A direct Chromium bypass or a successful policy dial leaves a buffered connection.
