@@ -14,9 +14,7 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
 use vessel_app_kit::assets::Glyph;
-use vessel_app_kit::picker::{
-    ComboHandlers, ComboHeader, ComboRow, Leading, Side, combobox,
-};
+use vessel_app_kit::picker::{ComboHandlers, ComboHeader, ComboRow, Leading, Side, combobox};
 use vessel_app_kit::ui::{
     AnyElement, Context, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
     ParentElement as _, SharedString, StatefulInteractiveElement as _, Styled as _, Window, div,
@@ -175,10 +173,16 @@ pub(crate) fn open_button(
             .border_l_1()
             .border_color(neutral.border_accent)
             .cursor_pointer()
-            .when_some(chooser.is_open().then_some(hover), |caret, fill| caret.bg(fill))
+            .when_some(chooser.is_open().then_some(hover), |caret, fill| {
+                caret.bg(fill)
+            })
             .hover(move |style| style.bg(hover))
             .debug_selector(|| "open-in-editor-caret".to_owned())
-            .child(glyph(Glyph::ChevronDown, 16.0, neutral.foreground_extra_muted))
+            .child(glyph(
+                Glyph::ChevronDown,
+                16.0,
+                neutral.foreground_extra_muted,
+            ))
             .child(chooser.anchor())
             .on_click(cx.listener(|shell, _event, window, cx| {
                 let chooser = &mut shell.areas.workspace.open.chooser;
@@ -192,7 +196,13 @@ pub(crate) fn open_button(
         button = button.child(caret);
     }
     let list = chooser_list(shell, &shown, &targets, primary, tokens, window, cx);
-    Some(div().flex_shrink_0().child(button).children(list).into_any_element())
+    Some(
+        div()
+            .flex_shrink_0()
+            .child(button)
+            .children(list)
+            .into_any_element(),
+    )
 }
 
 /// "Choose editor": the targets with their icons, a check on the
@@ -236,13 +246,15 @@ fn chooser_list(
     let project = shown.project;
     let handlers = ComboHandlers {
         state: |shell: &mut Shell| &mut shell.areas.workspace.open.chooser,
-        chose: Rc::new(move |shell: &mut Shell, index, _window: &mut Window, cx: &mut Context<'_, Shell>| {
-            if let Some(target) = chosen.get(index).copied() {
-                shell.choose_target(&machine, project, target, cx);
-            }
-            shell.areas.workspace.open.chooser.close();
-            cx.notify();
-        }),
+        chose: Rc::new(
+            move |shell: &mut Shell, index, _window: &mut Window, cx: &mut Context<'_, Shell>| {
+                if let Some(target) = chosen.get(index).copied() {
+                    shell.choose_target(&machine, project, target, cx);
+                }
+                shell.areas.workspace.open.chooser.close();
+                cx.notify();
+            },
+        ),
         back: None,
     };
     combobox(

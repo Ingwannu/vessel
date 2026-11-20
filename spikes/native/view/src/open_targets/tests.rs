@@ -145,13 +145,15 @@ fn the_targets_are_paseo_s_twenty_five_in_its_order_with_its_ids() {
 
 #[test]
 fn only_what_is_on_path_or_installed_is_listed_with_the_platform_s_file_manager() {
-    let linux = Fake::on(Platform::Other, "/opt/bin::/usr/bin").with(&["/usr/bin/code", "/opt/bin/zeditor"]);
+    let linux = Fake::on(Platform::Other, "/opt/bin::/usr/bin")
+        .with(&["/usr/bin/code", "/opt/bin/zeditor"]);
     assert_eq!(
         list(&linux, Some(Path::new("/w"))),
         [TargetId::VsCode, TargetId::Zed, TargetId::FileManager]
     );
     // Windows: `.cmd` forms on PATH, and the install paths.
-    let mut windows = Fake::on(Platform::Windows, r"C:\bin;C:\tools").with(&[r"C:\tools/codium.cmd"]);
+    let mut windows =
+        Fake::on(Platform::Windows, r"C:\bin;C:\tools").with(&[r"C:\tools/codium.cmd"]);
     windows.env.local_app_data = Some(r"C:\Local".to_owned());
     let _new = windows.exists.insert(
         ["C:\\Local", "Programs", "cursor", "Cursor.exe"]
@@ -163,7 +165,8 @@ fn only_what_is_on_path_or_installed_is_listed_with_the_platform_s_file_manager(
         [TargetId::Cursor, TargetId::VsCodium, TargetId::Explorer]
     );
     // macOS: an app bundle without a command, and Finder.
-    let mac = Fake::on(Platform::MacOs, "/usr/bin").with(&["/home/me/Applications/Visual Studio Code.app"]);
+    let mac = Fake::on(Platform::MacOs, "/usr/bin")
+        .with(&["/home/me/Applications/Visual Studio Code.app"]);
     assert_eq!(list(&mac, None), [TargetId::VsCode, TargetId::Finder]);
 }
 
@@ -173,7 +176,11 @@ fn xcode_is_listed_only_for_a_workspace_it_opens_and_takes_the_folder_s_namesake
     assert_eq!(list(&mac, Some(Path::new("/w"))), [TargetId::Finder]);
     let _old = mac.entries.insert(
         PathBuf::from("/Users/me/App"),
-        vec![dir("Other.xcodeproj"), dir("App.xcodeproj"), file("Package.swift")],
+        vec![
+            dir("Other.xcodeproj"),
+            dir("App.xcodeproj"),
+            file("Package.swift"),
+        ],
     );
     let app = Path::new("/Users/me/App");
     assert_eq!(list(&mac, Some(app)), [TargetId::Xcode, TargetId::Finder]);
@@ -184,23 +191,40 @@ fn xcode_is_listed_only_for_a_workspace_it_opens_and_takes_the_folder_s_namesake
     );
     let _old = mac.entries.insert(
         app.to_path_buf(),
-        vec![dir("B.xcodeproj"), dir("Z.xcworkspace"), dir("A.xcworkspace")],
+        vec![
+            dir("B.xcodeproj"),
+            dir("Z.xcworkspace"),
+            dir("A.xcworkspace"),
+        ],
     );
     assert_eq!(
         listing::xcode_document(app, &mac).ok().flatten(),
         Some(app.join("A.xcworkspace"))
     );
-    let _old = mac.entries.insert(app.to_path_buf(), vec![file("Package.swift")]);
-    let opened = plan(TargetId::Xcode, &checked_at(Some("/w/a.swift"), Some(3), None), &{
-        let mut at = Fake::on(Platform::MacOs, "").with(&["/Applications/Xcode.app"]);
-        let _old = at.entries.insert(PathBuf::from("/w"), vec![file("Package.swift")]);
-        at
-    });
+    let _old = mac
+        .entries
+        .insert(app.to_path_buf(), vec![file("Package.swift")]);
+    let opened = plan(
+        TargetId::Xcode,
+        &checked_at(Some("/w/a.swift"), Some(3), None),
+        &{
+            let mut at = Fake::on(Platform::MacOs, "").with(&["/Applications/Xcode.app"]);
+            let _old = at
+                .entries
+                .insert(PathBuf::from("/w"), vec![file("Package.swift")]);
+            at
+        },
+    );
     assert_eq!(
         opened,
         Ok(Plan::Start {
             program: PathBuf::from("/usr/bin/open"),
-            args: os(&["-a", "/Applications/Xcode.app", "/w/Package.swift", "/w/a.swift"]),
+            args: os(&[
+                "-a",
+                "/Applications/Xcode.app",
+                "/w/Package.swift",
+                "/w/a.swift"
+            ]),
         })
     );
     assert_eq!(
@@ -228,7 +252,10 @@ fn each_family_gets_paseo_s_arguments() {
     let at_line = checked_at(Some("/w/src/a.rs"), Some(12), Some(4));
     let line_only = checked_at(Some("/w/src/a.rs"), Some(12), None);
     assert_eq!(started(TargetId::VsCode, &folder), os(&["/w"]));
-    assert_eq!(started(TargetId::VsCode, &at_file), os(&["/w", "/w/src/a.rs"]));
+    assert_eq!(
+        started(TargetId::VsCode, &at_file),
+        os(&["/w", "/w/src/a.rs"])
+    );
     assert_eq!(
         started(TargetId::VsCode, &at_line),
         os(&["/w", "--goto", "/w/src/a.rs:12:4"])
@@ -243,7 +270,10 @@ fn each_family_gets_paseo_s_arguments() {
         os(&["ide", "/w", "--goto", "/w/src/a.rs:12:4"])
     );
     assert_eq!(started(TargetId::Zed, &at_file), os(&["/w", "/w/src/a.rs"]));
-    assert_eq!(started(TargetId::Zed, &at_line), os(&["/w", "/w/src/a.rs:12:4"]));
+    assert_eq!(
+        started(TargetId::Zed, &at_line),
+        os(&["/w", "/w/src/a.rs:12:4"])
+    );
     assert_eq!(
         started(TargetId::AndroidStudio, &at_line),
         os(&["/w", "--line", "12", "--column", "4", "/w/src/a.rs"])
@@ -267,14 +297,22 @@ fn each_family_gets_paseo_s_arguments() {
 fn a_mac_app_without_a_command_opens_through_open_and_the_file_manager_reveals_or_opens() {
     let mac = Fake::on(Platform::MacOs, "/usr/bin").with(&["/Applications/Zed.app"]);
     assert_eq!(
-        plan(TargetId::Zed, &checked_at(Some("/w/a.rs"), Some(2), None), &mac),
+        plan(
+            TargetId::Zed,
+            &checked_at(Some("/w/a.rs"), Some(2), None),
+            &mac
+        ),
         Ok(Plan::Start {
             program: PathBuf::from("/usr/bin/open"),
             args: os(&["-a", "/Applications/Zed.app", "/w", "/w/a.rs"]),
         })
     );
     assert_eq!(
-        plan(TargetId::Finder, &checked_at(Some("/w/a.rs"), None, None), &mac),
+        plan(
+            TargetId::Finder,
+            &checked_at(Some("/w/a.rs"), None, None),
+            &mac
+        ),
         Ok(Plan::Reveal(PathBuf::from("/w/a.rs")))
     );
     assert_eq!(
@@ -285,7 +323,8 @@ fn a_mac_app_without_a_command_opens_through_open_and_the_file_manager_reveals_o
 
 #[test]
 fn only_existing_absolute_paths_under_the_root_pass_and_links_out_of_it_are_refused() {
-    let mut fake = Fake::on(Platform::Other, "").with(&["/w", "/w/src", "/w/src/a.rs", "/etc/passwd"]);
+    let mut fake =
+        Fake::on(Platform::Other, "").with(&["/w", "/w/src", "/w/src/a.rs", "/etc/passwd"]);
     let _old = fake
         .links
         .insert(PathBuf::from("/w/out"), PathBuf::from("/etc/passwd"));
@@ -325,7 +364,10 @@ fn only_existing_absolute_paths_under_the_root_pass_and_links_out_of_it_are_refu
 
 #[test]
 fn a_windows_drive_path_loses_its_verbatim_prefix_and_nothing_else_does() {
-    assert_eq!(plain_for_tests(r"\\?\C:\w\a.rs"), PathBuf::from(r"C:\w\a.rs"));
+    assert_eq!(
+        plain_for_tests(r"\\?\C:\w\a.rs"),
+        PathBuf::from(r"C:\w\a.rs")
+    );
     assert_eq!(
         plain_for_tests(r"\\?\UNC\server\share"),
         PathBuf::from(r"\\?\UNC\server\share")
@@ -336,8 +378,14 @@ fn a_windows_drive_path_loses_its_verbatim_prefix_and_nothing_else_does() {
 #[test]
 fn the_preferred_target_is_the_stored_one_while_listed_else_the_first() {
     let listed = [TargetId::Zed, TargetId::FileManager];
-    assert_eq!(preferred(&listed, Some(TargetId::FileManager)), Some(TargetId::FileManager));
-    assert_eq!(preferred(&listed, Some(TargetId::Cursor)), Some(TargetId::Zed));
+    assert_eq!(
+        preferred(&listed, Some(TargetId::FileManager)),
+        Some(TargetId::FileManager)
+    );
+    assert_eq!(
+        preferred(&listed, Some(TargetId::Cursor)),
+        Some(TargetId::Zed)
+    );
     assert_eq!(preferred(&listed, None), Some(TargetId::Zed));
     assert_eq!(preferred(&[], Some(TargetId::Zed)), None);
 }

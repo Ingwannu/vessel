@@ -82,7 +82,11 @@ impl ProjectKeyed for PreferredEditors {
 
     fn rename_machine(&mut self, from: &str, to: &str) -> bool {
         let mut any = false;
-        for chosen in self.0.iter_mut().filter(|chosen| chosen.key.machine == from) {
+        for chosen in self
+            .0
+            .iter_mut()
+            .filter(|chosen| chosen.key.machine == from)
+        {
             to.clone_into(&mut chosen.key.machine);
             any = true;
         }

@@ -105,11 +105,7 @@ fn setup<'a>(cx: &'a mut TestAppContext, root: &Path, bin: &Path) -> Fixture<'a>
         });
         shell.add_flow_this_computer(vec![context.node()], cx);
         let launcher: Arc<dyn super::Launcher> = Arc::clone(&launched);
-        shell
-            .areas
-            .workspace
-            .open
-            .set_computer(computer, launcher);
+        shell.areas.workspace.open.set_computer(computer, launcher);
     });
     Fixture {
         shell,
@@ -187,7 +183,11 @@ fn the_header_opens_the_session_s_folder_in_the_preferred_editor(cx: &mut TestAp
             Some(TargetId::Zed)
         );
         assert_eq!(
-            shell.prefs.settings.preferred_editors.get(&machine, project),
+            shell
+                .prefs
+                .settings
+                .preferred_editors
+                .get(&machine, project),
             Some(TargetId::Zed)
         );
         // A folder's "Open in" takes the preferred among editors only.
@@ -196,7 +196,12 @@ fn the_header_opens_the_session_s_folder_in_the_preferred_editor(cx: &mut TestAp
             None
         );
     });
-    let said = open(&mut fixture, TargetId::Zed, request(&root, &root, None), Origin::Editor);
+    let said = open(
+        &mut fixture,
+        TargetId::Zed,
+        request(&root, &root, None),
+        Origin::Editor,
+    );
     assert_eq!(said, None);
     let mut at_line = request(&root, &root, Some(&main));
     at_line.line = Some(7);
@@ -228,16 +233,16 @@ fn files_reveal_in_the_file_manager_and_nothing_leaves_the_workspace(cx: &mut Te
     let link = root.join("out");
     std::os::unix::fs::symlink(&secret, &link).unwrap();
     let mut fixture = setup(cx, &root, &bin.0);
-    let (editor, manager) = fixture
-        .shell
-        .update_in(fixture.cx, |shell, _window, cx| shell.files_open_targets(cx));
+    let (editor, manager) = fixture.shell.update_in(fixture.cx, |shell, _window, cx| {
+        shell.files_open_targets(cx)
+    });
     assert_eq!(manager, Some(TargetId::FileManager));
     // The editor comes once the list has been read.
     assert_eq!(editor, None);
     let _listed = listed(&mut fixture, &root);
-    let (editor, _manager) = fixture
-        .shell
-        .update_in(fixture.cx, |shell, _window, cx| shell.files_open_targets(cx));
+    let (editor, _manager) = fixture.shell.update_in(fixture.cx, |shell, _window, cx| {
+        shell.files_open_targets(cx)
+    });
     assert_eq!(editor, Some(TargetId::Zed));
     let said = open(
         &mut fixture,

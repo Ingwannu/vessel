@@ -411,9 +411,7 @@ pub(super) fn render(
                     RowAct::CopyPath => MenuItem::new(words.copy_path),
                     RowAct::Mark(action) => MenuItem::new(said.mark_action(*action)),
                     RowAct::Labels => MenuItem::sub(words.labels, LABELS),
-                    RowAct::OpenFolder => {
-                        MenuItem::new(shell.t.lang.open_targets().open_folder)
-                    }
+                    RowAct::OpenFolder => MenuItem::new(shell.t.lang.open_targets().open_folder),
                 })
                 .collect()
         })

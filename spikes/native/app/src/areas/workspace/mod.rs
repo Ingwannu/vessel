@@ -39,8 +39,8 @@ pub(crate) use code::FindRefused;
 #[cfg(test)]
 pub(crate) use code::{ShownChangesContext, ShownDiffContext};
 pub(crate) use code::{code_beside, code_toggle, frame_row};
-pub(crate) use open_targets::open_button as open_in_editor;
 pub(crate) use open_targets::Origin as OpenOrigin;
+pub(crate) use open_targets::open_button as open_in_editor;
 pub(crate) use place::{PlacePick, Rows as PlaceRows};
 pub(crate) use projects::render as projects_content;
 pub(crate) use sidebar::layers as sidebar_project_layers;

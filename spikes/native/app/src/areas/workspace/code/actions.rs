@@ -313,7 +313,12 @@ impl Shell {
         let (with, folder, file, origin) = if action == Action::OpenInEditor {
             (target.editor, entry, None, OpenOrigin::Editor)
         } else {
-            (target.manager, shown.root.clone(), Some(entry), OpenOrigin::Reveal)
+            (
+                target.manager,
+                shown.root.clone(),
+                Some(entry),
+                OpenOrigin::Reveal,
+            )
         };
         let Some(with) = with else {
             return;
@@ -489,8 +494,14 @@ mod tests {
         folder.manager = Some(TargetId::FileManager);
         let items = items_for(&folder);
         let at = |action| items.iter().position(|item| *item == action);
-        assert_eq!(at(Action::OpenInEditor), at(Action::CollapseFolder).map(|at| at.saturating_add(1)));
-        assert_eq!(at(Action::Reveal), at(Action::CopyRelativePath).map(|at| at.saturating_add(1)));
+        assert_eq!(
+            at(Action::OpenInEditor),
+            at(Action::CollapseFolder).map(|at| at.saturating_add(1))
+        );
+        assert_eq!(
+            at(Action::Reveal),
+            at(Action::CopyRelativePath).map(|at| at.saturating_add(1))
+        );
         assert_eq!(group(Action::OpenInEditor), group(Action::CollapseFolder));
         assert_eq!(group(Action::Reveal), group(Action::CopyPath));
         // A file is revealed but never opened in the editor from here
@@ -501,8 +512,14 @@ mod tests {
         let items = items_for(&file);
         assert!(!items.contains(&Action::OpenInEditor));
         let at = |action| items.iter().position(|item| *item == action);
-        assert_eq!(at(Action::Reveal), at(Action::CopyRelativePath).map(|at| at.saturating_add(1)));
-        assert_eq!(at(Action::Download), at(Action::Reveal).map(|at| at.saturating_add(1)));
+        assert_eq!(
+            at(Action::Reveal),
+            at(Action::CopyRelativePath).map(|at| at.saturating_add(1))
+        );
+        assert_eq!(
+            at(Action::Download),
+            at(Action::Reveal).map(|at| at.saturating_add(1))
+        );
     }
 
     #[test]

@@ -43,7 +43,10 @@ pub(crate) struct Computer {
 
 impl Computer {
     /// This computer, with the variables it has now.
-    #[cfg_attr(test, expect(dead_code, reason = "tests read a computer of stub files"))]
+    #[cfg_attr(
+        test,
+        expect(dead_code, reason = "tests read a computer of stub files")
+    )]
     pub(crate) fn here() -> Self {
         let var = |name: &str| std::env::var(name).ok();
         Self {

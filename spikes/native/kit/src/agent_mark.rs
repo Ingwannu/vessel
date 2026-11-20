@@ -8,9 +8,9 @@
 //!   pixels by [`raster`] (why not GPUI's `img()`: there). Brand minimum
 //!   sizes and clear space win over the requested slot size.
 //! - Cost: compact `OpenCode` slots use the bot; see ADR 0048.
-mod editors;
 #[cfg(test)]
 mod editor_tests;
+mod editors;
 mod paths;
 mod raster;
 mod settings;

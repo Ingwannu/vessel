@@ -97,7 +97,9 @@ fn plain(path: PathBuf) -> PathBuf {
         return path;
     };
     let mut chars = rest.chars();
-    let drive = chars.next().is_some_and(|letter| letter.is_ascii_alphabetic())
+    let drive = chars
+        .next()
+        .is_some_and(|letter| letter.is_ascii_alphabetic())
         && chars.next() == Some(':')
         && chars.next() == Some('\\');
     if drive { PathBuf::from(rest) } else { path }

@@ -360,7 +360,11 @@ impl Shell {
         let panel = &self.areas.workspace.code;
         let (machine, session) = self.code_session()?;
         let target = panel.target.as_ref()?;
-        if !panel.open || panel.tab != Tab::Files || target.machine != machine || target.session != session {
+        if !panel.open
+            || panel.tab != Tab::Files
+            || target.machine != machine
+            || target.session != session
+        {
             return None;
         }
         let viewer = panel.files.viewer.as_ref()?;

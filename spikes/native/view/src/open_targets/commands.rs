@@ -53,7 +53,12 @@ fn mac_paths(platform: Platform, env: &Env, inside: &[&str]) -> Vec<Candidate> {
 
 /// A Windows install's command under `LOCALAPPDATA` (with `Programs`) and
 /// `ProgramFiles`.
-fn windows_paths(platform: Platform, env: &Env, local: &[&str], program: &[&str]) -> Vec<Candidate> {
+fn windows_paths(
+    platform: Platform,
+    env: &Env,
+    local: &[&str],
+    program: &[&str],
+) -> Vec<Candidate> {
     if platform != Platform::Windows {
         return Vec::new();
     }
@@ -78,14 +83,28 @@ pub(super) fn candidates(target: TargetId, platform: Platform, env: &Env) -> Vec
             found.extend(mac_paths(
                 platform,
                 env,
-                &["Cursor.app", "Contents", "Resources", "app", "bin", "cursor"],
+                &[
+                    "Cursor.app",
+                    "Contents",
+                    "Resources",
+                    "app",
+                    "bin",
+                    "cursor",
+                ],
             ));
             if platform == Platform::Windows {
                 if let Some(base) = &env.local_app_data {
                     found.extend([
                         Candidate::Path(under(
                             base,
-                            &["Programs", "cursor", "resources", "app", "bin", "cursor.cmd"],
+                            &[
+                                "Programs",
+                                "cursor",
+                                "resources",
+                                "app",
+                                "bin",
+                                "cursor.cmd",
+                            ],
                         )),
                         Candidate::Path(under(base, &["Programs", "cursor", "Cursor.exe"])),
                     ]);
@@ -107,7 +126,14 @@ pub(super) fn candidates(target: TargetId, platform: Platform, env: &Env) -> Vec
             found.extend(mac_paths(
                 platform,
                 env,
-                &["Visual Studio Code.app", "Contents", "Resources", "app", "bin", "code"],
+                &[
+                    "Visual Studio Code.app",
+                    "Contents",
+                    "Resources",
+                    "app",
+                    "bin",
+                    "code",
+                ],
             ));
             found.extend(windows_paths(
                 platform,
@@ -134,7 +160,12 @@ pub(super) fn candidates(target: TargetId, platform: Platform, env: &Env) -> Vec
             found.extend(windows_paths(
                 platform,
                 env,
-                &["Programs", "Microsoft VS Code Insiders", "bin", "code-insiders.cmd"],
+                &[
+                    "Programs",
+                    "Microsoft VS Code Insiders",
+                    "bin",
+                    "code-insiders.cmd",
+                ],
                 &["Microsoft VS Code Insiders", "bin", "code-insiders.cmd"],
             ));
             found
@@ -144,7 +175,14 @@ pub(super) fn candidates(target: TargetId, platform: Platform, env: &Env) -> Vec
             found.extend(mac_paths(
                 platform,
                 env,
-                &["VSCodium.app", "Contents", "Resources", "app", "bin", "codium"],
+                &[
+                    "VSCodium.app",
+                    "Contents",
+                    "Resources",
+                    "app",
+                    "bin",
+                    "codium",
+                ],
             ));
             found.extend(windows_paths(
                 platform,
@@ -234,7 +272,11 @@ pub(super) fn mac_bundles(app: &str, platform: Platform, env: &Env) -> Vec<PathB
 
 /// The PATH folders, split as the platform does.
 pub(super) fn path_folders(platform: Platform, env: &Env) -> Vec<PathBuf> {
-    let delimiter = if platform == Platform::Windows { ';' } else { ':' };
+    let delimiter = if platform == Platform::Windows {
+        ';'
+    } else {
+        ':'
+    };
     env.path
         .as_deref()
         .unwrap_or_default()

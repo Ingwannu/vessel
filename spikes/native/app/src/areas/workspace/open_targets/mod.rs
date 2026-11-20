@@ -215,7 +215,11 @@ impl Shell {
 
     /// The targets this computer has for the workspace at `root`, as last
     /// listed; listed again when not yet or over a minute ago.
-    pub(crate) fn open_targets(&self, root: &Path, cx: &mut Context<'_, Self>) -> Option<&[TargetId]> {
+    pub(crate) fn open_targets(
+        &self,
+        root: &Path,
+        cx: &mut Context<'_, Self>,
+    ) -> Option<&[TargetId]> {
         let listed = self.areas.workspace.open.listed.get(root);
         if listed.is_none_or(|listed| listed.at.elapsed() >= FRESH) {
             self.list_open_targets(root, cx);
@@ -269,12 +273,8 @@ impl Shell {
         project: Option<ProjectId>,
         listed: &[TargetId],
     ) -> Option<TargetId> {
-        let stored = project.and_then(|project| {
-            self.prefs
-                .settings
-                .preferred_editors
-                .get(machine, project)
-        });
+        let stored =
+            project.and_then(|project| self.prefs.settings.preferred_editors.get(machine, project));
         preferred(listed, stored)
     }
 
