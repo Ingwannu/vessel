@@ -28,8 +28,7 @@ use vessel_app_kit::TextField;
 use vessel_app_kit::field::FieldId;
 use vessel_app_view::terminal::grid::{Generation, TextAt};
 use vessel_app_view::terminal::{
-    FIND_LIMIT, Finder, FoundMatch, MAX_FIND_QUERY, TerminalModel, first_from, next_of,
-    previous_of,
+    FIND_LIMIT, Finder, FoundMatch, MAX_FIND_QUERY, TerminalModel, first_from, next_of, previous_of,
 };
 
 use super::PaneKey;
@@ -389,8 +388,7 @@ impl Shell {
         let Some(pane) = self.areas.terminal_tabs.panes.get_mut(key) else {
             return;
         };
-        if let (Some(grid), Some(find)) =
-            (pane.model.as_ref().map(TerminalModel::grid), &pane.find)
+        if let (Some(grid), Some(find)) = (pane.model.as_ref().map(TerminalModel::grid), &pane.find)
             && let Some(found) = find.current.and_then(|at| find.matches.get(at))
         {
             let scroll = pane.viewport.offset(grid);

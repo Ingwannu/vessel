@@ -31,7 +31,10 @@ const GAP: f32 = 4.0;
 /// The rows and columns the bar covers from the pane's top right, for
 /// `cell` sized cells: the frame's inset, the widget's padding and border
 /// and the field.
-#[expect(clippy::float_arithmetic, reason = "the bar's size in pixels, from its constants")]
+#[expect(
+    clippy::float_arithmetic,
+    reason = "the bar's size in pixels, from its constants"
+)]
 pub(super) fn covered(cell: vessel_app_kit::terminal_grid::CellSize) -> (u16, u16) {
     let height = INSET + PADDING * 2.0 + 2.0 + FIELD_HEIGHT;
     let width = INSET + WIDTH;
@@ -156,7 +159,10 @@ fn bar_key(
             shell.terminal_find_move(key, false, cx);
             cx.stop_propagation();
         }
-        "f" if stroke.modifiers.secondary(cx) && !stroke.modifiers.shift && !stroke.modifiers.alt => {
+        "f" if stroke.modifiers.secondary(cx)
+            && !stroke.modifiers.shift
+            && !stroke.modifiers.alt =>
+        {
             shell.terminal_find_open(key, window, cx);
             cx.stop_propagation();
         }
