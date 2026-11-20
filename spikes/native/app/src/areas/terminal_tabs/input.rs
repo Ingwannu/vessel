@@ -356,7 +356,9 @@ impl Shell {
         self.terminal_tab_pump(key);
         self.terminal_tab_draw(key, cx);
         if refused {
-            tracing::warn!("a terminal tab's pastes waiting passed their bound; a paste was refused");
+            tracing::warn!(
+                "a terminal tab's pastes waiting passed their bound; a paste was refused"
+            );
             let translator = self.words;
             let words = translator.terminal_tabs();
             self.toast(

@@ -143,7 +143,9 @@ fn terminals_alone_are_closed_with_the_removal_after_the_count_is_read_again(
     let worktree = worktree();
     let (probe, cx) = open(cx, &worktree, vessel_proto::PROTOCOL_VERSION, Vec::new());
     let shell = probe.read_with(cx, |probe, _| probe.0.clone());
-    shell.update_in(cx, |shell, _window, _cx| shell.removal_count_terminals("laptop"));
+    shell.update_in(cx, |shell, _window, _cx| {
+        shell.removal_count_terminals("laptop")
+    });
     assert!(matches!(
         sent(&probe, cx).as_slice(),
         [Command::Terminals(ask)] if matches!(ask.request, TerminalRequest::ListAll)
@@ -222,9 +224,17 @@ fn a_live_session_or_an_older_node_keeps_the_panel_as_before(cx: &mut TestAppCon
     let (probe, cx) = open(cx, &worktree, vessel_proto::PROTOCOL_VERSION, vec![in_it]);
     let shell = probe.read_with(cx, |probe, _| probe.0.clone());
     shell.update_in(cx, |shell, _window, cx| {
-        shell.removal_terminals_listed("laptop", Some(&list(vec![terminal("/work/app-wt", true)])), cx);
+        shell.removal_terminals_listed(
+            "laptop",
+            Some(&list(vec![terminal("/work/app-wt", true)])),
+            cx,
+        );
         assert_eq!(removing(shell).terminals, Some(1));
-        assert_eq!(closing_terminals(shell, removing(shell)), None, "a live session keeps it");
+        assert_eq!(
+            closing_terminals(shell, removing(shell)),
+            None,
+            "a live session keeps it"
+        );
     });
 
     let older = vessel_proto::terminals::WORKSPACE_TERMINALS_PROTOCOL
@@ -232,6 +242,8 @@ fn a_live_session_or_an_older_node_keeps_the_panel_as_before(cx: &mut TestAppCon
         .unwrap();
     let (probe, cx) = open(cx, &worktree, older, Vec::new());
     let shell = probe.read_with(cx, |probe, _| probe.0.clone());
-    shell.update_in(cx, |shell, _window, _cx| shell.removal_count_terminals("laptop"));
+    shell.update_in(cx, |shell, _window, _cx| {
+        shell.removal_count_terminals("laptop")
+    });
     assert!(sent(&probe, cx).is_empty(), "nothing is counted below 40");
 }

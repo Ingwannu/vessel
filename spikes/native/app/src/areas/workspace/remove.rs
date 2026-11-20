@@ -84,7 +84,10 @@ impl Shell {
         removing.busy = Some(if_lost);
         removing.error = None;
         let worktree = removing.worktree.id;
-        self.ask(&machine, Ask::Worktree(remove_ask(worktree, if_lost, false)));
+        self.ask(
+            &machine,
+            Ask::Worktree(remove_ask(worktree, if_lost, false)),
+        );
         cx.notify();
     }
 
@@ -155,7 +158,10 @@ impl Shell {
         }
         let worktree = removing.worktree.id;
         if go {
-            self.ask(machine, Ask::Worktree(remove_ask(worktree, IfLost::Keep, true)));
+            self.ask(
+                machine,
+                Ask::Worktree(remove_ask(worktree, IfLost::Keep, true)),
+            );
         }
         cx.notify();
     }
@@ -207,7 +213,11 @@ pub(super) fn live_in_folder(list: &TerminalList, folder: &Path) -> usize {
 /// terminals and remove", after the person saw how many and the count was
 /// read again. Without it a live terminal refuses the removal, as before
 /// protocol 40.
-pub(super) fn remove_ask(worktree: WorktreeId, if_lost: IfLost, end_terminals: bool) -> WorktreeAsk {
+pub(super) fn remove_ask(
+    worktree: WorktreeId,
+    if_lost: IfLost,
+    end_terminals: bool,
+) -> WorktreeAsk {
     WorktreeAsk::Remove(RemoveWorktree {
         worktree,
         if_lost,

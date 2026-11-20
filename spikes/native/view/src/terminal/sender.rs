@@ -118,7 +118,8 @@ impl TerminalSender {
         if let Some(Item::Typed(last)) = self.items.back_mut() {
             last.text.push_str(text);
         } else {
-            self.items.push_back(Item::Typed(Queued::new(text.to_owned())));
+            self.items
+                .push_back(Item::Typed(Queued::new(text.to_owned())));
         }
         Taken::Queued
     }
