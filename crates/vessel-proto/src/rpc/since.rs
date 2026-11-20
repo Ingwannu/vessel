@@ -5,6 +5,7 @@ use crate::agent::ContentBlock;
 use crate::agents::HarnessRef;
 use crate::node::ProtocolVersion;
 use crate::session::{SessionInput, SessionMode};
+use crate::terminal::TerminalInput;
 use crate::title::SessionTitle;
 
 use super::Call;
@@ -110,7 +111,31 @@ impl Call {
                 // A cancel naming its turn: an older node would cancel
                 // whatever runs, the next queued prompt included.
                 SessionInput::CancelTurn { turn } => turn.map(|_| 10),
+                // A resize naming its intent (ADR 0116): an older node would
+                // apply another client's update as a claim.
+                SessionInput::Terminal {
+                    input:
+                        TerminalInput::Resize {
+                            intent: Some(_), ..
+                        },
+                } => Some(crate::terminals::SHARED_TERMINALS_PROTOCOL?.get()),
                 SessionInput::Terminal { .. } | SessionInput::AnswerPermission { .. } => None,
+            },
+            // A long poll on the list (ADR 0116): an older node answers at
+            // once, so a client asking again on every answer would spin.
+            Self::ListTerminals(request) => {
+                if request.changed_from.is_some() {
+                    Some(crate::terminals::SHARED_TERMINALS_PROTOCOL?.get())
+                } else {
+                    None
+                }
+            }
+            // As a terminal-mode session's resize above.
+            Self::SendTerminal(request) => match &request.input {
+                TerminalInput::Resize {
+                    intent: Some(_), ..
+                } => Some(crate::terminals::SHARED_TERMINALS_PROTOCOL?.get()),
+                TerminalInput::Resize { intent: None, .. } | TerminalInput::Data { .. } => None,
             },
             // A write guarded by its content came in 11: a protocol 10 node
             // cannot decode it (its guard compared a time instead).
@@ -283,11 +308,9 @@ impl Call {
             | Self::MergePullRequest(_)
             | Self::SetFeedback(_)
             | Self::CreateTerminal(_)
-            | Self::ListTerminals(_)
             | Self::GetTerminal(_)
             | Self::ReadTerminal(_)
             | Self::SubscribeTerminal(_)
-            | Self::SendTerminal(_)
             | Self::RenameTerminal(_)
             | Self::KillTerminal(_)
             | Self::CloseTerminal(_)

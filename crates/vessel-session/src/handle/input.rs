@@ -36,7 +36,7 @@ impl SessionHandle {
             (Input::Terminal(pty), SessionInput::Terminal { input }) => {
                 let sent = match input {
                     TerminalInput::Data { data } => pty.write(data.into_bytes()).await,
-                    TerminalInput::Resize { size } => {
+                    TerminalInput::Resize { size, .. } => {
                         pty.resize(WindowSize {
                             cols: size.cols,
                             rows: size.rows,

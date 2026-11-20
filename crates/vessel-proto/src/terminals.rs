@@ -34,6 +34,15 @@ use crate::workspace::{ProjectCommand, RelPath};
 
 mod requests;
 
+use crate::node::ProtocolVersion;
+
+/// Several clients on one node's terminals (ADR 0116): `terminal.list`'s
+/// `changed_from` long poll and its `revision`, and a resize's `intent`
+/// (claim or update) for terminals and terminal-mode sessions alike.
+/// Assigned 37 at its node-line merge, the next free number after the
+/// plugin manager's 36.
+pub const SHARED_TERMINALS_PROTOCOL: Option<ProtocolVersion> = Some(ProtocolVersion::new(37));
+
 pub use requests::{
     CloseTerminal, CreateTerminal, GetTerminal, KillTerminal, ListTerminals, ReadTerminal,
     RenameTerminal, SendTerminal, SubscribeTerminal, TerminalSubscribed,
@@ -327,6 +336,13 @@ pub enum ServiceFailure {
 pub struct TerminalList {
     /// At most 96 (64 live, 32 ended).
     pub terminals: Vec<TerminalInfo>,
+    /// The node's terminal list as it stood when this answer was read: it
+    /// moves when a terminal starts, ends, is renamed or is forgotten, not
+    /// on a resize or output (ADR 0116). Read before the list, so a change
+    /// in between answers the next `changed_from` at once. 0 from a node
+    /// older than [`SHARED_TERMINALS_PROTOCOL`].
+    #[serde(default)]
+    pub revision: u64,
 }
 
 #[cfg(test)]
