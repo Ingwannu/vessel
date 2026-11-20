@@ -16,21 +16,27 @@
 //!   GitHub) is not drawn; a press on a card without words opens it on
 //!   the forge, as Paseo's does.
 
+use vessel_app_kit::theme::spacing;
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::picker::glyph;
 use vessel_app_kit::theme::SidebarSurfaces;
 use vessel_app_kit::theme::identity::{Hue, fill};
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, Hsla, InteractiveElement as _, IntoElement as _, ParentElement as _,
+    AnyElement, Context, Div, InteractiveElement as _, IntoElement as _, ParentElement as _,
     SharedString, StatefulInteractiveElement as _, Styled as _, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _};
-use vessel_app_view::workspace::pull::timeline::{Age, Entry, Thread, thread_path};
+use vessel_app_view::workspace::pull::timeline::{Age, Entry, Thread};
 use vessel_app_view::workspace::pull::timeline_words::verb;
 use vessel_proto::forge::{ReviewState, TimelineItem};
 
 use super::Choices;
 use crate::shell::Shell;
+
+/// The avatar initial's size (Paseo's `avatarText`).
+const INITIAL: f32 = 10.0;
+/// A card header's least height (Paseo's `entryHeaderPressable`).
+pub(super) const HEADER_MIN: f32 = 36.0;
 
 /// What every card needs.
 pub(super) struct Cards<'a> {
@@ -44,7 +50,7 @@ pub(super) struct Cards<'a> {
 
 /// What a card's "Add to chat" adds.
 #[derive(Clone)]
-enum Adds {
+pub(super) enum Adds {
     Item(String),
     Thread(String),
 }
@@ -68,7 +74,7 @@ impl Choices {
 }
 
 /// A press that folds `key`.
-fn folds(
+pub(super) fn folds(
     element: gpui::Stateful<Div>,
     key: String,
     at_first: bool,
@@ -96,15 +102,15 @@ impl Cards<'_> {
     }
 
     /// Paseo's `card`: bordered, rounded 8, 12 in from the sides.
-    fn card(&self) -> Div {
+    pub(super) fn card(&self) -> Div {
         div()
             .flex()
             .flex_col()
-            .mx(px(12.0))
-            .mb(px(12.0))
+            .mx(px(spacing::S3))
+            .mb(px(spacing::S3))
             .border_1()
             .border_color(self.tokens.neutral.border)
-            .rounded(px(8.0))
+            .rounded(px(spacing::S2))
             .bg(self.tokens.neutral.surface_sidebar)
             .overflow_hidden()
     }
@@ -126,7 +132,7 @@ impl Cards<'_> {
             .size(px(across))
             .rounded_full()
             .bg(fill(Hue::of_key(&login.to_lowercase())))
-            .text_size(px(10.0))
+            .text_size(px(INITIAL))
             .text_color(gpui::white())
             .child(initial)
             .into_any_element()
@@ -134,7 +140,7 @@ impl Cards<'_> {
 
     /// Paseo's `ActivityHeader`: avatar, author, verb, and the age at the
     /// end.
-    fn header_row(&self, item: &TimelineItem, avatar: f32, extra: Option<AnyElement>) -> Div {
+    pub(super) fn header_row(&self, item: &TimelineItem, avatar: f32, extra: Option<AnyElement>) -> Div {
         let neutral = self.tokens.neutral;
         let status = self.tokens.status();
         let words = self.shell.words;
@@ -156,7 +162,7 @@ impl Cards<'_> {
             .flex()
             .flex_row()
             .items_center()
-            .gap(px(8.0))
+            .gap(px(spacing::S2))
             .child(Self::avatar(item, avatar))
             .child(
                 div()
@@ -172,7 +178,7 @@ impl Cards<'_> {
                     .flex_row()
                     .flex_none()
                     .items_center()
-                    .gap(px(4.0))
+                    .gap(px(spacing::S1))
                     .type_(Type::Meta)
                     .text_color(ink)
                     .children(mark.map(|which| glyph(which, 12.0, ink)))
@@ -185,7 +191,7 @@ impl Cards<'_> {
                     .flex_row()
                     .flex_none()
                     .items_center()
-                    .gap(px(8.0))
+                    .gap(px(spacing::S2))
                     .child(
                         div()
                             .type_(Type::Meta)
@@ -197,7 +203,7 @@ impl Cards<'_> {
     }
 
     /// A body as markdown, keyed by its item so its layout is kept.
-    fn markdown(item: &TimelineItem) -> Option<AnyElement> {
+    pub(super) fn markdown(item: &TimelineItem) -> Option<AnyElement> {
         let text = body(item);
         (!text.trim().is_empty()).then(|| {
             vessel_app_kit::markdown(
@@ -218,12 +224,12 @@ impl Cards<'_> {
             let url = item_url(item);
             return div()
                 .id(id)
-                .mx(px(12.0))
-                .mb(px(8.0))
-                .px(px(12.0))
-                .py(px(8.0))
-                .min_h(px(36.0))
-                .rounded(px(8.0))
+                .mx(px(spacing::S3))
+                .mb(px(spacing::S2))
+                .px(px(spacing::S3))
+                .py(px(spacing::S2))
+                .min_h(px(HEADER_MIN))
+                .rounded(px(spacing::S2))
                 .cursor_pointer()
                 .hover(move |style| style.bg(hover))
                 .on_click(move |_event, _window, cx| {
@@ -238,9 +244,9 @@ impl Cards<'_> {
         let head = folds(
             div()
                 .id(id)
-                .px(px(12.0))
-                .py(px(8.0))
-                .min_h(px(36.0))
+                .px(px(spacing::S3))
+                .py(px(spacing::S2))
+                .min_h(px(HEADER_MIN))
                 .cursor_pointer()
                 .hover(move |style| style.bg(hover))
                 .child(self.header_row(item, 20.0, None)),
@@ -251,7 +257,7 @@ impl Cards<'_> {
         let mut card = self.card().child(head);
         if !folded {
             card = card
-                .child(div().px(px(12.0)).pt(px(8.0)).pb(px(12.0)).child(text))
+                .child(div().px(px(spacing::S3)).pt(px(spacing::S2)).pb(px(spacing::S3)).child(text))
                 .children(
                     (self.attach && super::pane_attach::addable(item))
                         .then(|| self.footer(Adds::Item(item.id().as_str().to_owned()), cx)),
@@ -261,16 +267,16 @@ impl Cards<'_> {
     }
 
     /// Paseo's `cardFooter`: "Add to chat" at the start.
-    fn footer(&self, adds: Adds, cx: &mut Context<'_, Shell>) -> AnyElement {
+    pub(super) fn footer(&self, adds: Adds, cx: &mut Context<'_, Shell>) -> AnyElement {
         let id = match &adds {
             Adds::Item(id) | Adds::Thread(id) => SharedString::from(format!("pr-pane-add-{id}")),
         };
         div()
             .flex()
             .flex_row()
-            .pl(px(8.0))
-            .pr(px(8.0))
-            .pb(px(8.0))
+            .pl(px(spacing::S2))
+            .pr(px(spacing::S2))
+            .pb(px(spacing::S2))
             .child(
                 super::pane_checks::add_button(
                     id,
@@ -302,9 +308,9 @@ impl Cards<'_> {
         let head = folds(
             div()
                 .id(SharedString::from(format!("pr-pane-review-{key}")))
-                .px(px(12.0))
-                .py(px(8.0))
-                .min_h(px(36.0))
+                .px(px(spacing::S3))
+                .py(px(spacing::S2))
+                .min_h(px(HEADER_MIN))
                 .cursor_pointer()
                 .hover(move |style| style.bg(hover))
                 .child(self.header_row(review, 20.0, chip)),
@@ -317,20 +323,20 @@ impl Cards<'_> {
             card = card
                 .children(
                     Self::markdown(review)
-                        .map(|text| div().px(px(12.0)).pt(px(8.0)).pb(px(12.0)).child(text)),
+                        .map(|text| div().px(px(spacing::S3)).pt(px(spacing::S2)).pb(px(spacing::S3)).child(text)),
                 )
                 .children(
                     (self.attach && super::pane_attach::addable(review))
                         .then(|| self.footer(Adds::Item(review.id().as_str().to_owned()), cx)),
                 )
-                .child(div().flex().flex_col().pt(px(4.0)).pb(px(4.0)).children(
+                .child(div().flex().flex_col().pt(px(spacing::S1)).pb(px(spacing::S1)).children(
                     threads.iter().map(|thread| {
                         div()
-                            .mx(px(12.0))
-                            .mb(px(8.0))
+                            .mx(px(spacing::S3))
+                            .mb(px(spacing::S2))
                             .border_1()
                             .border_color(self.tokens.neutral.border)
-                            .rounded(px(6.0))
+                            .rounded(px(spacing::S1_5))
                             .overflow_hidden()
                             .child(self.thread(thread, cx))
                     }),
@@ -339,153 +345,10 @@ impl Cards<'_> {
         card.into_any_element()
     }
 
-    /// A count of comments or threads (Paseo's chip: the message glyph at
-    /// 11 and the number).
-    fn count_chip(&self, count: usize) -> AnyElement {
-        let muted = self.tokens.neutral.foreground_muted;
-        div()
-            .flex()
-            .flex_row()
-            .items_center()
-            .gap(px(3.0))
-            .type_(Type::Meta)
-            .text_color(muted)
-            .child(glyph(Glyph::Message, 11.0, muted))
-            .child(count.to_string())
-            .into_any_element()
-    }
-
-    /// A badge (Paseo's `StatusBadge`): "Resolved" in the success tint,
-    /// "Outdated" muted.
-    fn badge(&self, text: &str, resolved: bool) -> AnyElement {
-        let neutral = self.tokens.neutral;
-        let success = self.tokens.status().success;
-        let (back, edge, ink): (Hsla, Hsla, Hsla) = if resolved {
-            (success.tint, gpui::transparent_black(), success.foreground)
-        } else {
-            (neutral.surface3, neutral.border, neutral.foreground_muted)
-        };
-        div()
-            .flex_none()
-            .px(px(8.0))
-            .py(px(3.0))
-            .rounded_full()
-            .border_1()
-            .border_color(edge)
-            .bg(back)
-            .type_(Type::Meta)
-            .text_color(ink)
-            .child(text.to_owned())
-            .into_any_element()
-    }
-
-    /// Paseo's `ThreadBlock`: the header (path, badges, a count while
-    /// folded), then the root comment and its replies.
-    fn thread(&self, thread: &Thread<'_>, cx: &mut Context<'_, Shell>) -> AnyElement {
-        let neutral = self.tokens.neutral;
-        let words = self.shell.words.pulls();
-        let hover = SidebarSurfaces::of(self.tokens).hover;
-        let key = thread.key();
-        let at_first = thread.folded_at_first();
-        let folded = self.choices.folded(&key, at_first);
-        let path = thread_path(thread.place);
-        let label = path.unwrap_or_else(|| words.thread_discussion().to_owned());
-        let head = folds(
-            div()
-                .id(SharedString::from(format!("pr-pane-{key}")))
-                .flex()
-                .flex_row()
-                .items_center()
-                .gap(px(8.0))
-                .px(px(12.0))
-                .py(px(8.0))
-                .min_h(px(36.0))
-                .bg(neutral.surface1)
-                .cursor_pointer()
-                .hover(move |style| style.bg(hover))
-                .child(
-                    div()
-                        .type_(Type::Mono)
-                        .text_color(neutral.foreground)
-                        .min_w_0()
-                        .truncate()
-                        .child(label),
-                )
-                .children(
-                    thread
-                        .place
-                        .resolved
-                        .then(|| self.badge(words.thread_resolved(), true)),
-                )
-                .children(
-                    thread
-                        .place
-                        .outdated
-                        .then(|| self.badge(words.thread_outdated(), false)),
-                )
-                .children(folded.then(|| {
-                    div()
-                        .ml_auto()
-                        .child(self.count_chip(thread.comments.len()))
-                })),
-            key,
-            at_first,
-            cx,
-        );
-        let mut block = div().flex().flex_col().child(head);
-        if !folded {
-            let (root, replies) = match thread.comments.split_first() {
-                Some((root, replies)) => (Some(*root), replies),
-                None => (None, &[][..]),
-            };
-            block = block.children(root.map(|root| self.thread_comment(root)));
-            // Paseo's `replyRail`: 12 in, 8 below the root, each reply a
-            // rounded card.
-            if !replies.is_empty() {
-                block = block.child(div().flex().flex_col().mx(px(12.0)).mt(px(8.0)).children(
-                    replies.iter().map(|reply| {
-                        div()
-                            .mb(px(8.0))
-                            .border_1()
-                            .border_color(neutral.border)
-                            .rounded(px(6.0))
-                            .bg(neutral.surface1)
-                            .overflow_hidden()
-                            .child(self.thread_comment(reply))
-                    }),
-                ));
-            }
-            if self.attach {
-                block = block.child(self.footer(Adds::Thread(thread.key()), cx));
-            }
-        }
-        block.into_any_element()
-    }
-
-    /// Paseo's `ThreadComment`: a line above, the 16 avatar header, then
-    /// the words.
-    fn thread_comment(&self, item: &TimelineItem) -> AnyElement {
-        div()
-            .flex()
-            .flex_col()
-            .border_t_1()
-            .border_color(self.tokens.neutral.border)
-            .pb(px(8.0))
-            .child(
-                div()
-                    .px(px(12.0))
-                    .pt(px(8.0))
-                    .pb(px(4.0))
-                    .min_h(px(32.0))
-                    .child(self.header_row(item, 16.0, None)),
-            )
-            .children(Self::markdown(item).map(|text| div().px(px(12.0)).pt(px(8.0)).child(text)))
-            .into_any_element()
-    }
 }
 
 /// An item's author's login.
-fn author(item: &TimelineItem) -> Option<String> {
+pub(super) fn author(item: &TimelineItem) -> Option<String> {
     match item {
         TimelineItem::Review { author, .. } | TimelineItem::Comment { author, .. } => {
             author.as_ref().map(|login| login.as_str().to_owned())

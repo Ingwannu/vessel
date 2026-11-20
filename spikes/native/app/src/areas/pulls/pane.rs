@@ -18,6 +18,7 @@
 //! - Differences: Paseo's error never says why (always "Failed to refresh
 //!   git state."), kept; the View button is the kit's ghost at Paseo's 24.
 
+use vessel_app_kit::theme::spacing;
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::picker::glyph;
 use vessel_app_kit::theme::SidebarSurfaces;
@@ -34,6 +35,11 @@ use vessel_proto::forge::{GetPullRequest, PullRequest, PullRequestView, PullSumm
 use super::link::state_glyph_sized;
 use super::{Facts, FactsRead, Subject};
 use crate::shell::Shell;
+
+/// The divider between the checks and the activity (Paseo's, one point).
+const DIVIDER: f32 = 1.0;
+/// The title's line height (Paseo's `title`, 22 on 14).
+const TITLE_LINE: f32 = 22.0;
 
 /// Paseo's `WORKSPACE_SECONDARY_HEADER_HEIGHT`.
 const TOOLBAR: f32 = 36.0;
@@ -168,7 +174,7 @@ pub(crate) fn pane(
         .flex()
         .flex_col()
         .flex_1()
-        .min_h(px(0.0))
+        .min_h(px(spacing::S0))
         .bg(tokens.neutral.surface_sidebar)
         .child(body)
         .into_any_element()
@@ -196,7 +202,7 @@ fn ready(
         .child(super::pane_checks::section(shell, facts, pull, tokens, cx))
         .child(
             div()
-                .h(px(1.0))
+                .h(px(DIVIDER))
                 .w_full()
                 .flex_none()
                 .bg(tokens.neutral.border),
@@ -233,10 +239,10 @@ fn toolbar(
         .flex()
         .flex_row()
         .items_center()
-        .gap(px(4.0))
-        .h(px(24.0))
-        .px(px(4.0))
-        .rounded(px(4.0))
+        .gap(px(spacing::S1))
+        .h(px(spacing::S6))
+        .px(px(spacing::S1))
+        .rounded(px(spacing::S1))
         .type_(Type::Meta)
         .text_color(neutral.foreground)
         .cursor_pointer()
@@ -255,8 +261,8 @@ fn toolbar(
         .flex()
         .items_center()
         .justify_center()
-        .size(px(24.0))
-        .rounded(px(4.0))
+        .size(px(spacing::S6))
+        .rounded(px(spacing::S1))
         .when(!facts.refreshing, |button| {
             button
                 .cursor_pointer()
@@ -271,7 +277,7 @@ fn toolbar(
         .items_center()
         .justify_between()
         .h(px(TOOLBAR))
-        .px(px(12.0))
+        .px(px(spacing::S3))
         .bg(neutral.surface0)
         .border_b_1()
         .border_color(neutral.border)
@@ -306,8 +312,8 @@ fn header(shell: &Shell, pull: &PullRequest, tokens: &Tokens) -> AnyElement {
         .flex()
         .flex_col()
         .flex_none()
-        .gap(px(8.0))
-        .p(px(16.0))
+        .gap(px(spacing::S2))
+        .p(px(spacing::S4))
         .cursor_pointer()
         .hover(move |style| style.bg(hover))
         .on_click(move |_event, _window, cx| cx.open_url(url.as_str()))
@@ -315,7 +321,7 @@ fn header(shell: &Shell, pull: &PullRequest, tokens: &Tokens) -> AnyElement {
             div()
                 .id("pr-pane-title")
                 .type_(Type::Body)
-                .line_height(px(22.0))
+                .line_height(px(TITLE_LINE))
                 .text_color(neutral.foreground)
                 .whitespace_normal()
                 .child(StyledText::new(title).with_highlights(number)),
@@ -325,8 +331,8 @@ fn header(shell: &Shell, pull: &PullRequest, tokens: &Tokens) -> AnyElement {
                 .flex()
                 .flex_row()
                 .items_center()
-                .gap(px(4.0))
-                .min_h(px(16.0))
+                .gap(px(spacing::S1))
+                .min_h(px(spacing::S4))
                 .type_(Type::Meta)
                 .child(state_glyph_sized(phase, STATE_GLYPH, tokens))
                 .child(
@@ -337,7 +343,7 @@ fn header(shell: &Shell, pull: &PullRequest, tokens: &Tokens) -> AnyElement {
                 )
                 .child(
                     div()
-                        .ml(px(4.0))
+                        .ml(px(spacing::S1))
                         .min_w_0()
                         .truncate()
                         .text_color(neutral.foreground_muted)
@@ -345,7 +351,7 @@ fn header(shell: &Shell, pull: &PullRequest, tokens: &Tokens) -> AnyElement {
                 )
                 .child(
                     div()
-                        .ml(px(4.0))
+                        .ml(px(spacing::S1))
                         .flex_none()
                         .opacity(0.0)
                         .group_hover("pr-pane-header", |style| style.opacity(1.0))
@@ -367,8 +373,8 @@ fn failed(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> AnyEle
         .flex_1()
         .items_center()
         .justify_center()
-        .gap(px(12.0))
-        .px(px(16.0))
+        .gap(px(spacing::S3))
+        .px(px(spacing::S4))
         .child(
             div()
                 .type_(Type::Meta)
@@ -382,10 +388,10 @@ fn failed(shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, Shell>) -> AnyEle
                 .flex()
                 .flex_row()
                 .items_center()
-                .gap(px(4.0))
-                .h(px(28.0))
-                .px(px(8.0))
-                .rounded(px(6.0))
+                .gap(px(spacing::S1))
+                .h(px(spacing::S7))
+                .px(px(spacing::S2))
+                .rounded(px(spacing::S1_5))
                 .type_(Type::Meta)
                 .text_color(neutral.foreground)
                 .cursor_pointer()
@@ -414,8 +420,8 @@ fn empty(shell: &Shell, view: &PullRequestView, tokens: &Tokens) -> AnyElement {
         .flex_1()
         .items_center()
         .justify_center()
-        .gap(px(8.0))
-        .p(px(24.0))
+        .gap(px(spacing::S2))
+        .p(px(spacing::S6))
         .text_center()
         .child(
             div()

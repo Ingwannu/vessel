@@ -14,6 +14,7 @@
 //!   switch (Vessel's: failing checks and review comments sent to the
 //!   session) closes the section either way.
 
+use vessel_app_kit::theme::spacing;
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::picker::glyph;
 use vessel_app_kit::theme::SidebarSurfaces;
@@ -30,6 +31,9 @@ use super::Facts;
 use super::pane_cards::Cards;
 use super::pane_timeline::TimelineRead;
 use crate::shell::Shell;
+
+/// A summary pill's gap between its glyph and count (Paseo's 3).
+const PILL_GAP: f32 = 3.0;
 
 /// The section.
 pub(super) fn section(
@@ -56,15 +60,15 @@ pub(super) fn section(
             Some(listed) => div()
                 .flex()
                 .flex_col()
-                .pb(px(12.0))
+                .pb(px(spacing::S3))
                 .children(listed)
-                .child(div().px(px(12.0)).child(feedback_row)),
+                .child(div().px(px(spacing::S3)).child(feedback_row)),
             None => div()
                 .flex()
                 .flex_col()
-                .gap(px(8.0))
-                .px(px(12.0))
-                .pb(px(12.0))
+                .gap(px(spacing::S2))
+                .px(px(spacing::S3))
+                .pb(px(spacing::S3))
                 .children(standing(shell, pull, tokens))
                 .child(feedback_row),
         };
@@ -150,9 +154,9 @@ fn head(
         .flex()
         .flex_row()
         .items_center()
-        .gap(px(8.0))
-        .px(px(12.0))
-        .py(px(8.0))
+        .gap(px(spacing::S2))
+        .px(px(spacing::S3))
+        .py(px(spacing::S2))
         .cursor_pointer()
         .hover(move |style| style.bg(hover))
         .on_click(cx.listener(|shell, _event, _window, cx| {
@@ -184,7 +188,7 @@ fn head(
                 .flex_row()
                 .flex_wrap()
                 .items_center()
-                .gap(px(8.0))
+                .gap(px(spacing::S2))
                 .type_(Type::Meta)
                 .children(summary),
         )
@@ -224,9 +228,9 @@ fn timeline_body(
             .flex()
             .flex_row()
             .items_center()
-            .min_h(px(28.0))
-            .px(px(8.0))
-            .pb(px(8.0))
+            .min_h(px(spacing::S7))
+            .px(px(spacing::S2))
+            .pb(px(spacing::S2))
             .child(
                 super::pane_checks::add_button(
                     "pr-pane-add-all".into(),
@@ -271,8 +275,8 @@ fn standing(shell: &Shell, pull: &PullRequest, tokens: &Tokens) -> Option<AnyEle
 /// Paseo's empty Activity.
 fn no_activity(shell: &Shell, tokens: &Tokens) -> AnyElement {
     div()
-        .px(px(12.0))
-        .py(px(8.0))
+        .px(px(spacing::S3))
+        .py(px(spacing::S2))
         .type_(Type::Meta)
         .text_color(tokens.neutral.foreground_muted)
         .child(shell.words.pulls().no_activity().to_owned())
@@ -285,7 +289,7 @@ fn pill(which: Glyph, size: f32, ink: Hsla, text: &str) -> AnyElement {
         .flex()
         .flex_row()
         .items_center()
-        .gap(px(3.0))
+        .gap(px(PILL_GAP))
         .text_color(ink)
         .child(glyph(which, size, ink).flex_none())
         .child(text.to_owned())
