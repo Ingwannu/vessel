@@ -26,8 +26,8 @@ use vessel_client::{ChunkSink, NodeClient};
 use vessel_proto::workspace::ContentHash;
 use vessel_proto::workspace::panel_files::FileRevision;
 
-use super::download::failure;
 use super::ReadImage;
+use super::download::failure;
 
 /// An image's bytes and the version they are (`file.read_bytes`, checked
 /// whole against its hash).

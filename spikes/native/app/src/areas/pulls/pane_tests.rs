@@ -225,7 +225,11 @@ fn named<'a>(arias: &'a [String], label: &str) -> &'a str {
             rest.split_once('"').map(|(name, _)| name)
         })
         .collect();
-    assert_eq!(found.len(), 1, "one control named {label}; named: {names:?}");
+    assert_eq!(
+        found.len(),
+        1,
+        "one control named {label}; named: {names:?}"
+    );
     found.first().copied().unwrap()
 }
 

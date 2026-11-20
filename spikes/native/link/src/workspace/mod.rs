@@ -70,10 +70,10 @@ use vessel_client::NodeClient;
 use vessel_proto::ProjectId;
 
 pub use answer::{Answer, Form, GitWritten};
-pub use image_bytes::ImageBytes;
 pub use ask::{
     Ask, Download, FileAsk, GitAsk, GitWrite, PathChange, ProjectAsk, ReadImage, Save, WorktreeAsk,
 };
+pub use image_bytes::ImageBytes;
 pub use pulls::{PullAnswer, PullAsk};
 pub use start::{StartAnswer, StartAsk, StartEnded, StartKey};
 
