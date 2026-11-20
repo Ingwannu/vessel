@@ -5,9 +5,9 @@ use super::{Connection, NodeService};
 use crate::{principal::Principal, waits::Waiter, workspace::MAX_WAIT_SECS};
 use std::time::Duration;
 use vessel_proto::registry::{
-    GetRegistry, GetWorkspace, ListWorkspaces, PinWorkspace, RegistrySnapshot, RenameWorkspace,
-    WorkspaceDescriptor, WorkspaceLifecycle, WorkspaceList, WorkspaceVisibility,
-    WorkspaceVisibilityFilter,
+    DiffStatRevision, GetRegistry, GetWorkspace, ListWorkspaces, PinWorkspace, RegistrySnapshot,
+    RenameWorkspace, ServedWorkspace, WorkspaceDescriptor, WorkspaceLifecycle, WorkspaceList,
+    WorkspaceVisibility, WorkspaceVisibilityFilter, serves_diff_stat,
 };
 use vessel_proto::{ErrorCode, WireError, WorkspaceId};
 use vessel_store::{RegistryRecord, StoreError};
@@ -77,50 +77,95 @@ impl NodeService {
 
     pub(crate) async fn list_workspaces(
         &self,
-        _: &Connection,
+        connection: &Connection,
         request: ListWorkspaces,
-    ) -> Result<Vec<WorkspaceDescriptor>, WireError> {
+    ) -> Result<Vec<ServedWorkspace>, WireError> {
         let stored = self
             .sessions
             .store()
             .workspace_registry()
             .await
             .map_err(|error| wire(&error))?;
-        Ok(stored
+        let changed_from = request.changed_from;
+        let workspaces = stored
             .workspaces
             .into_iter()
-            .filter(|workspace| {
-                let project = request
-                    .project
-                    .is_none_or(|project| project == workspace.project);
-                let lifecycle = match request.lifecycle {
-                    WorkspaceList::All => true,
-                    WorkspaceList::Active => {
-                        matches!(workspace.lifecycle, WorkspaceLifecycle::Active)
-                    }
-                    WorkspaceList::Archived => {
-                        matches!(workspace.lifecycle, WorkspaceLifecycle::Archived { .. })
-                    }
-                };
-                let visibility = match request.visibility {
-                    WorkspaceVisibilityFilter::All => true,
-                    WorkspaceVisibilityFilter::Foreground => {
-                        workspace.visibility == WorkspaceVisibility::Foreground
-                    }
-                };
-                project && lifecycle && visibility
-            })
-            .collect())
+            .filter(|workspace| listed(workspace, &request))
+            .collect();
+        Ok(self
+            .with_diff_stat(connection, changed_from, workspaces)
+            .await)
     }
 
     pub(crate) async fn get_workspace(
         &self,
-        _: &Connection,
+        connection: &Connection,
         request: GetWorkspace,
-    ) -> Result<WorkspaceDescriptor, WireError> {
-        self.registry_record(request.workspace)
-            .await
-            .map(|record| record.descriptor)
+    ) -> Result<ServedWorkspace, WireError> {
+        let changed_from = request.changed_from;
+        let descriptor = self.registry_record(request.workspace).await?.descriptor;
+        let served = self
+            .with_diff_stat(connection, changed_from, vec![descriptor])
+            .await;
+        one_served(served)
+    }
+
+    /// Attach the served diff stat, waiting when the caller asked to.
+    ///
+    /// While the protocol is unassigned this is the descriptor alone: no
+    /// watch, no wait, no extra fields.
+    async fn with_diff_stat(
+        &self,
+        connection: &Connection,
+        changed_from: Option<DiffStatRevision>,
+        workspaces: Vec<WorkspaceDescriptor>,
+    ) -> Vec<ServedWorkspace> {
+        if !serves_diff_stat(connection.protocol()) {
+            return workspaces.into_iter().map(ServedWorkspace::bare).collect();
+        }
+        let mut changed = self.diff_stats.subscribe();
+        let pairs: Vec<_> = workspaces
+            .iter()
+            .map(|workspace| (workspace.path.clone(), workspace.root()))
+            .collect();
+        let keys = self.diff_stats.note(&pairs).await;
+        if keys.len() != workspaces.len() {
+            tracing::error!("diff stat note returned a different number of folders");
+            return workspaces.into_iter().map(ServedWorkspace::bare).collect();
+        }
+        let generation = self.diff_stats.generation();
+        let pending = keys.iter().any(|key| !self.diff_stats.ready(key));
+        let same = changed_from.is_some_and(|revision| revision.get() == generation);
+        let mut wait = if same || (changed_from.is_none() && pending) {
+            Some(MAX_WAIT_SECS)
+        } else {
+            None
+        };
+        if matches!(connection.principal(), Principal::Delegated { .. }) {
+            wait = None;
+        }
+        let here = self.links.node();
+        let shares = Waiter::of(connection.principal(), here).shares(here);
+        let _slot = self.wait_slot(connection, shares, &mut wait);
+        if let Some(seconds) = wait {
+            let _settled = tokio::time::timeout(
+                Duration::from_secs(u64::from(seconds)),
+                changed.changed(),
+            )
+            .await;
+        } else {
+            drop(changed);
+        }
+        let generation = DiffStatRevision::of(self.diff_stats.generation());
+        workspaces
+            .into_iter()
+            .zip(keys)
+            .map(|(workspace, key)| ServedWorkspace {
+                diff_stat: self.diff_stats.stat(&key),
+                stat_revision: Some(generation),
+                workspace,
+            })
+            .collect()
     }
 
     pub(crate) async fn rename_workspace(
@@ -186,4 +231,42 @@ impl NodeService {
             .map_err(|error| wire(&error))?;
         Ok(descriptor)
     }
+}
+
+fn listed(workspace: &WorkspaceDescriptor, request: &ListWorkspaces) -> bool {
+    let project = request
+        .project
+        .is_none_or(|project| project == workspace.project);
+    let lifecycle = match request.lifecycle {
+        WorkspaceList::All => true,
+        WorkspaceList::Active => matches!(workspace.lifecycle, WorkspaceLifecycle::Active),
+        WorkspaceList::Archived => {
+            matches!(workspace.lifecycle, WorkspaceLifecycle::Archived { .. })
+        }
+    };
+    let visibility = match request.visibility {
+        WorkspaceVisibilityFilter::All => true,
+        WorkspaceVisibilityFilter::Foreground => {
+            workspace.visibility == WorkspaceVisibility::Foreground
+        }
+    };
+    project && lifecycle && visibility
+}
+
+fn one_served(served: Vec<ServedWorkspace>) -> Result<ServedWorkspace, WireError> {
+    let mut served = served.into_iter();
+    let Some(one) = served.next() else {
+        return Err(missing_stat());
+    };
+    if served.next().is_some() {
+        return Err(missing_stat());
+    }
+    Ok(one)
+}
+
+fn missing_stat() -> WireError {
+    WireError::new(
+        ErrorCode::Internal,
+        "the workspace diff stat was not attached",
+    )
 }

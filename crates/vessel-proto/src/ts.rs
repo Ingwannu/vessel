@@ -393,6 +393,11 @@ pub const PROTOCOLS: &[(&str, Option<crate::ProtocolVersion>, &str)] = &[
         crate::plugins::PLUGINS_PROTOCOL,
         "The plugin manager: `plugin.*` and the node's plugin switch (ADR 0115).",
     ),
+    (
+        "DIFF_STAT_PROTOCOL",
+        crate::registry::DIFF_STAT_PROTOCOL,
+        "The diff stat on `workspace.list` and `workspace.get` (ADR 0120).",
+    ),
 ];
 
 /// The constants of [`PROTOCOLS`], as the end of the declarations file.

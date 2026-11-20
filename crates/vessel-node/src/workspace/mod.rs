@@ -22,6 +22,7 @@
 //!   any folder holding the node's data folder (a read-only device could
 //!   otherwise read the node's token and become its owner).
 
+mod diff_stat;
 mod error;
 mod file_panels;
 mod files;
@@ -54,6 +55,7 @@ use vessel_store::{Store, StoreError};
 use vessel_workspace::find::Indexes;
 use vessel_workspace::{Git, GitSetup};
 
+pub(crate) use diff_stat::DiffStats;
 pub(crate) use error::WorkspaceError;
 pub(crate) use git::IndexChange;
 pub(crate) use policy::refuse_agents;
@@ -267,6 +269,11 @@ impl Workspaces {
     /// Title styles borrow its checked runner, pool and own-config policy.
     pub(crate) fn git(&self) -> Result<&Git, WorkspaceError> {
         self.git.as_ref().ok_or(WorkspaceError::NoGit)
+    }
+
+    /// Cancelled with the node, for tasks that share its lifetime.
+    pub(crate) fn stopping(&self) -> CancellationToken {
+        self.stop.clone()
     }
 
     /// Whether `path`, resolved (its nearest existing folder, when it is

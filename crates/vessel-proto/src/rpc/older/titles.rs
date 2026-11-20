@@ -17,7 +17,9 @@
 
 use super::templates::changed;
 use crate::inbox::{InboxEntry, InboxPage};
-use crate::registry::{RegistrySnapshot, WorkspaceDescriptor};
+use crate::registry::{
+    RegistrySnapshot, ServedWorkspace, WorkspaceDescriptor, serves_diff_stat,
+};
 use crate::scripts::{ScriptList, ScriptRunOutcome};
 use crate::terminals::{TerminalInfo, TerminalList, TerminalSubscribed};
 use crate::{ProtocolVersion, SessionTitle};
@@ -113,6 +115,37 @@ pub(super) fn workspaces(
     protocol: ProtocolVersion,
 ) -> Option<Vec<WorkspaceDescriptor>> {
     changed(list, |descriptor| workspace(descriptor, protocol))
+}
+
+/// A served workspace: its title cut, and its diff stat removed for a peer
+/// that is not served one (ADR 0120).
+pub(super) fn served(
+    workspace: &ServedWorkspace,
+    protocol: ProtocolVersion,
+) -> Option<ServedWorkspace> {
+    let title = SessionTitle::optional_for_protocol(workspace.workspace.title.as_ref(), protocol);
+    let strip = !serves_diff_stat(protocol)
+        && (workspace.diff_stat.is_some() || workspace.stat_revision.is_some());
+    if title.is_none() && !strip {
+        return None;
+    }
+    let mut older = workspace.clone();
+    if let Some(title) = title {
+        older.workspace.title = title;
+    }
+    if strip {
+        older.diff_stat = None;
+        older.stat_revision = None;
+    }
+    Some(older)
+}
+
+/// The served workspaces, each as [`served`].
+pub(super) fn served_list(
+    list: &[ServedWorkspace],
+    protocol: ProtocolVersion,
+) -> Option<Vec<ServedWorkspace>> {
+    changed(list, |workspace| served(workspace, protocol))
 }
 
 /// The registry snapshot: its label rule first, then its workspaces'
