@@ -15,9 +15,12 @@ P2 starts after this checkpoint. The apps and node are separate worktrees.
 - App format passed at `b4439db55`
   (`impl-browser-app-20261120T054049Z-b4439db5`). Strict view Clippy on
   that head (`impl-browser-app-20261120T054139Z-b4439db5`) requested the
-  Debug implementation. The format retry at `a7b7109fd`
-  (`impl-browser-app-20261120T054629Z-a7b7109f`) is queued at this checkpoint.
-  Finish the exact focused Clippy and browser view tests for this packet.
+  Debug implementation. At exact `a7b7109fd`, native format
+  (`impl-browser-app-20261120T054629Z-a7b7109f`), strict view Clippy
+  (`impl-browser-app-20261120T055002Z-a7b7109f`) and the focused browser view
+  suite (`impl-browser-app-20261120T055539Z-a7b7109f`) all passed. The suite
+  counted ten passed, zero failed and zero ignored. All this track's remote
+  runs reached terminal states. No run is queued.
 - Node branch `backend/m12-impl-browser-node` at
   `/tmp/build/impl-browser/node`. Qualified component `569f5e219` passed
   exact fmt and strict Clippy, the focused browser suite (84 passed, three

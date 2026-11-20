@@ -12,6 +12,9 @@ descriptor, then prepares toolbar commands for that same workspace and
 resource. Reuse the staged preset table and bounded frame geometry. This
 keeps controls and actual visible state consistent when a device resize or
 navigation changes the current page and an earlier response is still queued.
+An embedded platform webview would create a second profile and policy path.
+Keeping the node-owned browser calls for a native frame surface and an
+explicit input boundary, shared by the pane and its eventual watch.
 
 The app must hold resident state by layout and tab identity so hiding a pane
 does not destroy its browser target. The toolbar and shortcut eligibility use
@@ -23,8 +26,10 @@ policy check are deferred to the end of this track.
 ## Verification
 
 The first packet stages the toolbar projection, preset dimensions, and
-localized device labels. It proves that a foreign workspace, Preview
-descriptor or earlier revision cannot update the General pane. A separate
-native packet wires the shell, launcher and controls. The coordinator sees
+localized device labels. At `a7b7109fd`, remote format, strict app-view
+Clippy and ten focused browser tests passed. The tests verify that a foreign
+workspace, Preview descriptor or earlier revision cannot update the
+General pane. A separate native packet wires the shell, launcher and
+controls. The coordinator sees
 1280 and 390 pixel frames in dark and light with English and Korean words
 before native UI review.
