@@ -88,6 +88,10 @@ impl std::fmt::Debug for Page {
     }
 }
 impl Page {
+    pub(crate) fn uses_session(&self, session: &SessionId) -> bool {
+        &self.session == session
+    }
+
     /// The calling profile already owns the policy proxy, runtime and creation admission.
     pub(crate) async fn open(
         client: Client,

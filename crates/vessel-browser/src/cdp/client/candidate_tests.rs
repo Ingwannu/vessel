@@ -3,6 +3,7 @@
 //! The exact artifact is run only on the approved host/account. Private fixture
 //! storage stays quarantined at a fresh nonce path; no product profile or engine
 //! admission is released from a leader/accepted-group cleanup receipt.
+use super::actor::{Actor, ActorError};
 use super::candidate_network::NetworkFixture;
 use super::owner::Owner;
 use super::*;
@@ -11,6 +12,8 @@ use crate::preparation::Preparation;
 use crate::profile::{Profile, ProfileError};
 use std::path::PathBuf;
 use tokio::net::TcpListener;
+use vessel_proto::WorkspaceId;
+use vessel_proto::browser::{HumanInput, ViewportSide, ViewportSize};
 
 struct Fixture {
     scope: Preparation,
@@ -81,7 +84,10 @@ async fn approved_candidate_uses_real_rust_driver_and_private_child_pipe() {
         } else {
             None
         };
-        let receipt = owner.close().await.unwrap();
+        let actor = Actor::start(owner);
+        let driven = exercise_actor(&actor).await;
+        let stopped = actor.shutdown().await.unwrap();
+        let receipt = stopped.receipt.as_ref().unwrap();
         proxy.finish().await;
         network.finish().await;
         let held = scope
@@ -95,9 +101,36 @@ async fn approved_candidate_uses_real_rust_driver_and_private_child_pipe() {
         assert!(!run.is_live());
         assert!(held);
         page.unwrap().unwrap().verify();
+        driven.unwrap();
         // No Profile::release or product capacity reuse is certified here.
-        drop(owner);
+        drop(stopped);
     })
     .await
     .unwrap();
+}
+
+async fn exercise_actor(actor: &Actor) -> Result<(), ActorError> {
+    let workspace = WorkspaceId::random();
+    let size = ViewportSize {
+        width: ViewportSide::try_from(390).unwrap(),
+        height: ViewportSide::try_from(844).unwrap(),
+    };
+    let address = "http://fixture.test/".parse().unwrap();
+    let id = actor.open(workspace, address, size).await?;
+    assert!(matches!(
+        actor.watch(WorkspaceId::random(), id.clone()).await,
+        Err(ActorError::Target(crate::targets::TargetError::Missing))
+    ));
+    let frames = actor.watch(workspace, id.clone()).await?;
+    let frame = frames.borrow().clone().unwrap();
+    assert_eq!(frame.image().size().width().get(), size.width.get());
+    actor.input(workspace, id.clone(), frame.revision(), HumanInput::ReleaseAll).await?;
+    actor.navigate(workspace, id.clone(), "http://fixture.test/other".parse().unwrap()).await?;
+    assert!(matches!(
+        actor.input(workspace, id.clone(), frame.revision(), HumanInput::ReleaseAll).await,
+        Err(ActorError::Page(crate::page::PageError::StaleFrame))
+    ));
+    actor.close(workspace, id).await?;
+    assert!(frames.has_changed().is_err());
+    Ok(())
 }

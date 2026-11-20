@@ -86,3 +86,14 @@ observation and release qualification are pending.
 The follow-up workspace and frame slice at `0e86fb5c8` passed remote format,
 strict browser Clippy, 80 ordinary browser tests (2 ignored) and the separate
 live candidate fixture. [Resume and exact gate receipts](impl-browser-resume.md).
+
+### P1 actor ownership
+
+The browser actor owns the verified child, its debugger receiver and the
+workspace-bound inventory. Reuse the existing delivery latch to distinguish a
+cancelled queued command from an uncertain command that has already started.
+A bounded command queue limits pending work while the owner serializes target
+mutations. Shutdown runs inside the actor after cancellation, so losing a
+client waiter cannot drop the retained child or profile. A caller receives a
+typed frame subscription, never the debugger connection. The actor stays
+staged until the node admission path and release qualification are ready.

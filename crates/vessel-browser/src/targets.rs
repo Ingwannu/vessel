@@ -5,7 +5,7 @@ use std::collections::{BTreeMap, btree_map::Entry};
 use vessel_proto::WorkspaceId;
 use vessel_proto::browser::{BrowserId, BrowserUrl, MAX_BROWSER_TABS, ViewportSize};
 
-use crate::cdp::Client;
+use crate::cdp::{Client, SessionId};
 use crate::page::{Page, PageError};
 
 #[derive(Debug, thiserror::Error)]
@@ -31,6 +31,12 @@ struct Binding {
 pub(crate) struct Targets(BTreeMap<BrowserId, Binding>);
 
 impl Targets {
+    pub(crate) fn observing(&mut self, session: &SessionId) -> Option<&mut Page> {
+        self.0
+            .values_mut()
+            .find(|binding| binding.page.uses_session(session))
+            .map(|binding| &mut binding.page)
+    }
     pub(crate) async fn open(
         &mut self,
         client: &Client,

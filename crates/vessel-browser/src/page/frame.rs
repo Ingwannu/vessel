@@ -50,9 +50,16 @@ impl ViewportFrame {
     pub(crate) const fn image(&self) -> &ScreenshotPng {
         &self.image
     }
+
+    pub(crate) const fn revision(&self) -> BrowserRevision {
+        self.revision
+    }
 }
 
 impl Page {
+    pub(crate) fn latest_frame(&self) -> Option<Arc<ViewportFrame>> {
+        self.frame_watch.latest.borrow().clone()
+    }
     pub(crate) fn subscribe_frames(&mut self) -> watch::Receiver<Option<Arc<ViewportFrame>>> {
         if self.frame_watch.latest.receiver_count() == 0 {
             // Reopening a hidden target starts with the next live paint.
