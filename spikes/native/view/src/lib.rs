@@ -19,6 +19,7 @@ pub mod attention;
 pub mod badge;
 pub mod board;
 pub mod brand;
+pub mod browser;
 pub mod composer;
 pub mod composer_shell;
 pub mod connection;
