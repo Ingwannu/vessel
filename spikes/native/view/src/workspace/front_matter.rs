@@ -19,8 +19,10 @@
 //!   refused as Paseo refuses it, before anything is copied. The loader
 //!   (`Parser::load` too), the emitter and a value's drop all descend by
 //!   recursion, on the UI thread, so the events are pulled one by one and
-//!   a block nested past `MAX_DEPTH` is refused there too (Paseo's reader
-//!   throws on a deep enough one and keeps the document).
+//!   a block nested past `MAX_DEPTH`, counted as the loader copies it
+//!   (an alias adds its anchor's levels where it stands), is refused there
+//!   too (Paseo's reader throws on a deep enough one and keeps the
+//!   document).
 //! - Cost: one crate (and hashlink) in the app. A nested value is written
 //!   back by yaml-rust2's emitter, which can quote or order a nested value
 //!   differently from the page's `yaml` stringify. A block nested past 64
@@ -91,36 +93,67 @@ fn split(source: &str) -> Option<(&str, &str)> {
     }
 }
 
-/// Counts aliases and the nodes the block expands to, event by event.
+/// Counts aliases, the nodes the block expands to and how deep it nests
+/// once aliases are expanded, event by event.
 #[derive(Default)]
 struct Budget {
     aliases: usize,
     nodes: usize,
-    /// Each open collection's anchor and the nodes inside it so far.
-    open: Vec<(usize, usize)>,
-    /// Each anchor's expanded size.
-    anchored: HashMap<usize, usize>,
+    /// The collections open around the next event.
+    open: Vec<Open>,
+    /// What each anchor expands to.
+    anchored: HashMap<usize, Expanded>,
     over: bool,
 }
 
+/// An open collection.
+#[derive(Debug, Clone, Copy)]
+struct Open {
+    anchor: usize,
+    /// Nodes inside it so far.
+    nodes: usize,
+    /// The deepest nesting inside it so far.
+    depth: usize,
+}
+
+/// What a node expands to: its nodes, and the levels of collections it
+/// nests (0 for a scalar). An alias is a copy of its anchor's.
+#[derive(Debug, Clone, Copy)]
+struct Expanded {
+    nodes: usize,
+    depth: usize,
+}
+
+const SCALAR: Expanded = Expanded { nodes: 1, depth: 0 };
+
 impl Budget {
-    fn add(&mut self, size: usize) {
-        self.nodes = self.nodes.saturating_add(size);
-        if let Some((_, inside)) = self.open.last_mut() {
-            *inside = inside.saturating_add(size);
+    /// `node` placed in the innermost open collection.
+    fn add(&mut self, node: Expanded) {
+        self.nodes = self.nodes.saturating_add(node.nodes);
+        if let Some(open) = self.open.last_mut() {
+            open.nodes = open.nodes.saturating_add(node.nodes);
+            open.depth = open.depth.max(node.depth);
         }
-        if self.nodes > MAX_NODES || self.aliases > MAX_ALIASES {
+        // An alias copies its anchor's levels below the ones open here.
+        let depth = self.open.len().saturating_add(node.depth);
+        if self.nodes > MAX_NODES || self.aliases > MAX_ALIASES || depth > MAX_DEPTH {
             self.over = true;
         }
     }
 
     fn close(&mut self) {
-        if let Some((anchor, inside)) = self.open.pop() {
-            if anchor != 0 {
-                let _before = self.anchored.insert(anchor, inside.saturating_add(1));
+        if let Some(closed) = self.open.pop() {
+            let whole = Expanded {
+                nodes: closed.nodes.saturating_add(1),
+                depth: closed.depth.saturating_add(1),
+            };
+            if closed.anchor != 0 {
+                let _before = self.anchored.insert(closed.anchor, whole);
             }
-            if let Some((_, outer)) = self.open.last_mut() {
-                *outer = outer.saturating_add(inside);
+            // Its own node was counted when it opened.
+            if let Some(outer) = self.open.last_mut() {
+                outer.nodes = outer.nodes.saturating_add(closed.nodes);
+                outer.depth = outer.depth.max(whole.depth);
             }
         }
     }
@@ -129,18 +162,22 @@ impl Budget {
         match *event {
             Event::Alias(anchor) => {
                 self.aliases = self.aliases.saturating_add(1);
-                let size = self.anchored.get(&anchor).copied().unwrap_or(1);
-                self.add(size);
+                let copied = self.anchored.get(&anchor).copied().unwrap_or(SCALAR);
+                self.add(copied);
             }
             Event::Scalar(_, _, anchor, _) => {
                 if anchor != 0 {
-                    let _before = self.anchored.insert(anchor, 1);
+                    let _before = self.anchored.insert(anchor, SCALAR);
                 }
-                self.add(1);
+                self.add(SCALAR);
             }
             Event::SequenceStart(anchor, _) | Event::MappingStart(anchor, _) => {
-                self.add(1);
-                self.open.push((anchor, 0));
+                self.add(SCALAR);
+                self.open.push(Open {
+                    anchor,
+                    nodes: 0,
+                    depth: 0,
+                });
                 if self.open.len() > MAX_DEPTH {
                     self.over = true;
                 }

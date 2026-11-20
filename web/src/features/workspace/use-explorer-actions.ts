@@ -27,7 +27,13 @@
 // - Cost: Add to chat writes `@path` where Paseo adds an attachment pill;
 //   the page's composer has no file pills, and the agent reads `@path`.
 
-import { type Dispatch, type SetStateAction, useMemo, useState } from "react";
+import {
+  type Dispatch,
+  type SetStateAction,
+  useContext,
+  useMemo,
+  useState,
+} from "react";
 
 import { useFleet, useFleetState } from "../../context";
 import { withMention } from "../../data/suggest";
@@ -53,6 +59,7 @@ import { toast } from "../../ui/toasts";
 import type { NodeKey } from "../../wire/bridge";
 import type { RelPath, SessionId, WorkspaceRoot } from "../../wire/proto";
 import { downloadFile } from "./download";
+import { WorkspaceChat } from "./workspace-chat";
 import type { FileActionKey } from "./file-actions";
 
 /** Where the Explorer is: its root, the root's folder on the node (for
@@ -113,6 +120,7 @@ export function useExplorerActions(
   tree: ExplorerTree,
 ): ExplorerActions {
   const fleet = useFleet();
+  const openChat = useContext(WorkspaceChat);
   const { node, root, folder, session } = place;
   const { open, onOpenChange, refresh, expand, onFile } = tree;
   const [edit, setEdit] = useState<TreeEdit | null>(null);
@@ -162,6 +170,7 @@ export function useExplorerActions(
           draft,
           withMention(fleet.drafts.text(draft), target.path),
         );
+        openChat?.();
         return;
       }
       case "new-file":

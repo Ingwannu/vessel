@@ -16,6 +16,10 @@ impl Presence {
             PushActivity::Active => self.active_at = Some(now),
             PushActivity::Unchanged => {}
         }
+        if let Some(age) = report.idle_age {
+            let observed = now.checked_sub_signed(TimeDelta::milliseconds(i64::from(age.get())));
+            self.active_at = self.active_at.max(observed);
+        }
     }
     pub(crate) fn present(self, now: DateTime<Utc>) -> bool {
         self.active_at
@@ -29,12 +33,15 @@ pub(crate) enum Plan {
     Push,
 }
 pub(crate) fn plan(states: &[Presence], session: SessionId, now: DateTime<Utc>) -> Plan {
+    plan_for(states, PushFocus::Session { session }, now)
+}
+pub(crate) fn plan_for(states: &[Presence], target: PushFocus, now: DateTime<Utc>) -> Plan {
     let mut recipient = None;
     for (index, state) in states.iter().enumerate() {
         if !state.present(now) {
             continue;
         }
-        if state.focus == (PushFocus::Session { session }) {
+        if state.focus == target {
             return Plan::Suppressed;
         }
         if recipient.is_none_or(|previous: usize| {

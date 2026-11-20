@@ -76,6 +76,7 @@ mod inbox;
 mod limits;
 mod node_log;
 mod notices;
+mod notifications;
 mod prompts;
 mod push;
 mod schedule_preview;
@@ -138,6 +139,8 @@ pub(crate) struct NodeService {
     probes: Probes,
     /// Projects, worktrees, git and files (protocol 10, `workspace`).
     workspaces: Arc<Workspaces>,
+    /// Served diff stats for workspace list and get (ADR 0120).
+    diff_stats: crate::workspace::DiffStats,
     /// Deleting sessions with their worktrees (protocol 10, `tidying`).
     tidying: Arc<Tidying>,
     /// Pull requests (protocol 11, `forge`).
@@ -248,6 +251,7 @@ impl NodeService {
             limits,
             plugins,
         } = parts;
+        let diff_stats = crate::workspace::DiffStats::start(Arc::clone(&workspaces));
         let store = sessions.store().clone();
         let readiness = Arc::new(crate::readiness::Readiness::default());
         let diagnostics = crate::diagnostics::State::new(
@@ -280,6 +284,7 @@ impl NodeService {
             waits: Arc::default(),
             probes,
             workspaces,
+            diff_stats,
             tidying,
             forges,
             terminals,

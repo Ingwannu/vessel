@@ -9,7 +9,8 @@ use std::sync::Arc;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use vessel_proto::forge::{
-    Checks, ForgeKind, MergeMethod, PullRequest, RepoDescription, RepoRef, Visibility,
+    CheckReport, CheckTally, Checks, ForgeKind, MergeMethod, PullRequest, RepoDescription, RepoRef,
+    TimelineItem, Visibility,
 };
 
 use super::{Failure, FakeForge};
@@ -98,7 +99,7 @@ struct Repository {
     repo: RepoRef,
     #[serde(default)]
     failure: Option<Failure>,
-    pulls: Vec<Pull>,
+    pulls: Vec<SeededPull>,
     /// How `forge.repos` lists it (ADR 0088); every seeded repository is
     /// listed, public and with no description unless said.
     #[serde(default)]
@@ -116,10 +117,19 @@ struct Listing {
 }
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-struct Pull {
+struct SeededPull {
     pull: PullRequest,
     #[serde(default)]
     merge: Merge,
+    /// What `pr.timeline` answers (ADR 0088), oldest first.
+    #[serde(default)]
+    timeline: Vec<TimelineItem>,
+    /// Whether the timeline had more than one read takes.
+    #[serde(default)]
+    truncated: bool,
+    /// What `pr.check` answers for these runs (ADR 0088).
+    #[serde(default)]
+    reports: Vec<CheckReport>,
 }
 #[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -158,6 +168,10 @@ impl Seed {
                 }
                 if pull.summary.checks != pull.checks.state
                     || pull.checks.failing.len() > Checks::MAX_FAILING
+                    || pull
+                        .summary
+                        .tally
+                        .is_some_and(|tally| Some(tally) != CheckTally::of(&pull.checks))
                 {
                     return Err(SeedRule::Checks);
                 }
@@ -234,10 +248,24 @@ impl Seed {
                 if matches!(item.merge, Merge::Refused) {
                     forge.refuse_merge(entry.repo.clone(), item.pull.summary.number);
                 }
+                forge.put_timeline(
+                    entry.repo.clone(),
+                    item.pull.summary.number,
+                    crate::Timeline {
+                        items: item.timeline,
+                        truncated: item.truncated,
+                    },
+                );
+                for report in item.reports {
+                    forge.put_check(entry.repo.clone(), report);
+                }
+                // A seed may leave the tally out: it is its checks' counts.
+                let mut pull = item.pull;
+                pull.summary.tally = CheckTally::of(&pull.checks);
                 forge.put(
-                    item.pull.head_branch.clone(),
+                    pull.head_branch.clone(),
                     crate::Read {
-                        pull: item.pull,
+                        pull,
                         // Discussion/feedback content is deliberately outside
                         // this fixture format; production tests cover it.
                         discussion: crate::Discussion::default(),

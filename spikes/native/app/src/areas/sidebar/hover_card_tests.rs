@@ -35,6 +35,7 @@ fn pull() -> SessionPullRequest {
             review: ReviewDecision::None,
             mergeable: Mergeable::Mergeable,
             updated_at: "2026-11-19T08:00:00Z".parse().unwrap(),
+            tally: None,
         }),
         feedback: false,
     }
