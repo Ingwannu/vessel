@@ -115,7 +115,7 @@ The actor observes the mandatory policy proxy's own cancellation signal.
 Losing that proxy ends watches with `NoEngine` and closes the owned runtime.
 The local fixture requests real proxy shutdown while a second watch is
 active, then checks the terminal notice and frame-channel closure. The live
-result for this extension is pending.
+fixture at `569f5e219` verified this path.
 
 The Linux relaunch fixture reopens a private profile only after the prior
 child's acknowledged close and a fresh bounded observation of its original
@@ -143,7 +143,7 @@ ICE gathering completes with controlled STUN and TURN endpoints, then checks
 both held TCP and UDP canaries after positive socket controls. The browser
 also attempts WebSockets to two dedicated private peers. The fixture confirms
 each request reached the policy proxy as an upgrade or CONNECT and received
-a refusal. Live runs are pending.
+a refusal.
 
 An additional request sends the controlled `localhost` name to the actual
 policy proxy's system resolver. Its marker requires a real refusal, and the
@@ -156,8 +156,9 @@ WebTransport CONNECT. The second starts with independent zeroed counters
 while the same pinned Chromium candidate attempts the connection. The browser
 must report refusal, with no received datagram, handshake or CONNECT at the
 second peer. The Python transport peer uses aioquic 1.8.0 only in the test
-environment. Its standalone positive control observed 5 datagrams, one
-TLS handshake and one WebTransport CONNECT. The browser result is pending.
+environment. Its positive control observed five datagrams, one TLS handshake
+and one WebTransport CONNECT. The real browser reported refusal, and that
+peer observed zero datagrams, handshakes and CONNECTs.
 [aioquic 1.8.0](https://pypi.org/project/aioquic/1.8.0/).
 
 Run the positive control with
@@ -168,8 +169,38 @@ the manifest, build identity, recorded sandbox requirement and approved CfT path
 before invoking only the exact ignored `approved_candidate_refuses_private_webtransport`
 test. Its `webtransport` mode passes the held loopback address and certificate
 digest to that test. The H3 peer writes both sets of counters to
-`webtransport.json`. No host trust store changes. DNS rebinding remains a
-separate qualification case.
+`webtransport.json`. No host trust store changes.
+
+Exact `569f5e219` passed remote format, strict Clippy and the focused browser
+suite with 84 passed and three ignored cases. The two selected real Chromium
+fixtures passed separately as UID/GID 1000. The actor and network fixture took
+12.90 s. The WebTransport fixture took 6.17 s. The two audits found 310 and
+240 private owned entries, with no remaining exact-profile process or forced
+cleanup signal. The renderer sampler returned no observation.
+
+### Direct proxy DNS qualification
+
+The DNS fixture uses the actual General proxy as Chromium's only proxy. It
+needs a private Linux network and mount namespace to exercise the operating
+system resolver while keeping all packets local. A route to a documentation
+address permits the positive TCP control without assigning that address to a
+local interface. The resolver returns that address once, then returns
+loopback for the same name. A second name returns a mixed answer. Chrome must
+load the positive page and obtain a policy refusal for each later URL. The
+fixture counts DNS answers and accepted peers independently.
+
+Run the resolver peer with `/usr/bin/python3 -I` from
+`unshare --net --mount --propagation private`. Give it a private resolver file
+with the contents from `RESOLVER` in
+`crates/vessel-browser/tests/fixtures/resolver.py`. Its setup checks both
+namespace identities before configuring the private route or mounting the
+resolver. It opens the DNS socket and drops to service UID/GID 1000 before
+serving or running the candidate. A `--control-only` run observed the two
+different system resolver results under that account. The full fixture
+takes the same runner and export options as the H3 fixture and calls the
+distinct `approved_candidate_pins_the_resolved_destination` test. No host
+route, resolver file or service permissions are changed. Browser evidence
+for this fixture is pending.
 
 ### Download follow-up
 

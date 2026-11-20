@@ -71,9 +71,16 @@ Product browser calls, the native pane and agent tool discovery are unavailable.
 - `569f5e219` passed exact remote format
   (`impl-browser-node-20261120T051755Z-569f5e21`) and strict browser Clippy
   (`impl-browser-node-20261120T051811Z-569f5e21`). Combined candidate export
-  `impl-browser-node-20261120T051831Z-569f5e21` was queued in
-  `/tmp/work/m12-claude-wave/browser-b-export-full-net`. The two selected live
-  tests from that export are pending.
+  `impl-browser-node-20261120T051831Z-569f5e21` passed. The focused browser
+  suite `impl-browser-node-20261120T052736Z-569f5e21` passed 84/0/3. The two
+  selected live tests passed separately as UID/GID 1000. Actor and network
+  evidence is at `/tmp/work/m12-claude-wave/browser-b-live-full-net` (12.90 s).
+  H3 evidence is at `/tmp/work/m12-claude-wave/browser-b-live-h3` (6.17 s).
+  Its positive control reached 5 datagrams, one TLS handshake and one
+  WebTransport CONNECT. The Chromium refusal received zero in all three
+  categories. Profile audits found 310 and 240 private owned entries
+  respectively, no remaining exact-profile process and no forced signal.
+  The coordinator received the combined scoped pass.
 
 ## Review and next work
 
@@ -82,18 +89,15 @@ The coordinator approved the plan and ADR and received the scoped pass for
 ready, the node reviewer precedes the integrator. P2 onward needs the
 coordinator's frames verdict before the native reviewer and lead.
 
-1. Recover `impl-browser-node-20261120T051831Z-569f5e21` and verify the binary
-   checksums and exact source. Run the actor/network fixture through
-   `/tmp/work/m12-claude-wave/browser-b-runtime-audit.py` under UID/GID 1000.
-   Then run `crates/vessel-browser/tests/fixtures/webtransport.py` in
-   `/tmp/work/m12-claude-wave/browser-b-quic-venv`, with that same runner and
-   export and a separate evidence directory. Check both profile audits and
-   the H3 counters. Confirm the focused browser suite before handing over
-   the component. Keep one remote run queued or running at a time.
-2. Finish the General qualification including real DNS rebinding and the
-   node entry point. The browser method rows and `BROWSER_PROTOCOL` are
-   unassigned. Engine availability waits for qualification and integration.
-   Run the exact whole root gate for package review.
+1. Gate the direct-proxy DNS fixture. The standalone resolver control passed
+   in a private namespace with one initial public and one rebound loopback
+   answer. Run the exact exported browser DNS test through the guarded
+   namespace fixture. Keep one detached remote run queued or running at
+   a time.
+2. Finish the General qualification at the authenticated node entry point.
+   The browser method rows and `BROWSER_PROTOCOL` are unassigned. Engine
+   availability waits for qualification and integration. Run the exact whole
+   root gate for package review.
 3. P2 binds the native pane, verified frame transport and profile clear to
    the pane registry. P3 consumes the existing composer and image paths. P4
    delivers the complete tool path and default-off host setting. After P4,

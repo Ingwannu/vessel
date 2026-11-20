@@ -14,11 +14,14 @@ use crate::launch::{Plan, ProxyEndpoint};
 use crate::preparation::Preparation;
 use crate::profile::{Profile, ProfileError};
 use crate::targets::{TargetNotice, TargetWatch};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tokio::net::TcpListener;
 use vessel_proto::WorkspaceId;
-use vessel_proto::browser::{BrowserFailure, HumanInput, ViewportSide, ViewportSize};
+use vessel_proto::browser::{
+    BrowserFailure, HumanInput, RequiredInput, ViewportSide, ViewportSize, WaitBudget, WaitFor,
+    WaitTimeout,
+};
 
 const APPROVED_FIXTURE_TIMEOUT: Duration = Duration::from_secs(38);
 
@@ -33,6 +36,22 @@ struct Fixture {
 async fn fixture() -> Fixture {
     assert!(!nix::unistd::geteuid().is_root());
     let scope = Preparation::for_profile(CancellationToken::new());
+    let (root, temporary) = private_paths(&scope).await;
+    let proxy = TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0))
+        .await
+        .unwrap();
+    let endpoint = ProxyEndpoint::try_from(proxy.local_addr().unwrap()).unwrap();
+    let plan = prepare(&scope, &root, &temporary, endpoint).await;
+    Fixture {
+        scope,
+        plan,
+        root,
+        temporary,
+        listener: proxy,
+    }
+}
+
+async fn private_paths(scope: &Preparation) -> (PathBuf, PathBuf) {
     // Retain diagnostic files even on failure. They are not reusable storage.
     let parent = scope
         .run(|| {
@@ -44,29 +63,25 @@ async fn fixture() -> Fixture {
         })
         .await
         .unwrap();
-    let root = parent.join("profile");
-    let temporary = parent.join("tmp");
-    let proxy = TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0))
-        .await
-        .unwrap();
-    let endpoint = ProxyEndpoint::try_from(proxy.local_addr().unwrap()).unwrap();
-    let profile_root = root.clone();
-    let profile_temp = temporary.clone();
-    let plan = scope
+    (parent.join("profile"), parent.join("tmp"))
+}
+
+async fn prepare(
+    scope: &Preparation,
+    root: &Path,
+    temporary: &Path,
+    endpoint: ProxyEndpoint,
+) -> Plan {
+    let profile_root = root.to_owned();
+    let profile_temp = temporary.to_owned();
+    scope
         .run(move || {
             let profile = Profile::prepare(&profile_root, &profile_temp).unwrap();
             Plan::inspect(profile, endpoint)
         })
         .await
         .unwrap()
-        .unwrap();
-    Fixture {
-        scope,
-        plan,
-        root,
-        temporary,
-        listener: proxy,
-    }
+        .unwrap()
 }
 
 #[tokio::test]
@@ -176,6 +191,86 @@ async fn approved_candidate_refuses_private_webtransport() {
     })
     .await
     .unwrap();
+}
+
+#[tokio::test]
+#[ignore = "requires the approved artifact and the controlled resolver namespace"]
+async fn approved_candidate_pins_the_resolved_destination() {
+    tokio::time::timeout(APPROVED_FIXTURE_TIMEOUT, async {
+        assert!(!nix::unistd::geteuid().is_root());
+        let port = std::env::var("VESSEL_BROWSER_DNS_PORT")
+            .unwrap()
+            .parse::<std::num::NonZeroU16>()
+            .unwrap()
+            .get();
+        let proxy = crate::proxy::PublicProxy::start().await.unwrap();
+        let endpoint = ProxyEndpoint::try_from(proxy.endpoint()).unwrap();
+        let scope = Preparation::for_profile(CancellationToken::new());
+        let (root, temporary) = private_paths(&scope).await;
+        let plan = prepare(&scope, &root, &temporary, endpoint).await;
+        let owner = Owner::spawn(plan).unwrap();
+        let run = owner.lifetime();
+        let (mut owner, readiness) = owner.attest(&scope).await.unwrap();
+        let observed = if let Some((client, events)) = owner.controller() {
+            Some(
+                events
+                    .during_fixture(verify_dns_routes(client, port))
+                    .await,
+            )
+        } else {
+            None
+        };
+        let receipt = owner.close().await;
+        proxy.close().await.unwrap();
+        scope.finish().await;
+        let receipt = receipt.unwrap();
+        readiness.unwrap();
+        assert!(receipt.run().same_run(&run));
+        assert_eq!(receipt.code(), Some(0));
+        assert!(!run.is_live());
+        observed.unwrap().unwrap().unwrap();
+    })
+    .await
+    .unwrap();
+}
+
+#[derive(Debug, thiserror::Error)]
+enum ResolverFixtureError {
+    #[error(transparent)]
+    Page(#[from] crate::page::PageError),
+    #[error(transparent)]
+    Probe(#[from] super::candidate_network::ProbeError),
+}
+
+async fn verify_dns_routes(client: &Client, port: u16) -> Result<(), ResolverFixtureError> {
+    let side = ViewportSide::try_from(390).unwrap();
+    let viewport = ViewportSize {
+        width: side,
+        height: side,
+    };
+    let mut page = crate::page::Page::open(
+        client.clone(),
+        format!("http://rebind.fixture.test:{port}/first").parse().unwrap(),
+        viewport,
+    )
+    .await?;
+    super::candidate_network::expect_marker(&mut page, "Fixture public address reached").await?;
+    for address in [
+        format!("http://rebind.fixture.test:{port}/after"),
+        format!("http://mixed.fixture.test:{port}/mixed"),
+    ] {
+        page.navigate(address.parse().unwrap()).await?;
+        let expected_url = RequiredInput::try_from(address).unwrap();
+        let budget = WaitBudget::Explicit(WaitTimeout::try_from(3500).unwrap());
+        let _reached = page.wait(WaitFor::Url(expected_url), budget).await?;
+        super::candidate_network::expect_marker(
+            &mut page,
+            "Browser policy proxy refused this request",
+        )
+        .await?;
+    }
+    page.close().await?;
+    Ok(())
 }
 
 async fn exercise_actor(actor: &Actor) -> Result<(), ActorError> {
