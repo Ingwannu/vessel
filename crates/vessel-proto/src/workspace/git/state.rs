@@ -93,7 +93,7 @@ pub struct GitStatus {
     pub more: bool,
     /// Where `origin` keeps the repository (ADR 0123 step B); absent when
     /// there is no `origin`, its address names no forge, or the peer is
-    /// below [`ORIGIN_LINK_PROTOCOL`](super::ORIGIN_LINK_PROTOCOL).
+    /// below `ORIGIN_LINK_PROTOCOL`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub origin: Option<OriginRepo>,
 }

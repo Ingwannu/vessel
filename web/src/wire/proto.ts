@@ -4835,7 +4835,13 @@ files: Array<StatusEntry>,
 /**
  * Whether there were more.
  */
-more: boolean, };
+more: boolean, 
+/**
+ * Where `origin` keeps the repository (ADR 0123 step B); absent when
+ * there is no `origin`, its address names no forge, or the peer is
+ * below `ORIGIN_LINK_PROTOCOL`.
+ */
+origin?: OriginRepo | null, };
 
 /**
  * Whether the node can run the git calls.
@@ -7250,6 +7256,26 @@ session: SessionId,
  * are 0), so the target can refuse a session past the depth limit.
  */
 depth: number, };
+
+/**
+ * Where `origin` keeps a repository.
+ */
+export type OriginRepo = { 
+/**
+ * The host, lower-cased; with its port only for an `http(s)` address
+ * on a port that is not the scheme's own.
+ */
+host: ForgeHost, 
+/**
+ * `owner/name`, or nested groups; no `.git`.
+ */
+path: RepoPath, 
+/**
+ * What the node knows the host to be (a self-hosted GitHub it holds a
+ * token for, or GitHub's own hosts); absent when it knows nothing a
+ * client could not read from the host itself.
+ */
+kind?: ForgeKind | null, };
 
 /**
  * Calls from the symbol at a saved source position.
@@ -14483,3 +14509,8 @@ export const WORKSPACE_TERMINALS_PROTOCOL = 40;
  * `plugin.catalog` and `plugin.invoke` (ADR 0115, catalog and invoke).
  */
 export const PLUGIN_CATALOG_PROTOCOL = 41;
+
+/**
+ * `origin` on `git.status`, `git.stage`, `git.unstage` and `git.discard` (ADR 0123 step B).
+ */
+export const ORIGIN_LINK_PROTOCOL = null;

@@ -10,9 +10,11 @@ import { agentMark, agentName } from "../../data/agents";
 import { isLive, statusTone, statusWord } from "../../data/format";
 import { sessionName } from "../../data/titles";
 import { Avatar, Badge, IconButton } from "../../ui/kit";
-import type { SessionInfo } from "../../wire/proto";
+import type { LinkedFile } from "../../data/forge-links";
+import type { SessionInfo, WorkspaceRoot } from "../../wire/proto";
 import { TitleBar } from "../shell/title-bar";
 import { SessionPlaceChip } from "../workspace/branch-chip";
+import { ForgeOpen } from "./forge-open";
 import { SessionActions } from "./session-actions";
 import { SessionTitle } from "./session-title";
 import type { NodeKey } from "../../wire/bridge";
@@ -22,6 +24,8 @@ export function SessionBar({
   label,
   session,
   renamed,
+  root,
+  file,
   onPlace,
   onSummary,
 }: {
@@ -29,6 +33,10 @@ export function SessionBar({
   /** The machine's name. */
   label: string;
   session: SessionInfo;
+  /** The session's folder, for "Open on <forge>" (TRACKER 467 step B). */
+  root: WorkspaceRoot | null;
+  /** The file the code panel shows, for that link. */
+  file: LinkedFile | null;
   /** The title its log last reported, fresher than the polled list. */
   renamed: string | null;
   /** Opens the session's changes from its branch's chip. */
@@ -69,6 +77,7 @@ export function SessionBar({
             onClick={onSummary}
           />
         )}
+        <ForgeOpen node={node} root={root} file={file} />
         <SessionActions node={node} label={label} session={session} />
       </span>
     </TitleBar>
