@@ -391,9 +391,9 @@ in English and Korean, prepared outside paint. Native text uses kit fonts.
 Frames are bounded PNG images from the same target. A watch holds at most
 one unsent latest frame; newer paint replaces it, discrete state/close events
 must not be dropped. Start/stop frame production with watch visibility, keep
-background targets alive for tools. Maximum frame rate 10/s, maximum decoded
-image 8 MiB, viewport sides at most 8192, at most 32 targets and 64 queued
-commands per engine; saturation is Busy, not an unbounded queue. Preview is
+background targets alive for tools. Maximum frame rate 10/s, maximum PNG size
+8 MiB, maximum decoded RGBA surface 32 MiB, viewport sides at most 8192, at
+most 32 targets and 64 queued commands per engine. Saturation returns Busy. Preview is
 not advertised as smooth video or native page accessibility. CDP screencast
 is experimental; capability-probe it and return Unsupported when missing,
 not a static image that appears interactive.
@@ -582,8 +582,8 @@ prove the future product proxy, profile isolation, Preview revocation or Windows
 ## Proposed C5 self-contained HTML document surface (review before implementation)
 
 Status: proposed extension only. No document method, profile, supported renderer
-or capability is enabled by this amendment. General and service Preview keep
-all their existing rules, including first-engine Preview qualification.
+or capability is enabled by this amendment. General and service Preview
+have separate activation gates under ADR 0119.
 
 [Decision Log]
 - Purpose: W13 owns Target::File, its root identity, source buffer and mode.
