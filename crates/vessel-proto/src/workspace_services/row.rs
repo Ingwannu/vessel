@@ -4,6 +4,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    ProtocolVersion,
     scripts::{ScriptEntry, ScriptKind},
     terminals::TerminalInfo,
 };
@@ -95,6 +96,18 @@ impl WorkspaceScriptRow {
             terminal,
             service,
         })
+    }
+
+    /// This row as a peer speaking `protocol` reads it: its terminal with
+    /// the attention cut that every other terminal projection gets
+    /// (`TerminalInfo::for_protocol`, ADR 0089). `None` when nothing
+    /// changes.
+    #[must_use]
+    pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
+        let terminal = self.terminal.as_ref()?.for_protocol(protocol)?;
+        let mut older = self.clone();
+        older.terminal = Some(terminal);
+        Some(older)
     }
 
     /// Preserve a complete borrowed projection without exposing mutable halves.

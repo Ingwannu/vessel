@@ -3,7 +3,8 @@
 use super::{Delivered, Push, PushError};
 use chrono::Utc;
 use futures_util::{StreamExt as _, stream};
-use std::sync::Arc;
+use std::collections::HashSet;
+use std::sync::{Arc, Mutex, PoisonError};
 use std::time::Duration;
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 use vessel_proto::inbox::InboxCursor;
@@ -45,7 +46,7 @@ async fn run(push: Arc<Push>, mut observed: Observed, stop: CancellationToken) {
         self_pause(&push, &stop).await;
         tokio::select! { () = stop.cancelled() => break, () = tokio::time::sleep(COALESCE) => {} }
         let before = observed.head;
-        let terminal = observed.terminals.capture();
+        let terminal = observed.terminals.capture(Utc::now());
         let signal = async {
             observed.head = push.store.inbox_head().await?;
             Ok::<_, vessel_store::StoreError>(
@@ -74,12 +75,22 @@ async fn run(push: Arc<Push>, mut observed: Observed, stop: CancellationToken) {
                 continue;
             }
         };
+        // The terminals this burst pushed, once each however many devices
+        // received them: their spacing moves once (`terminal/spacing.rs`).
+        let pushed = Mutex::new(HashSet::new());
         let sent =
             stream::iter(subscriptions).for_each_concurrent(DELIVERY_CONCURRENCY, |subscription| {
                 let push = Arc::clone(&push);
                 let burst = burst.clone();
+                let pushed = &pushed;
                 async move {
                     let result = push.send_one(subscription, burst).await;
+                    if let Ok(Some(NotificationSource::Terminal { terminal, .. })) = &result {
+                        let _new = pushed
+                            .lock()
+                            .unwrap_or_else(PoisonError::into_inner)
+                            .insert(*terminal);
+                    }
                     if let Err(error) = &result {
                         tracing::warn!(
                             reason = error.label(),
@@ -95,6 +106,8 @@ async fn run(push: Arc<Push>, mut observed: Observed, stop: CancellationToken) {
                 }
             });
         tokio::select! { () = stop.cancelled() => break, () = sent => {} }
+        let pushed = pushed.into_inner().unwrap_or_else(PoisonError::into_inner);
+        observed.terminals.pushed(pushed, Utc::now());
     }
 }
 impl Push {

@@ -16,6 +16,7 @@ import { DiagnosticsSection } from "../features/diagnostics/diagnostics-section"
 import { AppearanceSection } from "../features/settings/appearance";
 import { DevicesSection } from "../features/settings/devices-section";
 import { GeneralSection } from "../features/settings/general";
+import { PluginsSection } from "../features/settings/plugins-section";
 import { ProjectsSection } from "../features/projects/projects-section";
 import { ModelsSection } from "../features/settings/models";
 import { NotificationsSection } from "../features/settings/notifications-section";
@@ -68,6 +69,8 @@ export function SettingsPage(): ReactElement | null {
       return <DevicesSection machine={place.machine} />;
     case "sync":
       return <SyncSection machine={place.machine} />;
+    case "plugins":
+      return <PluginsSection machine={place.machine} />;
     case "diagnostics":
       return <DiagnosticsSection />;
     case "about":

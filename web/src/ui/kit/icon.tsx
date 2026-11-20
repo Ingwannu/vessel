@@ -7,6 +7,7 @@
 // and follows `color` for hover, disabled and selected states for free.
 
 import "./icon.css";
+import "./icon-m12.css";
 
 /** Every drawing the set has, once each: the type below and the gallery
  * (/kit) both read this list, so a drawing cannot be missing from the
@@ -93,6 +94,7 @@ export const ICON_NAMES = [
   "help",
   "tag",
   "info",
+  "blocks",
   "zoom-in",
   "zoom-out",
   "scan",
