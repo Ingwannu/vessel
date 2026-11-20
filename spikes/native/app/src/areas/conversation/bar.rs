@@ -99,7 +99,11 @@ pub(crate) fn bar(
         .child(div().flex_1())
         .children(lost)
         .children(refused)
-        // Track F's slot: the code panel's toggle.
+        // Track F's slots: Open in editor (TRACKER 467, Paseo's header puts
+        // it before the explorer's toggle), then the code panel's toggle.
+        .children(crate::areas::workspace::open_in_editor(
+            shell, tokens, narrow, window, cx,
+        ))
         .children(crate::areas::workspace::code_toggle(shell, tokens, narrow, cx))
         .into_any_element()
 }
