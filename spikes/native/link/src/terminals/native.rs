@@ -93,8 +93,11 @@ async fn call(client: &NodeClient, request: Request) -> Reply {
             }
         }
         Request::List { place } => {
+            // An answer now, as before protocol 37: the tab strip polls on its
+            // own clock and does not hold a long poll open (ADR 0116).
             let asked = client.call(ListTerminals {
                 place: Some(place.clone()),
+                changed_from: None,
             });
             Reply::Listed {
                 place,
@@ -108,6 +111,7 @@ async fn call(client: &NodeClient, request: Request) -> Reply {
                 },
                 Outgoing::Resize { cols, rows } => TerminalInput::Resize {
                     size: TerminalSize { cols, rows },
+                    intent: None,
                 },
             };
             Reply::Sent {

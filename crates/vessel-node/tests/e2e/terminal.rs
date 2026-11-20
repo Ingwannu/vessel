@@ -63,6 +63,7 @@ async fn a_terminal_session_survives_clients_and_a_node_restart() {
                         cols: 120,
                         rows: 40,
                     },
+                    intent: None,
                 },
             };
             client.send(id, resize).await.unwrap();

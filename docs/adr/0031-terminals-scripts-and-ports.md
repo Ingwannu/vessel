@@ -5,6 +5,8 @@ Status: accepted, 2026-11-12 (milestone 11, wave 2, track C,
 wire is protocol 11, `crates/vessel-proto/src/{terminals,scripts,ports}.rs`;
 the runtime `crates/vessel-session/src/terminals/`; the node's part
 `crates/vessel-node/src/terminals/`). Amends ADR 0027's digest.
+Amended by ADR 0116 (protocol 37): `terminal.list` long poll
+(`changed_from`, `revision`) and a resize's claim or update.
 
 ## Context
 

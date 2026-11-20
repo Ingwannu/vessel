@@ -409,6 +409,7 @@ async fn a_turn_with_a_permission_round_trip() {
         let keys = SessionInput::Terminal {
             input: TerminalInput::Resize {
                 size: TerminalSize::default(),
+                intent: None,
             },
         };
         assert_eq!(
