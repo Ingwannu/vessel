@@ -75,6 +75,9 @@ glyph_inventory! {
     /// The agents a machine can run: three stacked boxes (Paseo's
     /// `Boxes`, an original drawing on the shared 24-unit line grid).
     Boxes => "kit/boxes.svg",
+    /// Plugins: three blocks set together and one apart (Paseo's
+    /// `Blocks`, an original drawing on the shared 24-unit line grid).
+    Blocks => "kit/blocks.svg",
     /// A machine.
     Machine => "kit/machine.svg",
     /// Three dots: a menu of more actions (the Session actions).
