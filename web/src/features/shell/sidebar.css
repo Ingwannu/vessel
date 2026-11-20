@@ -376,7 +376,6 @@
   gap: 8px;
   min-width: 0;
 }
-
 .side-workspace-end .side-machine,
 .side-workspace-menu {
   margin-left: 0;
@@ -398,22 +397,4 @@
 .side-workspace-meta {
   display: flex;
   padding: 0 10px 4px 34px;
-}
-
-/* Paseo's trailing slot: compact age, or the diff stat, after the title. */
-.side-trailing {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  height: 20px;
-  margin-left: auto;
-  font: var(--t-meta);
-  color: var(--text-tertiary);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.side-machine + .side-trailing,
-.side-workspace-end .side-trailing {
-  margin-left: 0;
 }
