@@ -102,6 +102,10 @@ pub(super) fn plugins(ask: crate::plugins::Ask) -> Event {
     Event::Plugins(ask.refused(vessel_app_view::plugins::Problem::Unsupported))
 }
 
+pub(super) fn plugin_catalog(ask: crate::plugins::Ask) -> Event {
+    Event::PluginCatalog(ask.refused(vessel_app_view::plugins::Problem::Unsupported))
+}
+
 pub(super) const fn pair() -> Event {
     Event::PairFailed(vessel_app_view::pairing::PairProblem::Browser)
 }

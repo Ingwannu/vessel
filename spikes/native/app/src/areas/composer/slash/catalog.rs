@@ -1,9 +1,11 @@
 //! Project the shared catalog into the existing list without fabricated wire commands.
+//! A machine's plugin slash commands (ADR 0115, catalog and invoke) take the shared
+//! catalog's plugin place: after the built-ins, before the agent's own commands.
 
-use std::convert::Infallible;
 use vessel_app_view::composer::slash::{Chosen, SlashRange, drawn};
 use vessel_app_view::composer_shell::catalog::{self, Entry, Inline, Position, Source, Target};
 use vessel_app_view::composer_shell::commands::ClientCommand;
+use vessel_app_view::plugins::PluginSlash;
 use vessel_proto::AgentCommand;
 use vessel_proto::composer_commands::CommandKind;
 
@@ -11,18 +13,20 @@ use vessel_proto::composer_commands::CommandKind;
 pub(super) enum Choice<'a> {
     Client(ClientCommand),
     Provider(&'a AgentCommand),
+    Plugin(&'a PluginSlash),
 }
 impl<'a> Choice<'a> {
     pub(super) fn name(self) -> &'a str {
         match self {
             Self::Client(command) => command.name(),
             Self::Provider(command) => command.name.as_str(),
+            Self::Plugin(command) => command.name.as_str(),
         }
     }
     pub(super) const fn client(self) -> Option<ClientCommand> {
         match self {
             Self::Client(command) => Some(command),
-            Self::Provider(_) => None,
+            Self::Provider(_) | Self::Plugin(_) => None,
         }
     }
 }
@@ -45,6 +49,7 @@ impl<'a> Menu<'a> {
                 ComposerKey::Up | ComposerKey::Down | ComposerKey::Enter | ComposerKey::Tab => true,
             }
     }
+    #[cfg(test)]
     pub(super) fn of(
         text: &str,
         caret: usize,
@@ -52,10 +57,22 @@ impl<'a> Menu<'a> {
         commands: Option<&'a [AgentCommand]>,
         chosen: &Chosen,
     ) -> Option<Self> {
+        Self::with_plugins(text, caret, target, commands, &[], chosen)
+    }
+    /// The menu with the open session machine's plugin commands (none in a
+    /// new chat: their contexts need a session).
+    pub(super) fn with_plugins(
+        text: &str,
+        caret: usize,
+        target: Target,
+        commands: Option<&'a [AgentCommand]>,
+        plugins: &[&'a PluginSlash],
+        chosen: &Chosen,
+    ) -> Option<Self> {
         let active = catalog::active(text, caret)?;
         // Only canonical provider metadata enables inline completion. Older and
         // future/unknown peer kinds retain the root-only behavior.
-        let providers: Vec<Entry<'a, Infallible>> = commands
+        let providers: Vec<Entry<'a, PluginSlash>> = commands
             .unwrap_or_default()
             .iter()
             .map(|command| {
@@ -75,7 +92,10 @@ impl<'a> Menu<'a> {
         let entries = if active.position == Position::Inline {
             providers
         } else {
-            catalog::merge(target, [], providers)
+            let plugins = plugins
+                .iter()
+                .map(|command| Entry::plugin(&command.name, *command));
+            catalog::merge(target, plugins, providers)
         };
         let rows = drawn(catalog::ranked(
             &entries,
@@ -86,7 +106,7 @@ impl<'a> Menu<'a> {
         .map(|entry| match &entry.source {
             Source::Client(command) => Choice::Client(*command),
             Source::Provider { command, .. } => Choice::Provider(command),
-            Source::Plugin(uninhabited) => match **uninhabited {},
+            Source::Plugin(command) => Choice::Plugin(command),
         })
         .collect::<Vec<_>>();
         let selected = chosen.clone().follow(&active.range.query, rows.len());

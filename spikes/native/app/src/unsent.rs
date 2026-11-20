@@ -112,6 +112,9 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
             Event::Diagnostics(ask.refused(diagnostics_problem(unsent.why)))
         }
         Command::Plugins(ask) => Event::Plugins(ask.refused(plugins_problem(unsent.why))),
+        Command::PluginCatalog(ask) => {
+            Event::PluginCatalog(ask.refused(plugins_problem(unsent.why)))
+        }
         Command::Start { .. } => Event::Failed(said()),
         Command::Options { machine, harness } => Event::Options {
             machine,

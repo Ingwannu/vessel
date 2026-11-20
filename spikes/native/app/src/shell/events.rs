@@ -34,6 +34,7 @@ impl Shell {
             Event::NodeSettings(answer) => self.node_settings_answer(answer),
             Event::Diagnostics(answer) => self.diagnostics_answer(answer),
             Event::Plugins(answer) => return self.plugins_answer(answer, cx),
+            Event::PluginCatalog(answer) => return self.plugin_catalog_answer(answer, cx),
             Event::Fleet(fleet) => {
                 if !self.fleet_read(fleet, cx) {
                     return;
@@ -126,6 +127,7 @@ impl Shell {
         self.sessions_fleet_changed();
         self.labels_fleet(cx);
         self.refresh_fork_headers();
+        self.plugin_catalogs_fleet();
         if self.route == Route::Settings {
             self.agent_load(false, cx);
         }
