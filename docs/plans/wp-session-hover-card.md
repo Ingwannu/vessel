@@ -56,9 +56,9 @@ placement); `copy` (copy and the check for a moment); `external_link`.
   - the branch, copyable, when it has one;
   - the folder, copyable, its label as the meta line shortens it;
   - the checks link row under a rule, when there are checks.
-  It is wired from `session_row` on wide windows only, not on touch, and not while the row's
-  menu is open. Its words are Paseo's: "Copy branch name", "Copy path", "Checks"; ko
-  "브랜치 이름 복사", "경로 복사", "검사".
+    It is wired from `session_row` on wide windows only, not on touch, and not while the row's
+    menu is open. Its words are Paseo's: "Copy branch name", "Copy path", "Checks"; ko
+    "브랜치 이름 복사", "경로 복사", "검사".
 - Tests:
   - kit: open at once, kept while crossing to the card, closed 100 ms after leaving, Escape closes.
   - app: the rows a card draws for a session with and without a branch, a pull request and checks;
@@ -101,15 +101,20 @@ placement); `copy` (copy and the check for a moment); `external_link`.
 
 - kit `hover_card` (`HoverCards`): one card per screen. The pointer's place is kept by trigger key
   and for the card, so a late leave from another row changes nothing. The 100 ms close only
-  fires while the pointer is on neither. A press on the trigger, `close()` and Escape (a listener
-  for the frame the card is drawn in) close it. Paseo's surface is used, with its own 0/4/8 20%
-  shadow. kit `copy` gains `copied_within` and `copy_for`, so the card's copy rows and the copy
-  button share the one "copied last".
+  fires while the pointer is on neither. A press on the trigger, `close()` and Escape close it.
+  Escape goes through one app-wide keystroke interceptor that the screen's cards make when a
+  card first opens; it never consumes the key. A listener painted with the card would only hear
+  keys bound for the card's own branch, and the card never holds focus. Paseo's surface is used,
+  with its own 0/4/8 20% shadow. kit `copy` gains `copied_within` and `copy_for`, so the card's
+  copy rows and the copy button share the one "copied last".
 - view `sidebar::hover` (`Card::hover_details`, `Card::checks_url`, `short_path`): the card's
   facts, the folder label as Paseo's (a worktree's folder name, else `~` for the home folder),
   and the checks page (GitHub's `/checks`, else the pull request).
 - app `areas/sidebar/hover_card.rs`: the content (title, pull request link, the diff stat's slot,
   machine, branch and folder copy rows, checks link row under a rule) and `on_row`. It is wired
-  from `session_row` when not touch and the row's menu is closed. `row_menu_open` closes the card.
+  from `session_row` when not touch (the phone's sheet, the narrow layout) and the row's menu is
+  closed. `row_menu_open` closes the card.
+- The branch row shows only for worktree sessions: a session's card carries a branch only when it
+  runs in a worktree. A session in a project's own folder shows its folder, not its branch.
 - Differences beyond the rulings: the checks row leads with the pull request's mark (the kit has no
   forge brand mark) and says the checks' one state; the outward arrow is the kit's `ArrowUpRight`.
