@@ -180,7 +180,7 @@ pub(super) fn after(wait: Duration) -> Instant {
 
 /// What `page` says of a turn, if it ends one; the reply text read and
 /// where the reading got to are kept in `reply` and `next`.
-pub(super) fn turn_outcome(
+fn turn_outcome(
     page: &EventPage,
     reply: &mut String,
     next: &mut EventSeq,
