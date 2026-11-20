@@ -2,7 +2,8 @@
 //! amendment 1), over the wire: an agent naming its session gets a shell in
 //! that session's worktree or folder, which outlives the session's archive
 //! as a person's shell there does and ends with the worktree only when its
-//! remover asks; an agent call below the protocol keeps the place it named.
+//! remover asks; an agent call below the protocol, or for a session with
+//! no folder of its own, keeps the place it named.
 //!
 //! Unix only, as the terminals' tests are: the shell is `/bin/sh`.
 
@@ -156,7 +157,7 @@ async fn an_agents_worktree_shell_outlives_its_archive_and_ends_with_the_worktre
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn an_agents_folder_shell_outlives_its_archive_and_an_older_call_stays_beside_it() {
+async fn an_agents_folder_shell_outlives_its_archive_and_older_or_folderless_calls_stay_beside() {
     within(async {
         let fixture = Fixture::new();
         let (node, owner, _project) = node_with_a_project(&fixture).await;
@@ -171,6 +172,16 @@ async fn an_agents_folder_shell_outlives_its_archive_and_an_older_call_stays_bes
                 path: std::fs::canonicalize(fixture.cwd()).unwrap(),
             }
         );
+
+        // A session with no folder of its own keeps its agent's shell beside
+        // it, as the page keeps such a session's shells: it cannot name that
+        // folder (node review R1).
+        let mut folderless = structured_spec(&fixture, None);
+        folderless.cwd = None;
+        let (other, other_socket, other_auth) = agent_session(&owner, folderless).await;
+        let other_agent = as_agent(&other_socket, &other_auth).await;
+        let kept = other_agent.call(beside(other)).await.unwrap();
+        assert_eq!(kept.place, TerminalPlace::Session { session: other });
 
         // The same call from an agent below the protocol: beside the
         // session, as it named (it could not read a folder place).

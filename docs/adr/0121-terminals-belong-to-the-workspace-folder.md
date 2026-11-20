@@ -104,7 +104,9 @@ request and the places are 40's.
    caller at 40 or later, the node places the shell in that session's workspace (`agent_shell_place`):
    - `worktree { worktree }` when the session runs in a worktree;
    - `project { project, dir }` when it runs in a project;
-   - otherwise `folder { path }`: its cwd, kept canonical, or the node's home when it has none.
+   - otherwise `folder { path }`: its cwd, kept canonical;
+   - a session outside projects with no cwd keeps `session`: the page keeps such a session's shells beside it,
+     since it cannot name that folder, so a folder place would show in no workspace's tabs (node review R1).
    Resolution, counts, the worktree hold and the after-start check are decision 1's for that place. People name
    their places themselves and are never moved.
 2. **Life (the coordinator's ruling: Paseo's).** Such a shell lives with its place, as a person's shell there does:
@@ -138,5 +140,5 @@ request and the places are 40's.
   - an agent in a worktree gets a `worktree` shell, listed there and not beside the session;
   - it outlives the session's archive and ends with `worktree.remove { end_terminals: true }`;
   - a folder shell outlives the archive while an older call's `session` shell ends;
-  - the session-outside-projects case is a canonical `folder`;
+  - the session-outside-projects case is a canonical `folder`, and a session with no cwd keeps `session`;
   - the rights and the 4-per-agent limit are unchanged.

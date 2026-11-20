@@ -80,7 +80,8 @@ Drafted 39; assigned 40 (`WORKSPACE_TERMINALS_PROTOCOL`, `PROTOCOL_VERSION` 40) 
 - Amended (TRACKER 832, ADR 0121 amendment 1; no new number, the shapes are 40's): an agent still names a session in
   `terminal.create { place: session }`, the anchor of its rights, and from this version the node opens the shell in
   that session's workspace: `worktree` when it runs in one, `project` with its `dir` in a project, otherwise
-  `folder` (its cwd, canonical; the node's home when it has none). The answer's place says which. Such a shell lives
+  `folder` (its cwd, canonical); a session with no cwd keeps `session`, as the page keeps its shells beside it.
+  The answer's place says which. Such a shell lives
   with its place, not with the agent: the agent's end takes away its use only. An agent call below 40 keeps
   `session`, and a peer below 40 does not see the others.
 - `terminal.list { place }` matches the place's kind exactly: a project's list holds its project places, not its

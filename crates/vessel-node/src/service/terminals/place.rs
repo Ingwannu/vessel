@@ -179,10 +179,13 @@ impl NodeService {
     /// - Choice: the agent keeps naming a session, the anchor of its rights
     ///   (`agent_may_open`: both profiles, the right to operate it, a live
     ///   session); the node places the shell in that session's worktree,
-    ///   its project place, or outside projects its folder (the node's home
-    ///   when it has none), and the place decides its life, as a person's
-    ///   shell there (`end_agents_of` ends only the shells beside a
-    ///   session).
+    ///   its project place, or outside projects its folder, and the place
+    ///   decides its life, as a person's shell there (`end_agents_of` ends
+    ///   only the shells beside a session). A session outside projects with
+    ///   no folder of its own keeps the shell beside it: the page keeps
+    ///   such a session's shells there too, since it cannot name the
+    ///   folder (node review R1), so a folder place would show in no
+    ///   workspace's tabs.
     /// - Rejected: the MCP tool sending the workspace place itself. The node
     ///   would then have to tell which session's workspace an agent may open
     ///   in, which the session it names already says.
@@ -215,12 +218,9 @@ impl NodeService {
                 project: *project,
                 dir: dir.clone(),
             },
-            None => TerminalPlace::Folder {
-                path: info
-                    .spec
-                    .cwd
-                    .clone()
-                    .unwrap_or_else(|| self.profiles.user_home().to_path_buf()),
+            None => match info.spec.cwd.clone() {
+                Some(path) => TerminalPlace::Folder { path },
+                None => asked.clone(),
             },
         })
     }
