@@ -16,9 +16,12 @@ use super::{Answer, Ask, Reply, Request};
 use crate::Event;
 
 /// The longest a unary terminal call is waited for. A send is small and
-/// a create starts a shell, so this is generous; the node's own long
-/// polls are not used here.
+/// a create starts a shell, so this is generous.
 const CALL_DEADLINE: Duration = Duration::from_secs(15);
+
+/// The longest a list that waits for the revision (ADR 0116) is waited for:
+/// the node's own bound (30 s) and a call's.
+const POLL_DEADLINE: Duration = Duration::from_secs(30 + 15);
 
 /// The follows running, one per machine and terminal.
 #[derive(Debug, Default)]
@@ -92,16 +95,27 @@ async fn call(client: &NodeClient, request: Request) -> Reply {
                 result: bounded(asked).await.map(Box::new),
             }
         }
-        Request::List { place } => {
-            // An answer now, as before protocol 37: the tab strip polls on its
-            // own clock and does not hold a long poll open (ADR 0116).
+        Request::List {
+            place,
+            changed_from,
+        } => {
+            // ADR 0116's long poll from protocol 37; an older node answers
+            // at once and is not told a revision it would refuse.
+            let waits = super::waits_on_revisions(client.protocol());
+            let changed_from = changed_from.filter(|_| waits);
+            let deadline = if changed_from.is_some() {
+                POLL_DEADLINE
+            } else {
+                CALL_DEADLINE
+            };
             let asked = client.call(ListTerminals {
                 place: Some(place.clone()),
-                changed_from: None,
+                changed_from,
             });
             Reply::Listed {
                 place,
-                result: bounded(asked).await,
+                result: bounded_by(deadline, asked).await,
+                waits,
             }
         }
         Request::Send { terminal, outgoing } => {
@@ -109,9 +123,9 @@ async fn call(client: &NodeClient, request: Request) -> Reply {
                 Outgoing::Keys(text) => TerminalInput::Data {
                     data: TerminalBytes::new(Bytes::from(text.into_bytes())),
                 },
-                Outgoing::Resize { cols, rows } => TerminalInput::Resize {
+                Outgoing::Resize { cols, rows, intent } => TerminalInput::Resize {
                     size: TerminalSize { cols, rows },
-                    intent: None,
+                    intent: super::intent_for(client.protocol(), intent),
                 },
             };
             Reply::Sent {
@@ -136,7 +150,14 @@ async fn call(client: &NodeClient, request: Request) -> Reply {
 }
 
 async fn bounded<T>(asked: impl Future<Output = Result<T, CallError>>) -> Result<T, Failure> {
-    tokio::time::timeout(CALL_DEADLINE, asked)
+    bounded_by(CALL_DEADLINE, asked).await
+}
+
+async fn bounded_by<T>(
+    deadline: Duration,
+    asked: impl Future<Output = Result<T, CallError>>,
+) -> Result<T, Failure> {
+    tokio::time::timeout(deadline, asked)
         .await
         .unwrap_or(Err(CallError::Disconnected))
         .map_err(failure)

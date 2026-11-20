@@ -6,6 +6,8 @@ use vessel_app_view::terminal::{
     MAX_PENDING, Outgoing, ResizeRule, Taken, TerminalLog, TerminalSender,
 };
 
+use vessel_proto::ResizeIntent;
+
 use crate::support::{EN, Log};
 
 fn keys(text: &str) -> Outgoing {
@@ -15,12 +17,13 @@ fn keys(text: &str) -> Outgoing {
 #[test]
 fn is_sent_one_call_at_a_time_in_the_order_typed() {
     let mut sender = TerminalSender::default();
-    sender.resize(120, 40);
+    sender.resize(120, 40, ResizeIntent::Claim);
     assert_eq!(
         sender.take(),
         Some(Outgoing::Resize {
             cols: 120,
-            rows: 40
+            rows: 40,
+            intent: ResizeIntent::Claim,
         })
     );
     let _ = sender.keys("pasted line");
@@ -34,14 +37,46 @@ fn is_sent_one_call_at_a_time_in_the_order_typed() {
     assert!(!sender.busy());
 }
 
+/// ADR 0116: a fit queued right after a claim (focus, then the pane's
+/// size settling) goes out as one claim of the later size; an update after
+/// it was sent stays an update.
+#[test]
+fn a_size_replacing_a_queued_claim_keeps_the_claim() {
+    let mut sender = TerminalSender::default();
+    let _ = sender.keys("a");
+    let first = sender.take();
+    sender.resize(80, 24, ResizeIntent::Claim);
+    sender.resize(100, 30, ResizeIntent::Update);
+    sender.answered();
+    assert_eq!(first, Some(keys("a")));
+    assert_eq!(
+        sender.take(),
+        Some(Outgoing::Resize {
+            cols: 100,
+            rows: 30,
+            intent: ResizeIntent::Claim,
+        })
+    );
+    sender.answered();
+    sender.resize(90, 30, ResizeIntent::Update);
+    assert_eq!(
+        sender.take(),
+        Some(Outgoing::Resize {
+            cols: 90,
+            rows: 30,
+            intent: ResizeIntent::Update,
+        })
+    );
+}
+
 #[test]
 fn keeps_keys_and_sizes_in_order_the_latest_size_only() {
     let mut sender = TerminalSender::default();
     let _ = sender.keys("a");
     let mut sent = vec![sender.take()];
     let _ = sender.keys("b");
-    sender.resize(80, 24);
-    sender.resize(100, 30);
+    sender.resize(80, 24, ResizeIntent::Update);
+    sender.resize(100, 30, ResizeIntent::Update);
     let _ = sender.keys("c");
     for _ in 0..3 {
         sender.answered();
@@ -54,7 +89,8 @@ fn keeps_keys_and_sizes_in_order_the_latest_size_only() {
             Some(keys("b")),
             Some(Outgoing::Resize {
                 cols: 100,
-                rows: 30
+                rows: 30,
+                intent: ResizeIntent::Update,
             }),
             Some(keys("c"))
         ]
