@@ -411,8 +411,8 @@ and platform evidence remain pending.
 
 The local preflight also uses this handoff: opening a replaced lock path
 must not join a blocked worker during CLI shutdown. The two isolated FIFO
-cases share one named command budget and both assert that no shutdown RPC
-ran. Compilation and gate evidence remain pending.
+cases share one named command budget and find the node still Serving after
+the child exits. Compilation and gate evidence remain pending.
 
 These cases cover the local preflight and stored identity only. Existing
 book/project resolution and connection credential reads are separate paths;
