@@ -1,0 +1,147 @@
+//! A private scripted byte peer tests correlation/closure, never a browser engine.
+use super::*;
+use crate::cdp::{requests, transport};
+use tokio::io::{AsyncBufReadExt as _, AsyncReadExt as _, AsyncWriteExt as _, BufReader};
+// Shared diagnostic outer deadline; the real-candidate sibling reuses this owner.
+pub(super) const FIXTURE_TIMEOUT: Duration = Duration::from_secs(20);
+#[tokio::test]
+async fn typed_driver_uses_the_owned_nul_pipe_without_discovering_a_socket() {
+    tokio::time::timeout(FIXTURE_TIMEOUT,async {
+        let (node,peer)=tokio::io::duplex(super::super::transport::PIPE_TEST_CAPACITY);
+        let (read,write)=tokio::io::split(node);
+        let (client,_events)=Client::start(transport::Pipe::new(read,write));
+        let peer=tokio::spawn(async move {
+            let mut peer=BufReader::new(peer);
+            let mut request=Vec::new();let _read = peer.read_until(0,&mut request).await.unwrap();
+            assert_eq!(request.pop(),Some(0));
+            let request:serde_json::Value=serde_json::from_slice(&request).unwrap();
+            assert_eq!(request["method"],"Browser.getVersion");
+            let response=serde_json::json!({"id":request["id"],"result":{"protocolVersion":"fixture","product":"not-qualified","revision":"fixture","userAgent":"fixture","jsVersion":"fixture"}});
+            peer.get_mut().write_all(response.to_string().as_bytes()).await.unwrap();
+            peer.get_mut().write_all(&[0]).await.unwrap();
+            let mut closed=[0;1];assert_eq!(peer.read(&mut closed).await.unwrap(),0);
+        });
+        let result=client.execute(None,requests::Version{}).await.unwrap();
+        assert_eq!(result.product.as_str(),"not-qualified");
+        client.shutdown().await.unwrap();peer.await.unwrap();
+    }).await.unwrap();
+}
+
+struct HeldWrite {
+    sent: mpsc::Sender<String>,
+    release: Arc<tokio::sync::Semaphore>,
+    replies: mpsc::Receiver<String>,
+}
+impl Transport for HeldWrite {
+    async fn send(&mut self, text: String) -> Result<(), CdpError> {
+        self.sent.send(text).await.unwrap();
+        let permit = self.release.acquire().await.unwrap();
+        permit.forget();
+        Ok(())
+    }
+    async fn next(&mut self) -> Result<Option<String>, CdpError> {
+        Ok(self.replies.recv().await)
+    }
+}
+#[tokio::test]
+async fn withdrawn_queued_command_cannot_write_after_its_not_delivered_timeout() {
+    const PEER_CAPACITY: usize = 4;
+    const QUEUED_BUDGET: Duration = Duration::from_millis(1);
+    tokio::time::timeout(FIXTURE_TIMEOUT, async {
+        let (sent, mut writes) = mpsc::channel(PEER_CAPACITY);
+        let (reply, replies) = mpsc::channel(PEER_CAPACITY);
+        let release = Arc::new(tokio::sync::Semaphore::new(0));
+        let (client, _events) = Client::start(HeldWrite {sent, release: Arc::clone(&release), replies});
+        let first_client = client.clone();
+        let first = tokio::spawn(async move {first_client.execute(None,requests::Version{}).await});
+        let first_write = writes.recv().await.unwrap();
+        let first_wire: serde_json::Value = serde_json::from_str(&first_write).unwrap();
+        assert!(matches!(
+            client.execute_with_budget(None, requests::Version{}, QUEUED_BUDGET).await,
+            Err(CdpError::TimedOut{effect:BrowserEffect::NotDelivered,..})
+        ));
+        release.add_permits(1);
+        let response = serde_json::json!({"id":first_wire["id"],"result":{"protocolVersion":"fixture","product":"not-qualified","revision":"fixture","userAgent":"fixture","jsVersion":"fixture"}});
+        reply.send(response.to_string()).await.unwrap();
+        assert_eq!(first.await.unwrap().unwrap().product.as_str(), "not-qualified");
+        client.shutdown().await.unwrap();
+        // Joined driver: there is no remaining worker that could publish a late write.
+        assert!(writes.try_recv().is_err());
+    }).await.unwrap();
+}
+
+fn held_driver() -> (Client, oneshot::Sender<()>) {
+    const COMMANDS: usize = 1;
+    let (release, hold) = oneshot::channel();
+    let driver = tokio::spawn(async move {
+        hold.await.unwrap();
+        Err(CdpError::Protocol)
+    });
+    let (commands, _receiver) = mpsc::channel(COMMANDS);
+    (
+        Client {
+            shared: Arc::new(Shared {
+                commands,
+                next: AtomicU64::new(1),
+                cancel: CancellationToken::new(),
+                driver: Mutex::new(DriverState::Waiting(driver)),
+            }),
+        },
+        release,
+    )
+}
+#[tokio::test]
+async fn cancelled_close_waiter_retains_actual_join_and_original_failure() {
+    tokio::time::timeout(FIXTURE_TIMEOUT, async {
+        let (client, release) = held_driver();
+        let mut close = Box::pin(client.shutdown());
+        tokio::select! {
+            biased;
+            result=&mut close=>panic!("held driver completed early: {result:?}"),
+            ()=tokio::task::yield_now()=>{},
+        }
+        drop(close);
+        assert!(matches!(
+            *client.shared.driver.lock().await,
+            DriverState::Waiting(_)
+        ));
+        release.send(()).unwrap();
+        let CdpError::Cleanup(first) = client.shutdown().await.unwrap_err() else {
+            panic!("lost original driver error")
+        };
+        assert!(matches!(*first, CdpError::Protocol));
+        let CdpError::Cleanup(second) = client.shutdown().await.unwrap_err() else {
+            panic!("second close invented success")
+        };
+        assert!(Arc::ptr_eq(&first, &second));
+    })
+    .await
+    .unwrap();
+}
+#[tokio::test]
+async fn shutdown_cancels_a_blocked_write_before_waiting_for_its_command_deadline() {
+    const PEER_CAPACITY: usize = 1;
+    tokio::time::timeout(FIXTURE_TIMEOUT, async {
+        let (sent, mut writes) = mpsc::channel(PEER_CAPACITY);
+        let (_reply, replies) = mpsc::channel(PEER_CAPACITY);
+        let (client, _events) = Client::start(HeldWrite {
+            sent,
+            release: Arc::new(tokio::sync::Semaphore::new(0)),
+            replies,
+        });
+        let caller = client.clone();
+        let pending = tokio::spawn(async move { caller.execute(None, requests::Version {}).await });
+        let _started = writes.recv().await.unwrap();
+        client.shutdown().await.unwrap();
+        assert!(matches!(
+            pending.await.unwrap(),
+            Err(CdpError::Disconnected {
+                effect: BrowserEffect::Uncertain
+            })
+        ));
+        // The already-joined owner returns its retained successful stop again.
+        client.shutdown().await.unwrap();
+    })
+    .await
+    .unwrap();
+}

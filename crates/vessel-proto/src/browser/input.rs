@@ -9,19 +9,16 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
+/// Bound one command before it can occupy a target queue slot.
+pub const MAX_BROWSER_INPUT_BYTES: usize = 128 * 1024;
+
 /// Form fill/type can clear a field, so empty text is valid.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(transparent)]
+#[serde(try_from = "String", into = "String")]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(type = "string"))]
 pub struct InputText(Arc<str>);
 
 impl InputText {
-    /// The UTF-8 string is already decoded at the transport boundary.
-    #[must_use]
-    pub fn new(text: impl Into<Arc<str>>) -> Self {
-        Self(text.into())
-    }
-
     /// Only an input/CDP serializer should expose the actual text.
     #[must_use]
     pub fn as_str(&self) -> &str {
@@ -35,10 +32,32 @@ impl fmt::Debug for InputText {
     }
 }
 
-/// A missing predicate/function/key is a typed refusal, without the input.
+/// Input errors never include the supplied text, function or key.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
-#[error("browser argument must not be empty")]
-pub struct EmptyBrowserInput;
+pub enum InvalidBrowserInput {
+    /// A required predicate/function/key cannot be empty.
+    #[error("browser argument must not be empty")]
+    Empty,
+    /// Retained command memory has a fixed per-text ceiling.
+    #[error("browser input exceeds {MAX_BROWSER_INPUT_BYTES} UTF-8 bytes")]
+    TooLong,
+}
+
+impl TryFrom<String> for InputText {
+    type Error = InvalidBrowserInput;
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        if value.len() > MAX_BROWSER_INPUT_BYTES {
+            Err(InvalidBrowserInput::TooLong)
+        } else {
+            Ok(Self(Arc::from(value)))
+        }
+    }
+}
+impl From<InputText> for String {
+    fn from(value: InputText) -> Self {
+        value.0.to_string()
+    }
+}
 
 /// Wait substrings, page functions and keys cannot be absent or empty.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -55,10 +74,12 @@ impl RequiredInput {
 }
 
 impl TryFrom<String> for RequiredInput {
-    type Error = EmptyBrowserInput;
+    type Error = InvalidBrowserInput;
     fn try_from(value: String) -> Result<Self, Self::Error> {
         if value.is_empty() {
-            Err(EmptyBrowserInput)
+            Err(InvalidBrowserInput::Empty)
+        } else if value.len() > MAX_BROWSER_INPUT_BYTES {
+            Err(InvalidBrowserInput::TooLong)
         } else {
             Ok(Self(Arc::from(value)))
         }
@@ -95,7 +116,7 @@ mod tests {
     #[test]
     fn transport_copies_are_explicit_and_diagnostics_are_redacted() {
         let secret = "typing-canary-secret";
-        let input = InputText::new(secret);
+        let input = InputText::try_from(secret.to_owned()).unwrap();
         assert!(!format!("{input:?}").contains(secret));
         assert_eq!(
             serde_json::to_string(&input).unwrap(),
@@ -103,6 +124,9 @@ mod tests {
         );
         assert!(serde_json::from_str::<RequiredInput>(r#""""#).is_err());
         assert!(serde_json::from_str::<InputText>(r#""""#).is_ok());
+        let oversized = "x".repeat(MAX_BROWSER_INPUT_BYTES.saturating_add(1));
+        assert!(InputText::try_from(oversized.clone()).is_err());
+        assert!(RequiredInput::try_from(oversized).is_err());
     }
 
     #[test]

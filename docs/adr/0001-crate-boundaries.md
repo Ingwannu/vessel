@@ -355,6 +355,41 @@ view can share invariants without depending on each other's I/O/UI layer.
 There is no new crate edge or runtime. Locality policy and colors' paint
 tokens stay outside proto.
 
+
+## Browser implementation boundary (ADR 0078)
+
+[Decision Log]
+- Purpose: browser CDP/process/network state must not expand the node dispatcher
+  or the MCP adapter into another browser engine.
+- Existing constraints: proto owns typed commands; proc owns child groups; relay
+  already owns public-address classification. Node owns principals/workspace authority.
+- Choice: add vessel-browser; its first staged primitives depend on proto and relay.
+  Reuse relay's address classifier rather than maintaining a second special-range list.
+  Add the proc edge only with actual child-launch implementation. The new crate cannot
+  ask the node for arbitrary principal or store internals.
+- External choice: enable nix's existing net feature only for Linux interface snapshots
+  (safe getifaddrs wrapper), rather than parsing workspace-influenced command output
+  or adding unsafe FFI. Tokio resolves/dials checked socket addresses. Non-Linux remains
+  an explicit unsupported interface-observation path until qualified platform support.
+- Consequence: packet-policy primitives and ref maps can be tested independently. They
+  do not advertise a product engine; the real proxy/CDP/profile/qualification gates remain.
+
+Pinned API reference: https://docs.rs/nix/0.31.3/nix/ifaddrs/fn.getifaddrs.html .
+
+
+### Browser candidate launch specification (ADR0078, staged)
+
+Purpose: the browser must use the existing supervised command/process owner,
+not add tokio/std process creation or a separate group/job implementation.
+The vessel-browser -> vessel-proc edge carries only CommandSpec and the actual
+owned Child for post-start executable identity checks. Candidate launch data
+clears environment, uses the fixed positional shell source and approved exact
+binary, and retains private profile ownership. Hashing is streamed with the
+workspace SHA-256 dependency. These are A10 test-staged primitives, not an
+installation or qualified runtime grant; Node principal/service admission and
+the complete runtime/proxy/Preview/input/platform qualification remain above.
+
+
 ## Checked owned process cleanup (W16 shared prerequisite)
 
 The additive proc-owned Child::wait_checked retains the first group/job sweep

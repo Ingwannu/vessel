@@ -1,0 +1,34 @@
+[package]
+name = "vessel-browser"
+description = "Node-owned browser execution, reference lifetimes and network policy"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license-file.workspace = true
+repository.workspace = true
+
+[dependencies]
+vessel-proto.workspace = true
+vessel-relay.workspace = true
+vessel-proc.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+url.workspace = true
+futures-util.workspace = true
+tokio-tungstenite.workspace = true
+tokio.workspace = true
+tokio-util = { workspace = true, features = ["rt"] }
+axum.workspace = true
+hyper = { workspace = true, features = ["client"] }
+hyper-util.workspace = true
+
+[target.'cfg(target_os = "linux")'.dependencies]
+nix = { workspace = true, features = ["net", "user"] }
+
+[dev-dependencies]
+tempfile.workspace = true
+
+[lints]
+workspace = true

@@ -83,6 +83,7 @@ num-traits = "0.2"
 # Exact input/range validation, ADR 0042 (MIT).
 rust_decimal = { version = "1.43", default-features = false, features = ["std"] }
 vessel-agent = { path = "crates/vessel-agent" }
+vessel-browser = { path = "crates/vessel-browser" }
 vessel-client = { path = "crates/vessel-client" }
 vessel-fleet = { path = "crates/vessel-fleet" }
 vessel-forge = { path = "crates/vessel-forge" }

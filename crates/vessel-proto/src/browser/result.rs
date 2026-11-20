@@ -24,6 +24,8 @@ pub enum BrowserResult {
     Applied {
         /// The node verified ownership before sending input.
         browser_id: BrowserId,
+        /// Operation-specific completed facts; never copied from an unexecuted request.
+        outcome: super::ActionOutcome,
     },
     /// A bounded accessibility snapshot with current refs.
     Snapshot {
@@ -31,6 +33,8 @@ pub enum BrowserResult {
         browser_id: BrowserId,
         /// A client cannot carry a ref across a later snapshot/navigation.
         revision: BrowserRevision,
+        /// Display-only document facts captured by that same traversal.
+        document: SnapshotDocument,
         /// Includes the truncation fact, not just a partial text string.
         content: CappedText,
         /// Measured traversal stats do not claim the entire DOM fit.
@@ -63,12 +67,25 @@ pub enum BrowserResult {
     Matched {
         /// The target whose text/location satisfied the predicate.
         browser_id: BrowserId,
+        /// The text/location predicate which actually matched.
+        matched: super::WaitMatch,
     },
     /// Closing invalidated the target and its watches/refs.
     Closed {
         /// A later call cannot reuse this resource id.
         browser_id: BrowserId,
     },
+}
+
+/// Observed snapshot content, never navigation authority or a later tab lookup.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(deny_unknown_fields)]
+pub struct SnapshotDocument {
+    /// Preserve the exact observed address; do not fetch it or expose it in Debug.
+    pub address: PageText,
+    /// The title can be shortened only with the snapshot's truncation fact.
+    pub title: PageText,
 }
 
 /// Console levels cannot become free-form tracing categories.
