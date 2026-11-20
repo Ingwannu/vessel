@@ -349,14 +349,22 @@ impl Shell {
         }
         pane.typed = Typed::Once;
         pane.viewport = vessel_app_view::terminal::Viewport::default();
-        if pane.sender.paste(encoded) == Taken::DroppedFirst {
-            tracing::warn!(
-                "a terminal tab's pastes waiting passed their bound; a paste was refused"
-            );
-        }
+        // Said once per run of refusals (P3 app review note 1); the sender
+        // answers `DroppedFirst` for the first only.
+        let refused = pane.sender.paste(encoded) == Taken::DroppedFirst;
         let _had = self.terminal_tab_unselect(key);
         self.terminal_tab_pump(key);
         self.terminal_tab_draw(key, cx);
+        if refused {
+            tracing::warn!("a terminal tab's pastes waiting passed their bound; a paste was refused");
+            let translator = self.words;
+            let words = translator.terminal_tabs();
+            self.toast(
+                words.paste_too_large(),
+                vessel_app_view::toasts::ToastTone::Error,
+                cx,
+            );
+        }
     }
 
     /// The clipboard's text pasted into a tab, bracketed when its program

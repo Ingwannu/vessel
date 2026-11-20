@@ -116,6 +116,9 @@ impl Shell {
                     self.terminal_tabs_listed(&machine, &place, result.as_ref().ok(), waits);
                 }
             }
+            Reply::ListedAll { result } => {
+                self.removal_terminals_listed(&machine, result.as_ref().ok(), cx);
+            }
             Reply::Following(info) => {
                 let key = key(info.id);
                 if let Some(pane) = self.areas.terminal_tabs.panes.get_mut(&key) {

@@ -22,9 +22,12 @@
 //!   by machine and terminal, in the shell's state; the grid stays its own
 //!   cached view (`TerminalGrid`), and one small entity per pane is the
 //!   platform's text input (IME) for that pane, forwarding to the shell.
-//! - Place: today a workspace layout is a session's (`LayoutKey::Session`),
-//!   so a shell is opened beside that session (`TerminalPlace::Session`, in
-//!   its folder), where Paseo opens one in the workspace's directory.
+//! - Place: a workspace layout is a session's (`LayoutKey::Session`). From
+//!   protocol 40 (ADR 0121) its shells are the session's workspace's: its
+//!   worktree, its project, or its folder, as Paseo keys them by workspace
+//!   directory (`place_of`). Below 40, or for a session with no folder, they
+//!   are beside the session. The strip also shows the live shells beside
+//!   the workspace's sessions (`beside`).
 //! - List: the node pushes no list of terminals (ADR 0031); the app asks
 //!   for the open workspace's on each fleet read (every 2 s, as the
 //!   sessions are listed) and after its own create, close or an end, and

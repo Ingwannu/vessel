@@ -213,9 +213,7 @@ fn a_project_strip_shows_an_agents_subfolder_shell(cx: &mut TestAppContext) {
 }
 
 #[gpui::test]
-fn below_40_a_shell_stays_beside_the_session_and_nothing_else_is_asked(
-    cx: &mut TestAppContext,
-) {
+fn below_40_a_shell_stays_beside_the_session_and_nothing_else_is_asked(cx: &mut TestAppContext) {
     let (probe, cx) = open(cx);
     let session = probe.read_with(cx, |probe, _| probe.2);
     let shell = probe.read_with(cx, |probe, _| probe.0.clone());

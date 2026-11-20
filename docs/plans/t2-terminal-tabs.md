@@ -196,3 +196,31 @@ grid (long press, grips, floating Copy and Paste) is the phone app's later
   bound; app tests for Mod+F on both sides, find's counter and moves,
   Ctrl+C with and without a selection, typing clearing it, a paste past
   the room before a key and ^C, and the setting on an open tab.
+
+## ADR 0121's native consumer (with the P3 app-review notes)
+
+The page's as-built rules (TRACKER 829) and the node's agent placement (TRACKER 832) say the same.
+
+- Place (`vessel_app_view::terminal_tabs::places`). From protocol 40 a new shell opens in the shown session's
+  workspace:
+  - its worktree → `Worktree`;
+  - its project → `Project` (the project's own, no dir);
+  - outside projects, its folder → `Folder`.
+  A session with no folder of its own, or a node below 40, keeps `Session`. Paseo: `use-workspace-terminals.ts`
+  75-100.
+- Strip. The place's list as the node matched it:
+  - a project's strip takes every project place of the project, whatever its dir (the coordinator's ruling on 832's
+    R2: an agent in a subfolder opens there);
+  - a folder's is matched on the canonical path the node keeps.
+  Merged by id with the live shells beside the workspace's unarchived sessions, from older nodes, agents below 40,
+  or before the upgrade. Those are one plain list per session on each fleet read (`terminal_tabs/beside.rs`).
+- Worktree removal. A worktree the node keeps in use only for its live terminals:
+  - the panel counts those terminals at or under its folder, whatever their place;
+  - it says Paseo's bulk close line ("This will close N terminal(s). …", en.ts 727-728);
+  - "Close terminals and remove" reads the count again and sends `end_terminals: true` only when it is unchanged.
+  With a live session in the worktree, or below 40, it is as before.
+- P3 app-review notes:
+  1. A paste refused past 32 MiB is said once, as a toast. The plan said the trouble line, but that line is the
+     terminal's own state, so the toast, the app's usual notice, is used instead.
+  2. The sender keeps an offset into a queued text instead of splitting it, so each send copies only its part.
+  3. The scrollback hint gains a word on memory.

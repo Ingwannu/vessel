@@ -65,7 +65,9 @@ impl Shell {
         }
         let sessions = self.terminal_workspace_sessions(machine, *session);
         let beside = &mut self.areas.terminal_tabs.beside;
-        beside.shells.retain(|session, _| sessions.contains(session));
+        beside
+            .shells
+            .retain(|session, _| sessions.contains(session));
         let asks: Vec<SessionId> = sessions
             .into_iter()
             .filter(|session| beside.asked.insert(*session))
@@ -101,9 +103,7 @@ impl Shell {
         }
         if let Some(list) = list {
             let only: BTreeSet<SessionId> = [*session].into_iter().collect();
-            let _was = beside
-                .shells
-                .insert(*session, beside_sessions(list, &only));
+            let _was = beside.shells.insert(*session, beside_sessions(list, &only));
         }
         if let Some(workspace) = beside.workspace.clone() {
             self.terminal_tabs_merge(&workspace);
@@ -143,7 +143,11 @@ impl Shell {
     }
 
     /// `session`'s workspace sessions on `machine`, from its fleet read.
-    fn terminal_workspace_sessions(&self, machine: &str, session: SessionId) -> BTreeSet<SessionId> {
+    fn terminal_workspace_sessions(
+        &self,
+        machine: &str,
+        session: SessionId,
+    ) -> BTreeSet<SessionId> {
         let Some(on) = self.fleet.machines.iter().find(|on| on.name == machine) else {
             return [session].into_iter().collect();
         };

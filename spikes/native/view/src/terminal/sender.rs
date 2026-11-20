@@ -24,7 +24,10 @@
 //! - Send size: one send carries at most the node's
 //!   `SendTerminal::MAX_BYTES` (64 KiB), cut at a character boundary, so
 //!   a long paste or a long burst of keys is several sends in order; the
-//!   node refuses a larger one whole.
+//!   node refuses a larger one whole. A queued text keeps an offset past
+//!   the parts sent, so each send copies only its own part (P3 app review
+//!   note 2: splitting the rest off moved it again on every send, about
+//!   8 GiB for a 32 MiB paste, on the window's thread).
 //! - Failures: a send that fails is not repeated (it may have been
 //!   applied); later items still go, in order.
 //! - Sizes (ADR 0116): each names a claim or an update. A size replacing a
@@ -78,8 +81,8 @@ pub enum Taken {
 /// own bound.
 #[derive(Debug)]
 enum Item {
-    Typed(String),
-    Pasted(String),
+    Typed(Queued),
+    Pasted(Queued),
     Resize {
         cols: u16,
         rows: u16,
@@ -113,9 +116,9 @@ impl TerminalSender {
         self.overflowing = false;
         self.chars = self.chars.saturating_add(count);
         if let Some(Item::Typed(last)) = self.items.back_mut() {
-            last.push_str(text);
+            last.text.push_str(text);
         } else {
-            self.items.push_back(Item::Typed(text.to_owned()));
+            self.items.push_back(Item::Typed(Queued::new(text.to_owned())));
         }
         Taken::Queued
     }
@@ -131,7 +134,7 @@ impl TerminalSender {
         }
         self.overflowing = false;
         self.pasted = self.pasted.saturating_add(encoded.len());
-        self.items.push_back(Item::Pasted(encoded));
+        self.items.push_back(Item::Pasted(Queued::new(encoded)));
         Taken::Queued
     }
 
@@ -172,13 +175,13 @@ impl TerminalSender {
             return None;
         }
         let outgoing = match self.items.front_mut()? {
-            Item::Typed(text) => {
-                let part = front_part(text);
+            Item::Typed(queued) => {
+                let part = queued.next_part();
                 self.chars = self.chars.saturating_sub(part.chars().count());
                 Outgoing::Keys(part)
             }
-            Item::Pasted(text) => {
-                let part = front_part(text);
+            Item::Pasted(queued) => {
+                let part = queued.next_part();
                 self.pasted = self.pasted.saturating_sub(part.len());
                 Outgoing::Keys(part)
             }
@@ -189,7 +192,7 @@ impl TerminalSender {
             },
         };
         let spent = match self.items.front() {
-            Some(Item::Typed(text) | Item::Pasted(text)) => text.is_empty(),
+            Some(Item::Typed(queued) | Item::Pasted(queued)) => queued.is_spent(),
             Some(Item::Resize { .. }) | None => true,
         };
         if spent {
@@ -220,16 +223,37 @@ impl TerminalSender {
     }
 }
 
-/// Take the front of `text` up to one send's bound, cut at a character
-/// boundary; `text` keeps the rest.
-fn front_part(text: &mut String) -> String {
-    if text.len() <= MAX_SEND_BYTES {
-        return std::mem::take(text);
+/// Text waiting to go out a part at a time; `at` is past the parts sent.
+#[derive(Debug)]
+struct Queued {
+    text: String,
+    at: usize,
+}
+
+impl Queued {
+    const fn new(text: String) -> Self {
+        Self { text, at: 0 }
     }
-    let mut cut = MAX_SEND_BYTES;
-    while cut > 0 && !text.is_char_boundary(cut) {
-        cut = cut.saturating_sub(1);
+
+    /// The next part, at most one send's bound, cut at a character
+    /// boundary; only the part is copied.
+    fn next_part(&mut self) -> String {
+        let end = if self.text.len().saturating_sub(self.at) <= MAX_SEND_BYTES {
+            self.text.len()
+        } else {
+            let mut cut = self.at.saturating_add(MAX_SEND_BYTES);
+            while cut > self.at && !self.text.is_char_boundary(cut) {
+                cut = cut.saturating_sub(1);
+            }
+            cut
+        };
+        let part = self.text.get(self.at..end).unwrap_or_default().to_owned();
+        self.at = end;
+        part
     }
-    let rest = text.split_off(cut);
-    std::mem::replace(text, rest)
+
+    /// Whether every part went out.
+    const fn is_spent(&self) -> bool {
+        self.at >= self.text.len()
+    }
 }

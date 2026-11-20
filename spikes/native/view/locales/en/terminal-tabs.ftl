@@ -61,8 +61,13 @@ terminal-tabs-input = Terminal input
 # Settings > Terminal: the scrollback row's label (Paseo's settings.terminal.scrollback.label).
 terminal-tabs-scrollback = Terminal scrollback
 
-# Settings > Terminal: the scrollback row's description (Paseo's settings.terminal.scrollback.description).
-terminal-tabs-scrollback-hint = Lines kept in the built-in terminal buffer
+# Settings > Terminal: the scrollback row's description (Paseo's settings.terminal.scrollback.description), with a
+# word on memory (P3 app review note 3: a million lines is a lot of memory for each busy terminal).
+terminal-tabs-scrollback-hint = Lines kept in the built-in terminal buffer. Large values use more memory for each terminal.
 
 # Settings > Terminal: the scrollback field's accessible name (Paseo's settings.terminal.scrollback.accessibilityLabel).
 terminal-tabs-scrollback-label = Terminal scrollback lines
+
+# A paste refused because more than 32 MiB already waits to go to the terminal (no Paseo source: Paseo has no bound;
+# P3 app review note 1). Said once until a paste is taken again.
+terminal-tabs-paste-too-large = The paste was not sent: more than 32 MiB is already waiting to go to this terminal.

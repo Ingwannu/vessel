@@ -46,6 +46,10 @@ pub enum Request {
         /// `SHARED_TERMINALS_PROTOCOL`, which answers at once.
         changed_from: Option<u64>,
     },
+    /// Every terminal the caller may use (`terminal.list` with no place):
+    /// a worktree's removal counts the live ones in its folder, whatever
+    /// their place (ADR 0121).
+    ListAll,
     /// Follow a terminal's output from `from` (`terminal.subscribe`, its
     /// history paged first), replacing an earlier follow of it.
     Follow {
@@ -101,6 +105,11 @@ pub enum Reply {
         /// Whether the node waits on `changed_from` (protocol 37 or later),
         /// so the screen may ask again at once.
         waits: bool,
+    },
+    /// Every terminal, as `ListAll` asked.
+    ListedAll {
+        /// Its terminals.
+        result: Result<TerminalList, Failure>,
     },
     /// A follow began: the terminal as it was then (records before its
     /// `next_seq` are history, the rest live).
@@ -163,6 +172,9 @@ impl Ask {
                 place,
                 result: Err(failure),
                 waits: false,
+            },
+            Request::ListAll => Reply::ListedAll {
+                result: Err(failure),
             },
             Request::Follow { terminal, .. } => Reply::Lost { terminal, failure },
             Request::Send { terminal, .. } => Reply::Sent {
