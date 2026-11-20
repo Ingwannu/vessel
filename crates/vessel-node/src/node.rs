@@ -30,6 +30,7 @@ use crate::automation::schedules::node_runner::NodeRunner;
 use crate::automation::schedules::{Schedules, SystemClock};
 use crate::config::Config;
 use crate::devices::{Devices, Routes};
+use crate::direct::{self, Limits};
 use crate::error::NodeError;
 use crate::fleet::{self, FleetFiles};
 use crate::forge::Forges;
@@ -158,9 +159,11 @@ impl Node {
             connections: connections.clone(),
             store,
         };
+        let direct_clients = clients.clone();
         let router = tcp.map(|(listener, _)| {
             (
                 listener,
+                direct_clients,
                 server::router(Gateway {
                     rpc: Arc::clone(&rpc),
                     token: Arc::clone(&token),
@@ -654,24 +657,20 @@ async fn listen(bind: SocketAddr, dir: &DataDir) -> Result<(TcpListener, SocketA
 /// Serve the local socket and (if bound) HTTP until `stop`, then shut down
 /// in order and release the data directory last.
 async fn serve(
-    tcp: Option<(TcpListener, axum::Router)>,
+    tcp: Option<(TcpListener, ClientAddress, axum::Router)>,
     (local, gateway): (LocalListener, LocalGateway),
     stop: CancellationToken,
     teardown: Teardown,
     lock: NodeLock,
 ) -> Result<(), NodeError> {
     let http = async {
-        if let Some((listener, router)) = tcp {
-            // The peer's address, for `/secure`'s per-address budget.
-            let router = router.into_make_service_with_connect_info::<SocketAddr>();
-            axum::serve(listener, router)
-                .with_graceful_shutdown(stop.clone().cancelled_owned())
-                .await
-                .map_err(NodeError::Serve)
+        if let Some((listener, clients, router)) = tcp {
+            // Bounded, with a header deadline, unlike `axum::serve`.
+            direct::run(listener, router, clients, Limits::NODE, stop.clone()).await;
         } else {
             stop.cancelled().await;
-            Ok(())
         }
+        Ok::<(), NodeError>(())
     };
     let ((), served) = tokio::join!(ipc::serve(local, gateway, stop.clone()), http);
     teardown.run().await;
