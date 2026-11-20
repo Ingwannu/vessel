@@ -341,6 +341,7 @@ impl State {
         self.reload().await;
         let mut tick = tokio::time::interval(REFRESH);
         tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+        let mut presence_open = true;
         loop {
             tokio::select! {
                 command = inbox.recv() => match command {
@@ -348,10 +349,11 @@ impl State {
                     None => break,
                 },
                 _instant = tick.tick() => self.refresh().await,
-                changed = presence.changed() => match changed {
+                changed = presence.changed(), if presence_open => match changed {
                     Ok(()) => self.presence_changed(&mut presence),
-                    // The link was dropped: so is its command queue.
-                    Err(_dropped) => break,
+                    // Only the command queue's end closes the link; with
+                    // no presence end, there is nothing more to report.
+                    Err(_dropped) => presence_open = false,
                 },
             }
         }

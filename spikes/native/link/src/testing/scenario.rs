@@ -77,6 +77,7 @@ impl Scenario {
         let (commands_out, commands) = mpsc::channel(crate::CHANNEL);
         let link = Link {
             commands: commands_out,
+            presence: crate::presence::channel().0,
             _runtime: runtime,
         };
         let home = Home::try_new()?;
