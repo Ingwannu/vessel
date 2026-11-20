@@ -176,7 +176,7 @@ assigned at merge).
 
 | Method | Scope | Request -> reply |
 |---|---|---|
-| `plugin.catalog` | Read | `{}` -> `{generation, catalog: ClientCatalog}` |
+| `plugin.catalog` | Read | `{}` -> `{generation, catalog: ClientCatalog, may_invoke}` |
 | `plugin.invoke` | Admin | `{plugin, generation, method, input, context}` -> `{output}` |
 
 - Purpose: Paseo's clients read a host's catalog (`plugin.catalog.get`) and
@@ -205,7 +205,9 @@ assigned at merge).
   commands. The catalog is declarative data with bounded strings, no paths
   and no code. `plugin.invoke` needs `admin` and is refused to agents: a
   method runs plugin code with the node's access. Clients show invoke-bound
-  items only on devices holding `admin`.
+  items only on devices holding `admin`: the reply's `may_invoke` says so,
+  since a client does not otherwise know which scopes its credential
+  holds.
 - Invoke reaches only a running helper. A client-only installation answers
   `not_found` ("it has no helper program, so it has no methods"). A stopped
   or failed installation answers `unavailable`. As ADR 0079 asks of an

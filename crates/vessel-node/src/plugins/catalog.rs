@@ -40,8 +40,9 @@ use vessel_proto::plugins::{
 use super::{PluginError, Plugins, Run};
 
 impl Plugins {
-    /// The running installations' declarations, at the current generation.
-    pub(crate) async fn catalog(&self) -> Result<PluginCatalog, PluginError> {
+    /// The running installations' declarations, at the current generation;
+    /// `may_invoke` is whether the caller may call their methods.
+    pub(crate) async fn catalog(&self, may_invoke: bool) -> Result<PluginCatalog, PluginError> {
         self.settled().await;
         let generation = *self.inner.generation.borrow();
         let installations = {
@@ -70,6 +71,7 @@ impl Plugins {
         Ok(PluginCatalog {
             generation,
             catalog,
+            may_invoke,
         })
     }
 

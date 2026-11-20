@@ -140,10 +140,13 @@ impl NodeService {
     /// `read`: they hold no path and no code (ADR 0115).
     pub(crate) async fn plugin_catalog(
         &self,
-        _: &Connection,
+        connection: &Connection,
         _: GetPluginCatalog,
     ) -> Result<PluginCatalog, WireError> {
-        self.plugins.catalog().await.map_err(|error| wire(&error))
+        self.plugins
+            .catalog(administers(connection.principal()))
+            .await
+            .map_err(|error| wire(&error))
     }
 
     /// `plugin.invoke`: one declared method of a running helper.

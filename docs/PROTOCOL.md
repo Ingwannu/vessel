@@ -74,7 +74,7 @@ Drafted as 36 (`PLUGIN_CATALOG_PROTOCOL`, `PROTOCOL_VERSION` 36), the next after
 is assigned at the node-line merge. Both methods are unary and not forwardable.
 
 - `plugin.catalog {}` (`read`) answers `{generation, catalog: {node, installations: [{address, required_client,
-  document}]}}`: every running installation's validated client declarations (ADR 0079's `ClientDocument`), none
+  document}]}, may_invoke}` (`may_invoke`: whether this caller may call `plugin.invoke`): every running installation's validated client declarations (ADR 0079's `ClientDocument`), none
   that is stopped, failed, disabled or off. `generation` is `plugin.watch`'s count. It needs `read` where Paseo's
   catalog needs `daemon.manage`: the data holds no path and no code, and a Read device draws a machine's themes.
 - `plugin.invoke {plugin, generation, method, input, context}` (`admin`; refused to agents) answers `{output}`: one

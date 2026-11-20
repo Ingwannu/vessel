@@ -14,7 +14,10 @@
 //!   themes and the shape of its commands; invoking runs plugin code with
 //!   the node's access, so it needs `admin` and is refused to agents.
 //! - The reply carries the generation `plugin.watch` counts, so a client
-//!   watches from the catalog it holds and reads it again when it moves.
+//!   watches from the catalog it holds and reads it again when it moves,
+//!   and whether this caller may invoke: clients show invoke-bound items
+//!   only where they would run (coordinator ruling 2026-11-20), and a client
+//!   does not otherwise know which scopes its credential holds.
 //! - Invoke input and output are opaque JSON within the helper payload
 //!   budget. As ADR 0079 asks of a plugin action, a call carries the
 //!   generation of the catalog it came from and its context (none, a
@@ -46,6 +49,9 @@ pub struct PluginCatalog {
     /// Every running installation's validated document; one that is not
     /// running is absent.
     pub catalog: ClientCatalog,
+    /// Whether this caller may call `plugin.invoke` (the node's owner or a
+    /// device holding `admin`; never an agent).
+    pub may_invoke: bool,
 }
 
 /// `plugin.invoke`: call one method a running installation declared. Needs

@@ -168,6 +168,10 @@ async fn a_read_device_sees_the_catalog_but_not_paths_logs_or_methods() {
                 .unwrap();
         }
         assert_eq!(catalogued, 1);
+        // A Read device draws the declarations but is told it may not run
+        // them; the owner may.
+        assert!(!reader.call(GetPluginCatalog {}).await.unwrap().may_invoke);
+        assert!(owner.call(GetPluginCatalog {}).await.unwrap().may_invoke);
         let plugin_id = || "night".parse().unwrap();
         assert_eq!(code(reader.call(install("~/night")).await), ErrorCode::Forbidden);
         assert_eq!(
