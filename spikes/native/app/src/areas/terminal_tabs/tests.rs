@@ -571,7 +571,7 @@ fn a_pane_claims_its_size_on_focus_and_updates_it_after(cx: &mut TestAppContext)
         machine: "laptop".to_owned(),
         terminal,
     };
-    let fit = |cols, rows| vessel_app_view::terminal::GridSize::new(cols, rows).ok();
+    let fit = |cols, rows| GridSize::new(cols, rows).ok();
     let sizes = |requests: Vec<Request>| -> Vec<(u16, u16, ResizeIntent)> {
         requests
             .into_iter()
