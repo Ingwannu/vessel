@@ -5,11 +5,7 @@
 
 /** A forge the page links to. */
 export type ForgeMarkName =
-  | "github"
-  | "gitlab"
-  | "gitea"
-  | "forgejo"
-  | "codeberg";
+  "github" | "gitlab" | "gitea" | "forgejo" | "codeberg";
 
 /** Each mark's path in a 24 by 24 view box. */
 export const FORGE_MARK_PATHS: Readonly<Record<ForgeMarkName, string>> = {

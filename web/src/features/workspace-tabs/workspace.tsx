@@ -2,7 +2,6 @@
 
 import { type ReactNode, useCallback, useState } from "react";
 
-import type { LinkedFile } from "../../data/forge-links";
 import { sessionName } from "../../data/titles";
 import { WorkspaceChat } from "../workspace/workspace-chat";
 import type { ProjectsView } from "../../data/workspace/project-store";
@@ -110,19 +109,7 @@ export function Workspace({
   const launch = compact
     ? actions.filter((action) => action.label !== words.diff)
     : actions;
-  const heading =
-    active?.kind === "agent" ? (state.session(active.id) ?? anchor) : anchor;
-  // The file a forge link names (Paseo: the active tab's file and the line
-  // it was opened at).
-  const shownLine =
-    active?.kind === "file" ? state.lines.get(active.path)?.line : undefined;
-  const shownFile: LinkedFile | null =
-    active?.kind === "file"
-      ? {
-          path: active.path,
-          ...(shownLine === undefined ? {} : { lineStart: shownLine }),
-        }
-      : null;
+  const heading = state.heading;
   const openSummary = () => {
     select({ kind: "agent", id: heading.id });
     setSummaryOpen(true);
@@ -220,8 +207,7 @@ export function Workspace({
         label={label}
         session={heading}
         renamed={title?.id === heading.id ? title.name : null}
-        root={root}
-        file={shownFile}
+        file={state.shownFile}
         onPlace={openChanges}
         {...(narrowSummary && heading.spec.mode === "structured"
           ? { onSummary: openSummary }

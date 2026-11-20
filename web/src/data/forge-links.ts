@@ -21,6 +21,7 @@
 //   both run Paseo's `forge-url.test.ts` cases.
 
 import type { OriginRepo } from "../wire/proto";
+import type { WorkspaceTab } from "./workspace/tab-layout";
 
 /** A forge Paseo links to. */
 export type ForgeId = "github" | "gitlab" | "gitea" | "forgejo" | "codeberg";
@@ -102,9 +103,7 @@ export function forgeOf(origin: OriginRepo): ForgeId | null {
     return "github";
   }
   const name = hostName(origin.host);
-  return (
-    FORGES.find((forge) => forge.cloudHosts.includes(name))?.id ?? null
-  );
+  return FORGES.find((forge) => forge.cloudHosts.includes(name))?.id ?? null;
 }
 
 /** The forge's brand name. */
@@ -151,6 +150,21 @@ export interface LinkedFile {
   path: string;
   lineStart?: number;
   lineEnd?: number;
+}
+
+/** The file a forge link names: `tab`'s when it shows a file, at the line
+ * it was opened at (Paseo's active file location), else none. */
+export function linkedFileOf(
+  tab: WorkspaceTab | undefined,
+  lines: ReadonlyMap<string, { line: number }>,
+): LinkedFile | null {
+  if (tab?.kind !== "file") {
+    return null;
+  }
+  const line = lines.get(tab.path)?.line;
+  return line === undefined
+    ? { path: tab.path }
+    : { path: tab.path, lineStart: line };
 }
 
 /** A forge page to open. */

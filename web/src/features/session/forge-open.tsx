@@ -33,7 +33,8 @@ import {
 import { readStatus } from "../../data/workspace/git";
 import { ForgeMark } from "../../ui/kit";
 import type { NodeKey } from "../../wire/bridge";
-import type { GitStatus, WorkspaceRoot } from "../../wire/proto";
+import type { GitStatus, SessionInfo, WorkspaceRoot } from "../../wire/proto";
+import { useSessionRoot } from "../workspace/use-session-root";
 
 /** How often the bar reads its status again while the page is visible. */
 const FRESH_MS = 30_000;
@@ -62,7 +63,10 @@ interface Read {
 
 /** `root`'s status, read again every [`FRESH_MS`] while the page shows;
  * null before the first answer for this folder or when it failed. */
-function useStatus(node: NodeKey, root: WorkspaceRoot | null): GitStatus | null {
+function useStatus(
+  node: NodeKey,
+  root: WorkspaceRoot | null,
+): GitStatus | null {
   const fleet = useFleet();
   const [read, setRead] = useState<Read | null>(null);
   useEffect(() => {
@@ -96,15 +100,16 @@ function useStatus(node: NodeKey, root: WorkspaceRoot | null): GitStatus | null 
 
 export function ForgeOpen({
   node,
-  root,
+  session,
   file,
 }: {
   node: NodeKey;
-  /** The session's folder; none for a session outside a project. */
-  root: WorkspaceRoot | null;
+  /** The session the bar names; its folder is the workspace. */
+  session: SessionInfo;
   /** The file its code panel shows, at the line it was opened at. */
   file: LinkedFile | null;
 }) {
+  const { root } = useSessionRoot(node, session);
   const status = useStatus(node, root);
   const link =
     status === null ? null : forgeLink(status.origin, status.branch, file);

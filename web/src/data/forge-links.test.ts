@@ -7,6 +7,7 @@ import {
   forgeOf,
   forgePage,
   type LinkedFile,
+  linkedFileOf,
   openForgePage,
 } from "./forge-links";
 
@@ -52,9 +53,9 @@ describe("the branch's page (Paseo's buildForgeBranchTreeUrl)", () => {
     expect(url("gitea", remote("gitea.com", "acme/repo"), "main")).toBe(
       "https://gitea.com/acme/repo/src/branch/main",
     );
-    expect(
-      url("codeberg", remote("codeberg.org", "acme/repo"), "main"),
-    ).toBe("https://codeberg.org/acme/repo/src/branch/main");
+    expect(url("codeberg", remote("codeberg.org", "acme/repo"), "main")).toBe(
+      "https://codeberg.org/acme/repo/src/branch/main",
+    );
   });
 
   it("preserves a non-default port for a self-hosted https remote", () => {
@@ -241,5 +242,20 @@ describe("opening a forge page", () => {
       expect(openForgePage(refused, open)).toBe(false);
     }
     expect(open).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("the file a link names", () => {
+  it("is the active file tab's, at the line it was opened at", () => {
+    const lines = new Map([["src/a.ts", { line: 7, seq: 1 }]]);
+    expect(linkedFileOf({ kind: "file", path: "src/a.ts" }, lines)).toEqual({
+      path: "src/a.ts",
+      lineStart: 7,
+    });
+    expect(linkedFileOf({ kind: "file", path: "src/b.ts" }, lines)).toEqual({
+      path: "src/b.ts",
+    });
+    expect(linkedFileOf({ kind: "files" }, lines)).toBeNull();
+    expect(linkedFileOf(undefined, lines)).toBeNull();
   });
 });
