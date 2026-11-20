@@ -153,7 +153,7 @@ impl NodeService {
         request: InvokePlugin,
     ) -> Result<PluginOutput, WireError> {
         self.plugins
-            .invoke(&request.plugin, request.method, request.input)
+            .invoke(request)
             .await
             .map(|output| PluginOutput { output })
             .map_err(|error| wire(&error))
@@ -197,6 +197,7 @@ fn wire(error: &PluginError) -> WireError {
         }
         PluginError::Call { failure, .. } => match failure {
             CallFailure::Undeclared(_) => ErrorCode::NotFound,
+            CallFailure::Changed => ErrorCode::Conflict,
             CallFailure::TooLarge | CallFailure::Refused => ErrorCode::InvalidRequest,
             CallFailure::Unavailable => ErrorCode::Unavailable,
             CallFailure::Failed => ErrorCode::Internal,

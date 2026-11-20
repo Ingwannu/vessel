@@ -3,10 +3,33 @@
 //! (ADR 0115, "Catalog and invoke"). Nothing is fetched.
 
 use vessel_proto::RawJson;
-use vessel_proto::plugins::{PluginGeneration, PluginStatus};
+use vessel_proto::plugins::{
+    InvokeContext, InvokePlugin, PluginGeneration, PluginStatus, RuntimeGeneration,
+};
 
 use super::super::tests::{Fixture, client_only, id, until};
 use super::super::{CallFailure, PluginError};
+
+/// A call to `plugin`'s `method` from the run `generation`, global context.
+fn call(
+    plugin: &str,
+    generation: RuntimeGeneration,
+    method: &str,
+    input: RawJson,
+) -> InvokePlugin {
+    InvokePlugin {
+        plugin: id(plugin),
+        generation,
+        method: method.parse().unwrap(),
+        input,
+        context: InvokeContext::Global,
+    }
+}
+
+/// No input.
+fn none() -> RawJson {
+    RawJson::empty_object()
+}
 
 /// One theme with Paseo's eight colors, as `vessel plugin init` writes.
 const THEME_CLIENT: &str = r##"{"methods":[],"contributions":[],"themes":[{"id":"night","name":"Night dark","appearance":"dark","colors":{"background":"#15171c","foreground":"#e6e8ee","raised":"#1c1f26","control":"#252932","border":"#2f3440","accent":"#6ea8fe","mutedForeground":"#9aa3b2","ring":"#6ea8fe"}}]}"##;
@@ -36,8 +59,9 @@ async fn the_catalog_holds_running_installations_at_the_watched_generation() {
     let current = plugins.watch(PluginGeneration::new(u64::MAX)).await;
     assert_eq!(on.generation, current);
     // A client-only plugin has no methods to call.
+    let generation = installation.address().generation;
     let refused = plugins
-        .invoke(&id("night"), "night.read".parse().unwrap(), RawJson::empty_object())
+        .invoke(call("night", generation, "night.read", none()))
         .await;
     assert!(matches!(refused, Err(PluginError::NoMethods(_))), "{refused:?}");
     plugins.set_switch(false);
@@ -71,8 +95,9 @@ async fn a_client_file_that_leads_outside_the_directory_does_not_start() {
 async fn a_call_to_a_plugin_that_is_not_installed_or_not_running_is_refused() {
     let fixture = Fixture::new();
     let plugins = fixture.host(false).await;
+    let any = RuntimeGeneration::random();
     let missing = plugins
-        .invoke(&id("nothing"), "a.read".parse().unwrap(), RawJson::empty_object())
+        .invoke(call("nothing", any, "a.read", none()))
         .await;
     assert!(matches!(missing, Err(PluginError::NotInstalled(_))), "{missing:?}");
     let _directory = fixture.plugin(
@@ -82,7 +107,7 @@ async fn a_call_to_a_plugin_that_is_not_installed_or_not_running_is_refused() {
     );
     let _item = plugins.install("~/night", None, None).await.unwrap();
     let stopped = plugins
-        .invoke(&id("night"), "a.read".parse().unwrap(), RawJson::empty_object())
+        .invoke(call("night", any, "a.read", none()))
         .await;
     assert!(matches!(stopped, Err(PluginError::NotRunning(_))), "{stopped:?}");
     fixture.finish().await;
@@ -107,14 +132,23 @@ async fn a_helper_answers_its_declared_method_and_refuses_an_undeclared_one() {
         .map(ToString::to_string)
         .collect();
     assert_eq!(declared, ["echo.read"]);
+    let generation = installation.address().generation;
+    // A call from an older catalog is refused before the helper sees it.
+    let older = plugins
+        .invoke(call("echo", RuntimeGeneration::random(), "echo.read", none()))
+        .await;
+    let Err(PluginError::Call { failure, .. }) = &older else {
+        panic!("a call from another run is refused: {older:?}");
+    };
+    assert_eq!(*failure, CallFailure::Changed);
     let input = RawJson::from_text(r#"{"query":"메모"}"#).unwrap();
     let output = plugins
-        .invoke(&id("echo"), "echo.read".parse().unwrap(), input)
+        .invoke(call("echo", generation, "echo.read", input))
         .await
         .unwrap();
     assert_eq!(output.as_text(), r#"{"ok":true}"#);
     let undeclared = plugins
-        .invoke(&id("echo"), "echo.write".parse().unwrap(), RawJson::empty_object())
+        .invoke(call("echo", generation, "echo.write", none()))
         .await;
     let Err(PluginError::Call { failure, .. }) = &undeclared else {
         panic!("an undeclared method is refused: {undeclared:?}");

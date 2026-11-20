@@ -108,9 +108,13 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         | Method::RemovePlugin => json!({"plugin":"sample"}),
         Method::InspectPlugin => json!({"path":"/fixture/plugin"}),
         Method::InstallPlugin => json!({"source":"/fixture/plugin","id":"sample"}),
-        Method::InvokePlugin => {
-            json!({"plugin":"sample","method":"sample.read","input":{"query":"x"}})
-        }
+        Method::InvokePlugin => json!({
+            "plugin": "sample",
+            "generation": id,
+            "method": "sample.read",
+            "input": {"query": "x"},
+            "context": {"kind": "global"},
+        }),
         Method::GetAgentDiagnostic => json!({"agent":"codex"}),
         Method::AssignWorkspaceLabel => {
             json!({"workspace":id,"label":{"name":"Ready","color":"violet"},"assignment":"assigned"})

@@ -33,7 +33,7 @@ pub use identity::{
     Caption, ContentText, ContributionId, FileExtension, FileNamePattern, InvalidPluginValue,
     PluginId, RpcName, ThemeName,
 };
-pub use calls::{GetPluginCatalog, InvokePlugin, PluginCatalog, PluginOutput};
+pub use calls::{GetPluginCatalog, InvokeContext, InvokePlugin, PluginCatalog, PluginOutput};
 pub use json_error::PluginJsonError;
 pub use logs::{
     InvalidLogText, LogEntry, LogSequence, LogStream, LogText, LogTruncation, MAX_LOG_BYTES,

@@ -6,8 +6,8 @@
 //! read logs or call a method.
 
 use vessel_proto::plugins::{
-    GetPluginCatalog, GetPluginLogs, InstallPlugin, InvokePlugin, ListPlugins, PLUGINS_PROTOCOL,
-    PluginGeneration, PluginStatus, RemovePlugin, WatchPlugins,
+    GetPluginCatalog, GetPluginLogs, InstallPlugin, InvokeContext, InvokePlugin, ListPlugins,
+    PLUGINS_PROTOCOL, PluginGeneration, PluginStatus, RemovePlugin, WatchPlugins,
 };
 use vessel_proto::{ErrorCode, RawJson, Scope};
 use vessel_proto::settings::SetNodeSettings;
@@ -174,10 +174,19 @@ async fn a_read_device_sees_the_catalog_but_not_paths_logs_or_methods() {
             code(reader.call(GetPluginLogs { plugin: plugin_id() }).await),
             ErrorCode::Forbidden
         );
+        let catalog = reader.call(GetPluginCatalog {}).await.unwrap();
+        let generation = catalog
+            .catalog
+            .installations()
+            .first()
+            .map(|installation| installation.address().generation)
+            .unwrap();
         let call = InvokePlugin {
             plugin: plugin_id(),
+            generation,
             method: "night.read".parse().unwrap(),
             input: RawJson::empty_object(),
+            context: InvokeContext::Global,
         };
         assert_eq!(code(reader.call(call.clone()).await), ErrorCode::Forbidden);
         // The owner reaches the node, which says a client-only plugin has

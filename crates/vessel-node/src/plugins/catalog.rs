@@ -17,10 +17,13 @@
 //!   its runtime state. Not running (stopped, failed, plugins off) is not
 //!   in the catalog. It waits for the start-up settle as the list does, so
 //!   a client reading at node start does not see an empty catalog first.
-//! - Invoke checks only that the installation runs a helper; the actor
-//!   checks the method, the generation and the payload budget. Failures
-//!   are safe classes: the helper's own error text is never in the reply
-//!   (ADR 0079); what a helper writes to stderr is in its log.
+//! - Invoke checks that the installation runs a helper whose current run is
+//!   the one the caller's catalog named (ADR 0079: an action carries its
+//!   captured generation, checked again at dispatch); the actor checks the
+//!   method against that run's declarations and the payload budget. The
+//!   helper receives `{input, context}`. Failures are safe classes: the
+//!   helper's own error text is never in the reply (ADR 0079); what a
+//!   helper writes to stderr is in its log.
 //! - Cost: a catalog over the whole-node budget is refused as a whole
 //!   rather than trimmed, so a client never draws half of a plugin set.
 
@@ -30,8 +33,8 @@ use tokio_util::sync::CancellationToken;
 use vessel_plugin::{CallError, RuntimeState};
 use vessel_proto::RawJson;
 use vessel_proto::plugins::{
-    ClientCatalog, ClientDocument, ClientInstallation, HelperCall, HelperPayload, PluginAddress,
-    PluginCatalog, PluginId, RpcName,
+    ClientCatalog, ClientDocument, ClientInstallation, HelperCall, HelperPayload, InvokeContext,
+    InvokePlugin, PluginAddress, PluginCatalog, RpcName,
 };
 
 use super::{PluginError, Plugins, Run};
@@ -70,13 +73,16 @@ impl Plugins {
         })
     }
 
-    /// Call `method` on `plugin`'s running helper with `input`.
-    pub(crate) async fn invoke(
-        &self,
-        plugin: &PluginId,
-        method: RpcName,
-        input: RawJson,
-    ) -> Result<RawJson, PluginError> {
+    /// Call the request's method on its plugin's running helper.
+    pub(crate) async fn invoke(&self, request: InvokePlugin) -> Result<RawJson, PluginError> {
+        let InvokePlugin {
+            plugin,
+            generation,
+            method,
+            input,
+            context,
+        } = request;
+        let plugin = &plugin;
         let (handle, address) = {
             let state = self.state();
             let row = state
@@ -97,10 +103,22 @@ impl Plugins {
             }
         };
         let address = address.ok_or_else(|| PluginError::NotRunning(plugin.clone()))?;
-        let input = HelperPayload::try_from(input).map_err(|_too_large| PluginError::Call {
+        if address.generation != generation {
+            return Err(PluginError::Call {
+                id: plugin.clone(),
+                failure: CallFailure::Changed,
+            });
+        }
+        let too_large = || PluginError::Call {
             id: plugin.clone(),
             failure: CallFailure::TooLarge,
-        })?;
+        };
+        let envelope = RawJson::from_serialize(&Envelope {
+            input: &input,
+            context: &context,
+        })
+        .map_err(|_unencodable| too_large())?;
+        let input = HelperPayload::try_from(envelope).map_err(|_over| too_large())?;
         // The node's stop cancels a call in flight; a caller that goes
         // away leaves it to the actor's own deadline.
         let cancel: CancellationToken = self.inner.stop.child_token();
@@ -122,6 +140,13 @@ impl Plugins {
     }
 }
 
+/// What a helper's method receives.
+#[derive(serde::Serialize)]
+struct Envelope<'a> {
+    input: &'a RawJson,
+    context: &'a InvokeContext,
+}
+
 /// A running installation's catalog entry.
 fn entry(run: &Run) -> Option<(PluginAddress, Arc<ClientDocument>)> {
     match run {
@@ -141,6 +166,8 @@ fn entry(run: &Run) -> Option<(PluginAddress, Arc<ClientDocument>)> {
 pub(crate) enum CallFailure {
     /// The running generation does not declare it.
     Undeclared(RpcName),
+    /// The installation ran again since the caller's catalog.
+    Changed,
     /// The input is over the helper payload budget.
     TooLarge,
     /// The helper is busy, restarting, stopping or did not answer in time.
@@ -155,10 +182,10 @@ impl CallFailure {
     fn from_runtime(error: &CallError, method: RpcName) -> Self {
         match error {
             CallError::Unregistered => Self::Undeclared(method),
+            CallError::Stale => Self::Changed,
             CallError::Failed(vessel_proto::plugins::HelperFailure::Refused) => Self::Refused,
             CallError::Failed(vessel_proto::plugins::HelperFailure::Callback) => Self::Failed,
-            CallError::Stale
-            | CallError::NotReady
+            CallError::NotReady
             | CallError::Busy
             | CallError::Cancelled
             | CallError::Timeout
@@ -174,6 +201,7 @@ impl std::fmt::Display for CallFailure {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Undeclared(method) => write!(f, "it declares no method {method}"),
+            Self::Changed => f.write_str("it changed since its catalog was read; read it again"),
             Self::TooLarge => f.write_str("the input is too large"),
             Self::Unavailable => {
                 f.write_str("it is busy, restarting or stopping; try again in a moment")

@@ -177,7 +177,7 @@ assigned at merge).
 | Method | Scope | Request -> reply |
 |---|---|---|
 | `plugin.catalog` | Read | `{}` -> `{generation, catalog: ClientCatalog}` |
-| `plugin.invoke` | Admin | `{plugin, method, input}` -> `{output}` |
+| `plugin.invoke` | Admin | `{plugin, generation, method, input, context}` -> `{output}` |
 
 - Purpose: Paseo's clients read a host's catalog (`plugin.catalog.get`) and
   call a plugin's methods (`plugin.rpc.invoke`); the page and the app need
@@ -208,7 +208,13 @@ assigned at merge).
   items only on devices holding `admin`.
 - Invoke reaches only a running helper. A client-only installation answers
   `not_found` ("it has no helper program, so it has no methods"). A stopped
-  or failed installation answers `unavailable`. The supervisor's actor checks
+  or failed installation answers `unavailable`. As ADR 0079 asks of an
+  action, a call carries the run (`generation`, from the catalog entry's
+  address) and the context it was taken in (`global`, a `workspace`, or an
+  `agent` with its workspace); a call from a run that has since been
+  replaced answers `conflict` ("read it again"). The helper receives
+  `{input, context}`, the context objects Paseo's `onSelect` and `onSubmit`
+  get. The supervisor's actor checks
   that the running generation declared the method (`not_found` otherwise),
   admits the input within the helper payload budget (1 MiB, `invalid_request`
   over it), and keeps its own deadline. A helper's failure reaches the

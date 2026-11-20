@@ -77,10 +77,13 @@ is assigned at the node-line merge. Both methods are unary and not forwardable.
   document}]}}`: every running installation's validated client declarations (ADR 0079's `ClientDocument`), none
   that is stopped, failed, disabled or off. `generation` is `plugin.watch`'s count. It needs `read` where Paseo's
   catalog needs `daemon.manage`: the data holds no path and no code, and a Read device draws a machine's themes.
-- `plugin.invoke {plugin, method, input}` (`admin`; refused to agents) answers `{output}`: one method the running
-  helper declared, with opaque JSON in and out within the helper payload budget. `not_found` for an undeclared
-  method or a client-only plugin; `unavailable` when it is not running or is busy; `invalid_request` when it refuses
-  or the input is too large; `internal` when its method failed. The helper's own text is never in the reply.
+- `plugin.invoke {plugin, generation, method, input, context}` (`admin`; refused to agents) answers `{output}`: one
+  method the running helper declared, with opaque JSON in and out within the helper payload budget. `generation` is
+  the catalog entry's run; `context` is `{kind: global}`, `{kind: workspace, workspace}` or `{kind: agent, workspace,
+  agent}`; the helper receives `{input, context}`. `conflict` when the run has changed since; `not_found` for an
+  undeclared method or a client-only plugin; `unavailable` when it is not running or is busy; `invalid_request` when
+  it refuses or the input is too large; `internal` when its method failed. The helper's own text is never in the
+  reply.
 - `plugin.install` and `plugin.inspect` refuse a source or path over 4 KiB and a ref over 256 bytes
   (`invalid_request`).
 - The minimum protocol remains 2. The store schema is unchanged.
