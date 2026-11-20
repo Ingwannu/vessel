@@ -4,10 +4,13 @@
 use super::*;
 const SCENARIO_DEADLINE: std::time::Duration = std::time::Duration::from_secs(60);
 use vessel_proto::notifications::{
-    ClearTerminalAttention, ReportTerminalActivity, TerminalActivitySignal, TerminalAttention,
+    ClearTerminalAttention, ReportTerminalActivity, TerminalActivity, TerminalActivityAuth,
+    TerminalActivitySecret, TerminalActivitySignal, TerminalAttention, TerminalAttentionReason,
     TerminalAttentionRevision,
 };
-use vessel_proto::terminals::{CloseTerminal, CreateTerminal, TerminalInfo, TerminalPlace};
+use vessel_proto::terminals::{
+    CloseTerminal, CreateTerminal, KillTerminal, TerminalInfo, TerminalPlace,
+};
 
 impl Fixture {
     async fn terminal(&self) -> TerminalInfo {
@@ -82,7 +85,43 @@ async fn terminal_attention_uses_the_same_encrypted_generic_delivery_after_assig
                 working,
                 Err(vessel_client::CallError::UnassignedProtocol { .. })
             ));
-            assert!(receiver.inbox.try_recv().is_err());
+            // The node's own path, which no client reaches while the feature
+            // is unassigned (owed item 5 of the node review of TRACKER 815):
+            // the terminal's handle goes Working, then Idle, a Finished
+            // revision. The worker wakes for it and pushes nothing.
+            let handle = fixture
+                .node
+                .secure
+                .service
+                .0
+                .terminals()
+                .get(terminal.id)
+                .unwrap()
+                .handle;
+            // The created terminal's reply has its attention cut, as every
+            // peer's has while unassigned; the node's own handle holds it.
+            let start = handle.info().attention.unwrap();
+            let working = handle
+                .report_activity(start.revision, TerminalActivitySignal::Working)
+                .unwrap();
+            let finished = handle
+                .report_activity(working.revision, TerminalActivitySignal::Idle)
+                .unwrap();
+            assert!(
+                matches!(
+                    finished.activity,
+                    TerminalActivity::Attention {
+                        reason: TerminalAttentionReason::Finished
+                    }
+                ),
+                "{finished:?}"
+            );
+            assert!(
+                tokio::time::timeout(std::time::Duration::from_secs(2), receiver.inbox.recv())
+                    .await
+                    .is_err(),
+                "no Web Push while the feature is unassigned"
+            );
         } else {
             let working = working.unwrap();
             let _finished = fixture
@@ -232,6 +271,72 @@ async fn terminal_state_recipient_and_lease_changes_cancel_after_crypto_and_tran
                 cancels_before_admission(stage, action).await;
             }
         }
+    }))
+    .await
+    .unwrap();
+}
+
+/// A terminal's activity capability admits that terminal with its own
+/// secret only, and closes when the terminal is forgotten or ends (owed
+/// item 5 of the node review of TRACKER 815). The node gives no capability
+/// while the feature is unassigned, so the test gives one; the IPC route
+/// itself is checked by the wire test with the assigned protocol.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_terminal_capability_admits_only_its_terminal_and_closes_with_it() {
+    Box::pin(vessel_testkit::within(SCENARIO_DEADLINE, async {
+        let receiver = Receiver::start(StatusCode::CREATED).await;
+        let fixture = Fixture::start_with(receiver.url.clone(), fake_shell).await;
+        let terminals = std::sync::Arc::clone(fixture.node.secure.service.0.terminals());
+        let closed = fixture.terminal().await;
+        let killed = fixture.terminal().await;
+        let auth = |terminal, byte| TerminalActivityAuth {
+            terminal,
+            secret: TerminalActivitySecret::from_bytes([byte; 32]),
+        };
+        assert!(terminals.give_producer(closed.id, &auth(closed.id, 1).secret));
+        assert!(terminals.give_producer(killed.id, &auth(killed.id, 2).secret));
+        if vessel_proto::notifications::ATTENTION_NOTIFICATIONS_PROTOCOL.is_none() {
+            assert!(
+                terminals.admit_producer(&auth(closed.id, 1)).is_none(),
+                "the gate refuses even the right secret while unassigned"
+            );
+        }
+        let (_handle, closed_capability) = terminals.admit_assigned(&auth(closed.id, 1)).unwrap();
+        assert!(
+            terminals.admit_assigned(&auth(closed.id, 2)).is_none(),
+            "another terminal's secret"
+        );
+        assert!(
+            terminals.admit_assigned(&auth(killed.id, 1)).is_none(),
+            "a secret for another terminal"
+        );
+        let (_handle, killed_capability) = terminals.admit_assigned(&auth(killed.id, 2)).unwrap();
+
+        let _closed = fixture
+            .owner
+            .call(CloseTerminal {
+                terminal: closed.id,
+            })
+            .await
+            .unwrap();
+        assert!(closed_capability.is_cancelled(), "forgotten, it closes");
+        assert!(terminals.admit_assigned(&auth(closed.id, 1)).is_none());
+
+        let _killed = fixture
+            .owner
+            .call(KillTerminal {
+                terminal: killed.id,
+            })
+            .await
+            .unwrap();
+        step(
+            "the capability closes when its terminal ends",
+            killed_capability.cancelled(),
+        )
+        .await;
+        assert!(terminals.admit_assigned(&auth(killed.id, 2)).is_none());
+        fixture.close().await;
+        receiver.close().await;
     }))
     .await
     .unwrap();

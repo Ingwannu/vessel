@@ -6,7 +6,6 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
 
-use axum::extract::DefaultBodyLimit;
 use axum::extract::State;
 use axum::http::header::AUTHORIZATION;
 use axum::http::{HeaderMap, Method, StatusCode, Uri};
@@ -143,10 +142,7 @@ pub async fn serve<S: NodeSource>(
     let app = Router::new()
         .route("/api/status", get(status::<S>))
         .route("/api/ws", get(socket::upgrade::<S>))
-        .route(
-            "/api/preview",
-            post(preview::put::<S>).layer(DefaultBodyLimit::max(preview::MAX_BYTES)),
-        )
+        .route("/api/preview", post(preview::put::<S>))
         .route("/preview/{id}", get(preview::show::<S>))
         .fallback(page::<S>)
         .with_state(ui)

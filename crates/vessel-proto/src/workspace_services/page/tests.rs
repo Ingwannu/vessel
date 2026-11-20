@@ -136,3 +136,52 @@ fn summary_digest_stays_hidden_until_the_existing_display_gate_is_assigned() {
     assert!(rows.is_empty());
     assert!(next.is_none());
 }
+
+/// A page's rows reach a peer with their terminals cut (ADR 0089, owed item
+/// 2 of the node review of TRACKER 815), its other rows as they are.
+#[test]
+fn a_pages_row_terminals_are_cut_like_any_terminal() {
+    let before = crate::notifications::ATTENTION_NOTIFICATIONS_PROTOCOL
+        .map_or(crate::PROTOCOL_VERSION, |since| {
+            ProtocolVersion::new(since.get().saturating_sub(1))
+        });
+    let entry = ScriptEntry::new(
+        "web".parse().unwrap(),
+        ScriptKind::Script,
+        "synthetic-command".parse().unwrap(),
+        None,
+        None,
+    )
+    .unwrap();
+    let running = crate::terminals::TerminalInfo::new(
+        crate::TerminalId::random(),
+        crate::terminals::TerminalPlace::Project {
+            project: crate::ProjectId::random(),
+            dir: None,
+        },
+        "synthetic-checkout".into(),
+        crate::terminals::TerminalKind::Script {
+            script: "web".parse().unwrap(),
+            command: "synthetic-command".parse().unwrap(),
+        },
+        chrono::DateTime::UNIX_EPOCH,
+    );
+    let with_terminal = WorkspaceScriptRow::new(
+        entry,
+        WorkspaceScriptOrigin::Configured,
+        Some(running),
+        None,
+    )
+    .unwrap();
+    let rows = vec![row("api"), with_terminal];
+    let page = page(rows.clone(), None, ServiceSnapshotId::random()).unwrap();
+    let projected = page.for_protocol(before).unwrap();
+    let shown = projected.view().rows;
+    assert_eq!(shown[0], rows[0]);
+    assert_eq!(
+        shown[1].view().terminal.and_then(|info| info.attention),
+        None
+    );
+    let plain = self::page(vec![row("api")], None, ServiceSnapshotId::random()).unwrap();
+    assert_eq!(plain.for_protocol(before), None, "nothing to cut, no copy");
+}

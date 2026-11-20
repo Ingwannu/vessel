@@ -174,16 +174,33 @@ impl ServicePage {
         }
     }
 
-    /// Every direct/nested reply must retain the existing approval display gate.
+    /// Every direct/nested reply must retain the existing approval display
+    /// gate, and each row's terminal its attention cut
+    /// (`WorkspaceScriptRow::for_protocol`).
     #[must_use]
     pub fn for_protocol(&self, protocol: ProtocolVersion) -> Option<Self> {
-        self.configuration
-            .for_protocol(protocol)
-            .map(|configuration| {
-                let mut page = self.clone();
-                page.configuration = configuration;
-                page
-            })
+        let configuration = self.configuration.for_protocol(protocol);
+        let rows = self
+            .rows
+            .iter()
+            .any(|row| row.for_protocol(protocol).is_some())
+            .then(|| {
+                self.rows
+                    .iter()
+                    .map(|row| row.for_protocol(protocol).unwrap_or_else(|| row.clone()))
+                    .collect()
+            });
+        if configuration.is_none() && rows.is_none() {
+            return None;
+        }
+        let mut page = self.clone();
+        if let Some(configuration) = configuration {
+            page.configuration = configuration;
+        }
+        if let Some(rows) = rows {
+            page.rows = rows;
+        }
+        Some(page)
     }
 }
 
