@@ -62,7 +62,10 @@ Since TRACKER 816 the link knows which nodes run on this computer
    Paseo's PNGs; Paseo's symbols for the rest. Six have marks (Cursor,
    Zed, Android Studio, Xcode and WebStorm from Simple Icons 16.38.0,
    CC0-1.0; VS Code, Microsoft's own icon unchanged). Antigravity and
-   Finder keep the symbols. Sources, hashes and terms:
+   Finder keep the symbols. Each editor has one mark for both schemes,
+   as Paseo ships one icon (the coordinator's ruling on the frames): Zed,
+   Cursor and Android Studio on an app tile as Paseo draws them, VS Code
+   bare (Microsoft allows no background). Sources, hashes and terms:
    `docs/design/editor-marks/README.md`. They are drawn through the kit's
    mark raster path (sharp at any scale factor).
 

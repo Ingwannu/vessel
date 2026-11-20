@@ -109,8 +109,9 @@ vector!(/// Google's Gemini spark in its own gradient, with Google's inset.
 GEMINI, "gemini", GEMINI, GEMINI, Sparkle);
 #[cfg(test)]
 const ALL: [Artwork; 5] = [CLAUDE, CODEX, GEMINI, OPENCODE, COPILOT];
-/// An editor's mark (Open in editor, TRACKER 467): its light and dark
-/// forms from `editors`, cached under `kit/editor-marks/<name>`.
+/// An editor's mark (Open in editor, TRACKER 467) from `editors`, cached
+/// under `kit/editor-marks/<name>`; every editor has one mark for both
+/// schemes, given twice so the type stays the agents' one.
 macro_rules! editor {
     ($(#[$meta:meta])* $name:ident, $path:literal, $light:ident, $dark:ident) => {
         $(#[$meta])*
@@ -122,17 +123,17 @@ macro_rules! editor {
     };
 }
 editor!(/// Cursor's cube (Simple Icons, CC0-1.0).
-CURSOR, "cursor", CURSOR_LIGHT, CURSOR_DARK);
+CURSOR, "cursor", CURSOR, CURSOR);
 editor!(/// Microsoft's Visual Studio Code icon, unchanged.
 VSCODE, "vscode", VSCODE, VSCODE);
 editor!(/// Zed's mark (Simple Icons, CC0-1.0).
-ZED, "zed", ZED_LIGHT, ZED_DARK);
+ZED, "zed", ZED, ZED);
 editor!(/// Android Studio's mark (Simple Icons, CC0-1.0).
-ANDROID_STUDIO, "android-studio", ANDROID_STUDIO_LIGHT, ANDROID_STUDIO_DARK);
+ANDROID_STUDIO, "android-studio", ANDROID_STUDIO, ANDROID_STUDIO);
 editor!(/// Xcode's mark (Simple Icons, CC0-1.0).
 XCODE, "xcode", XCODE, XCODE);
 editor!(/// `WebStorm`'s mark (Simple Icons, CC0-1.0).
-WEBSTORM, "webstorm", WEBSTORM_LIGHT, WEBSTORM_DARK);
+WEBSTORM, "webstorm", WEBSTORM, WEBSTORM);
 #[cfg(test)]
 const EDITORS: [Artwork; 6] = [CURSOR, VSCODE, ZED, ANDROID_STUDIO, XCODE, WEBSTORM];
 impl Artwork {

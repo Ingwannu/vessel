@@ -1,5 +1,5 @@
 //! The editor marks: each is a whole vector with its ink edge to edge in
-//! its box, and a black mark turns white on dark surfaces.
+//! its box, one mark for both schemes.
 
 use super::{EDITORS, Scheme, Size, Space, VSCODE};
 
@@ -69,17 +69,18 @@ fn every_editor_mark_fills_its_box_in_both_schemes() {
 }
 
 #[test]
-fn a_mark_drawn_black_on_light_is_white_on_dark_and_vs_code_is_microsoft_s_file() {
+fn every_editor_has_one_mark_for_both_schemes_and_vs_code_is_microsoft_s_file() {
+    // Paseo ships one icon per editor; a mark that changed with the scheme
+    // (Zed white on dark, blue on light) read as two products.
     for art in EDITORS {
-        let light = std::str::from_utf8(art.image(Scheme::Light).bytes).unwrap();
-        let dark = std::str::from_utf8(art.image(Scheme::Dark).bytes).unwrap();
-        assert!(!dark.contains(r##"fill="#000000""##), "{}", art.dark.path);
-        if light.contains(r##"fill="#000000""##) {
-            assert!(dark.contains(r##"fill="#FFFFFF""##) || dark.contains(r##"fill="#3DDC84""##));
-        }
+        assert_eq!(
+            art.image(Scheme::Light).bytes,
+            art.image(Scheme::Dark).bytes,
+            "{}",
+            art.light.path
+        );
     }
     let vscode = VSCODE.image(Scheme::Dark).bytes;
-    assert_eq!(vscode, VSCODE.image(Scheme::Light).bytes);
     assert_eq!(vscode.len(), 4451);
     assert!(
         std::str::from_utf8(vscode)
