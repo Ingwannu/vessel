@@ -115,6 +115,12 @@ pub(crate) struct ConversationArea {
     /// Said once, in the bar, in the app's words; these only in the line's
     /// tooltip (`bar.rs`). Not a refusal: the node did not answer at all.
     pub(crate) lost: Option<String>,
+    /// One fleet sample of the shown machine's link has been read.
+    /// Dropped with the session, so the next session's first sample is
+    /// not an offline-to-online edge (`link_edge`).
+    pub(crate) link_seen: bool,
+    /// That sample said the machine was online.
+    pub(crate) link_online: bool,
     /// The tooltip of that line and where it is drawn.
     pub(crate) lost_tip: (vessel_app_kit::Tooltips, vessel_app_kit::tooltip::Place),
     /// The tooltip of the bar's word for a released agent.
@@ -193,6 +199,8 @@ impl ConversationArea {
             tail: tail::Tail::default(),
             fresh: None,
             lost: None,
+            link_seen: false,
+            link_online: false,
             lost_tip: (
                 vessel_app_kit::Tooltips::new(),
                 Rc::new(std::cell::Cell::new(None)),
@@ -255,6 +263,8 @@ impl ConversationArea {
     pub(super) fn clear(&mut self) {
         self.shown = None;
         self.lost = None;
+        self.link_seen = false;
+        self.link_online = false;
         self.read = read::ReadMarks::default();
         self.rewinding.clear();
         self.forking.clear();

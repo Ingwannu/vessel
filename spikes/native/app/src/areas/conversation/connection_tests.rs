@@ -22,16 +22,44 @@ fn opening_or_receiving_this_session_clears_its_lost_connection(cx: &mut gpui::T
 }
 
 #[gpui::test]
-fn an_online_link_clears_the_lost_line_and_an_offline_one_keeps_it(cx: &mut gpui::TestAppContext) {
+fn the_lost_line_clears_once_when_the_link_comes_back(cx: &mut gpui::TestAppContext) {
     cx.update(|cx| {
         let session = "00000000-0000-4000-8000-000000000003".parse().unwrap();
         let mut area = ConversationArea::new(cx);
         area.open("machine", session);
         area.lost = Some("offline".to_owned());
-        assert!(!area.link_back(false));
+        // No earlier sample: an online read is not an edge.
+        assert!(!super::intake::follow_edge(false, false, true, true));
+        assert!(!area.link_edge(true));
         assert_eq!(area.lost.as_deref(), Some("offline"));
-        assert!(area.link_back(true));
+        // Still online, including after the follow fails again.
+        assert!(!super::intake::follow_edge(true, true, true, true));
+        assert!(!area.link_edge(true));
+        assert_eq!(area.lost.as_deref(), Some("offline"));
+        // Offline leaves the line.
+        assert!(!super::intake::follow_edge(true, true, false, true));
+        assert!(!area.link_edge(false));
+        assert_eq!(area.lost.as_deref(), Some("offline"));
+        // The one offline→online edge clears it.
+        assert!(super::intake::follow_edge(true, false, true, true));
+        assert!(area.link_edge(true));
         assert_eq!(area.lost, None);
-        assert!(!area.link_back(true));
+        // The follow failed while the link stayed online: the line stays.
+        area.lost = Some("gone".to_owned());
+        assert!(!area.link_edge(true));
+        assert_eq!(area.lost.as_deref(), Some("gone"));
+        // Online with no lost line is not an edge.
+        assert!(!super::intake::follow_edge(true, false, true, false));
+        area.lost = None;
+        assert!(!area.link_edge(false));
+        assert!(!area.link_edge(true));
+        assert_eq!(area.lost, None);
+        // A new session forgets the sample, so its first online read
+        // is not an edge either.
+        let other = "00000000-0000-4000-8000-000000000004".parse().unwrap();
+        area.open("machine", other);
+        area.lost = Some("offline".to_owned());
+        assert!(!area.link_edge(true));
+        assert_eq!(area.lost.as_deref(), Some("offline"));
     });
 }

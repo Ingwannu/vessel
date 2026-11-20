@@ -10,6 +10,14 @@ use vessel_proto::{EventRecord, SessionId};
 use super::ConversationArea;
 use super::area::Followup;
 
+/// One reopen: a fleet sample was already read, the link was offline,
+/// it is online now, and the lost line is up. The first sample only
+/// records the link. A follow that fails while the link stays online
+/// is not another edge.
+pub(crate) fn follow_edge(seen: bool, was_online: bool, online: bool, lost: bool) -> bool {
+    seen && !was_online && online && lost
+}
+
 impl ConversationArea {
     /// What an act's answer does to the conversation's own state, only
     /// when it is for the session shown now: a late answer for a session
@@ -83,16 +91,24 @@ impl ConversationArea {
         Followup::None
     }
 
-    /// The shown machine's link is `online`: the bar drops the lost line.
-    /// An idle session sends no records, so the link is what clears it
-    /// (Paseo's header follows the host connection). An offline link
-    /// leaves the line. Whether it was cleared.
-    pub(crate) fn link_back(&mut self, online: bool) -> bool {
-        if !online || self.lost.is_none() {
-            return false;
+    /// Note this fleet sample of the shown machine's link. The lost line
+    /// clears on one offline→online edge, not on every online read: an
+    /// idle session sends no records, so the link is what clears it, and
+    /// a follow that fails while the link stays online keeps the line.
+    /// Whether this sample is that edge.
+    pub(crate) fn link_edge(&mut self, online: bool) -> bool {
+        let reopen = follow_edge(
+            self.link_seen,
+            self.link_online,
+            online,
+            self.lost.is_some(),
+        );
+        self.link_seen = true;
+        self.link_online = online;
+        if reopen {
+            self.lost = None;
         }
-        self.lost = None;
-        true
+        reopen
     }
 
     /// Fold in `records` of `session`, when it is the session shown:
