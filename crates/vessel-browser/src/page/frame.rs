@@ -14,6 +14,7 @@ const MINIMUM_FRAME_GAP: Duration = Duration::from_millis(100);
 pub(super) struct FrameWatch {
     latest: watch::Sender<Option<Arc<ViewportFrame>>>,
     published_at: Option<Instant>,
+    due: Option<Instant>,
 }
 
 impl FrameWatch {
@@ -22,6 +23,7 @@ impl FrameWatch {
         Self {
             latest,
             published_at: None,
+            due: None,
         }
     }
 
@@ -32,10 +34,22 @@ impl FrameWatch {
                 .is_none_or(|last| now.saturating_duration_since(last) >= MINIMUM_FRAME_GAP)
     }
 
-    pub(super) fn clear(&self) {
+    pub(super) fn clear(&mut self) {
         // Keep the rate limit across invalidation so rapid navigation cannot
         // force a burst of captures. The previous document's pixels are gone.
         let _changed = self.latest.send_if_modified(|frame| frame.take().is_some());
+        self.due = None;
+    }
+
+    pub(super) fn visible(&self) -> bool {
+        self.latest.receiver_count() > 0
+    }
+
+    pub(super) fn painted(&mut self, now: Instant) {
+        if self.visible() && self.due.is_none() {
+            let next = self.published_at.and_then(|last| last.checked_add(MINIMUM_FRAME_GAP));
+            self.due = Some(next.map_or(now, |next| next.max(now)));
+        }
     }
 }
 
@@ -57,6 +71,17 @@ impl ViewportFrame {
 }
 
 impl Page {
+    pub(crate) fn next_capture(&self) -> Option<Instant> {
+        self.frame_watch.due.filter(|_| self.frame_watch.visible())
+    }
+
+    pub(crate) async fn capture_due(&mut self, now: Instant) -> Result<(), PageError> {
+        if self.next_capture().is_some_and(|deadline| deadline <= now) {
+            self.refresh_visible_frame().await?;
+        }
+        Ok(())
+    }
+
     pub(crate) fn latest_frame(&self) -> Option<Arc<ViewportFrame>> {
         self.frame_watch.latest.borrow().clone()
     }
@@ -74,6 +99,7 @@ impl Page {
         if !self.frame_watch.ready_at(Instant::now()) {
             return Ok(());
         }
+        self.frame_watch.due = None;
         let frame = self.viewport_frame().await?;
         // A receiver can drop while the capture is in flight. `send` releases
         // the image in that case instead of parking pixels for a hidden pane.
@@ -142,7 +168,10 @@ mod tests {
         assert!(watch.ready_at(now));
         watch.published_at = Some(now);
         assert!(!watch.ready_at(now));
+        watch.painted(now);
+        assert_eq!(watch.due, Some(now + MINIMUM_FRAME_GAP));
         watch.clear();
+        assert_eq!(watch.due, None);
         assert!(!watch.ready_at(now));
         assert!(watch.ready_at(now + MINIMUM_FRAME_GAP));
         drop(receiver);

@@ -103,3 +103,10 @@ replaces the previous frame, while a lagged notice reader receives an explicit
 gap from the broadcast receiver. An acknowledged close publishes a terminal
 notice and drops the frame producer. Actor shutdown settles each watch before
 closing the debugger and owned process.
+
+The compositor sends a small paint signal so an active pane can update even
+when loading state stays settled. The actor acknowledges that signal and
+schedules a real viewport capture at the next permitted instant. It captures
+both document stamps around the screenshot instead of using the small signal
+image as the display frame. This keeps the CDP event queue bounded and lets
+the node drop intermediate paints while retaining the last scheduled update.

@@ -4,6 +4,7 @@ use std::sync::Arc;
 
 use tokio::sync::{mpsc, oneshot};
 use tokio::task::JoinHandle;
+use tokio::time::Instant;
 use tokio_util::sync::CancellationToken;
 use vessel_proc::OwnedGroupExit;
 use vessel_proto::WorkspaceId;
@@ -191,6 +192,7 @@ async fn run(
     if let Some((client, events)) = owner.controller() {
         let mut targets = Targets::default();
         let ended = loop {
+            let deadline = targets.next_capture();
             tokio::select! {
                 () = stop.cancelled() => break BrowserFailure::Closed,
                 next = requests.recv() => {
@@ -206,6 +208,7 @@ async fn run(
                     let Some(event) = next else { break BrowserFailure::NoEngine };
                     observe(&mut targets, &event).await;
                 }
+                () = capture_at(deadline) => targets.capture_due(Instant::now()).await,
             }
         };
         targets.end(ended);
@@ -215,6 +218,13 @@ async fn run(
     Shutdown {
         receipt,
         _owner: owner,
+    }
+}
+
+async fn capture_at(deadline: Option<Instant>) {
+    match deadline {
+        Some(deadline) => tokio::time::sleep_until(deadline).await,
+        None => std::future::pending().await,
     }
 }
 
@@ -236,7 +246,7 @@ async fn handle(targets: &mut Targets, client: &Client, queued: Queued) {
             let result = async {
                 let binding = targets.binding(workspace, &browser)?;
                 let watch = binding.watch();
-                binding.page.refresh_visible_frame().await?;
+                binding.page.start_paint_signals().await?;
                 Ok(watch)
             }
             .await;
@@ -293,14 +303,14 @@ async fn observe(targets: &mut Targets, event: &Event) {
                 binding.announce(BrowserLoad::Loading);
             }
         }
-        EventKind::Loaded | EventKind::Stopped => {
-            binding.announce(BrowserLoad::Ready);
-            let _captured = binding.page.refresh_visible_frame().await;
+        EventKind::Loaded => binding.announce(BrowserLoad::Ready),
+        EventKind::Screencast => {
+            let _noticed = binding.page.on_paint_signal(event).await;
         }
         EventKind::Attached
         | EventKind::Detached
         | EventKind::Crashed
-        | EventKind::Screencast
+        | EventKind::Stopped
         | EventKind::Dialog
         | EventKind::Console
         | EventKind::Exception

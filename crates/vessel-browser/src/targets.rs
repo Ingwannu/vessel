@@ -4,6 +4,7 @@ use std::collections::{BTreeMap, btree_map::Entry};
 use std::sync::Arc;
 
 use tokio::sync::{broadcast, watch};
+use tokio::time::Instant;
 use vessel_proto::WorkspaceId;
 use vessel_proto::browser::{
     BrowserFailure, BrowserId, BrowserLoad, BrowserRevision, BrowserUrl, MAX_BROWSER_TABS,
@@ -97,6 +98,16 @@ impl Binding {
 pub(crate) struct Targets(BTreeMap<BrowserId, Binding>);
 
 impl Targets {
+    pub(crate) fn next_capture(&self) -> Option<Instant> {
+        self.0.values().filter_map(|binding| binding.page.next_capture()).min()
+    }
+
+    pub(crate) async fn capture_due(&mut self, now: Instant) {
+        for binding in self.0.values_mut() {
+            let _captured = binding.page.capture_due(now).await;
+        }
+    }
+
     pub(crate) fn observing(&mut self, session: &SessionId) -> Option<&mut Binding> {
         self.0
             .values_mut()
