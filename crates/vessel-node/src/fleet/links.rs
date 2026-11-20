@@ -65,7 +65,9 @@
 //!   while it lasts. The home connects to a member on first use and keeps
 //!   the connection while it stays open; a call that loses it fails as
 //!   `unavailable` (it may or may not have run, so it is not retried), and
-//!   the next one connects again.
+//!   the next one connects again. The member map is a `std` mutex, locked
+//!   only to look and to insert: nothing awaits under it, so one unreachable
+//!   member cannot stall a call to another.
 
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -211,8 +213,9 @@ pub(crate) struct Links {
     ticketed: callback::Ticketed,
     /// A member's connection to its home, while the pull loop has one.
     home: Mutex<Option<NodeClient>>,
-    /// The home's open connections to its members.
-    members: tokio::sync::Mutex<HashMap<NodeId, NodeClient>>,
+    /// The home's open connections to its members. A `std` mutex: it is
+    /// taken only to look and to insert, never across a dial.
+    members: Mutex<HashMap<NodeId, NodeClient>>,
     /// Held while a grant is checked and recorded (and while `reconcile`
     /// revokes), never across a network call: two grants cannot both pass
     /// the checks, and a revocation never races a grant being recorded.
@@ -478,7 +481,7 @@ impl Links {
             home_relays,
             ticketed: callback::Ticketed::default(),
             home: Mutex::new(None),
-            members: tokio::sync::Mutex::new(HashMap::new()),
+            members: Mutex::new(HashMap::new()),
             granting: tokio::sync::Mutex::new(()),
             accepting: Mutex::new(HashSet::new()),
             in_flight: AtomicBool::new(false),
@@ -953,7 +956,12 @@ impl Links {
         })
         .await?;
         let replaced = recorded?;
-        drop(self.members.lock().await.remove(&node));
+        drop(
+            self.members
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner)
+                .remove(&node),
+        );
         tracing::info!(member = %node, device = %member, replaced = ?replaced, "a member granted this home a credential");
         Ok(())
     }
@@ -998,7 +1006,12 @@ impl Links {
                     format!("this home has no binding for node {node}"),
                 )
             })?;
-        drop(self.members.lock().await.remove(&node));
+        drop(
+            self.members
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner)
+                .remove(&node),
+        );
         tracing::info!(%node, withdrawn, devices = ?forgot.devices, "forgot a fleet node's binding at its owner's request");
         Ok(NodeForgotten {
             key: forgot.key,
@@ -1099,17 +1112,24 @@ impl Links {
         let client = self.member_client(node).await?;
         let called = client.call(request).await;
         if matches!(called, Err(CallError::Disconnected)) {
-            drop(self.members.lock().await.remove(&node));
+            drop(
+                self.members
+                    .lock()
+                    .unwrap_or_else(PoisonError::into_inner)
+                    .remove(&node),
+            );
         }
         called.map_err(|error| hop_error(node, error))
     }
 
     async fn member_client(&self, node: NodeId) -> Result<NodeClient, WireError> {
-        let mut members = self.members.lock().await;
-        if let Some(client) = members.get(&node)
-            && client.closed().now_or_never().is_none()
-        {
-            return Ok(client.clone());
+        // The map is locked only to look and to insert, never across the
+        // dial below: one unreachable member must not hold up calls to the
+        // others. Two calls racing to dial the same member may both
+        // connect; the first one in keeps its place and the other's
+        // connection is dropped.
+        if let Some(client) = self.open_member(node) {
+            return Ok(client);
         }
         // By the member device bound to `node`: exactly one, as grants are
         // checked when made. Two can only come from grants kept before
@@ -1156,8 +1176,23 @@ impl Links {
             .connect(client_info())
             .await
             .map_err(|error| unavailable(format!("cannot reach node {node}: {error}")))?;
+        let mut members = self.members.lock().unwrap_or_else(PoisonError::into_inner);
+        if let Some(open) = members.get(&node)
+            && open.closed().now_or_never().is_none()
+        {
+            return Ok(open.clone());
+        }
         let _previous = members.insert(node, client.clone());
         Ok(client)
+    }
+
+    /// The open connection to member `node`, if the home holds one.
+    fn open_member(&self, node: NodeId) -> Option<NodeClient> {
+        let members = self.members.lock().unwrap_or_else(PoisonError::into_inner);
+        members
+            .get(&node)
+            .filter(|client| client.closed().now_or_never().is_none())
+            .cloned()
     }
 
     /// `fleet.peers` on the home: the home itself, and every member that
@@ -1173,7 +1208,7 @@ impl Links {
         let open: Vec<NodeId> = self
             .members
             .lock()
-            .await
+            .unwrap_or_else(PoisonError::into_inner)
             .iter()
             .filter(|(_node, client)| client.closed().now_or_never().is_none())
             .map(|(node, _client)| *node)
@@ -1199,7 +1234,12 @@ mod tests {
         /// Let real Forward and member-to-home Relay refusal arms use a raw fixture peer.
         #[cfg(test)]
         pub(crate) async fn connected_member_for_test(&self, client: NodeClient) {
-            drop(self.members.lock().await.insert(client.node().id, client));
+            drop(
+                self.members
+                    .lock()
+                    .unwrap_or_else(PoisonError::into_inner)
+                    .insert(client.node().id, client),
+            );
         }
     }
 
