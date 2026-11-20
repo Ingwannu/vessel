@@ -79,8 +79,8 @@ is assigned at the node-line merge. Both methods are unary and not forwardable.
   catalog needs `daemon.manage`: the data holds no path and no code, and a Read device draws a machine's themes.
 - `plugin.invoke {plugin, generation, method, input, context}` (`admin`; refused to agents) answers `{output}`: one
   method the running helper declared, with opaque JSON in and out within the helper payload budget. `generation` is
-  the catalog entry's run; `context` is `{kind: global}`, `{kind: workspace, workspace}` or `{kind: agent, workspace,
-  agent}`; the helper receives `{input, context}`. `conflict` when the run has changed since; `not_found` for an
+  the catalog entry's run; `context` is `{kind: global}`, `{kind: workspace, project, worktree?}` or `{kind: agent, project,
+  worktree?, agent}` (a session's `workspace` and id); the helper receives `{input, context}`. `conflict` when the run has changed since; `not_found` for an
   undeclared method or a client-only plugin; `unavailable` when it is not running or is busy; `invalid_request` when
   it refuses or the input is too large; `internal` when its method failed. The helper's own text is never in the
   reply.

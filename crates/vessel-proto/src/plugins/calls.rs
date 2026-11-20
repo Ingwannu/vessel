@@ -31,7 +31,7 @@
 use serde::{Deserialize, Serialize};
 
 use super::{ClientCatalog, PluginGeneration, PluginId, RpcName, RuntimeGeneration};
-use crate::{RawJson, SessionId, WorkspaceId};
+use crate::{ProjectId, RawJson, SessionId, WorktreeId};
 
 /// `plugin.catalog`: the running installations' client declarations. Needs
 /// `read`.
@@ -73,23 +73,31 @@ pub struct InvokePlugin {
 }
 
 /// Where a plugin action was taken: Paseo's command contexts
-/// (`CommandContext`, `PanelContext`), with the identities they name.
+/// (`CommandContext`, `PanelContext`), named by what a client holds. A
+/// Paseo workspace is the directory agents work in; Vessel's is a project,
+/// or a worktree of it (`SessionInfo.workspace`).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum InvokeContext {
     /// No workspace or agent (a global command).
     Global,
-    /// A workspace.
+    /// A project, or one of its worktrees.
     Workspace {
-        /// Which.
-        workspace: WorkspaceId,
+        /// The project.
+        project: ProjectId,
+        /// The worktree, when it is one.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        worktree: Option<WorktreeId>,
     },
-    /// An agent in a workspace.
+    /// An agent (a session) in its workspace.
     Agent {
-        /// The agent's workspace.
-        workspace: WorkspaceId,
-        /// The agent's session.
+        /// The session's project.
+        project: ProjectId,
+        /// The session's worktree, when it runs in one.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        worktree: Option<WorktreeId>,
+        /// The session.
         agent: SessionId,
     },
 }
@@ -123,10 +131,10 @@ mod tests {
         assert!(call("a", r#","extra":true"#).is_err());
         let agent: InvokeContext = serde_json::from_value(serde_json::json!({
             "kind": "agent",
-            "workspace": WorkspaceId::random(),
+            "project": ProjectId::random(),
             "agent": SessionId::random(),
         }))
         .unwrap();
-        assert!(matches!(agent, InvokeContext::Agent { .. }));
+        assert!(matches!(agent, InvokeContext::Agent { worktree: None, .. }));
     }
 }

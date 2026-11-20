@@ -212,8 +212,10 @@ assigned at merge).
   `not_found` ("it has no helper program, so it has no methods"). A stopped
   or failed installation answers `unavailable`. As ADR 0079 asks of an
   action, a call carries the run (`generation`, from the catalog entry's
-  address) and the context it was taken in (`global`, a `workspace`, or an
-  `agent` with its workspace); a call from a run that has since been
+  address) and the context it was taken in (`global`; a `workspace`, which
+  in Vessel is a project or one of its worktrees, as a session's
+  `workspace` names it; or an `agent`, a session with its project and
+  worktree); a call from a run that has since been
   replaced answers `conflict` ("read it again"). The helper receives
   `{input, context}`, the context objects Paseo's `onSelect` and `onSubmit`
   get. The supervisor's actor checks
