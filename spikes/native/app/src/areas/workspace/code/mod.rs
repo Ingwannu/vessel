@@ -40,6 +40,7 @@ mod image_view;
 mod line_syntax;
 mod panels;
 mod panels_view;
+mod pull_tab;
 mod search;
 mod shown_source;
 mod sort;
@@ -81,6 +82,8 @@ use vessel_app_link::workspace::Ask;
 enum Tab {
     Changes,
     Files,
+    /// The session's pull request (`pull_tab`, ADR 0088).
+    PullRequest,
 }
 
 /// Where the open session runs, as far as the panel knows.
@@ -353,6 +356,24 @@ enum Slot {
 }
 
 impl Shell {
+    /// The file the Files tab shows for the open session, for the header's
+    /// Open (Paseo's active file): its path on the machine and the line it
+    /// was opened at.
+    pub(crate) fn code_shown_file(&self) -> Option<(std::path::PathBuf, Option<u32>)> {
+        let panel = &self.areas.workspace.code;
+        let (machine, session) = self.code_session()?;
+        let target = panel.target.as_ref()?;
+        if !panel.open
+            || panel.tab != Tab::Files
+            || target.machine != machine
+            || target.session != session
+        {
+            return None;
+        }
+        let viewer = panel.files.viewer.as_ref()?;
+        Some((target.cwd.as_ref()?.join(viewer.path.as_str()), viewer.goto))
+    }
+
     /// The session the panel should show: the open one.
     fn code_session(&self) -> Option<(String, SessionId)> {
         let open = self.areas.session.open.as_ref()?;
@@ -460,7 +481,7 @@ impl Shell {
                 self.reread_files();
                 true
             }
-            Tab::Changes | Tab::Files => false,
+            Tab::Changes | Tab::Files | Tab::PullRequest => false,
         }
     }
 
@@ -476,6 +497,7 @@ impl Shell {
             Tab::Changes => self.read_changes(),
             // A root never listed is not among the folders read again.
             Tab::Files => self.read_folder(&RelPath::root()),
+            Tab::PullRequest => self.pulls_pane_read(),
         }
         self.code_watch();
     }

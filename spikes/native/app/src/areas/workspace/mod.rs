@@ -14,6 +14,7 @@ mod background;
 mod book;
 mod code;
 mod detail;
+mod open_targets;
 mod place;
 mod place_rows;
 mod project_icons;
@@ -38,6 +39,8 @@ pub(crate) use code::FindRefused;
 #[cfg(test)]
 pub(crate) use code::{ShownChangesContext, ShownDiffContext};
 pub(crate) use code::{code_beside, code_toggle, frame_row};
+pub(crate) use open_targets::Origin as OpenOrigin;
+pub(crate) use open_targets::open_button as open_in_editor;
 pub(crate) use place::{PlacePick, Rows as PlaceRows};
 pub(crate) use projects::render as projects_content;
 pub(crate) use sidebar::layers as sidebar_project_layers;
@@ -71,6 +74,8 @@ pub(crate) struct Workspace {
     pub(crate) background: background::Background,
     /// The sidebar's project rows: their menu, question and removals.
     pub(crate) sidebar: sidebar::ProjectRows,
+    /// Open in editor and reveal (TRACKER 467).
+    pub(crate) open: open_targets::OpenTargets,
 }
 
 impl Workspace {
@@ -86,6 +91,7 @@ impl Workspace {
             icons: project_icons::ProjectIcons::default(),
             background: background::Background::default(),
             sidebar: sidebar::ProjectRows::new(cx),
+            open: open_targets::OpenTargets::new(window, cx),
         }
     }
 }
@@ -123,6 +129,7 @@ impl Shell {
             self.ask(&machine, Ask::Project(ProjectAsk::List));
         }
         self.add_flow_fleet();
+        self.pulls_fleet();
     }
 
     /// A machine answered a workspace ask. Returns whether what is drawn
@@ -153,6 +160,9 @@ impl Shell {
             }
             Answer::Took { form, result } => self.took_project(machine, form, result),
             Answer::Folders { query, result } => self.add_flow_folders(machine, &query, result),
+            Answer::Repositories { query, result } => {
+                self.add_flow_repositories(machine, &query, result);
+            }
             Answer::Icon { project, result } => {
                 self.background_answered(machine);
                 self.project_icon_read(machine, project, result);

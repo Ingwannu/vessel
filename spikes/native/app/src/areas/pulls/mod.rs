@@ -1,8 +1,8 @@
 //! A session's pull request in the app: "Create PR" and "View PR" in the
 //! git menu (Paseo's `git/policy.ts` pull request action), the form that
 //! opens one, the link at the head of the Changes tab (Paseo's
-//! `ChangesPullRequestLink`) and its facts (Paseo's
-//! `git/pull-request-panel/pane.tsx`). The rules are
+//! `ChangesPullRequestLink`) and its pane, the code panel's Pull request
+//! tab (Paseo's `git/pull-request-panel/pane.tsx`). The rules are
 //! `view::workspace::pull`'s; this area keeps state, wires and draws.
 //!
 //! [Decision Log]
@@ -12,21 +12,32 @@
 //!   it fresh); the whole pull request is `pr.get`; `pr.open` is the
 //!   node's (it pushes the branch for a person first). Paseo writes the
 //!   title with a model; this node takes the person's, so there is a form.
-//! - Alternatives: the facts as a tab of the code panel, as Paseo's pane
-//!   (a tab in track F's panel and its tab bar); a page of every pull
+//! - Alternatives: the facts as a dialog over the Changes tab (the first
+//!   cut, before the code panel had a tab for it); a page of every pull
 //!   request (`pr.list` covers watched sessions only, so it would claim a
 //!   whole the node does not send).
-//! - Choice: the form and the facts as dialogs of this area, opened from
-//!   the git row; the answers come on the workspace pair (`Answer::Pull`).
-//! - Cost: the facts cover the Changes tab while open, where Paseo's pane
-//!   sits beside it; a tab can come when the code panel offers one.
+//! - Choice: the form as a dialog, opened from the git row; the facts as
+//!   the code panel's Pull request tab (`pane`, ADR 0088), which the git
+//!   row's link opens; the answers come on the workspace pair
+//!   (`Answer::Pull`).
 
 mod card;
-mod facts;
 mod feedback;
 mod form;
 mod link;
 mod merge;
+mod pane;
+mod pane_activity;
+mod pane_attach;
+mod pane_cards;
+mod pane_checks;
+mod pane_menu;
+mod pane_ring;
+mod pane_skeleton;
+#[cfg(test)]
+mod pane_tests;
+mod pane_threads;
+mod pane_timeline;
 
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_kit::{ComboboxState, DialogState, TextField};
@@ -45,9 +56,11 @@ use vessel_proto::workspace::{CommitPage, GitStatus, ReadLog, RefName, Workspace
 use crate::shell::Shell;
 
 pub(crate) use card::card_items;
-pub(crate) use facts::dialog as facts_dialog;
 pub(crate) use form::{base_list, dialog as form_dialog};
 pub(crate) use link::{link, state_glyph_sized};
+pub(crate) use pane::pane;
+pub(crate) use pane_cards::Choices;
+pub(crate) use pane_checks::presentation_mark;
 
 /// The most new commits the form's description lists (`gh` lists them
 /// all; a branch far ahead gives a description nobody reads).
@@ -94,7 +107,7 @@ pub(crate) struct Form {
     pub(crate) issue: Option<FormIssue>,
 }
 
-/// What the facts dialog shows.
+/// What the pane shows.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum FactsRead {
     Loading,
@@ -102,13 +115,19 @@ pub(crate) enum FactsRead {
     Failed(Problem),
 }
 
-/// The open facts dialog.
+/// The pane's read of one session's pull request.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Facts {
     pub(crate) subject: Subject,
     pub(crate) read: FactsRead,
-    /// A read from the forge is out (the refresh button spins).
+    /// A read from the forge is out (the refresh icon spins).
     pub(crate) refreshing: bool,
+    /// The card's summary when it was asked: a newer one reads it again.
+    pub(crate) seen: Option<vessel_proto::forge::PullSummary>,
+    /// Its activity (`pr.timeline`).
+    pub(crate) timeline: pane_timeline::TimelineRead,
+    pub(crate) adding: pane_attach::Adding,
+    pub(crate) choices: Choices,
 }
 
 pub(crate) struct PullsArea {
@@ -133,6 +152,8 @@ pub(crate) struct PullsArea {
     pub(crate) feedback_sending: Option<vessel_proto::forge::SetFeedback>,
     /// The feedback switch's changes.
     pub(crate) feedback_turn: u64,
+    /// The activity cards' menu.
+    pub(crate) card_menu: pane_menu::CardMenu,
 }
 
 impl PullsArea {
@@ -163,6 +184,7 @@ impl PullsArea {
             merging: None,
             feedback_sending: None,
             feedback_turn: 0,
+            card_menu: pane_menu::CardMenu::new(cx),
         }
     }
 }
@@ -335,27 +357,10 @@ impl Shell {
         cx.notify();
     }
 
-    /// The link or a toast's View: open the facts and read them whole.
+    /// The git row's link: the code panel's Pull request tab, which reads
+    /// it whole.
     pub(crate) fn pulls_open_facts(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
-        let Some((subject, _)) = self.pulls_subject() else {
-            return;
-        };
-        let machine = subject.machine.clone();
-        let session = subject.session;
-        self.areas.pulls.facts = Some(Facts {
-            subject,
-            read: FactsRead::Loading,
-            refreshing: false,
-        });
-        self.areas.pulls.dialog.focus(window, cx);
-        self.ask(
-            &machine,
-            Ask::Pull(PullAsk::Get(GetPullRequest {
-                session,
-                refresh: false,
-            })),
-        );
-        cx.notify();
+        self.code_show_pull_request(window, cx);
     }
 
     /// The refresh button: read it from the forge now.
@@ -382,10 +387,9 @@ impl Shell {
         cx.notify();
     }
 
-    /// Close whichever dialog is open.
+    /// Close the form.
     pub(crate) fn pulls_close(&mut self, _window: &mut Window, cx: &mut Context<'_, Self>) {
         self.areas.pulls.form = None;
-        self.areas.pulls.facts = None;
         cx.notify();
     }
 
@@ -403,6 +407,10 @@ impl Shell {
             PullAnswer::Feedback { ask, result } => {
                 self.pulls_feedback_answered(&ask, result, cx);
             }
+            PullAnswer::Timeline { session, result } => {
+                self.pulls_timeline(machine, session, result);
+            }
+            PullAnswer::Check { ask, result } => self.pulls_check_answered(machine, &ask, result),
         }
         cx.notify();
     }
@@ -442,6 +450,11 @@ impl Shell {
                 FactsRead::Loading | FactsRead::Failed(_) => FactsRead::Failed(problem),
             },
         };
+        // A pull request read: its activity follows (Paseo refetches the
+        // timeline when the status changes).
+        if matches!(&facts.read, FactsRead::Ready(view) if view.pull_request.is_some()) {
+            self.pulls_ask_timeline(machine, session);
+        }
     }
 
     fn pulls_opened(

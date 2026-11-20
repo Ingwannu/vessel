@@ -86,7 +86,7 @@ pub(crate) fn slot(
                 .child(shell.t.lang.git_labels().reading),
         ),
     };
-    let pulls_open = shell.areas.pulls.form.is_some() || shell.areas.pulls.facts.is_some();
+    let pulls_open = shell.areas.pulls.form.is_some();
     if git.open.is_none() && git.dropping.is_none() && git.confirm_switch.is_none() && !pulls_open {
         // The owner's word 39: a row that opens arrives in the surface
         // transition (opacity, 300 ms on the kit's curve; at once while
@@ -110,7 +110,6 @@ pub(crate) fn slot(
             .children(super::stashes::dialog(shell, tokens, window, cx))
             .children(crate::areas::pulls::form_dialog(shell, tokens, window, cx))
             .children(crate::areas::pulls::base_list(shell, tokens, window, cx))
-            .children(crate::areas::pulls::facts_dialog(shell, tokens, window, cx))
             .children(shell.areas.pulls.tips.render(tokens))
             // A tooltip does not stay over a menu or a list it was the
             // trigger of: the caret stops the press before the tooltip

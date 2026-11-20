@@ -117,9 +117,9 @@ Read from Paseo 0.15.4 (`packages/app/src`).
   tabs to the right?" with a count, is not drawn).
 - No kitty keyboard or win32 input mode (the grid does not track them): a
   modified Enter is a carriage return.
-- Not in this packet: selection, copy and find (P3), the key bar (P4),
-  profiles (P5, ADR 0117), attention (P6), file drop and image paste (P7),
-  terminals that survive a node restart.
+- Not in this packet: the key bar (P4), profiles (P5, ADR 0117), attention
+  (P6), file drop and image paste (P7), terminals that survive a node
+  restart.
 
 ## Checks
 
@@ -142,3 +142,57 @@ Read from Paseo 0.15.4 (`packages/app/src`).
   the shell is the account's program by ADR 0031's detection (no `SHELL`),
   reading no personal rc file and holding no credential from the
   environment; only harmless commands are typed.
+
+## P3: find, selection and copy, scrollback (native)
+
+Paseo's web and desktop terminal (xterm.js) is the reference; its mobile
+grid (long press, grips, floating Copy and Paste) is the phone app's later
+(coordinator ruling, P3).
+
+- Find (`pane-find/*`, `terminal/find/index.tsx`, runtime 270-520): Mod+F
+  (Cmd on macOS, Ctrl elsewhere; not with Shift or Alt) while a terminal tab
+  has the keyboard opens the bar; anywhere else Mod+F is the conversation's
+  find. The bar is 340 wide over the pane's top right, a field ("Find in
+  pane") with the counter inside ("No matches", "N matches", "x of y", the
+  total with a "+" at 20,000), previous, next and "Close Find". Enter goes
+  to the next match, Shift+Enter to the previous, Escape closes and gives
+  the terminal the keyboard back. Keys typed in the bar are the bar's (the
+  terminal's handler leaves them while a find field has the keyboard), and
+  a press on the bar never reaches the terminal below it. Literal, case-insensitive text across soft
+  wraps, matches not overlapping; other matches bordered in the terminal
+  theme's yellow, the current in its blue; the view scrolls to the current
+  one, and the bar moves to the bottom when it would cover it. The search
+  runs a slice of rows a step (the first at once), and again after new
+  output or a width change, keeping the current match on its text.
+- Selection: a drag selects cells, a double click a word (xterm.js's word
+  separators), a triple click a line, Shift+click extends; past the top or
+  bottom edge a drag scrolls. Typing, a paste, a plain click, a width change
+  or the other screen clears it. Drawn with the theme's selection colour.
+- Copy: Cmd+C on macOS; Ctrl+C elsewhere copies a selection and is the
+  shell's ^C without one (`handleCtrlClipboardShortcut`). No toast.
+- Paste (P1 review note 2): queued whole and sent in parts of at most the
+  node's 64 KiB a send, cut between characters; keys typed during it go
+  after it. Pastes waiting are bounded at 32 MiB, past which a paste is
+  refused whole.
+- Settings > Terminal: "Terminal scrollback" (0 through 1,000,000, default
+  10,000), a number field that commits on Enter or when it loses the
+  keyboard; open tabs and the session terminal screen take it at once.
+  It is stored in the native preferences as a `terminal` section written
+  only once it differs from the default, so the default document stays the
+  page's contract; a stored value is read as Paseo's schema reads it
+  (clamped, a fraction floored, anything else the default).
+- Accessibility (P1 review note 1): the tab's keyboard target is a text
+  input named "Terminal input"; the counter is a status named "Find
+  matches".
+- Stated differences: Paseo's find anchor keeps the inspected line still
+  under new output, here a match that output scrolled away is brought back
+  when the search runs again; Paseo's scrollback field drops a non-digit as
+  it is typed, here at commit; Paseo right-aligns the scrollback count,
+  the kit's one-line field reads from the left; no context menu (Paseo desktop's is its
+  Electron shell's); size marks of the selection follow the grid, not the
+  pixel.
+- Checks: view tests for text addresses, copy, word and line, wide cells,
+  find rules and the limit, scrollback trim, the sender's parts and paste
+  bound; app tests for Mod+F on both sides, find's counter and moves,
+  Ctrl+C with and without a selection, typing clearing it, a paste past
+  the room before a key and ^C, and the setting on an open tab.

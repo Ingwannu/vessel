@@ -274,4 +274,30 @@ glyph_inventory! {
     /// The needs-input alert's marks (Lucide `CircleAlert`'s two strokes at
     /// its 2 stroke), drawn over its disc in the disc's knockout colour.
     StatusAlertMarks => "kit/status-alert-marks.svg",
+    /// Skipped or cancelled (Paseo's `CircleSlash`: a check that says
+    /// nothing about the run): the ring struck through.
+    CircleSlash => "kit/circle-slash.svg",
+    /// Add to chat (Paseo's `MessageSquarePlus`): the message mark with a
+    /// plus inside.
+    MessagePlus => "kit/message-plus.svg",
+    /// Open on the forge (Paseo's `ExternalLink`, a card menu's row): a
+    /// box with an arrow leaving its corner.
+    ExternalLink => "kit/external-link.svg",
+    /// Find's next match (Paseo's pane find, Lucide `ArrowDown`).
+    ArrowDown => "kit/arrow-down.svg",
+    /// A pull request's checks all passed (Paseo's `CheckIndicator`): the
+    /// ring with a check inside.
+    ChecksPassed => "kit/checks-passed.svg",
+    /// Its checks failed: the ring with a cross inside.
+    ChecksFailed => "kit/checks-failed.svg",
+    /// Its checks run, none done yet: the ring alone.
+    ChecksPie0 => "kit/checks-pie-0.svg",
+    /// A quarter done: the ring around a pie filled from twelve to three.
+    ChecksPie1 => "kit/checks-pie-1.svg",
+    /// Half done.
+    ChecksPie2 => "kit/checks-pie-2.svg",
+    /// Three quarters done.
+    ChecksPie3 => "kit/checks-pie-3.svg",
+    /// Every check done, the outcome not read yet: the pie full.
+    ChecksPie4 => "kit/checks-pie-4.svg",
 }

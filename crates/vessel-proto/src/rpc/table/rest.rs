@@ -252,6 +252,10 @@ macro_rules! method_table_rest {
             GetPullTimeline / pull_timeline / "pr.timeline" [Read, (pending $crate::forge::PULL_REQUEST_PANE_PROTOCOL), unary]: $crate::forge::GetPullTimeline => $crate::forge::PullTimeline;
             /// One check of a session's pull request, with its failed jobs' log tails (ADR 0088).
             GetCheckDetails / check_details / "pr.check" [Read, (pending $crate::forge::PULL_REQUEST_PANE_PROTOCOL), unary]: $crate::forge::GetCheckDetails => $crate::forge::CheckDetails;
+            /// The running installations' client declarations, as Paseo's plugin catalog (ADR 0115).
+            GetPluginCatalog / plugin_catalog / "plugin.catalog" [Read, (pending $crate::plugins::PLUGIN_CATALOG_PROTOCOL), unary]: $crate::plugins::GetPluginCatalog => $crate::plugins::PluginCatalog;
+            /// Call a method a running installation declared, as Paseo's plugin RPC (ADR 0115).
+            InvokePlugin / invoke_plugin / "plugin.invoke" [Admin, (pending $crate::plugins::PLUGIN_CATALOG_PROTOCOL), unary]: $crate::plugins::InvokePlugin => $crate::plugins::PluginOutput;
         }
     };
 }

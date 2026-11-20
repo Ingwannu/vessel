@@ -56,6 +56,9 @@ pub enum PreferenceChange {
     Alerts(Alerts),
     /// Whether the window's title counts notices.
     TitleCount(bool),
+    /// Lines the built-in terminal keeps above its screen; applies to open
+    /// terminals at once.
+    TerminalScrollback(crate::terminal::ScrollbackLines),
     /// What the sidebar groups by.
     SidebarGroup(Grouping),
     /// The sidebar's order.
@@ -210,6 +213,7 @@ impl Preferences {
             PreferenceChange::Delivery(delivery) => self.composer.delivery = *delivery,
             PreferenceChange::Alerts(alerts) => self.notifications.alerts = *alerts,
             PreferenceChange::TitleCount(title) => self.notifications.title = *title,
+            PreferenceChange::TerminalScrollback(lines) => self.terminal.scrollback = *lines,
             PreferenceChange::SidebarGroup(group) => self.sidebar.group = *group,
             PreferenceChange::SidebarSort(sort) => self.sidebar.sort = *sort,
             PreferenceChange::SidebarEnded(ended) => self.sidebar.ended = *ended,

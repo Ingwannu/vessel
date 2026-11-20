@@ -31,7 +31,7 @@ pub const CELL_LIMIT: usize = 4 * 1024 * 1024;
 
 /// A physical history row's address survives front eviction. A clear
 /// changes the epoch so an old anchor cannot attach to unrelated output.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) struct HistoryRow {
     epoch: Generation,
     line: u64,
@@ -54,6 +54,15 @@ impl HistoryRow {
 
     pub(crate) fn distance(self, earlier: Self) -> Scroll {
         Scroll(u32::try_from(self.line.saturating_sub(earlier.line)).unwrap_or(u32::MAX))
+    }
+
+    /// How many rows after `first` this is, when both are of one buffer
+    /// and this one was not dropped before it.
+    pub(crate) fn index_from(self, first: Self) -> Option<usize> {
+        (self.epoch == first.epoch)
+            .then(|| self.line.checked_sub(first.line))
+            .flatten()
+            .and_then(|index| usize::try_from(index).ok())
     }
 
     pub(crate) fn within(self, first: Self, end: Self) -> Option<Self> {
@@ -90,6 +99,17 @@ impl History {
     /// The setting's bound.
     pub(super) const fn limit(&self) -> ScrollbackLines {
         self.limit
+    }
+
+    /// A new bound (the setting changed, applied to an open terminal as
+    /// Paseo's desktop sets `terminal.options.scrollback`): a lower one
+    /// drops the oldest lines at once. Whether any line went is answered,
+    /// so the grid redraws only then.
+    pub(super) fn set_limit(&mut self, limit: ScrollbackLines) -> bool {
+        self.limit = limit;
+        let before = self.lines.len();
+        self.bound();
+        self.lines.len() != before
     }
 
     /// Lines held.

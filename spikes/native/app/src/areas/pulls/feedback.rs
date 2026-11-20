@@ -1,5 +1,5 @@
 //! Whether the pull request's failing checks and reviews are sent to the
-//! session (`pr.feedback`, ADR 0029's feedback): a switch in the facts,
+//! session (`pr.feedback`, ADR 0029's feedback): a switch in the pane,
 //! drawn as Paseo's settings row (the words left, the switch right). The
 //! node owns the state (`PullRequestView.feedback`); the switch shows the
 //! node's answer, not a guess, and waits while a change is out.

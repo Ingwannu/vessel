@@ -147,6 +147,20 @@ impl Shell {
 
     /// A new opening invalidates every outstanding read and replay, even
     /// if this machine/session pair was shown earlier.
+    /// The scrollback setting changed: the open terminal session's screen
+    /// keeps that many lines from now on (when its model is home; a model
+    /// at its parse takes the setting at the next open).
+    pub(crate) fn terminal_session_scrollback(
+        &mut self,
+        lines: ScrollbackLines,
+        cx: &mut Context<'_, Self>,
+    ) {
+        if let Some(model) = self.areas.terminal.model.as_mut() {
+            model.set_scrollback(lines);
+            cx.notify();
+        }
+    }
+
     pub(crate) fn terminal_opened(
         &mut self,
         machine: NodeName,
@@ -154,6 +168,7 @@ impl Shell {
         size: TerminalSize,
         cx: &mut Context<'_, Self>,
     ) {
+        let scrollback = self.prefs.settings.terminal.scrollback;
         let area = &mut self.areas.terminal;
         let size = area
             .fit
@@ -161,7 +176,7 @@ impl Shell {
         let opening = TerminalOpening::new(machine, session);
         area.shown = Some(opening.clone());
         area.phase = Phase::Loading;
-        area.model = Some(TerminalModel::new(size, ScrollbackLines::default()));
+        area.model = Some(TerminalModel::new(size, scrollback));
         area.log = TerminalLog::default();
         area.held.clear();
         area.pending.clear();

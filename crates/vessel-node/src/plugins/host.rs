@@ -15,15 +15,22 @@
 //!   the Windows temp/profile ones). No token, pairing link, harness home
 //!   or secret reaches the helper; its identity comes in `initialize`.
 //! - A plugin with only a client document has no process: it runs when its
-//!   document validates.
+//!   document validates, and that document is its catalog entry. A plugin
+//!   with a helper is catalogued by the document its helper declares in
+//!   `ready`; a `client` file beside it is checked but not served.
+//! - The client file is opened only after its real path (links resolved)
+//!   is found inside the plugin's real directory: the manifest's relative
+//!   path is checked as text, and a link inside the directory could still
+//!   point anywhere the node can read (review, 2026-11-20).
 //! - Trust: the helper is unsandboxed code with the node account's access
 //!   (ADR 0079); this is a fault boundary, not a security one.
 
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use tokio_util::sync::CancellationToken;
-use vessel_plugin::{PreparedCommand, RuntimeState, SharedLogs, Supervisor};
+use vessel_plugin::{PreparedCommand, RuntimeError, RuntimeState, SharedLogs, Supervisor};
 use vessel_proc::CommandSpec;
 use vessel_proto::plugins::{ClientDocument, MAX_DOCUMENT_BYTES, PluginAddress};
 
@@ -63,16 +70,24 @@ impl LaunchEnv {
         home: &Path,
         vars: impl IntoIterator<Item = (OsString, OsString)>,
     ) -> Self {
-        let passed = vars
-            .into_iter()
-            .filter_map(|(name, value)| {
-                let name = name.to_str()?;
-                PASSED
-                    .iter()
-                    .find(|passed| passed.eq_ignore_ascii_case(name))
-                    .map(|passed| (*passed, value))
-            })
-            .collect();
+        // One value per name. Unix may hold `PATH` and `path` at once: the
+        // exact spelling wins (what `which_in` and the helper's own shell
+        // read), else the first other case of it.
+        let named = vars.into_iter().filter_map(|(name, value)| {
+            let name = name.into_string().ok()?;
+            let known = PASSED
+                .iter()
+                .find(|known| known.eq_ignore_ascii_case(&name))?;
+            Some((*known, name == *known, value))
+        });
+        let mut passed: Vec<(&'static str, OsString)> = Vec::new();
+        for (known, exact, value) in named {
+            match passed.iter_mut().find(|(kept, _)| *kept == known) {
+                Some(slot) if exact => slot.1 = value,
+                Some(_) => {}
+                None => passed.push((known, value)),
+            }
+        }
         Self {
             passed,
             home: home.to_path_buf(),
@@ -116,9 +131,14 @@ pub(crate) enum StartError {
 /// What runs for a started installation.
 #[derive(Debug)]
 pub(crate) enum Started {
-    /// A client document that validated, and no process. The catalog
-    /// (ADR 0115, P3) keeps the document; this packet only checks it.
-    Client,
+    /// A client document that validated, and no process: the catalog's
+    /// entry under `address`.
+    Client {
+        /// This run's identity.
+        address: PluginAddress,
+        /// The validated document.
+        document: Arc<ClientDocument>,
+    },
     /// A helper that answered ready.
     Helper(Supervisor),
 }
@@ -133,20 +153,23 @@ pub(crate) async fn start(
     parent: &CancellationToken,
 ) -> Result<Started, StartError> {
     let client = match &manifest.client {
-        Some(path) => Some(read_client(path).await?),
+        Some(path) => Some(read_client(path, directory).await?),
         None => None,
     };
     let Some(command) = &manifest.server else {
-        let _validated: ClientDocument = client.ok_or_else(|| {
+        let document = client.ok_or_else(|| {
             StartError::Manifest(
                 "it names neither a server command nor a client document".to_owned(),
             )
         })?;
-        return Ok(Started::Client);
+        return Ok(Started::Client {
+            address,
+            document: Arc::new(document),
+        });
     };
     let launch = prepare(command, directory, env)?;
     let supervisor = Supervisor::spawn(launch, address, logs.clone(), parent)
-        .map_err(|error| StartError::Helper(error.to_string()))?;
+        .map_err(|error| StartError::Helper(reason(&error)))?;
     let mut state = supervisor.handle().subscribe();
     let ready = state
         .wait_for(|state| !matches!(state, RuntimeState::Starting))
@@ -157,7 +180,7 @@ pub(crate) async fn start(
     }
     // It stopped before ready: the supervisor's result says why.
     match supervisor.shutdown().await {
-        Err(error) => Err(StartError::Helper(error.to_string())),
+        Err(error) => Err(StartError::Helper(reason(&error))),
         Ok(_receipt) if parent.is_cancelled() => Err(StartError::Stopping),
         Ok(_receipt) => Err(StartError::Helper(
             "plugin helper stopped before it was ready".to_owned(),
@@ -165,19 +188,60 @@ pub(crate) async fn start(
     }
 }
 
-/// Read and validate a client document, bounded before it is parsed.
-async fn read_client(path: &Path) -> Result<ClientDocument, StartError> {
+/// Why a helper ended, in the words a person reads on its row: an exit
+/// status as a number, not the supervisor's debug form (`Some(3)`).
+pub(crate) fn reason(error: &RuntimeError) -> String {
+    match error {
+        RuntimeError::Exited { code: Some(code) } => {
+            format!("plugin helper exited with status {code}")
+        }
+        RuntimeError::Exited { code: None } => "plugin helper was ended by a signal".to_owned(),
+        RuntimeError::Stopping
+        | RuntimeError::Runtime(_)
+        | RuntimeError::Spawn(_)
+        | RuntimeError::Read(_)
+        | RuntimeError::Write(_)
+        | RuntimeError::ReadyTimeout
+        | RuntimeError::CallTimeout
+        | RuntimeError::WriteTimeout
+        | RuntimeError::Fatal
+        | RuntimeError::EndOfStream
+        | RuntimeError::Protocol(_)
+        | RuntimeError::Stderr(_)
+        | RuntimeError::StderrDrainTimeout
+        | RuntimeError::Logs
+        | RuntimeError::LogIdentity(_)
+        | RuntimeError::Signal(_)
+        | RuntimeError::Wait(_)
+        | RuntimeError::Cleanup(_)
+        | RuntimeError::CleanupTimeout
+        | RuntimeError::Task(_) => error.to_string(),
+    }
+}
+
+/// Read and validate a client document, bounded before it is parsed; its
+/// real path must be inside `directory`'s.
+async fn read_client(path: &Path, directory: &Path) -> Result<ClientDocument, StartError> {
     let failed = |reason: String| StartError::Client {
         path: path.display().to_string(),
         reason,
     };
-    let metadata = tokio::fs::metadata(path)
+    let real = tokio::fs::canonicalize(path)
+        .await
+        .map_err(|error| failed(error.to_string()))?;
+    let inside = tokio::fs::canonicalize(directory)
+        .await
+        .map_err(|error| failed(error.to_string()))?;
+    if !real.starts_with(&inside) {
+        return Err(failed("it leads outside the plugin directory".to_owned()));
+    }
+    let metadata = tokio::fs::metadata(&real)
         .await
         .map_err(|error| failed(error.to_string()))?;
     if metadata.len() > u64::try_from(MAX_DOCUMENT_BYTES).unwrap_or(u64::MAX) {
         return Err(failed(format!("larger than {MAX_DOCUMENT_BYTES} bytes")));
     }
-    let bytes = tokio::fs::read(path)
+    let bytes = tokio::fs::read(&real)
         .await
         .map_err(|error| failed(error.to_string()))?;
     serde_json::from_slice(&bytes).map_err(|error| failed(error.to_string()))
@@ -240,6 +304,18 @@ fn resolve(program: &str, directory: &Path, env: &LaunchEnv) -> Result<PathBuf, 
 #[cfg(test)]
 pub(super) mod tests {
     use super::*;
+
+    #[test]
+    fn an_exit_reads_as_a_status_or_a_signal() {
+        assert_eq!(
+            reason(&RuntimeError::Exited { code: Some(3) }),
+            "plugin helper exited with status 3"
+        );
+        assert_eq!(
+            reason(&RuntimeError::Exited { code: None }),
+            "plugin helper was ended by a signal"
+        );
+    }
 
     #[test]
     fn programs_resolve_inside_the_directory_or_on_path() {
@@ -347,6 +423,22 @@ pub(super) mod tests {
         }
         assert!(credential_shaped("GH_TOKEN") && credential_shaped("openai_api_key"));
         assert!(!credential_shaped("PATH") && !credential_shaped("LANG"));
+    }
+
+    #[test]
+    fn each_name_is_passed_once_and_the_exact_spelling_wins() {
+        let vars = [
+            ("path", "/lower"),
+            ("PATH", "/exact"),
+            ("Path", "/mixed"),
+            ("lang", "C"),
+        ]
+        .iter()
+        .map(|(name, value)| (OsString::from(*name), OsString::from(*value)));
+        let env = LaunchEnv::from_vars(Path::new("/home/someone"), vars);
+        let names: Vec<&str> = env.passed.iter().map(|(name, _)| *name).collect();
+        assert_eq!(names, ["PATH", "LANG"]);
+        assert_eq!(env.path(), Some(&OsString::from("/exact")));
     }
 
     #[test]

@@ -11,10 +11,11 @@
 //! - Constraint: the node moves and deletes inside the root only and
 //!   never over an existing path (`file.rename`, `file.delete`); a new
 //!   file is a write that expects nothing there.
-//! - Choice: Paseo's menu items that the node can do; Paseo's "Open in
-//!   editor", "Reveal in" and "Open to side" are left out (no editor or
-//!   file manager on the machine is reachable from here, and there is no
-//!   second pane). "Duplicate" (`file.duplicate`) and a file's "Download"
+//! - Choice: Paseo's menu items that the node can do. A folder's "Open
+//!   in <editor>" and any entry's "Reveal in <file manager>" are offered
+//!   when the machine is this computer (TRACKER 467, ADR 0123,
+//!   `open_targets`); "Open to side" is left out (there is no second
+//!   pane). "Duplicate" (`file.duplicate`) and a file's "Download"
 //!   (`file.read_bytes`, `download.rs`) are offered only by a machine with
 //!   the file panels' calls (ADR 0105), as Paseo hides Duplicate without
 //!   `fsEntryDuplicateEnabled`; a duplicate's folder is listed again
@@ -28,11 +29,13 @@ use vessel_app_kit::dialog::DialogState;
 use vessel_app_kit::ui::{ClipboardItem, Context, Pixels, Point, Window};
 use vessel_app_kit::{MenuState, TextField};
 use vessel_app_link::workspace::{Ask, FileAsk, PathChange};
+use vessel_app_view::open_targets::{Request, TargetId};
 use vessel_app_view::workspace::file_tree::TreeRow;
 use vessel_app_view::workspace::problem::Problem;
 use vessel_proto::workspace::panel_files::{DuplicateFileEntry, DuplicatedFileEntry};
 use vessel_proto::workspace::{CreateDir, DeletePath, RelPath, RenamePath};
 
+use crate::areas::workspace::OpenOrigin;
 use crate::shell::Shell;
 
 /// What is typed in the tree.
@@ -60,6 +63,10 @@ pub(super) struct Target {
     pub(super) open: bool,
     /// Its machine has the file panels' calls (`file.duplicate`).
     pub(super) panels: bool,
+    /// The editor a folder opens in, on this computer (TRACKER 467).
+    pub(super) editor: Option<TargetId>,
+    /// The file manager an entry is revealed in, on this computer.
+    pub(super) manager: Option<TargetId>,
 }
 
 /// One action of the menu.
@@ -67,10 +74,12 @@ pub(super) struct Target {
 pub(super) enum Action {
     OpenFile,
     CollapseFolder,
+    OpenInEditor,
     NewFile,
     NewFolder,
     CopyPath,
     CopyRelativePath,
+    Reveal,
     Download,
     AddToChat,
     Rename,
@@ -136,10 +145,16 @@ pub(super) fn items_for(target: &Target) -> Vec<Action> {
         if target.open {
             items.push(Action::CollapseFolder);
         }
+        if target.editor.is_some() {
+            items.push(Action::OpenInEditor);
+        }
     } else {
         items.push(Action::OpenFile);
     }
     items.extend([Action::CopyPath, Action::CopyRelativePath]);
+    if target.manager.is_some() {
+        items.push(Action::Reveal);
+    }
     if target.panels && !target.folder {
         items.push(Action::Download);
     }
@@ -154,9 +169,13 @@ pub(super) fn items_for(target: &Target) -> Vec<Action> {
 /// Paseo's group of an action (a hairline starts each group).
 pub(super) const fn group(action: Action) -> u8 {
     match action {
-        Action::OpenFile | Action::CollapseFolder => 0,
+        Action::OpenFile | Action::CollapseFolder | Action::OpenInEditor => 0,
         Action::NewFile | Action::NewFolder => 1,
-        Action::CopyPath | Action::CopyRelativePath | Action::Download | Action::AddToChat => 2,
+        Action::CopyPath
+        | Action::CopyRelativePath
+        | Action::Reveal
+        | Action::Download
+        | Action::AddToChat => 2,
         Action::Rename | Action::Duplicate => 3,
         Action::Delete => 4,
     }
@@ -174,12 +193,15 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) {
         let panels = self.code_panels_offered();
+        let (editor, manager) = self.files_open_targets(cx);
         let actions = &mut self.areas.workspace.code.files.actions;
         actions.target = Some(Target {
             path,
             folder,
             open,
             panels,
+            editor,
+            manager,
         });
         actions.menu.open(at, window, cx);
         cx.notify();
@@ -206,8 +228,10 @@ impl Shell {
                     Action::Rename
                     | Action::OpenFile
                     | Action::CollapseFolder
+                    | Action::OpenInEditor
                     | Action::CopyPath
                     | Action::CopyRelativePath
+                    | Action::Reveal
                     | Action::Download
                     | Action::AddToChat
                     | Action::Duplicate
@@ -252,6 +276,7 @@ impl Shell {
                 composer.focus(window, cx);
                 self.code_handed_to_composer(window);
             }
+            Action::OpenInEditor | Action::Reveal => self.open_entry(&target, action, cx),
             Action::Download => self.choose_download(target.path, cx),
             Action::Duplicate => {
                 let root = self
@@ -275,6 +300,37 @@ impl Shell {
             }
         }
         cx.notify();
+    }
+
+    /// A folder opened in the editor, or an entry revealed, on this
+    /// computer: the session's folder is the root the paths must stay in.
+    fn open_entry(&self, target: &Target, action: Action, cx: &mut Context<'_, Self>) {
+        let (Some(shown), Some(cwd)) = (self.shown_workspace(), self.areas.workspace.code.cwd())
+        else {
+            return;
+        };
+        let entry = cwd.join(target.path.as_str());
+        let (with, folder, file, origin) = if action == Action::OpenInEditor {
+            (target.editor, entry, None, OpenOrigin::Editor)
+        } else {
+            (
+                target.manager,
+                shown.root.clone(),
+                Some(entry),
+                OpenOrigin::Reveal,
+            )
+        };
+        let Some(with) = with else {
+            return;
+        };
+        let request = Request {
+            root: shown.root,
+            folder,
+            file,
+            line: None,
+            column: None,
+        };
+        self.open_in_target(with, request, origin, cx);
     }
 
     /// The name typed: make the entry or rename it.
@@ -423,7 +479,47 @@ mod tests {
             folder,
             open: false,
             panels,
+            editor: None,
+            manager: None,
         }
+    }
+
+    #[test]
+    fn open_in_and_reveal_take_paseo_s_places_on_this_computer_only() {
+        let mut folder = target(true, true);
+        folder.open = true;
+        assert!(!items_for(&folder).contains(&Action::OpenInEditor));
+        assert!(!items_for(&folder).contains(&Action::Reveal));
+        folder.editor = Some(TargetId::Zed);
+        folder.manager = Some(TargetId::FileManager);
+        let items = items_for(&folder);
+        let at = |action| items.iter().position(|item| *item == action);
+        assert_eq!(
+            at(Action::OpenInEditor),
+            at(Action::CollapseFolder).map(|at| at.saturating_add(1))
+        );
+        assert_eq!(
+            at(Action::Reveal),
+            at(Action::CopyRelativePath).map(|at| at.saturating_add(1))
+        );
+        assert_eq!(group(Action::OpenInEditor), group(Action::CollapseFolder));
+        assert_eq!(group(Action::Reveal), group(Action::CopyPath));
+        // A file is revealed but never opened in the editor from here
+        // (Paseo offers "Open in" on folders only).
+        let mut file = target(false, true);
+        file.editor = Some(TargetId::Zed);
+        file.manager = Some(TargetId::Finder);
+        let items = items_for(&file);
+        assert!(!items.contains(&Action::OpenInEditor));
+        let at = |action| items.iter().position(|item| *item == action);
+        assert_eq!(
+            at(Action::Reveal),
+            at(Action::CopyRelativePath).map(|at| at.saturating_add(1))
+        );
+        assert_eq!(
+            at(Action::Download),
+            at(Action::Reveal).map(|at| at.saturating_add(1))
+        );
     }
 
     #[test]

@@ -26,6 +26,7 @@ mod machines;
 mod marks;
 mod motion;
 mod notices;
+mod open_targets;
 mod options;
 mod overview;
 mod palette;
@@ -46,6 +47,7 @@ pub use git::{
 pub use machines::MachinesText;
 pub use marks::MarkText;
 pub use notices::NoticeWords;
+pub use open_targets::OpenTargetWords;
 pub use options::OptionsText;
 pub use overview::OverviewText;
 pub use palette::PaletteWords;

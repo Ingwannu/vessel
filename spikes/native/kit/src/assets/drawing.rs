@@ -70,6 +70,7 @@ impl Glyph {
                 line_glyph!(r#"<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/>"#)
             }
             Self::ArrowUp => line_glyph!(r#"<path d="M12 19V5M5 12l7-7 7 7"/>"#),
+            Self::ArrowDown => line_glyph!(r#"<path d="M12 5v14M19 12l-7 7-7-7"/>"#),
             // AppShell's LucideProvider supplies1.5; ExternalLink does not
             // override it. Keep the canonical line glyph's inherited stroke.
             Self::ArrowUpRight => line_glyph!(r#"<path d="M7 17 17 7M7 7h10v10"/>"#),
@@ -122,6 +123,9 @@ impl Glyph {
             Self::Circle => line_glyph!(r#"<circle cx="12" cy="12" r="9"/>"#),
             Self::CircleDot => {
                 line_glyph!(r#"<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="1"/>"#)
+            }
+            Self::CircleSlash => {
+                line_glyph!(r#"<circle cx="12" cy="12" r="9"/><path d="M9 15l6-6"/>"#)
             }
             Self::SquareCheck => line_glyph!(
                 r#"<rect x="3.5" y="3.5" width="17" height="17" rx="2.5"/><path d="M8.5 12l2.5 2.5 4.5-5"/>"#
@@ -271,6 +275,12 @@ impl Glyph {
             // 16 grid at a stroke of 1), at one and a half times.
             Self::Terminal => line_glyph!(r#"<path d="m6 7.5 4.5 4.5-4.5 4.5M12 16.5h6"/>"#),
             Self::Message => line_glyph!(r#"<path d="M4.5 6.75h15v10.5H9l-4.5 3v-13.5z"/>"#),
+            Self::MessagePlus => line_glyph!(
+                r#"<path d="M4.5 6.75h15v10.5H9l-4.5 3v-13.5z"/><path d="M12 9.5v5M9.5 12h5"/>"#
+            ),
+            Self::ExternalLink => line_glyph!(
+                r#"<path d="M15 3h6v6M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>"#
+            ),
             Self::Archive => line_glyph!(
                 r#"<rect x="3" y="4.5" width="18" height="5.25" rx="1.5"/><path d="M4.8 9.75v7.5A2.25 2.25 0 0 0 7.05 19.5h9.9a2.25 2.25 0 0 0 2.25-2.25v-7.5"/><path d="M9.75 13.95h4.5"/>"#
             ),
@@ -443,6 +453,36 @@ impl Glyph {
             Self::StatusAlertMarks => {
                 stroked_glyph!("2", r#"<path d="M12 8v4"/><path d="M12 16h.01"/>"#)
             }
+            // Paseo's `CheckIndicator` (`workspace-meta-row/check-indicator.tsx`,
+            // TRACKER 426): the ring at 2 with half the stroke inside the box
+            // (radius 11), a check or a cross, or a pie of radius 7 filled
+            // clockwise from twelve by quarters (a full one a disc: an arc
+            // whose ends meet paints nothing).
+            Self::ChecksPassed => stroked_glyph!(
+                "2",
+                r#"<circle cx="12" cy="12" r="11"/><path d="M8 12.5l3 3 5.5-6.5"/>"#
+            ),
+            Self::ChecksFailed => stroked_glyph!(
+                "2",
+                r#"<circle cx="12" cy="12" r="11"/><path d="M8.5 8.5l7 7M15.5 8.5l-7 7"/>"#
+            ),
+            Self::ChecksPie0 => stroked_glyph!("2", r#"<circle cx="12" cy="12" r="11"/>"#),
+            Self::ChecksPie1 => stroked_glyph!(
+                "2",
+                r#"<circle cx="12" cy="12" r="11"/><path d="M12 12V5a7 7 0 0 1 7 7z" fill="black" stroke="none"/>"#
+            ),
+            Self::ChecksPie2 => stroked_glyph!(
+                "2",
+                r#"<circle cx="12" cy="12" r="11"/><path d="M12 12V5a7 7 0 0 1 0 14z" fill="black" stroke="none"/>"#
+            ),
+            Self::ChecksPie3 => stroked_glyph!(
+                "2",
+                r#"<circle cx="12" cy="12" r="11"/><path d="M12 12V5a7 7 0 1 1-7 7z" fill="black" stroke="none"/>"#
+            ),
+            Self::ChecksPie4 => stroked_glyph!(
+                "2",
+                r#"<circle cx="12" cy="12" r="11"/><circle cx="12" cy="12" r="7" fill="black" stroke="none"/>"#
+            ),
         }
     }
 }

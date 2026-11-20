@@ -72,6 +72,10 @@ async fn project(hub: &Hub, client: &NodeClient, reply: &Reply, ask: ProjectAsk)
             query: ask.query.as_str().to_owned(),
             result: call(client, ask).await,
         },
+        ProjectAsk::SearchRepositories(ask) => Answer::Repositories {
+            query: ask.query.as_str().to_owned(),
+            result: call(client, ask).await,
+        },
         ProjectAsk::Icon(project) => Answer::Icon {
             project,
             result: call(client, GetProjectIcon { project })

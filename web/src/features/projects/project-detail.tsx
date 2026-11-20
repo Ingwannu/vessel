@@ -28,7 +28,7 @@ import {
   removeWorktree,
   runSetup,
 } from "../../data/workspace/worktrees";
-import { Banner, Button, Row, RowList } from "../../ui/kit";
+import { Alert, Button, Row, RowList } from "../../ui/kit";
 import { toast } from "../../ui/toasts";
 import type { NodeKey } from "../../wire/bridge";
 import type {
@@ -39,6 +39,7 @@ import type {
   WorktreeInfo,
 } from "../../wire/proto";
 import { FactValue, SettingsSection } from "../settings/settings-page";
+import type { ActionFailure } from "./action-failure";
 import { Commands } from "./project-commands";
 import { ApprovalDialog } from "./approval-dialog";
 import { ProjectSnapshots } from "./project-snapshots";
@@ -67,7 +68,7 @@ export function ProjectDetail({
     snapshots: [],
   });
   const [approving, setApproving] = useState<ListedCommands | null>(null);
-  const [failure, setFailure] = useState<string | null>(null);
+  const [failure, setFailure] = useState<ActionFailure | null>(null);
   const [removing, setRemoving] = useState<{
     worktree: WorktreeInfo;
     reasons: readonly KeptReason[];
@@ -91,9 +92,10 @@ export function ProjectDetail({
       (outcome) => {
         setApproving(null);
         if (!outcome.ok) {
-          setFailure(
-            `The commands were not ${approved ? "approved" : "withdrawn"}: ${outcome.problem.message}`,
-          );
+          setFailure({
+            title: `The commands were not ${approved ? "approved" : "withdrawn"}`,
+            message: outcome.problem.message,
+          });
         }
         load();
       },
@@ -102,9 +104,10 @@ export function ProjectDetail({
   const remove = (worktree: WorktreeInfo) => {
     void removeWorktree(fleet, node, worktree.id, "keep").then((outcome) => {
       if (!outcome.ok) {
-        setFailure(
-          `${worktree.branch ?? "The worktree"} was not removed: ${outcome.problem.message}`,
-        );
+        setFailure({
+          title: `${worktree.branch ?? "The worktree"} was not removed`,
+          message: outcome.problem.message,
+        });
       } else if (outcome.value.outcome === "kept") {
         setRemoving({ worktree, reasons: outcome.value.reasons });
       } else {
@@ -138,22 +141,26 @@ export function ProjectDetail({
         </RowList>
       </SettingsSection>
       {failure === null ? null : (
-        <Banner
-          tone="error"
-          action={
-            <Button
-              size="xs"
-              variant="ghost"
-              onClick={() => {
-                setFailure(null);
-              }}
-            >
-              Dismiss
-            </Button>
-          }
+        // Paseo's project settings and setup panel: an error Alert in the
+        // flow, what did not happen over the reason (TRACKER 820). Paseo
+        // says a worktree that was not removed with a toast instead; here
+        // the page's one failure slot keeps every action's (stated).
+        <Alert
+          size="sm"
+          variant="error"
+          title={failure.title}
+          description={failure.message}
         >
-          {failure}
-        </Banner>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              setFailure(null);
+            }}
+          >
+            Dismiss
+          </Button>
+        </Alert>
       )}
       <SettingsSection title="Commands">
         <Commands
@@ -201,9 +208,10 @@ export function ProjectDetail({
                             void runSetup(fleet, node, worktree.id).then(
                               (outcome) => {
                                 if (!outcome.ok) {
-                                  setFailure(
-                                    `Setup did not start: ${outcome.problem.message}`,
-                                  );
+                                  setFailure({
+                                    title: "Setup did not start",
+                                    message: outcome.problem.message,
+                                  });
                                 }
                                 load();
                               },

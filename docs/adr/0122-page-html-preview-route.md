@@ -57,11 +57,16 @@ Option A.
     page would frame (Paseo's prologue and the file), UTF-8, at most 64 MiB.
   - The answer is `{"url": "/preview/<id>"}`, where `<id>` is 128 random
     bits in hex.
+- The session key and the panel are checked before the body is read, and a
+  declared length past 64 MiB is refused unread (413), so a caller without
+  the key cannot make the server take in a large body.
 - The page posts only while its websocket is open and welcomed, so the key
   goes only to a server that has just proved itself (ADR 0017's
-  handshake).
+  handshake). A panel shown while the link is down shows the static frame
+  and posts again when the link opens.
 - Documents are kept in memory for the launch:
-  - a panel's new document replaces its last one;
+  - a panel's new document replaces its last one; the same document posted
+    again keeps its id and starts its idle time again;
   - at most 8 documents and 64 MiB, the least recently loaded dropped
     first;
   - each is dropped 10 minutes after it was last loaded or posted.
@@ -81,9 +86,12 @@ Option A.
   answer except a preview document (`preview::PreviewDocument`), which
   keeps its own. The other headers are added to it as to all answers.
 - The page frames the address with `sandbox="allow-scripts"` and
-  `referrerPolicy="no-referrer"`, says "Loading file..." until the address
-  comes, and falls back to the static `srcdoc` frame without scripts if
-  the post fails.
+  `referrerPolicy="no-referrer"`, says "Loading file..." until the first
+  address comes, keeps the last ready frame while a new document is out
+  (Paseo swaps its frame's document in place), and falls back to the
+  static `srcdoc` frame without scripts if the post fails. While shown, it
+  posts its document again every 4 minutes, so the frame's address does
+  not expire under it (a frame that reloads itself still finds it).
 
 ## Why
 

@@ -31,12 +31,18 @@
 //!   as under a machine or a status (Paseo's `rowIndented`: every grouped
 //!   row on one rail).
 //! - To assistive technology (TRACKER 813, the app reviewer's P3): the row
-//!   is a button named by its title and selected while its session is open
+//!   is a button named as below and selected while its session is open
 //!   (Paseo's `accessibilityRole="button"`, `aria-selected`); its status
 //!   slot a status named by Paseo's bucket label (`getStatusBucketLabel`),
 //!   done included; its kebab a button named "Session actions" (the menu's
 //!   sheet title; Paseo's "Workspace actions", a Vessel row is a session)
 //!   whose Click opens the menu once, as the project row's kebab.
+//! - Its name (TRACKER 426, the coordinator's ruling for P4): Paseo's
+//!   `resolveSidebarWorkspaceAccessibilityLabel` with the parts the row
+//!   shows, in Paseo's order: the title, the machine where the meta line
+//!   names it, "Pull request #N", the status unless done
+//!   (`SidebarWords::row_name`). Paseo has no "View PR" row in the row's
+//!   menu; the pull request is said in the name instead.
 //! - Its hover card (TRACKER 810, `hover_card`): on a wide window with a
 //!   pointer, not while its menu is open.
 //! - Differences, named: Paseo's "creating" title (92%) has no state here.
@@ -54,6 +60,7 @@ use vessel_app_kit::{Tokens, Type, TypeExt as _};
 use vessel_app_view::Card;
 use vessel_app_view::attention::Bucket;
 use vessel_app_view::sidebar::status::WorkspaceKind;
+use vessel_app_view::workspace::pull::CardPull;
 
 use crate::areas::session::Open;
 use crate::routes::Route;
@@ -124,10 +131,17 @@ pub(super) fn session_row(
     let pressed = card.clone();
     let fills = SidebarSurfaces::of(tokens);
     let words = shell.t.lang.sidebar();
-    let name: SharedString = shell.t.title(&card.title).to_owned().into();
+    let shown: SharedString = shell.t.title(&card.title).to_owned().into();
+    let pull = card
+        .detail
+        .pull_request
+        .as_deref()
+        .and_then(CardPull::of)
+        .map(|pull| pull.number.get());
+    let name = words.row_name(&shown, extras.machine, pull, card.bucket());
     // The fill a hovered row paints: what the scrim fades into.
     let hovered_fill = if active { fills.selected } else { fills.hover };
-    let title = title(name.clone(), group.clone(), tokens);
+    let title = title(shown, group.clone(), tokens);
     let title_row = div()
         .relative()
         .flex()
