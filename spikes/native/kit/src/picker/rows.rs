@@ -130,6 +130,7 @@ pub(super) fn rows_list<V: 'static>(
 const fn leading_width(leading: &Leading) -> Option<f32> {
     match leading {
         Leading::Glyph(_) | Leading::Mark(_) | Leading::Initial(_) => Some(16.0),
+        Leading::Artwork(_) => Some(ROW_GLYPH),
         Leading::Dot(_) => Some(14.0),
         Leading::SmallGlyph(_) | Leading::SmallAgentMark(_) => Some(SMALL_ROW_GLYPH),
         Leading::AgentMark(_) => None,
@@ -307,6 +308,7 @@ fn row_leading(
                 tokens,
             ))
             .into_any_element(),
+        Leading::Artwork(art) => crate::agent_mark::in_column(art, ROW_GLYPH, tokens),
         Leading::AgentMark(art) => {
             let mark = crate::agent_mark::agent_mark(art, mark_size, space, tokens);
             // The minimum OpenCode box occupies the row's existing vertical

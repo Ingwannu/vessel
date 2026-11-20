@@ -6,6 +6,7 @@ use super::Lang;
 use crate::attention::Bucket;
 use crate::prefs::{Grouping, SessionSort};
 use crate::sidebar::SessionMark;
+use crate::workspace::pull::CardChecks;
 use crate::workspace::pull::checks::Presentation;
 
 impl Lang {
@@ -166,10 +167,47 @@ impl SidebarWords {
         }
     }
 
+    /// A session row's name (Paseo's `resolveSidebarWorkspaceAccessibilityLabel`,
+    /// `sidebar-workspace-title.ts` 16-37): the parts the row shows, in
+    /// Paseo's order (its title, its machine where the row names it, its
+    /// pull request, its status unless done), joined by a comma. Paseo's
+    /// leading project and running service have no part on a Vessel row.
+    #[must_use]
+    pub fn row_name(
+        &self,
+        title: &str,
+        machine: Option<&str>,
+        pull: Option<u64>,
+        bucket: Bucket,
+    ) -> String {
+        let pull = pull.map(|number| self.pull_request(number));
+        let status = (bucket != Bucket::Done).then(|| self.bucket(bucket));
+        [Some(title), machine, pull.as_deref(), status]
+            .into_iter()
+            .flatten()
+            .filter(|part| !part.is_empty())
+            .collect::<Vec<_>>()
+            .join(", ")
+    }
+
     /// The checks' row, said as a link: its word and their state.
     #[must_use]
     pub fn checks_said(&self, state: &str) -> String {
         format!("{}: {state}", self.checks)
+    }
+
+    /// A row's checks item, named (Paseo's
+    /// `workspace.git.pr.checksSummary.*Accessible`).
+    #[must_use]
+    pub const fn checks_outcome(&self, checks: CardChecks) -> &'static str {
+        match (self.lang, checks) {
+            (Lang::En, CardChecks::Passed) => "Checks passed",
+            (Lang::En, CardChecks::Failed) => "Checks failed",
+            (Lang::En, CardChecks::Running) => "Checks running",
+            (Lang::Ko, CardChecks::Passed) => "검사 통과",
+            (Lang::Ko, CardChecks::Failed) => "검사 실패",
+            (Lang::Ko, CardChecks::Running) => "검사 진행 중",
+        }
     }
 
     /// One state's count (Paseo's `sidebar.workspace.checks.*`).

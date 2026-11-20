@@ -80,7 +80,8 @@ impl Shell {
         let settings = &mut self.prefs.settings;
         let folds = change(&mut settings.folded_projects);
         let order = change(&mut settings.project_order);
-        if folds || order {
+        let editors = change(&mut settings.preferred_editors);
+        if folds || order || editors {
             self.command(Command::SavePrefs(Box::new(self.prefs.clone())));
         }
     }

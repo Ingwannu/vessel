@@ -267,7 +267,6 @@ pub fn pill_parts(
             pill.child(glyph(Glyph::ChevronDown, 14.0, neutral.foreground_muted).flex_shrink_0())
         })
 }
-
 /// What leads a row.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Leading {
@@ -282,12 +281,13 @@ pub enum Leading {
     AgentMark(Option<crate::agent_mark::Artwork>),
     /// Paseo's import filter: the same mark at 14, muted, in the 14 column.
     SmallAgentMark(Option<crate::agent_mark::Artwork>),
+    /// An official mark in its own colours in the glyphs' 16 column (TRACKER 467).
+    Artwork(crate::agent_mark::Artwork),
     /// A state's dot (a machine).
     Dot(Hsla),
     /// A project's mark: its initial on a tile ([`initial_tile`]).
     Initial(SharedString),
 }
-
 /// One row of a list.
 #[derive(Debug, Clone, PartialEq)]
 #[expect(
