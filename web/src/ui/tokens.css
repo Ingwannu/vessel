@@ -72,6 +72,11 @@
   /* Paseo's palette.blue[300] in both themes: its info toast's edge and
      mark (toast-host.tsx 72, 309). */
   --info: #93c5fd;
+  /* Info as words and their mark (an Alert's title and icon): Paseo's
+     blue[300] is 1.7:1 on the light page (TRACKER 827), so light takes the
+     building lane's blue, 4.95:1 on #fafafa; dark keeps Paseo's (9.8:1).
+     Edges stay --info: a border is not text. */
+  --info-ink: light-dark(#2563eb, #93c5fd);
 
   /* The read-only quota bar: Paseo's surface3/4 in its default light/dark
      themes. Status/muted fills retain this page's existing palette. */

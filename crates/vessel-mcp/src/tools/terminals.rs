@@ -1,6 +1,6 @@
-//! The terminal tools (protocol 11, ADR 0031): open a shell beside a
-//! session, read it, type into it, close it, and see the ports its tree
-//! listens on. The node allows them only where a person turned agent
+//! The terminal tools (protocol 11, ADR 0031): open a shell for a session
+//! (from protocol 40 in that session's workspace, TRACKER 832), read it,
+//! type into it, close it, and see the ports its tree listens on. The node allows them only where a person turned agent
 //! terminals on in the session's profile, and only on terminals this agent
 //! opened.
 //!
@@ -267,13 +267,18 @@ pub(super) fn tools(node: &Value) -> Vec<Tool> {
     vec![
         tool(
             "create_terminal",
-            "Open a shell beside a session: your own (the default) or one you started. Allowed \
-             only where a person turned agent terminals on, for your session's profile and for \
-             that session's; at most 4 at once. It runs in the session's folder, without your \
-             credentials, and ends when your session or that session ends.",
+            "Open a shell in a session's workspace: your own session's (the default) or one you \
+             started. It runs in that session's worktree, project folder or folder, without your \
+             credentials, and stays with that workspace (people see it there) until it is closed \
+             or the worktree or project is removed; you can use it while your session runs. \
+             Allowed only where a person turned agent terminals on, for your session's profile \
+             and for that session's; at most 4 at once.",
             json!({
                 "node": node,
-                "session": { "type": "string", "description": "A session id; yours by default." },
+                "session": {
+                    "type": "string",
+                    "description": "A session id whose workspace the shell opens in; yours by default."
+                },
                 "title": { "type": "string" }
             }),
             &[],

@@ -1,7 +1,8 @@
 //! The terminal tools (protocol 11, ADR 0031) end to end, through a node in
 //! this process: an agent whose session's profile allows it opens a shell
-//! beside its own session, types into it, reads it and closes it; one whose
-//! profile does not is refused. Unix only: the shell is `/bin/sh`.
+//! in its own session's workspace (TRACKER 832), types into it, reads it
+//! and closes it; one whose profile does not is refused. Unix only: the
+//! shell is `/bin/sh`.
 
 #![cfg(unix)]
 
@@ -56,8 +57,9 @@ async fn an_allowed_agent_opens_types_into_reads_and_closes_a_terminal() {
         drop(refused);
         refused_server.await.unwrap().unwrap();
 
-        // A profile a person marked: its own terminal, beside its session.
-        let (own, env) = agent_env_with(&owner, Some("claude-term".parse().unwrap())).await;
+        // A profile a person marked: its own terminal, in its session's
+        // workspace; outside projects, the session's folder.
+        let (_own, env) = agent_env_with(&owner, Some("claude-term".parse().unwrap())).await;
         let tools = VesselTools::new(vessel_mcp::connect(&env).await.unwrap())
             .with_own_session(env.auth.session);
         let (mut mcp, server) = serve(tools);
@@ -68,8 +70,13 @@ async fn an_allowed_agent_opens_types_into_reads_and_closes_a_terminal() {
         assert!(!failed, "{created}");
         let terminal = created["terminal"]["id"].clone();
         assert_eq!(
-            created["terminal"]["place"]["session"],
-            json!(own),
+            created["terminal"]["place"]["kind"],
+            json!("folder"),
+            "{created}"
+        );
+        assert_eq!(
+            created["terminal"]["place"]["path"],
+            json!(std::fs::canonicalize(std::env::temp_dir()).unwrap()),
             "{created}"
         );
 

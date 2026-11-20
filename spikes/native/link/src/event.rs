@@ -64,6 +64,8 @@ pub enum Event {
     Diagnostics(crate::diagnostics::Answer),
     /// A plugin call answered, with its identity.
     Plugins(crate::plugins::Answer),
+    /// A catalog watcher's call or a plugin method call answered.
+    PluginCatalog(crate::plugins::Answer),
     /// Records of the session being followed.
     Records {
         /// The session.

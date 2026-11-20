@@ -93,7 +93,12 @@ export function usePlugins(machine: NodeKey, supported: boolean): PluginsHold {
     const ended = new AbortController();
     void followPlugins(
       {
-        reload: load,
+        // A failed read shows its own words and Retry on this page, so
+        // following goes on from it.
+        reload: async () => {
+          await load();
+          return true;
+        },
         poll: (after) => watchPlugins(fleet, machine, after),
       },
       ended.signal,
