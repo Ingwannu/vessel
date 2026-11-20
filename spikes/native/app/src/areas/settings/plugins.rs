@@ -25,9 +25,11 @@
 //!   not when pressed: Paseo's waits for its mutation too.
 //! - Stated differences: the menu's trigger is the kit's provider-row
 //!   trigger (a 14 dots glyph in a 32 square; Paseo's is 18 with 4 around);
-//!   the section's glyph in the list stays the kit's stand-in (Paseo's
-//!   Lucide Blocks is not drawn yet); the source field keeps its text when
-//!   another machine is chosen (the page's resets).
+//!   the source field keeps its text when another machine is chosen (the
+//!   page's resets). The section's glyph in the list is the kit's own
+//!   `Blocks` drawing after Paseo's Lucide `Blocks`.
+//! - The trigger opens on a pointer's press and on a click (assistive
+//!   technology's Click action), once.
 
 mod body;
 mod dialogs;
