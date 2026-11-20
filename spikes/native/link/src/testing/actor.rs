@@ -53,6 +53,10 @@ impl Actor {
     pub(crate) async fn dispatch(&mut self, command: Command) {
         phase("actual actor command dispatch", self.state.handle(command)).await;
     }
+    /// A presence snapshot, as the app's latest-value channel hands it on.
+    pub(crate) fn presence(&mut self, snapshot: vessel_app_view::presence::Snapshot) {
+        self.state.presence(snapshot);
+    }
     pub(crate) async fn request(&mut self) -> peer::Request {
         phase(
             "actual framed call",

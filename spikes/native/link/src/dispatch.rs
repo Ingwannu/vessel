@@ -74,7 +74,6 @@ impl State {
                 commands,
             } => self.keep_commands(&machine, harness, commands),
             Command::SaveDrafts(drafts) => drafts::save_in_background(drafts),
-            Command::Presence(snapshot) => self.presence(snapshot),
             Command::Files(files) => self.files(files).await,
             Command::Resume {
                 machine,

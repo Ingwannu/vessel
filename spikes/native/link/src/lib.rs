@@ -193,6 +193,8 @@ fn offer(commands: &mpsc::Sender<Command>, command: Command) -> Result<(), Unsen
 #[derive(Debug)]
 pub struct Link {
     commands: mpsc::Sender<Command>,
+    /// This window's presence, latest only (`presence`).
+    presence: presence::Sender,
     _runtime: tokio::runtime::Runtime,
 }
 
@@ -211,6 +213,7 @@ impl Link {
             .build()?;
         let (commands, inbox) = mpsc::channel(CHANNEL);
         let (events, outbox) = mpsc::channel(CHANNEL);
+        let (presence, presence_inbox) = presence::channel();
         let state = State {
             label: label.to_owned(),
             commands: commands.downgrade(),
@@ -233,14 +236,22 @@ impl Link {
             presence_hub: presence::Hub::default(),
             offers: std::sync::Arc::default(),
         };
-        drop(runtime.spawn(state.run(inbox)));
+        drop(runtime.spawn(state.run(inbox, presence_inbox)));
         Ok((
             Self {
                 commands,
+                presence,
                 _runtime: runtime,
             },
             outbox,
         ))
+    }
+
+    /// This window's presence for every connected machine
+    /// (`push.presence`): kept as the latest value, never queued behind or
+    /// in front of a person's commands; returns at once.
+    pub fn presence(&self, snapshot: vessel_app_view::presence::Snapshot) {
+        let _earlier = self.presence.send_replace(Some(snapshot));
     }
 
     /// Ask for something and say whether the link took it; returns at
@@ -270,10 +281,12 @@ impl Link {
     #[cfg(feature = "testing")]
     pub fn detached(room: usize) -> std::io::Result<(Self, mpsc::Receiver<Command>)> {
         let (commands, inbox) = mpsc::channel(room);
+        let (presence, _nobody) = presence::channel();
         let runtime = tokio::runtime::Builder::new_current_thread().build()?;
         Ok((
             Self {
                 commands,
+                presence,
                 _runtime: runtime,
             },
             inbox,
@@ -314,7 +327,7 @@ struct State {
 
 #[cfg(not(target_arch = "wasm32"))]
 impl State {
-    async fn run(mut self, mut inbox: mpsc::Receiver<Command>) {
+    async fn run(mut self, mut inbox: mpsc::Receiver<Command>, mut presence: presence::Receiver) {
         // The kept lists first, so the first connection hands them over.
         let path = offers::Store::default_path();
         match tokio::task::spawn_blocking(move || offers::Store::load(path)).await {
@@ -335,6 +348,11 @@ impl State {
                     None => break,
                 },
                 _instant = tick.tick() => self.refresh().await,
+                changed = presence.changed() => match changed {
+                    Ok(()) => self.presence_changed(&mut presence),
+                    // The link was dropped: so is its command queue.
+                    Err(_dropped) => break,
+                },
             }
         }
     }

@@ -19,7 +19,6 @@ use gpui::{
     AnyElement, Context, DispatchPhase, IntoElement, MouseDownEvent, ScrollEvent, Styled as _,
     Subscription, Window,
 };
-use vessel_app_link::Command;
 use vessel_app_view::presence::{HEARTBEAT, Millis, Presence};
 
 use crate::routes::Route;
@@ -122,13 +121,10 @@ impl Shell {
         }
     }
 
-    /// The snapshot to the link. Without a link there is no one to tell.
+    /// The snapshot to the link.
     fn presence_send(&self) {
-        if !self.linked() {
-            return;
-        }
         let area = &self.areas.presence;
-        self.command(Command::Presence(area.presence.snapshot(area.now())));
+        self.report_presence(area.presence.snapshot(area.now()));
     }
 }
 

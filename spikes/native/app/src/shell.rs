@@ -116,9 +116,13 @@ impl Shell {
         shell
     }
 
-    /// Whether the link started (a command has someone to go to).
-    pub(crate) const fn linked(&self) -> bool {
-        self.link.is_some()
+    /// This window's presence to the link (`areas::presence`): its own
+    /// latest-value channel, never the command queue. Without a link there
+    /// is no one to tell.
+    pub(crate) fn report_presence(&self, snapshot: vessel_app_view::presence::Snapshot) {
+        if let Some(link) = &self.link {
+            link.presence(snapshot);
+        }
     }
 
     /// Send `command`; one the link does not take settles on the next

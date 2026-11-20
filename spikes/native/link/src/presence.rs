@@ -3,8 +3,11 @@
 //! and Paseo's references).
 //!
 //! The app sends a snapshot on input, on a change of shown session or
-//! visibility, and every 15 s ([`crate::Command::Presence`]). This module
-//! hands each connected machine its own report: its session focus or
+//! visibility, and every 15 s, through [`crate::Link::presence`]: a
+//! latest-value channel beside the command queue, not a command. Only the
+//! latest state matters, a heartbeat must never fill the queue that carries
+//! a person's actions, and a screen's tests that read that queue see only
+//! actions. This module hands each connected machine its own report: its session focus or
 //! elsewhere, and `Active` only for input that connection has not heard
 //! of. A machine that connects hears the last snapshot at once, as Paseo's
 //! client sends a heartbeat on connecting (`use-client-activity.ts:129-132`).
@@ -15,12 +18,24 @@
 
 use std::time::Instant;
 
+use tokio::sync::watch;
 use vessel_app_view::connection::ConnectionEpoch;
 use vessel_app_view::presence::{Millis, Snapshot, Told};
 use vessel_client::NodeClient;
 use vessel_proto::push::ReportPushPresence;
 
 use crate::State;
+
+/// The app's end of the presence channel.
+pub(crate) type Sender = watch::Sender<Option<Snapshot>>;
+
+/// The link task's end.
+pub(crate) type Receiver = watch::Receiver<Option<Snapshot>>;
+
+/// A presence channel holding no snapshot yet.
+pub(crate) fn channel() -> (Sender, Receiver) {
+    watch::channel(None)
+}
 
 /// The last snapshot and what each connection was told.
 #[derive(Debug, Default)]
@@ -42,6 +57,14 @@ impl Hub {
 }
 
 impl State {
+    /// The app sent a snapshot: report the latest.
+    pub(crate) fn presence_changed(&mut self, receiver: &mut Receiver) {
+        let latest = receiver.borrow_and_update().clone();
+        if let Some(snapshot) = latest {
+            self.presence(snapshot);
+        }
+    }
+
     /// A new snapshot: every connected machine hears its report.
     pub(crate) fn presence(&mut self, snapshot: Snapshot) {
         self.presence_hub.last = Some((snapshot, Instant::now()));

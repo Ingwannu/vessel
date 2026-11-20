@@ -211,6 +211,14 @@ and `use-client-activity.ts`).
   - native: `view/src/presence.rs` (the tracker and `Told`), `link/src/presence.rs` (a report per machine
     connection), `app/src/areas/presence.rs` (input observed at the root in the capture phase, keystrokes,
     activation, visibility, the 15 s timer).
+  - The app hands a snapshot to the link through `Link::presence`. That is a latest-value channel (tokio
+    `watch`) beside the command queue, not a command:
+    - only the latest state matters;
+    - a heartbeat must never fill the queue that carries a person's actions;
+    - screens' tests that read that queue see only actions.
+
+    The first build sent it as a command, and three such tests read a presence report where they expected
+    their own request.
 
 **Why this over the alternatives.** It is the reference's behaviour, value for value, and the node's
 policy is already Paseo's. Each difference is stated below.
