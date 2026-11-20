@@ -229,22 +229,31 @@ pulls-group-skipped = { NUMBER($count) ->
 pulls-check-running = running { $duration }
 # The pane's Activity when the pull request has none.
 pulls-no-activity = No activity yet
-# What a person did, after their name in an activity card. Lowercase, as Paseo writes it.
+# After a name in an activity card: they left a comment. Lowercase, as Paseo writes it.
 pulls-verb-commented = commented
+# After a name in an activity card: their review approved. Lowercase.
 pulls-verb-approved = approved
+# After a name in an activity card: their review asked for changes. Lowercase.
 pulls-verb-changes-requested = requested changes
+# After a name in an activity card: they reviewed without a verdict. Lowercase.
 pulls-verb-reviewed = reviewed
 # A review thread with no file, in its header.
 pulls-thread-discussion = Discussion thread
-# A thread's badges. Keep short.
+# A thread's badge: someone marked it resolved. Keep short.
 pulls-thread-resolved = Resolved
+# A thread's badge: the code it was about has changed since. Keep short.
 pulls-thread-outdated = Outdated
-# How long ago an activity card was written. $count is a whole number.
+# An activity card's age: under a minute.
 pulls-age-now = just now
+# An activity card's age in minutes. $count is a whole number. Keep short.
 pulls-age-minutes = { NUMBER($count) }m ago
+# An activity card's age in hours. $count is a whole number. Keep short.
 pulls-age-hours = { NUMBER($count) }h ago
+# An activity card's age in days. $count is a whole number. Keep short.
 pulls-age-days = { NUMBER($count) }d ago
+# An activity card's age in months of 30 days. $count is a whole number. Keep short.
 pulls-age-months = { NUMBER($count) }mo ago
+# An activity card's age in years. $count is a whole number. Keep short.
 pulls-age-years = { NUMBER($count) }y ago
 # A card whose author the forge did not name.
 pulls-unknown-author = unknown
