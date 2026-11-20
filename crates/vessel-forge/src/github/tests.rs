@@ -2,6 +2,7 @@
 //! the GraphQL read, opening and merging, rate limits, refusals, and the
 //! token only in its header. No request leaves the machine.
 
+mod pane;
 mod repos;
 mod stand;
 
@@ -49,6 +50,12 @@ async fn a_pull_request_is_read_whole_into_the_wire_s_facts() {
     );
     assert_eq!(summary.state, PullState::Open);
     assert_eq!(summary.checks, ChecksState::Failing);
+    assert_eq!(
+        summary.tally,
+        vessel_proto::forge::CheckTally::of(&read.pull.checks),
+        "a row's tally is the read's counts"
+    );
+    assert!(summary.tally.is_some_and(|tally| tally.failed == 1));
     assert_eq!(summary.review, ReviewDecision::ChangesRequested);
     assert_eq!(summary.mergeable, Mergeable::Blocked);
     assert_eq!(read.pull.checks.failing.len(), 1);

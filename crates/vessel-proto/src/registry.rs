@@ -2,9 +2,12 @@
 //! No IO or inferred cwd identity. The six metadata calls are protocol 25;
 //! `project.create_directory` is protocol 34 (ADR 0113); the
 //! other values here have no method row and remain unavailable.
+//! `workspace.list` and `workspace.get` also carry a served diff stat
+//! (ADR 0120) once that protocol is assigned; until then the fields are absent.
 
 mod automation;
 mod config;
+mod diff_stat;
 mod project;
 mod snapshot;
 mod workspace;
@@ -14,15 +17,16 @@ pub use config::{
     ConfigDocument, ConfigRevision, ConfigText, ConfigTextError, ConfigValidity, MAX_CONFIG_BYTES,
     ReadProjectConfig, WriteProjectConfig,
 };
+pub use diff_stat::{DIFF_STAT_PROTOCOL, DiffStat, ServedWorkspace, serves_diff_stat};
 pub use project::{
     CreateProjectDirectory, DirectoryName, DirectoryNameError, ProjectMetadata,
     ReadProjectMetadata, RenameProject,
 };
 pub use workspace::{
-    ArchiveWorkspace, ArchiveWorkspaces, CreateWorkspace, GetWorkspace, ListWorkspaces,
-    PinWorkspace, RegistryRevision, RenameWorkspace, RestoreWorkspace, WorkspaceBacking,
-    WorkspaceDescriptor, WorkspaceIsolation, WorkspaceLifecycle, WorkspaceList, WorkspacePin,
-    WorkspaceVisibility, WorkspaceVisibilityFilter,
+    ArchiveWorkspace, ArchiveWorkspaces, CreateWorkspace, DiffStatRevision, GetWorkspace,
+    ListWorkspaces, PinWorkspace, RegistryRevision, RenameWorkspace, RestoreWorkspace,
+    WorkspaceBacking, WorkspaceDescriptor, WorkspaceIsolation, WorkspaceLifecycle, WorkspaceList,
+    WorkspacePin, WorkspaceVisibility, WorkspaceVisibilityFilter,
 };
 
 pub use snapshot::{GetRegistry, RegistrySnapshot, WorkspaceMembership, WorkspaceResource};
@@ -73,6 +77,7 @@ mod tests {
             ListWorkspaces::default().into_call(),
             GetWorkspace {
                 workspace: WorkspaceId::random(),
+                changed_from: None,
             }
             .into_call(),
             RenameWorkspace {

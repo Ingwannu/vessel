@@ -399,6 +399,16 @@ pub const PROTOCOLS: &[(&str, Option<crate::ProtocolVersion>, &str)] = &[
         "`terminal.list`'s `changed_from` long poll and a resize's claim or update (ADR 0116).",
     ),
     (
+        "DIFF_STAT_PROTOCOL",
+        crate::registry::DIFF_STAT_PROTOCOL,
+        "The diff stat on `workspace.list` and `workspace.get` (ADR 0120).",
+    ),
+    (
+        "PULL_REQUEST_PANE_PROTOCOL",
+        crate::forge::PULL_REQUEST_PANE_PROTOCOL,
+        "`pr.timeline`, `pr.check`, and every check's run and times (ADR 0088).",
+    ),
+    (
         "PLUGIN_CATALOG_PROTOCOL",
         crate::plugins::PLUGIN_CATALOG_PROTOCOL,
         "`plugin.catalog` and `plugin.invoke` (ADR 0115, catalog and invoke).",
