@@ -47,23 +47,6 @@ pub(super) fn skeleton(shell: &Shell, tokens: &Tokens) -> AnyElement {
                 .child(dot(14.0, opacity, &tokens))
                 .child(bar(245.0, 12.0, opacity, &tokens))
         };
-        let activity = |opacity| {
-            div()
-                .flex()
-                .flex_row()
-                .items_center()
-                .gap(px(8.0))
-                .child(dot(20.0, opacity, &tokens))
-                .child(
-                    div()
-                        .flex()
-                        .flex_col()
-                        .flex_1()
-                        .gap(px(4.0))
-                        .child(bar(272.0, 12.0, opacity, &tokens))
-                        .child(bar(175.0, 10.0, opacity, &tokens)),
-                )
-        };
         div()
             .flex()
             .flex_col()
@@ -110,16 +93,46 @@ pub(super) fn skeleton(shell: &Shell, tokens: &Tokens) -> AnyElement {
                     .child(row(opacity))
                     .child(row(opacity)),
             )
-            .child(
-                div()
-                    .flex()
-                    .flex_col()
-                    .gap(px(12.0))
-                    .px(px(12.0))
-                    .py(px(8.0))
-                    .child(activity(opacity))
-                    .child(activity(opacity))
-                    .child(activity(opacity)),
-            )
+            .child(activity_rows(opacity, &tokens))
+    })
+}
+
+/// One activity row: the avatar, a wide line over a narrow one.
+fn activity_row(opacity: Opacity, tokens: &Tokens) -> Div {
+    div()
+        .flex()
+        .flex_row()
+        .items_center()
+        .gap(px(8.0))
+        .child(dot(20.0, opacity, tokens))
+        .child(
+            div()
+                .flex()
+                .flex_col()
+                .flex_1()
+                .gap(px(4.0))
+                .child(bar(272.0, 12.0, opacity, tokens))
+                .child(bar(175.0, 10.0, opacity, tokens)),
+        )
+}
+
+/// Paseo's `PrActivitySkeleton`: three rows, 12 apart.
+fn activity_rows(opacity: Opacity, tokens: &Tokens) -> Div {
+    div()
+        .flex()
+        .flex_col()
+        .gap(px(12.0))
+        .px(px(12.0))
+        .py(px(8.0))
+        .child(activity_row(opacity, tokens))
+        .child(activity_row(opacity, tokens))
+        .child(activity_row(opacity, tokens))
+}
+
+/// The Activity section's skeleton while its first read is out.
+pub(super) fn activity(tokens: &Tokens) -> AnyElement {
+    let tokens = *tokens;
+    pulse("pr-pane-activity-skeleton", move |opacity| {
+        activity_rows(opacity, &tokens)
     })
 }
