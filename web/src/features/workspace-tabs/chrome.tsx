@@ -3,7 +3,7 @@ import "./chrome.css";
 import { useState } from "react";
 
 import { tabKey } from "../../data/workspace/tab-layout";
-import { Button, Dialog, Icon, IconButton, Menu } from "../../ui/kit";
+import { Button, Dialog, IconButton, Menu } from "../../ui/kit";
 import { useMedia } from "../shell/use-media";
 import {
   menuRows,
@@ -30,7 +30,7 @@ export function Launcher({
           variant="ghost"
           disabled={action.disabled ?? false}
           onClick={action.run}
-          start={<Icon name={action.icon} size={16} />}
+          icon={action.icon}
         >
           {action.label}
         </Button>

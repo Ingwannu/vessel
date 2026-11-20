@@ -145,7 +145,7 @@ async function openOnce(
     const origin = await openUi(page);
     await page.goto(`${origin}/sessions/${NODE}/${id}`);
     const launcher = page.getByRole("button", { name: "New tab", exact: true });
-    await expect(tabs).toBeVisible();
+    await expect(launcher).toBeVisible();
     const clicked = await page.evaluate(() => performance.now());
     await launcher.click();
     await page
