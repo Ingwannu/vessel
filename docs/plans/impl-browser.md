@@ -132,9 +132,11 @@ loopback origin also runs embedded fetches and a real service worker. The
 worker must retrieve a positive control before reporting the separate canary
 responses. Distinct routes prevent an earlier navigation from satisfying a
 redirect or background request. The fixture front door maps only observed
-policy refusals to its expected marker. The live run is pending. These cases
-leave real DNS rebinding, websocket and UDP/QUIC/WebTransport qualification
-open.
+policy refusals to its expected marker. The same origin verifies that real
+ICE gathering completes with controlled STUN and TURN endpoints, then checks
+both held TCP and UDP canaries after positive socket controls. The live run
+is pending. These cases leave real DNS rebinding, websocket and separate
+QUIC/WebTransport qualification open.
 
 ### Download follow-up
 

@@ -12,6 +12,7 @@ const EMBEDDED: &str = "/fixture-embedded";
 const WORKER_PAGE: &str = "/fixture-worker";
 const WORKER_SCRIPT: &str = "/fixture-worker.js";
 const WORKER_CONTROL: &str = "/fixture-worker-control";
+const ICE_PAGE: &str = "/fixture-ice";
 const READ_CANARIES: &str = r#"
 async function observedReads() {
     const responses = await Promise.all(probes.map(async ([url, marker]) => {
@@ -47,6 +48,27 @@ self.addEventListener("message", event => {
     })());
 });
 "#;
+const ICE_PROBE: &str = r#"
+async function gather() {
+    const session = new RTCPeerConnection({
+        iceServers: [{urls, username: "fixture", credential: "fixture"}]
+    });
+    try {
+        session.createDataChannel("fixture");
+        const completed = new Promise(resolve => {
+            session.addEventListener("icegatheringstatechange", () => {
+                if (session.iceGatheringState === "complete") resolve();
+            });
+        });
+        await session.setLocalDescription(await session.createOffer());
+        await completed;
+        document.body.textContent = "Fixture ICE completed";
+    } finally {
+        session.close();
+    }
+}
+gather();
+"#;
 
 pub(super) struct PolicyOrigin {
     authority: String,
@@ -73,6 +95,7 @@ impl PolicyOrigin {
         let response = match uri.path() {
             EMBEDDED => html(&script(routes, false, READ_FROM_PAGE)),
             WORKER_PAGE => html(WORKER_CLIENT),
+            ICE_PAGE => html(&ice_script(routes)),
             WORKER_SCRIPT => (
                 [
                     (header::CONTENT_TYPE, "text/javascript; charset=utf-8"),
@@ -95,6 +118,7 @@ impl PolicyOrigin {
         for (path, marker) in [
             (EMBEDDED, "Fixture embedded traffic refused"),
             (WORKER_PAGE, "Fixture worker traffic refused"),
+            (ICE_PAGE, "Fixture ICE completed"),
         ] {
             let address = format!("{}{path}", self.origin);
             page.navigate(address.parse().unwrap()).await?;
@@ -102,6 +126,11 @@ impl PolicyOrigin {
         }
         Ok(())
     }
+}
+
+fn ice_script(routes: Routes) -> String {
+    let urls = serde_json::to_string(&routes.ice_urls().collect::<Vec<_>>()).unwrap();
+    format!("const urls = {urls};\n{ICE_PROBE}")
 }
 
 fn script(routes: Routes, worker: bool, source: &str) -> String {

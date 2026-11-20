@@ -6,7 +6,7 @@ use std::time::Duration;
 
 use axum::http::{StatusCode, Uri};
 use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
-use tokio::net::TcpStream;
+use tokio::net::{TcpStream, UdpSocket};
 use vessel_proto::browser::{RequiredInput, WaitBudget, WaitFor, WaitMatch, WaitTimeout};
 
 use crate::page::{Page, PageError};
@@ -19,6 +19,7 @@ const REDIRECTED_PATH: &str = "/fixture-refused-after-redirect";
 const EMBEDDED_PATH: &str = "/fixture-refused-embedded";
 const WORKER_PATH: &str = "/fixture-refused-worker";
 const REDIRECTS: [&str; 2] = ["/fixture-redirect-v4", "/fixture-redirect-v6"];
+const DATAGRAM_CONTROL: &[u8] = b"local fixture";
 
 #[derive(Clone, Copy)]
 pub(super) struct Routes {
@@ -29,6 +30,7 @@ pub(super) struct Routes {
 #[derive(Clone, Copy)]
 struct Canary {
     address: SocketAddr,
+    datagram: SocketAddr,
     refused: &'static str,
     refused_after_redirect: &'static str,
 }
@@ -59,6 +61,16 @@ impl Routes {
     pub(super) fn expected_reads(&self, worker: bool) -> [(String, &'static str); 2] {
         let path = if worker { WORKER_PATH } else { EMBEDDED_PATH };
         self.canaries.map(|peer| (peer.url(path), peer.refused))
+    }
+
+    pub(super) fn ice_urls(&self) -> impl Iterator<Item = String> {
+        self.canaries.into_iter().flat_map(|peer| {
+            [
+                format!("stun:{}", peer.datagram),
+                format!("turn:{}?transport=udp", peer.datagram),
+                format!("turn:{}?transport=tcp", peer.address),
+            ]
+        })
     }
 
     /// This test-only front door prevents any unrelated Chromium background
@@ -125,7 +137,8 @@ async fn read_refusal(
 
 pub(super) struct NetworkFixture {
     proxy: PublicProxy,
-    peers: [TcpListener; 2],
+    stream_peers: [TcpListener; 2],
+    datagram_peers: [std::net::UdpSocket; 2],
     routes: Routes,
 }
 
@@ -133,17 +146,21 @@ impl NetworkFixture {
     pub(super) async fn start() -> Self {
         let ipv4 = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
         let ipv6 = TcpListener::bind((Ipv6Addr::LOCALHOST, 0)).unwrap();
+        let udp4 = checked_datagram(Ipv4Addr::LOCALHOST.into()).await;
+        let udp6 = checked_datagram(Ipv6Addr::LOCALHOST.into()).await;
         let proxy = PublicProxy::start().await.unwrap();
         let routes = Routes {
             proxy: proxy.endpoint(),
             canaries: [
                 Canary {
                     address: positive_control(&ipv4).await,
+                    datagram: udp4.local_addr().unwrap(),
                     refused: "Fixture IPv4 refused",
                     refused_after_redirect: "Fixture redirected IPv4 refused",
                 },
                 Canary {
                     address: positive_control(&ipv6).await,
+                    datagram: udp6.local_addr().unwrap(),
                     refused: "Fixture IPv6 refused",
                     refused_after_redirect: "Fixture redirected IPv6 refused",
                 },
@@ -151,7 +168,8 @@ impl NetworkFixture {
         };
         Self {
             proxy,
-            peers: [ipv4, ipv6],
+            stream_peers: [ipv4, ipv6],
+            datagram_peers: [udp4, udp6],
             routes,
         }
     }
@@ -163,10 +181,36 @@ impl NetworkFixture {
     pub(super) async fn finish(self) {
         self.proxy.close().await.unwrap();
         // A direct Chromium bypass or a successful policy dial leaves a buffered connection.
-        for canary in self.peers {
+        for canary in self.stream_peers {
             assert_eq!(canary.accept().unwrap_err().kind(), ErrorKind::WouldBlock);
         }
+        for canary in self.datagram_peers {
+            let mut payload = [0; 128];
+            assert_eq!(
+                canary.recv_from(&mut payload).unwrap_err().kind(),
+                ErrorKind::WouldBlock
+            );
+        }
     }
+}
+
+async fn checked_datagram(ip: std::net::IpAddr) -> std::net::UdpSocket {
+    let canary = UdpSocket::bind((ip, 0)).await.unwrap();
+    let control = UdpSocket::bind((ip, 0)).await.unwrap();
+    let written = control
+        .send_to(DATAGRAM_CONTROL, canary.local_addr().unwrap())
+        .await
+        .unwrap();
+    let mut payload = [0; 32];
+    let (received, from) =
+        tokio::time::timeout(REFUSAL_DEADLINE, canary.recv_from(&mut payload))
+            .await
+            .unwrap()
+            .unwrap();
+    assert_eq!(from, control.local_addr().unwrap());
+    assert_eq!(written, received);
+    assert_eq!(payload.get(..received), Some(DATAGRAM_CONTROL));
+    canary.into_std().unwrap()
 }
 
 async fn positive_control(canary: &TcpListener) -> SocketAddr {
