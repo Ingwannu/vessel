@@ -166,7 +166,7 @@ impl DiffStats {
                 }
                 let epoch = book.next_epoch;
                 book.next_epoch = book.next_epoch.saturating_add(1);
-                book.slots.insert(
+                let _previous = book.slots.insert(
                     key.clone(),
                     Slot {
                         epoch,
@@ -192,7 +192,7 @@ impl DiffStats {
 impl Drop for DiffStats {
     fn drop(&mut self) {
         self.shared.stop.cancel();
-        self.tasks.close();
+        let _closed = self.tasks.close();
     }
 }
 
@@ -326,7 +326,7 @@ fn retire(shared: &Shared, key: &Path, epoch: u64) -> bool {
     if slot.asked.elapsed() < INTEREST {
         return false;
     }
-    book.slots.remove(key);
+    let _removed = book.slots.remove(key);
     true
 }
 
@@ -338,15 +338,13 @@ async fn wait(stop: &CancellationToken, directory: &mut Watch) -> Wake {
 }
 
 async fn listen(directory: &mut Watch) -> Wake {
-    match directory.events.as_mut() {
-        Some(events) => match events.recv().await {
-            Some(()) => Wake::Event,
-            None => Wake::Closed,
-        },
-        None => {
-            tokio::time::sleep(CACHE).await;
-            Wake::Quiet
-        }
+    let Some(events) = directory.events.as_mut() else {
+        tokio::time::sleep(CACHE).await;
+        return Wake::Quiet;
+    };
+    match events.recv().await {
+        Some(()) => Wake::Event,
+        None => Wake::Closed,
     }
 }
 
@@ -371,7 +369,7 @@ fn arm(dir: &Path) -> Option<(Box<notify::RecommendedWatcher>, mpsc::Receiver<()
             if event.as_ref().is_ok_and(ignored) {
                 return;
             }
-            drop(tx.try_send(()));
+            let _sent = tx.try_send(());
         }) {
             Ok(watcher) => watcher,
             Err(error) => {
@@ -422,7 +420,7 @@ mod tests {
     fn publish_bumps_for_the_first_null_and_then_only_on_a_change() {
         let mut book = Book::default();
         let key = PathBuf::from("repo");
-        book.slots.insert(
+        let _previous = book.slots.insert(
             key.clone(),
             Slot {
                 epoch: 0,
@@ -452,7 +450,7 @@ mod tests {
         };
         assert!(book.publish(&key, Some(next)).is_none());
         assert_eq!(book.generation, u64::MAX);
-        assert_eq!(book.slots.get(&key).unwrap().stat, Some(next));
+        assert_eq!(book.slots[&key].stat, Some(next));
     }
 
     #[test]
