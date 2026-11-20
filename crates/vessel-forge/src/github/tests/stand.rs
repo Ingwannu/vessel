@@ -10,6 +10,7 @@ use axum::body::Bytes;
 use axum::extract::State;
 use axum::http::{HeaderMap, Method, StatusCode, Uri};
 use axum::response::{IntoResponse, Response};
+use serde::Deserialize;
 use vessel_proto::forge::{ForgeKind, RepoRef};
 
 use super::super::GitHub;
@@ -24,6 +25,27 @@ pub(super) const HEAD: &str = "0123456789abcdef0123456789abcdef01234567";
 pub(super) struct Stand {
     pub(super) answers: HashMap<String, Canned>,
     pub(super) asked: Vec<(String, Option<String>, Option<String>)>,
+    pub(super) graphql: Vec<GraphQlRequest>,
+    pub(super) malformed_graphql: Option<serde_json::Error>,
+}
+
+/// The GraphQL wire is decoded once by this loopback edge, so tests
+/// inspect typed variables instead of an untyped JSON tree.
+#[derive(Debug, Deserialize)]
+pub(super) struct GraphQlRequest {
+    pub(super) query: String,
+    pub(super) variables: GraphQlVariables,
+}
+
+#[derive(Debug, Deserialize)]
+pub(super) struct GraphQlVariables {
+    pub(super) owner: String,
+    pub(super) name: String,
+    pub(super) number: Option<vessel_proto::forge::PullNumber>,
+    pub(super) first: Option<usize>,
+    pub(super) after: Option<vessel_proto::forge::PullCursor>,
+    pub(super) contexts: usize,
+    pub(super) heads: usize,
 }
 
 pub(super) type Shared = Arc<Mutex<Stand>>;
@@ -36,7 +58,7 @@ async fn answer(
     method: Method,
     uri: Uri,
     headers: HeaderMap,
-    _body: Bytes,
+    body: Bytes,
 ) -> Response {
     let key = format!(
         "{method} {}",
@@ -54,6 +76,16 @@ async fn answer(
         header("authorization"),
         header("if-none-match"),
     ));
+    if uri.path() == "/graphql" {
+        match serde_json::from_slice(&body) {
+            Ok(request) => stand.graphql.push(request),
+            Err(error) => {
+                stand.malformed_graphql = Some(error);
+                return (StatusCode::BAD_REQUEST, "invalid fixture GraphQL request")
+                    .into_response();
+            }
+        }
+    }
     let Some((status, extra, body)) = stand.answers.get(&key).cloned() else {
         return (StatusCode::NOT_FOUND, format!("no answer for {key}")).into_response();
     };

@@ -5,13 +5,9 @@
 //! the number, the address) fails it.
 
 use chrono::{DateTime, Utc};
-use vessel_proto::forge::{
-    Checks, ForgeLogin, ForgeUrl, MergeMethod, PullNumber, PullRequest, PullState, PullSummary,
-    PullTitle, RepoRef, Reviews,
-};
+use vessel_proto::forge::{ForgeLogin, ForgeUrl, MergeMethod, PullRequest, RepoRef, Reviews};
 
-use super::super::facts::{self, Context, MergeFacts};
-use super::{Actor, CommitNode, ContextNode, Nodes, Repository, ReviewNode, ThreadNode};
+use super::{Actor, Nodes, Repository, ReviewNode, ThreadNode};
 use crate::provider::{
     Author, Comment, Discussion, FailedCheck, ForgeError, ItemId, Read, Review, ReviewVerdict,
     Thread,
@@ -27,10 +23,7 @@ pub(in crate::github) fn read(
     let unexpected = |what| ForgeError::Unexpected { what };
     let merge_methods = merge_methods(&repository);
     let pull = repository.pull_request.ok_or(ForgeError::NotFound)?;
-    let head_commit = pull
-        .head_ref_oid
-        .parse()
-        .map_err(|_bad| unexpected("a head commit"))?;
+    let head_commit = pull.summary.head()?;
     let head_branch = pull
         .head_ref_name
         .parse()
@@ -39,18 +32,11 @@ pub(in crate::github) fn read(
         .base_ref_name
         .parse()
         .map_err(|_bad| unexpected("a base branch"))?;
-    let number = PullNumber::new(pull.number).map_err(|_bad| unexpected("a number"))?;
-    let url = ForgeUrl::lossy(&pull.url).ok_or_else(|| unexpected("an address"))?;
-    let checks = checks(pull.commits);
-    let review = facts::review(pull.review_decision.as_deref());
-    let mergeable = facts::mergeable(MergeFacts {
-        mergeable: pull.mergeable.as_deref(),
-        merge_state: pull.merge_state_status.as_deref(),
-        draft: pull.is_draft,
-        checks: checks.state,
-        review,
-    });
-    let reviews = reviews(pull.latest_reviews, &pull.head_ref_oid);
+    // Read discussion against the original head text before the common
+    // summary decoder consumes its fields; no normalized comparison or
+    // duplicate parse changes the existing review policy.
+    let reviews = reviews(pull.latest_reviews, pull.summary.head_text());
+    let (summary, checks) = super::summary::read(repo, pull.summary, head_commit)?;
     let threads = threads(pull.review_threads);
     let people = people(&reviews, &threads);
     let failed = checks
@@ -63,19 +49,7 @@ pub(in crate::github) fn read(
         .collect();
     Ok(Read {
         pull: PullRequest {
-            summary: PullSummary {
-                repo: repo.clone(),
-                number,
-                url,
-                title: PullTitle::lossy(&pull.title),
-                state: state(&pull.state),
-                draft: pull.is_draft,
-                head_commit,
-                checks: checks.state,
-                review,
-                mergeable,
-                updated_at: pull.updated_at,
-            },
+            summary,
             author: pull
                 .author
                 .as_ref()
@@ -98,15 +72,6 @@ pub(in crate::github) fn read(
     })
 }
 
-fn state(state: &str) -> PullState {
-    match state {
-        "OPEN" => PullState::Open,
-        "MERGED" => PullState::Merged,
-        "CLOSED" => PullState::Closed,
-        _ => PullState::Unknown,
-    }
-}
-
 /// The methods the repository allows, in the wire's order.
 fn merge_methods(repository: &Repository) -> Vec<MergeMethod> {
     [
@@ -117,22 +82,6 @@ fn merge_methods(repository: &Repository) -> Vec<MergeMethod> {
     .into_iter()
     .filter_map(|(allowed, method)| allowed.then_some(method))
     .collect()
-}
-
-/// The head commit's checks, from its rollup (the last commit's); more
-/// contexts than one read takes is `truncated`.
-fn checks(commits: Nodes<CommitNode>) -> Checks {
-    let rollup = commits
-        .nodes
-        .into_iter()
-        .next()
-        .and_then(|node| node.commit.status_check_rollup);
-    let (contexts, total) = rollup.map_or((Vec::new(), 0), |rollup| {
-        (rollup.contexts.nodes, rollup.contexts.total_count)
-    });
-    let contexts: Vec<Context> = contexts.into_iter().filter_map(context).collect();
-    let truncated = u64::try_from(contexts.len()).unwrap_or(u64::MAX) < total;
-    facts::checks(&contexts, truncated)
 }
 
 /// The latest review per person on the head `head` (a review of an older
@@ -209,34 +158,5 @@ fn author(actor: Option<&Actor>) -> Author {
     Author {
         login: actor.and_then(|actor| ForgeLogin::lossy(&actor.login)),
         bot: actor.is_some_and(|actor| actor.typename == "Bot"),
-    }
-}
-
-fn context(node: ContextNode) -> Option<Context> {
-    match node {
-        ContextNode::CheckRun {
-            name,
-            status,
-            conclusion,
-            details_url,
-            started_at,
-        } => Some(Context {
-            state: facts::check_run(&status, conclusion.as_deref()),
-            name,
-            at: started_at,
-            url: details_url,
-        }),
-        ContextNode::StatusContext {
-            context,
-            state,
-            target_url,
-            created_at,
-        } => Some(Context {
-            state: facts::status_context(&state),
-            name: context,
-            at: created_at,
-            url: target_url,
-        }),
-        ContextNode::Other => None,
     }
 }

@@ -1310,3 +1310,15 @@ probe or automatic relay activation is performed. Existing Admin guards run
 first. The CLI prints no link or QR on refusal; older clients keep the human
 message while typed clients can localize the stable error reason. No new
 RPC, external dependency, persistent state or ownership rule is introduced.
+
+## Project pull-request values (ADR 0061, transport pending)
+
+`vessel-proto::forge` owns an opaque bounded provider cursor, a cursor's
+source-repository association and a validated page of open PR summaries.
+The page decoder caps retained entries before constructing domain data;
+duplicate numbers, another repository, non-open entries and empty
+continuations fail the whole page. Cursor diagnostics omit provider text.
+These values register no call and add no fields to existing replies or
+events. Their feature version remains unassigned; `pr.list` continues to
+mean watched sessions. Project resolution, provider listing and client/CLI
+transport are a following stage, not exposed by these value definitions.

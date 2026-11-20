@@ -95,10 +95,24 @@ impl GitHub {
         priority: Priority,
     ) -> Result<Read, ForgeError> {
         let (owner, name) = owner_name(repo)?;
-        let query = serde_json::json!({
-            "query": graphql::READ,
-            "variables": { "owner": owner, "name": name, "number": number.get() },
-        });
+        #[derive(serde::Serialize)]
+        struct Variables<'a> {
+            owner: &'a str,
+            name: &'a str,
+            number: PullNumber,
+            contexts: usize,
+            heads: usize,
+        }
+        let query = graphql::Query {
+            query: graphql::READ,
+            variables: Variables {
+                owner,
+                name,
+                number,
+                contexts: graphql::MAX_CONTEXTS,
+                heads: graphql::HEAD_COMMITS,
+            },
+        };
         let url = self.graphql(&repo.host)?;
         let ask = Ask::json(Method::POST, url, Resource::Graphql, priority, &query)?;
         let Reply::Body { status, body } = self.send(&repo.host, ask).await? else {

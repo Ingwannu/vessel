@@ -10,6 +10,10 @@ use vessel_workspace::paths::PathError;
 /// A workspace call's failure.
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum WorkspaceError {
+    /// The blocking root task stopped; retain its actual cancellation or
+    /// panic cause without putting that payload on the wire.
+    #[error("resolving the folder stopped")]
+    ResolveTask(#[source] tokio::task::JoinError),
     /// The node found no usable git.
     #[error("this machine has no usable git (2.25 or newer)")]
     NoGit,
@@ -118,7 +122,9 @@ impl WorkspaceError {
             Self::Invalid(_) => ErrorCode::InvalidRequest,
             Self::Conflict(_) => ErrorCode::Conflict,
             Self::Busy(_) | Self::Git(GitError::TimedOut { .. }) => ErrorCode::Unavailable,
-            Self::Git(_) | Self::Store(_) | Self::Io(_) => ErrorCode::Internal,
+            Self::Git(_) | Self::Store(_) | Self::Io(_) | Self::ResolveTask(_) => {
+                ErrorCode::Internal
+            }
         };
         if code == ErrorCode::Internal {
             tracing::warn!(error = %self, source = ?std::error::Error::source(self), "workspace call failed");

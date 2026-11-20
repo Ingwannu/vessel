@@ -1,7 +1,7 @@
 # Project pull requests without a session
 
-Status: contract proposed, implementation not started. ADR 0061 records
-the decision before code. `pr.list` still lists watched sessions.
+Status: contract accepted; bounded value types in progress. ADR 0061
+records the decision before code. `pr.list` still lists watched sessions.
 
 ## Reuse analysis
 
@@ -26,9 +26,21 @@ ADR 0061 gives the reasons and the later service's cache/cancellation rules.
 - Completed before this slice: the separate seeded forge fixture and its
   root-gate/CI coverage. This branch starts at `fba50eb0`, whose parent is
   the integrated fixture commit `4660f784`.
-- Current: ADR 0061 and this plan, contract only. Next add bounded cursor
-  and open-page value types with decoding tests; no registered call while
-  the shared unassigned-protocol accessor is unavailable.
+- Contract commit: `5f36714d`; fast document checks passed. Current source
+  adds `PullCursor`, `ProjectPullCursor` and `OpenPullPage` only, with
+  validating constructors/decoders and safe cursor diagnostics. No method,
+  existing reply, client, CLI, store or dependency change is present.
+- The page decoder retains only an admitted prefix, then refuses an extra
+  item without decoding another summary. It does not first allocate the
+  whole input array. Empty, complete and continued pages remain distinct.
+- Seven focused value tests passed, including actual decoding refusal of
+  the unregistered method. The source crate was recompiled. Whole root
+  validation is pending; no callable behavior is claimed. The shared
+  unassigned-protocol accessor remains the prerequisite for a method.
+  This value-only stage uses the full root Rust/source gate and regenerates
+  TypeScript to check that the existing declarations stay byte-identical.
+  It changes no web source or callable wire shape; web integration checks
+  belong to the following callable stage in ADR 0061.
 - Then: provider and node service, exact client/CLI call, generated types,
   fake fleet checks and older-peer admission, after the shared accessor is
   merged. The existing protocol value is not changed by this track.
@@ -36,4 +48,6 @@ ADR 0061 gives the reasons and the later service's cache/cancellation rules.
   They must continue labeling the existing `pr.list` as session-derived;
   neither this ADR nor the value stage is a callable replacement.
 - No native/page screen, real forge, production process or permissions are
-  changed. Contract validation uses only the fast document checks.
+  changed. The value types have TypeScript derives but are unreachable
+  from existing calls/replies; declaration regeneration must remain
+  unchanged until a callable transport stage deliberately includes them.

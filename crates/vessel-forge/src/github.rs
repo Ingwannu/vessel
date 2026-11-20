@@ -20,6 +20,7 @@
 
 mod facts;
 mod graphql;
+mod project;
 mod reads;
 mod rest;
 mod writes;
@@ -29,7 +30,8 @@ use std::sync::Arc;
 use reqwest::{Method, StatusCode, Url};
 use serde::de::DeserializeOwned;
 use vessel_proto::forge::{
-    ForgeHost, ForgeKind, ForgeLogin, MergeMethod, PullNumber, RefusedReason, RepoRef,
+    ForgeHost, ForgeKind, ForgeLogin, MergeMethod, OpenPullPage, PullCursor, PullNumber,
+    RefusedReason, RepoRef,
 };
 use vessel_proto::workspace::{BranchName, CommitId};
 
@@ -237,6 +239,14 @@ fn no_access(status: StatusCode) -> Option<ForgeError> {
 }
 
 impl Forge for GitHub {
+    fn list_open<'a>(
+        &'a self,
+        repo: &'a RepoRef,
+        after: Option<&'a PullCursor>,
+        priority: Priority,
+    ) -> Answer<'a, OpenPullPage> {
+        Box::pin(self.project_page(repo, after, priority))
+    }
     fn kind(&self) -> ForgeKind {
         ForgeKind::Github
     }

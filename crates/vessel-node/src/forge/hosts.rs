@@ -217,6 +217,10 @@ pub(crate) fn denied(
             until: *until,
         },
         ForgeError::Unreachable(_)
+        | ForgeError::Page(_)
+        | ForgeError::PageCursor(_)
+        | ForgeError::ListingValue(_)
+        | ForgeError::ListingInteger(_)
         | ForgeError::Down
         | ForgeError::Server { .. }
         | ForgeError::NotFound

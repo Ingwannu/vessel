@@ -8,6 +8,14 @@ use super::{
 };
 
 impl Forge for FakeForge {
+    fn list_open<'a>(
+        &'a self,
+        repo: &'a RepoRef,
+        after: Option<&'a vessel_proto::forge::PullCursor>,
+        _priority: Priority,
+    ) -> Answer<'a, vessel_proto::forge::OpenPullPage> {
+        Box::pin(async move { self.project_page(repo, after) })
+    }
     fn kind(&self) -> ForgeKind {
         ForgeKind::Github
     }

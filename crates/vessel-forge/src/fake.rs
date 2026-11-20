@@ -5,6 +5,7 @@
 //! what it was asked.
 
 mod behaviour;
+mod project;
 pub mod seed;
 
 use serde::{Deserialize, Serialize};

@@ -18,6 +18,10 @@
 //!   `Debug` never shows it; it leaves this crate only as an
 //!   `Authorization` header marked sensitive.
 
+mod identity;
+
+pub use identity::CredentialIdentity;
+
 use std::collections::HashMap;
 use std::ffi::OsString;
 use std::fmt;
@@ -52,9 +56,8 @@ impl Token {
         Some(value)
     }
 
-    /// A short name for the token, for telling two apart in a log without
-    /// showing either: never part of it.
-    #[cfg(test)]
+    /// Compare cached credentials without deriving a loggable id. This
+    /// is cache association, never an authentication check.
     pub(crate) fn same_as(&self, other: &Self) -> bool {
         self.0 == other.0
     }
@@ -121,6 +124,21 @@ pub enum Found {
     None(GhState),
 }
 
+impl Found {
+    // Concurrent gh cache misses may complete with the same credential.
+    // Preserve that generation so an unchanged refresh does not split
+    // coalesced page reads. A changed value or source gets a new marker.
+    fn same_credential(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Token(left, from_left), Self::Token(right, from_right)) => {
+                from_left == from_right && left.same_as(right)
+            }
+            (Self::None(left), Self::None(right)) => left == right,
+            (Self::None(_), Self::Token(..)) | (Self::Token(..), Self::None(_)) => false,
+        }
+    }
+}
+
 /// How long a token is kept, and a miss.
 const KEEP: Duration = Duration::from_secs(300);
 const KEEP_MISS: Duration = Duration::from_secs(10);
@@ -131,6 +149,7 @@ const ASK_AGAIN: Duration = Duration::from_secs(60);
 struct Cached {
     found: Found,
     until: Instant,
+    generation: Arc<()>,
 }
 
 /// The most hosts whose answer from `gh` (or whose 401) is kept: remotes
@@ -144,6 +163,10 @@ pub struct Credentials {
     gh: Option<Gh>,
     cache: Mutex<HashMap<ForgeHost, Cached>>,
     dropped: Mutex<HashMap<ForgeHost, Instant>>,
+    configured_generation: Arc<()>,
+    /// Every known refusal invalidates page caches, even when asking gh
+    /// again is held back by ASK_AGAIN. One marker, not a host-sized map.
+    invalidated: Mutex<Arc<()>>,
 }
 
 impl Credentials {
@@ -155,6 +178,8 @@ impl Credentials {
             gh,
             cache: Mutex::new(HashMap::new()),
             dropped: Mutex::new(HashMap::new()),
+            configured_generation: Arc::new(()),
+            invalidated: Mutex::new(Arc::new(())),
         }
     }
 
@@ -194,11 +219,16 @@ impl Credentials {
                 let _dropped = cache.remove(&soonest);
             }
         }
+        let generation = cache
+            .get(host)
+            .filter(|cached| cached.found.same_credential(&found))
+            .map_or_else(|| Arc::new(()), |cached| Arc::clone(&cached.generation));
         let _previous = cache.insert(
             host.clone(),
             Cached {
                 found: found.clone(),
                 until: now.checked_add(keep).unwrap_or(now),
+                generation,
             },
         );
         drop(cache);
@@ -209,6 +239,10 @@ impl Credentials {
     /// again, at most once a minute (a token that stays bad is not asked
     /// for on every read).
     pub fn refused(&self, host: &ForgeHost) {
+        *self
+            .invalidated
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner) = Arc::new(());
         let now = Instant::now();
         let mut dropped = self.dropped.lock().unwrap_or_else(PoisonError::into_inner);
         if dropped
@@ -225,6 +259,34 @@ impl Credentials {
         }
         drop(dropped);
         let _forgotten = self.cache().remove(host);
+    }
+
+    /// The generation of this host's currently cached credential, without
+    /// revealing or hashing token contents. A page loader compares this
+    /// before and after its read, and never publishes across a change.
+    /// None means no stable token is cached: do not reuse a page then.
+    /// Existing token expiry, host restrictions and gh retry policy apply.
+    pub async fn identity(&self, host: &ForgeHost) -> Option<CredentialIdentity> {
+        if !matches!(self.token(host).await, Found::Token(..)) {
+            return None;
+        }
+        let loaded = if self.env_token(host).is_some() {
+            Arc::clone(&self.configured_generation)
+        } else {
+            let cache = self.cache();
+            let cached = cache.get(host)?;
+            if cached.until <= Instant::now() || !matches!(&cached.found, Found::Token(..)) {
+                return None;
+            }
+            Arc::clone(&cached.generation)
+        };
+        let invalidated = Arc::clone(
+            &self
+                .invalidated
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner),
+        );
+        Some(CredentialIdentity::new(host.clone(), loaded, invalidated))
     }
 
     fn env_token(&self, host: &ForgeHost) -> Option<Token> {

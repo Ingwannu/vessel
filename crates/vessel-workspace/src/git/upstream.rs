@@ -92,7 +92,21 @@ impl Git {
         dir: &Path,
         branch: &BranchName,
     ) -> Result<Option<(RemoteName, RemoteAddress)>, GitError> {
-        let remote = self.remote_of_branch(dir, Some(branch)).await;
+        self.remote_for_checkout(dir, Some(branch)).await
+    }
+
+    /// The checkout's configured remote, or origin without a branch.
+    /// Repository-wide reads also work before the first commit and when
+    /// detached; no fictitious branch or head is needed.
+    ///
+    /// # Errors
+    /// As the hardened git runs'.
+    pub async fn remote_for_checkout(
+        &self,
+        dir: &Path,
+        branch: Option<&BranchName>,
+    ) -> Result<Option<(RemoteName, RemoteAddress)>, GitError> {
+        let remote = self.remote_of_branch(dir, branch).await;
         let Ok(name) = remote.parse::<RemoteName>() else {
             return Ok(None);
         };
