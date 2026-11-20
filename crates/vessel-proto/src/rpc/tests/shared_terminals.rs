@@ -26,7 +26,8 @@ fn a_list_poll_needs_the_shared_terminals_protocol() {
     };
     assert_eq!(asked(None).since(), Some(ProtocolVersion::new(11)));
     assert_eq!(asked(Some(4)).since(), SHARED_TERMINALS_PROTOCOL);
-    assert!(SHARED_TERMINALS_PROTOCOL <= Some(crate::PROTOCOL_VERSION));
+    // The newest protocol until the next one lands.
+    assert_eq!(SHARED_TERMINALS_PROTOCOL, Some(crate::PROTOCOL_VERSION));
 }
 
 #[test]

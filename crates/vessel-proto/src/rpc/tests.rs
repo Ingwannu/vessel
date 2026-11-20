@@ -689,7 +689,7 @@ fn the_repository_search_knows_its_version_scope_and_shape() {
         })
         .collect();
     assert_eq!(methods, REPOSITORY_SEARCH_METHODS);
-    assert_eq!(REPOSITORY_SEARCH_PROTOCOL, Some(crate::PROTOCOL_VERSION));
+    assert!(REPOSITORY_SEARCH_PROTOCOL <= Some(crate::PROTOCOL_VERSION));
     // The limit and the query are checked when the request is decoded.
     for params in [
         serde_json::json!({"query": "a", "limit": 51}),
