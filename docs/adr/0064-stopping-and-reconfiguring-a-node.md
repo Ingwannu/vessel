@@ -795,3 +795,36 @@ not decoded into an unbounded String. A non-Unicode personal file is a
 preserved difference; the comparison can also finish against an endless
 reader. Only new validated templates are written. This changes installation
 comparison behavior; no independent reporting-only refactor is included.
+
+
+## Deadline-safe local reads (slice 2g)
+
+[Decision Log]
+- Purpose and intent: a blocked identity-file read must not outlive the
+  stop command's budget by keeping Tokio's blocking pool alive.
+- Existing implementation and constraints: OS-lock completion already uses
+  a dedicated thread for this reason; identity reading still used that pool.
+- Alternatives considered: a second handoff implementation; require all
+  local files to be regular before opening (a racy check); cancel a blocking
+  pool task (which cannot interrupt a started read).
+- Selected approach: share the existing dedicated-thread/oneshot policy
+  between identity and lock observations, with typed operation names and
+  typed results. Keep each filesystem rule in its existing module.
+- Why this approach: cancellation preserves the borrowed lock receiver,
+  while process exit does not join a blocked reader. Successful lock release
+  is cached so a later completion phase does not consume its receiver twice.
+- Advantages, costs and effects: no new dependency, wire call or process
+  signal. Reads retain the invoking account's permissions and never write
+  the identity or owner record. Paseo's pid polling remains the previously
+  stated implementation difference. An isolated Linux FIFO test checks actual
+  process exit; real macOS/Windows blocked-file behavior remains unverified.
+
+
+The local preflight also uses this handoff: opening a replaced lock path
+must not join a blocked worker during CLI shutdown. The two isolated FIFO
+cases share one named command budget and both assert that no shutdown RPC
+ran. Compilation and gate evidence remain pending.
+
+These cases cover the local preflight and stored identity only. Existing
+book/project resolution and connection credential reads are separate paths;
+this slice does not establish deadline-safe process exit for those inputs.

@@ -395,3 +395,25 @@ not decoded into an unbounded String. A non-Unicode personal file is a
 preserved difference; the comparison can also finish against an endless
 reader. Only new validated templates are written. This changes installation
 comparison behavior; no independent reporting-only refactor is included.
+
+
+### Slice 2g: deadline-safe local reads
+
+Modify the existing lock reader and identity binding. Reuse their dedicated
+thread and oneshot handoff instead of duplicating shutdown policy or adding
+an executor/dependency. Keep filesystem work in its owning module. Preserve
+borrowed-receiver cancellation, cache a successful release, retain typed
+worker/I/O causes, and test a blocked identity file in a child CLI with its
+product deadline. This also provides the actual shared policy for the later
+service reader; no service probe or manager action is wired here. Gate
+and platform evidence remain pending.
+
+
+The local preflight also uses this handoff: opening a replaced lock path
+must not join a blocked worker during CLI shutdown. The two isolated FIFO
+cases share one named command budget and both assert that no shutdown RPC
+ran. Compilation and gate evidence remain pending.
+
+These cases cover the local preflight and stored identity only. Existing
+book/project resolution and connection credential reads are separate paths;
+this slice does not establish deadline-safe process exit for those inputs.

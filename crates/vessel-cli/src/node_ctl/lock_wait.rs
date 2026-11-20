@@ -5,7 +5,7 @@
 
 use std::fs::File;
 
-use tokio::sync::oneshot;
+use super::local_read::{Kind, Pending};
 use vessel_node::DataDir;
 
 use crate::error::CliError;
@@ -15,7 +15,12 @@ const WAITER_TEST_BUDGET: std::time::Duration = std::time::Duration::from_secs(5
 
 /// One OS-lock completion survives timeout cancellation between exit phases.
 pub(super) struct Released {
-    receive: oneshot::Receiver<Result<(), std::io::Error>>,
+    state: State,
+}
+
+enum State {
+    Waiting(Pending<Result<(), std::io::Error>>),
+    Released,
 }
 
 impl Released {
@@ -25,23 +30,16 @@ impl Released {
     /// The operating system cannot create the waiter thread.
     pub(super) fn subscribe(dir: &DataDir) -> Result<Self, CliError> {
         let path = dir.lock_path();
-        let (send, receive) = oneshot::channel();
-        let waiter = std::thread::Builder::new()
-            .name("node-lock-release".to_owned())
-            .spawn(move || {
-                let result = File::options()
-                    .read(true)
-                    .write(true)
-                    .open(path)
-                    .and_then(|file| file.lock().and_then(|()| file.unlock()));
-                // A finished command drops its receiver. This is intentional
-                // cancellation, and the lock has already been released.
-                if send.send(result).is_err() {
-                    tracing::debug!("node lock waiter completed after its command ended");
-                }
-            })?;
-        drop(waiter);
-        Ok(Self { receive })
+        let pending = Pending::spawn(Kind::LockRelease, move || {
+            File::options()
+                .read(true)
+                .write(true)
+                .open(path)
+                .and_then(|file| file.lock().and_then(|()| file.unlock()))
+        })?;
+        Ok(Self {
+            state: State::Waiting(pending),
+        })
     }
 
     /// Borrowing the receiver makes a timed-out wait cancellation-safe.
@@ -49,7 +47,11 @@ impl Released {
     /// # Errors
     /// The lock could not be opened/acquired, or the waiter exited unexpectedly.
     pub(super) async fn wait(&mut self) -> Result<(), CliError> {
-        (&mut self.receive).await.map_err(CliError::LockWaiter)??;
+        match &mut self.state {
+            State::Released => return Ok(()),
+            State::Waiting(pending) => pending.wait().await.map_err(CliError::LockWaiter)??,
+        }
+        self.state = State::Released;
         Ok(())
     }
 }
@@ -81,15 +83,16 @@ mod tests {
         let lock = NodeLock::acquire(&dir, &owner).unwrap();
         let before = std::fs::read(dir.owner_path()).unwrap();
         let mut event = Released::subscribe(&dir).unwrap();
-        // This is the command's cancellation deadline, not synchronization
-        // by sleep: the parent deliberately retains the lock throughout it.
+        // One poll suffices while the parent still holds the lock. Reusing
+        // the same receiver after release proves cancellation safety.
         assert!(
-            tokio::time::timeout(WAITER_TEST_BUDGET, event.wait())
+            tokio::time::timeout(std::time::Duration::ZERO, event.wait())
                 .await
                 .is_err(),
-            "waiter completed during its {WAITER_TEST_BUDGET:?} cancellation budget while the lock was held"
+            "waiter completed while the lock was held"
         );
         drop(lock);
+        within_budget(event.wait()).await.unwrap();
         within_budget(event.wait()).await.unwrap();
         assert!(NodeLock::holder(&dir).unwrap().is_none());
         assert!(
