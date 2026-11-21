@@ -73,15 +73,15 @@ sheets in the UI references above.
   behavior change when editing another field.
 - Alternatives. Converting every interval to cron changes its timing
   across daylight-saving transitions. Sending a partial edit is not
-  supported by this wire method. Editing a heartbeat with that method
-  also changes when the node cleans it up.
+  supported by this wire method. Editing an agent-owned heartbeat with
+  that method also changes when the node cleans it up.
 - Choice. The dialog uses the existing composer catalogue and option
   probe, kit controls and the node's cadence preview. It sets an hourly
   cron in the local device zone for creation. A saved zone or elapsed
   interval stays as stored. Updates preserve unedited fields and carry
-  the original revision. Heartbeats display Target and Cadence with
-  their host and can be deleted from the row. Owner-preserving cadence
-  editing depends on TRACKER 839.
+  the original revision. The read-only heartbeat sheet displays Target,
+  Cadence and Host for every existing-session target. Heartbeats can be
+  deleted from the row. Cadence-only editing depends on TRACKER 839.
 - Differences. The Model field reuses the composer picker and shows the
   provider and model in one trigger. Thinking and Mode have their own
   fields. A profile appears when the machine offers choices. The node cannot mint a fresh worktree
