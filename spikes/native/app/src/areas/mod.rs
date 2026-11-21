@@ -36,6 +36,7 @@ pub(crate) mod settings;
 pub(crate) mod shortcuts;
 pub(crate) mod sidebar;
 pub(crate) mod terminal;
+pub(crate) mod terminal_profiles;
 pub(crate) mod terminal_tabs;
 pub(crate) mod toasts;
 pub(crate) mod usage;
@@ -81,6 +82,8 @@ pub(crate) struct Areas {
     pub(crate) terminal: terminal::TerminalArea,
     /// A workspace's shells as tabs (TRACKER 481, 482).
     pub(crate) terminal_tabs: terminal_tabs::TerminalTabs,
+    /// Every machine's terminal profiles and Settings › Terminals (ADR 0117).
+    pub(crate) terminal_profiles: terminal_profiles::State,
     /// The system's notifications, the notice sound and the title's
     /// count (ADR 0114).
     pub(crate) notify: notify::NotifyArea,
@@ -143,6 +146,7 @@ impl Areas {
             regions: crate::region::Regions::default(),
             terminal: terminal::TerminalArea::new(cx),
             terminal_tabs: terminal_tabs::TerminalTabs::new(cx),
+            terminal_profiles: terminal_profiles::State::new(window, cx),
             notify: notify::NotifyArea::new(window, cx),
             plugin_catalogs: vessel_app_view::plugins::Catalogs::default(),
             plugin_screen: plugin_screen::ScreenArea::new(window, cx),

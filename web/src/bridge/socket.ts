@@ -19,6 +19,12 @@
 //   guarantee the refusal gave. (A tab once deleted a valid key after five
 //   transient closes, and nothing could recover it: verification finding
 //   1, M7.)
+// - After the welcome, only a second handshake or a frame of a shape this
+//   page does not know is a refusal. A listener that throws is reported
+//   and the next frame still comes. A frame that is not JSON stops the
+//   link as `disconnected`, the key kept: a redial would meet the same
+//   frame, every 500 ms, since the welcome set `#attempt` back to 0 (the
+//   2026-11 review).
 // - Divided from `client.ts` (milestone 11, track W): the lifecycle of
 //   the socket is one job, the meaning of its frames another.
 
@@ -168,13 +174,18 @@ export class BridgeSocket {
             frame = frames.parse(data);
           } catch (error) {
             // After the server proved itself, a frame that is not JSON is
-            // a broken connection, not a refusal: redial, keeping the key.
-            // A frame this page does not know (a tab open across an
-            // upgrade) is a refusal: `#attempt` is already 0, so redialling
-            // it would repeat every 500 ms and never show the restarted UI.
+            // a broken connection, not a refusal: stop as `disconnected`,
+            // keeping the key for Retry. Not a redial: `#attempt` is
+            // already 0, so a bridge that sends the same frame again would
+            // be redialled every 500 ms for good. A frame this page does
+            // not know (a tab open across an upgrade) is a refusal, for
+            // the same reason and so the restarted UI is shown.
             if (verified && error instanceof SyntaxError) {
-              socket.close();
-              this.#dropped(socket);
+              console.error(
+                "vessel ui sent a frame the page cannot read",
+                error,
+              );
+              this.#broken(socket);
               return;
             }
             throw error;
@@ -254,6 +265,18 @@ export class BridgeSocket {
       this.#retry = null;
       this.#connect();
     }, retryInMs);
+  }
+
+  /** `socket` cannot go on but nothing was refused: stop redialling (a
+   * redial would meet the same frame) and say `disconnected`, keeping the
+   * credential for Retry. */
+  #broken(socket: WebSocket): void {
+    if (this.#socket !== socket) {
+      return;
+    }
+    this.stop();
+    this.#events.lost();
+    this.#setLink({ kind: "disconnected", attempts: this.#attempt });
   }
 
   #current(socket: WebSocket): boolean {

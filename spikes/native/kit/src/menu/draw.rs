@@ -1,7 +1,7 @@
 //! One shared renderer for point-opened and right-aligned action menus.
 
 use super::input::{KeyMenu, keyboard, outside};
-use super::item::{Leading, paint};
+use super::item::paint;
 use super::{MenuHandlers, MenuItem, MenuState, pointer_choice};
 use std::rc::Rc;
 
@@ -305,15 +305,9 @@ fn draw<V: 'static>(
         sheet: sheet.is_some(),
     };
     for (index, item) in items.iter().enumerate() {
-        if item.starts_group && index > 0 {
-            panel = panel.child(
-                div()
-                    .my(px(spacing::S1))
-                    .h(px(1.0))
-                    .bg(surfaces.border_accent),
-            );
-        }
-        panel = panel.child(any_row(index, item, &rows, cx));
+        panel = panel
+            .children(separator(index, item, &surfaces))
+            .child(entry(index, item, &rows, cx));
     }
     let arrival = ElementId::NamedChild(std::sync::Arc::new(id), "appear".into());
     let surface = if sheet.is_some() {
@@ -338,6 +332,30 @@ fn draw<V: 'static>(
             .with_priority(layer.priority())
             .into_any_element(),
     )
+}
+
+/// The full-width line above an item that starts a group.
+fn separator(index: usize, item: &MenuItem, surfaces: &Surfaces) -> Option<gpui::Div> {
+    (item.starts_group && index > 0).then(|| {
+        div()
+            .my(px(spacing::S1))
+            .h(px(1.0))
+            .bg(surfaces.border_accent)
+    })
+}
+
+/// A group's label, or a row.
+fn entry<V: 'static>(
+    index: usize,
+    item: &MenuItem,
+    rows: &Rows<'_, V>,
+    cx: &mut Context<'_, V>,
+) -> AnyElement {
+    if item.heading {
+        super::leading::heading(index, item, rows.surfaces)
+    } else {
+        any_row(index, item, rows, cx)
+    }
 }
 
 pub(super) fn row<V: 'static>(
@@ -365,7 +383,7 @@ pub(super) fn row<V: 'static>(
             .flex_none()
             .child(crate::command::key_badges(&item.shortcut, tokens))
     });
-    let element = row_body(index, item, paint, narrow)
+    let element = row_body(index, item, paint, narrow, tokens)
         .children(super::hint::hint(index, item, surfaces))
         .children(trailing);
     let mut element = super::tip::with_tip(element, index, item, state, narrow);
@@ -417,51 +435,12 @@ pub(super) fn row<V: 'static>(
     element.into_any_element()
 }
 
-fn leading(index: usize, item: &MenuItem, ink: gpui::Hsla) -> Option<AnyElement> {
-    let content = match item.leading() {
-        Leading::None => return None,
-        Leading::Glyph(glyph) => ordinary_glyph(item, glyph, ink).into_any_element(),
-        Leading::SuccessCheck => crate::picker::glyph(
-            crate::assets::Glyph::CircleCheck,
-            f32::from(SUCCESS_GLYPH),
-            ink,
-        )
-        .into_any_element(),
-        Leading::Spinner => crate::loading::activity_indicator(
-            ElementId::NamedInteger(
-                "menu-pending".into(),
-                u64::try_from(index).unwrap_or(u64::MAX),
-            ),
-            crate::loading::Size::Numeric(crate::loading::Points::SIXTEEN),
-            ink,
-        ),
-    };
-    Some(
-        div()
-            .w(LEADING_SLOT)
-            .flex_none()
-            .flex()
-            .items_center()
-            .justify_center()
-            .child(content)
-            .into_any_element(),
-    )
-}
-
-// A caller's ordinary glyph size must not scale feedback or its slot.
-pub(super) fn ordinary_glyph(
-    item: &MenuItem,
-    glyph: crate::assets::Glyph,
-    ink: gpui::Hsla,
-) -> gpui::Svg {
-    crate::picker::glyph(glyph, item.leading_size.points(), ink)
-}
-
 pub(super) fn row_body(
     index: usize,
     item: &MenuItem,
     paint: super::item::Paint,
     narrow: bool,
+    tokens: &Tokens,
 ) -> gpui::Stateful<gpui::Div> {
     div()
         .id(ElementId::NamedInteger(
@@ -483,7 +462,7 @@ pub(super) fn row_body(
         .border_1()
         .border_color(gpui::transparent_black())
         .debug_selector(move || format!("menu-row-{index}"))
-        .children(leading(index, item, paint.glyph))
+        .children(super::leading::leading(index, item, paint.glyph, tokens))
         .child(
             div()
                 .flex_shrink(1.0)

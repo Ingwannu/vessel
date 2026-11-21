@@ -100,9 +100,6 @@ pub enum NodeError {
     /// prepared.
     #[error("the workspace directory is unusable")]
     WorkspaceDir(#[source] StoreError),
-    /// The HTTP server failed.
-    #[error("the server failed")]
-    Serve(#[source] std::io::Error),
     /// A startup or shutdown task failed unexpectedly.
     #[error("a node task failed")]
     Task(#[source] tokio::task::JoinError),

@@ -8,7 +8,9 @@
 //!   The app adapts this enum to the kit's reviewed artwork in one place.
 //! - Cost: an added Copilot command remains generic, despite the bundled
 //!   official Copilot artwork being available for attribution.
-use vessel_proto::terminal_profiles::{Profile, Profiles};
+//! - Terminal profiles (ADR 0117) follow Paseo instead: an admin-saved
+//!   profile's `icon`, else its command's guess (`AgentMark::of_profile`).
+use vessel_proto::terminal_profiles::{Profile, ProfileIcon};
 use vessel_proto::{HarnessKind, HarnessRef};
 
 /// A mark's semantic identity, independent of how a renderer draws it.
@@ -52,30 +54,35 @@ impl AgentMark {
         }
     }
 
-    /// A terminal profile's mark (the New tab panel's profile rows, TRACKER
-    /// 336). Only a profile exactly as Vessel ships it carries its brand:
-    /// those are the app's own constants, not a node's words. A configured
-    /// profile, even one that reuses a shipped id or icon text, has none, so
-    /// it cannot borrow a brand (the rule above). `None` means no mark: the
-    /// caller draws Paseo's no-icon form (the terminal glyph); Pi has no
-    /// bundled artwork, so it takes that form too.
+    /// A terminal profile's mark (ADR 0117; Paseo's `getTerminalProfileIcon`
+    /// and `TerminalProfileIcon`): the profile's `icon`, else a guess from
+    /// its command's base name (`Profile::mark`). A name Vessel has artwork
+    /// for gets its brand; a name outside the catalogue the generic mark
+    /// (Paseo's Bot); no name, or one without artwork here (Pi, Cursor),
+    /// `None`: the caller draws the terminal glyph. The node's admin sets
+    /// both the label and the program, so the guess says what runs (the
+    /// coordinator's ruling of 2026-11-21); harness marks keep the exact
+    /// identity rule above.
     #[must_use]
     pub fn of_profile(profile: &Profile) -> Option<Self> {
-        let shipped = Profiles::shipped().ok()?;
-        if shipped.get(profile.id()) != Some(profile) {
-            return None;
-        }
-        match profile.id().as_str() {
-            "claude" => Some(Self::ClaudeCode),
-            "codex" => Some(Self::Codex),
-            "opencode" => Some(Self::OpenCode),
-            _ => None,
+        match profile.mark() {
+            ProfileIcon::Known(name) => match name {
+                "claude" => Some(Self::ClaudeCode),
+                "codex" => Some(Self::Codex),
+                "opencode" => Some(Self::OpenCode),
+                "gemini" => Some(Self::Gemini),
+                "copilot" => Some(Self::Copilot),
+                _ => None,
+            },
+            ProfileIcon::Unknown => Some(Self::Generic),
+            ProfileIcon::Terminal => None,
         }
     }
 }
 #[cfg(test)]
 mod tests {
     use super::*;
+    use vessel_proto::terminal_profiles::Profiles;
     #[test]
     fn every_builtin_gets_its_own_mark() {
         assert_eq!(HarnessKind::ALL.len(), 4);
@@ -137,25 +144,38 @@ mod tests {
         );
     }
     #[test]
-    fn a_configured_profile_with_a_shipped_id_or_icon_has_no_brand() {
+    fn a_configured_profile_takes_its_icon_else_its_commands_guess() {
         use vessel_proto::terminal_profiles::{Argument, Icon, Id, Name, Program};
-        let claude_like = Profile::new(
-            Id::parse("claude").unwrap(),
-            Name::parse("Claude Code").unwrap(),
-            Program::parse("/usr/local/bin/anything").unwrap(),
-            vec![Argument::parse("{{{prompt}}}").unwrap()],
-            Some(Icon::parse("claude").unwrap()),
-        )
-        .unwrap();
-        assert_eq!(AgentMark::of_profile(&claude_like), None);
-        let iconed = Profile::new(
-            Id::parse("mine").unwrap(),
-            Name::parse("Mine").unwrap(),
-            Program::parse("codex").unwrap(),
-            Vec::new(),
-            Some(Icon::parse("codex").unwrap()),
-        )
-        .unwrap();
-        assert_eq!(AgentMark::of_profile(&iconed), None);
+        let profile = |command: &str, icon: Option<&str>| {
+            Profile::new(
+                Id::parse("profile_a").unwrap(),
+                Name::parse("Mine").unwrap(),
+                Program::parse(command).unwrap(),
+                vec![Argument::parse("{{{prompt}}}").unwrap()],
+                icon.map(|icon| Icon::parse(icon).unwrap()),
+            )
+            .unwrap()
+        };
+        // The coordinator's ruling (2026-11-21): Paseo's `icon ?? guess`.
+        for (command, icon, mark) in [
+            (
+                "/usr/local/bin/anything",
+                Some("claude"),
+                Some(AgentMark::ClaudeCode),
+            ),
+            ("codex", None, Some(AgentMark::Codex)),
+            (r"C:\tools\opencode.cmd", None, Some(AgentMark::OpenCode)),
+            ("gemini", None, Some(AgentMark::Gemini)),
+            ("copilot", None, Some(AgentMark::Copilot)),
+            ("cursor-agent", None, None),
+            ("zsh", None, None),
+            ("zsh", Some("not-a-provider"), Some(AgentMark::Generic)),
+        ] {
+            assert_eq!(
+                AgentMark::of_profile(&profile(command, icon)),
+                mark,
+                "{command}"
+            );
+        }
     }
 }

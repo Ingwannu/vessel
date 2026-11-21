@@ -10,6 +10,14 @@
 //! and a block that cannot be tracked is let through untracked rather than
 //! refused, so an attacker with many addresses cannot lock everyone else
 //! out.
+//!
+//! Letting an untracked block through does not free one host or one `/48`
+//! of its share: the wider blocks it already counts in stay tracked while
+//! they are busy (only full buckets are dropped), so a new `/64` of a
+//! spent `/48` is still refused by the `/48`'s bucket. Keeping the table
+//! full takes about [`TRACKED`] admissions per refill, which one `/48`'s
+//! own bucket does not allow: only many hosts at once (out of scope,
+//! README) get past it.
 
 use std::collections::HashMap;
 use std::net::IpAddr;
@@ -199,6 +207,34 @@ mod tests {
         let mapped: IpAddr = "::ffff:192.0.2.7".parse().unwrap();
         assert!(limiter.admit(mapped, now));
         assert!(!limiter.admit("192.0.2.7".parse().unwrap(), now));
+    }
+
+    /// A full table lets an untracked block in, but the wider block it
+    /// counts in is still tracked: one `/48` cannot use the full table to
+    /// slip its own limit.
+    #[test]
+    fn a_full_table_still_holds_the_blocks_it_tracks() {
+        let mut limiter = RateLimiter::new(1, Duration::from_secs(60));
+        let now = Instant::now();
+        // One /48's first connections spend it (four of its /64s).
+        for other in [
+            "2001:db8:1:1::1",
+            "2001:db8:1:101::1",
+            "2001:db8:1:201::1",
+            "2001:db8:1:301::1",
+        ] {
+            assert!(limiter.admit(other.parse().unwrap(), now), "{other}");
+        }
+        // Everyone else fills the table.
+        let mut index: u32 = 0;
+        while limiter.buckets.len() < TRACKED {
+            assert!(limiter.admit(IpAddr::V4(Ipv4Addr::from(index)), now));
+            index = index.checked_add(1).unwrap();
+        }
+        // A new /64 and /56 of that /48 cannot be tracked, but its /48 is.
+        assert!(!limiter.admit("2001:db8:1:401::1".parse().unwrap(), now));
+        // A stranger still gets in untracked.
+        assert!(limiter.admit("2001:db8:2:1::1".parse().unwrap(), now));
     }
 
     #[test]
