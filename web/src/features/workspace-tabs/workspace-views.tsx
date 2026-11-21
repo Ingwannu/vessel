@@ -170,12 +170,11 @@ export function WorkspaceViews({
           >
             {support === null ? null : (
               <div className="workspace-support-header">
-                {support === "explorer" ? (
+                {support === "explorer" && item.tab.kind === "pull" ? (
                   <Button
                     icon="folder"
                     variant="ghost"
                     size="xs"
-                    disabled={item.tab.kind === "files"}
                     onClick={location.openExplorer}
                   >
                     {words.files}

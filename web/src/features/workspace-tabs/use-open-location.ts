@@ -14,7 +14,24 @@ import type {
 import type { RelPath } from "../../wire/proto";
 import { useMedia } from "../shell/use-media";
 
-type SupportingPlace = Exclude<PullRequestLocation, "main">;
+interface SupportingTab {
+  key: string;
+  place: Exclude<PullRequestLocation, "main">;
+}
+
+interface OpenLocation {
+  lines: ReadonlyMap<RelPath, { line: number; seq: number }>;
+  openFile: (
+    path: RelPath,
+    line: number | null,
+    source?: OpenLocationSource,
+  ) => void;
+  supporting: SupportingTab | null;
+  forget: (key: string) => void;
+  openChanges: (kind: "changes" | "diff") => void;
+  openPull: () => void;
+  openExplorer: () => void;
+}
 
 /**
  * Both panes use the same tab registry. When a supporting tab returns to
@@ -24,12 +41,9 @@ export function useOpenLocation(
   layout: TabLayout,
   update: (apply: (layout: TabLayout) => TabLayout) => void,
   selectMain: (tab: WorkspaceTab) => void,
-) {
+): OpenLocation {
   const wide = useMedia("(width >= 1100px)");
-  const [placed, setPlaced] = useState<{
-    key: string;
-    place: SupportingPlace;
-  } | null>(null);
+  const [placed, setPlaced] = useState<SupportingTab | null>(null);
   const supporting =
     wide &&
     placed !== null &&
