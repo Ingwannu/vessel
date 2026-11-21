@@ -9,7 +9,11 @@ use super::{Id, Prompt};
 /// placeholder, puts `prompt` (or nothing) in it and starts the program
 /// with its arguments, without a shell.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(rename = "TerminalProfileLaunch"))]
+#[cfg_attr(
+    feature = "ts",
+    derive(ts_rs::TS),
+    ts(rename = "TerminalProfileLaunch")
+)]
 pub struct ProfileLaunch {
     /// Which profile.
     pub id: Id,

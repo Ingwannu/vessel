@@ -112,7 +112,9 @@ impl Profile {
     pub fn mark(&self) -> ProfileIcon {
         match self.icon() {
             Some(icon) => known(icon.as_str()).map_or(ProfileIcon::Unknown, ProfileIcon::Known),
-            None => guess(self.command().as_str()).map_or(ProfileIcon::Terminal, ProfileIcon::Known),
+            None => {
+                guess(self.command().as_str()).map_or(ProfileIcon::Terminal, ProfileIcon::Known)
+            }
         }
     }
 }

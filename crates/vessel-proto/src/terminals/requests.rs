@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 
 use super::{TerminalInfo, TerminalPlace};
 use crate::id::{EventSeq, SubscriptionId, TerminalId};
-use crate::terminal_profiles::ProfileLaunch;
 use crate::terminal::{TerminalInput, TerminalSize};
+use crate::terminal_profiles::ProfileLaunch;
 use crate::title::SessionTitle;
 
 /// `terminal.create`: open the user's shell in a place, or one of the

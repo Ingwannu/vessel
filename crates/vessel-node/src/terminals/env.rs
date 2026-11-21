@@ -229,7 +229,9 @@ mod tests {
             return;
         }
         let here = Path::new("/work/site");
-        let on = |found: &'static [&'static str]| move |path: &Path| found.iter().any(|f| path == Path::new(f));
+        let on = |found: &'static [&'static str]| {
+            move |path: &Path| found.iter().any(|f| path == Path::new(f))
+        };
         let search = OsString::from("/opt/a::/usr/bin");
         let found = on(&["/usr/bin/claude", "/work/site/bin/tool", "/opt/tools/x"]);
         assert_eq!(
@@ -249,7 +251,10 @@ mod tests {
         // An empty entry is not the node's own folder.
         let only_empty = OsString::from(":");
         let local = on(&["claude"]);
-        assert_eq!(find_program("claude", here, Some(&only_empty), &local), None);
+        assert_eq!(
+            find_program("claude", here, Some(&only_empty), &local),
+            None
+        );
         assert_eq!(
             find_program("claude", here, None, &found),
             Some(PathBuf::from("claude"))

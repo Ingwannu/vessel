@@ -199,7 +199,10 @@ async fn a_shipped_profile_runs_its_program_with_the_prompt_and_takes_its_name()
             program: fixture.bin.join("claude"),
         }
     );
-    assert_eq!(with.title.as_ref().map(ToString::to_string).as_deref(), Some("Claude Code"));
+    assert_eq!(
+        with.title.as_ref().map(ToString::to_string).as_deref(),
+        Some("Claude Code")
+    );
     // One argument, spaces kept: no shell split it.
     fixture.args_of(&with, r#"args ["fix it now"]"#).await;
     // No prompt: the placeholder's argument is left out.

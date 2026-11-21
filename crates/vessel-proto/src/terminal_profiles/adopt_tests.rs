@@ -28,7 +28,12 @@ fn a_shipped_agents_program_takes_the_prompt_by_its_command_not_its_id() {
     assert_eq!(args(&generated.adopted()), ["--yolo", PROMPT_SENTINEL]);
     let path = kept("profile_b", "/usr/local/bin/codex", &[], None);
     assert_eq!(args(&path.adopted()), [PROMPT_SENTINEL]);
-    let windows = kept("profile_c", r"C:\Program Files\nodejs\claude.cmd", &[], None);
+    let windows = kept(
+        "profile_c",
+        r"C:\Program Files\nodejs\claude.cmd",
+        &[],
+        None,
+    );
     assert_eq!(args(&windows.adopted()), [PROMPT_SENTINEL]);
     // The shipped form per program: OpenCode's positional is a folder.
     let open = kept("profile_d", "opencode", &[], None);
@@ -77,7 +82,10 @@ fn a_list_adopts_only_its_matching_rows_in_order() {
     let adopted = list.adopted();
     assert_eq!(args(&adopted.entries()[0]), [PROMPT_SENTINEL]);
     assert_eq!(adopted.entries()[1], list.entries()[1]);
-    assert_eq!(Profiles::shipped().unwrap().adopted(), Profiles::shipped().unwrap());
+    assert_eq!(
+        Profiles::shipped().unwrap().adopted(),
+        Profiles::shipped().unwrap()
+    );
 }
 
 #[test]
@@ -111,8 +119,14 @@ fn a_row_draws_its_set_mark_else_the_guess() {
         kept("a", "claude", &[], Some("claude")).mark(),
         ProfileIcon::Known("claude")
     );
-    assert_eq!(kept("b", "claude", &[], None).mark(), ProfileIcon::Known("claude"));
-    assert_eq!(kept("c", "cursor-agent", &[], None).mark(), ProfileIcon::Known("cursor"));
+    assert_eq!(
+        kept("b", "claude", &[], None).mark(),
+        ProfileIcon::Known("claude")
+    );
+    assert_eq!(
+        kept("c", "cursor-agent", &[], None).mark(),
+        ProfileIcon::Known("cursor")
+    );
     // A set mark wins over the guess, as Paseo's `icon ??`.
     assert_eq!(
         kept("d", "cursor-agent", &[], Some("claude")).mark(),

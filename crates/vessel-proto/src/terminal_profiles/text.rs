@@ -124,7 +124,13 @@ macro_rules! profile_text {
     };
 }
 
-profile_text!(Id, Id, "TerminalProfileId", 64, "A stable terminal profile row identity.");
+profile_text!(
+    Id,
+    Id,
+    "TerminalProfileId",
+    64,
+    "A stable terminal profile row identity."
+);
 profile_text!(
     Name,
     Name,

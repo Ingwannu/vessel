@@ -7,10 +7,10 @@ use std::fmt::Write as _;
 use vessel_client::NodeClient;
 use vessel_proto::EventSeq;
 use vessel_proto::ports::{ListPorts, PortList, PortOwner, PortScan};
-use vessel_proto::terminal_profiles::ProfileLaunch;
 use vessel_proto::scripts::{
     ListScripts, RestartScript, RunScript, ScriptPlace, ScriptRefusal, ScriptRunOutcome,
 };
+use vessel_proto::terminal_profiles::ProfileLaunch;
 use vessel_proto::terminals::{
     CloseTerminal, CreateTerminal, KillTerminal, ListTerminals, RenameTerminal, TerminalInfo,
     TerminalKind, TerminalPlace,

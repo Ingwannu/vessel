@@ -1,10 +1,10 @@
 //! ADR 0117: a profile launch and a settings change of the profiles need
 //! `TERMINAL_PROFILES_PROTOCOL`; without them the calls are as they were.
 use super::*;
+use crate::SessionId;
 use crate::settings::SetNodeSettings;
 use crate::terminal_profiles::{Id, ProfileLaunch, Profiles, TERMINAL_PROFILES_PROTOCOL};
 use crate::terminals::{CreateTerminal, TerminalPlace};
-use crate::SessionId;
 
 #[test]
 fn a_profile_launch_and_a_profiles_change_need_their_protocol() {
