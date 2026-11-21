@@ -52,7 +52,13 @@ export function PluginScreenPage(): ReactElement {
     [held, node, plugin, screen],
   );
   const title = found?.item.title ?? plugin;
-  useCrumbs([{ label: title }]);
+  // The frame's crumbs name the machine and the plugin; the header below
+  // carries the screen's title, so the two do not repeat each other.
+  const crumbs = useMemo(
+    () => [{ label: node ?? "", mono: true }, { label: plugin }],
+    [node, plugin],
+  );
+  useCrumbs(crumbs);
   const close = () => {
     if (window.history.length > 1) window.history.back();
     else void navigate({ to: "/sessions" });
@@ -79,12 +85,7 @@ export function PluginScreenPage(): ReactElement {
   return (
     <div className="plugin-screen">
       <header className="plugin-screen-head">
-        <div>
-          <h1>{title}</h1>
-          {node === null ? null : (
-            <span className="plugin-screen-machine">{node}</span>
-          )}
-        </div>
+        <h1>{title}</h1>
         <IconButton
           label={SURFACE_WORDS.close}
           icon="close"
