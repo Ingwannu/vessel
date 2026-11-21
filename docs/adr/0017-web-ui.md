@@ -215,7 +215,9 @@ Option 3.
   replay and live output. Public `onData` alone merges both. A query denylist
   would miss future escape sequences; disabling all input during async
   replay would lose real typing. This private API dependency must pass the
-  real-terminal browser regression before xterm upgrades.
+  real-terminal browser regression before xterm upgrades. The page answers
+  ADR 0073's five queries itself, live only, by that ADR's duty (amendment
+  "the page answers live terminal queries" below).
 - A terminal's keys and sizes go out one `session.send` at a time, in
   order, keys typed meanwhile joined into one send (`terminal-sender`,
   the CLI attach's sender): the bridge and the node both run calls
@@ -446,3 +448,80 @@ historical close path remains unobserved. Real-server expiry followed by a
 fresh proof of the same unused launch, a well-formed wrong proof, and client
 retry/refusal regressions verify the distinct cases. Package execution and
 review are recorded in `docs/plans/backend-m12-web-identity.md`.
+
+## Amendment: the page answers live terminal queries (TRACKER 826, 2026-11-21)
+
+[Decision Log]
+- Purpose: a program in a page terminal that asks the terminal something
+  waited for nothing. nvim asks for the device's attributes at once; a
+  crossterm TUI asks where the cursor is before it draws. The adapter
+  above drops every reply xterm forms, the live ones with the replay's.
+- Existing behaviour and constraints: Paseo 0.15.4 answers DA1, DSR 5,
+  DSR 6, `CSI ? 6 n` and OSC 10/11/12 `?` in its daemon
+  (`packages/server/src/terminal/terminal.ts` 883-922), and its browser
+  xterm swallows them (`terminal-emulator-runtime.ts` 641-662). Vessel's
+  node keeps raw bytes and parses nothing, so a viewer must answer. The
+  native app already does, under ADR 0073: that closed set, live bytes
+  only, from one viewer by duty.
+- Alternatives considered:
+  - Forward xterm's own replies when the bytes are live. Rejected: xterm's
+    set is wider than ADR 0073's (DECRQSS, DA2, window reports) and is
+    xterm's to change. The point above still holds: xterm output never
+    becomes input.
+  - A denylist over onData. Rejected, for the reason above.
+  - Keep the page silent. Rejected: Paseo answers live queries, and so
+    does the native app.
+- Choice:
+  - The page registers xterm parser handlers for exactly ADR 0073's five
+    queries (`web/src/data/terminal-queries.ts`). They build the same
+    bytes as native. A cursor report with a wrap pending names the last
+    column, as native's does; Paseo's daemon says one past it. The OSC
+    colours are the scheme's terminal colours, ended by ST. A program's
+    own OSC 10-12 set, which xterm applies, is not reflected; native
+    ignores sets too.
+  - A handler swallows its query, so xterm forms no reply. It sends the
+    answer through the view's ordered sender only when both hold:
+    - the bytes are live. A view reads the terminal or session as its
+      follow starts, and again after every gap: the tab's link closing,
+      or the bridge's stream to the node reconnecting
+      (`web/src/data/terminal-live.ts`). Records from the last read's
+      `next_seq` are live. Records before it, and everything while that
+      read has not answered, are history. So a query written during a
+      gap is never answered late, as ADR 0073 has it;
+    - the view has the duty: it opened the terminal (a shell from this
+      tab's New terminal), or the browser tab has focus, the terminal
+      holds it, and the person has typed.
+  - Answers wait in the view's sender with the keys, but only while at
+    most 64 KiB waits. Past that an answer is dropped, so a flood of
+    queries never fills the room the person's keys need.
+  - `terminal-input`'s provenance filter is unchanged.
+- Why: one rule for both surfaces, with the native app's bytes and duty.
+  The closed set keeps what reaches the PTY small and known.
+- Consequences:
+  - The answer crosses the bridge, so a program that asks and exits at
+    once may miss it. ADR 0073 states the same of native.
+  - A view knows no other viewer. Each of these answers, one reply each:
+    two views that both have focus and have typed; and the view that
+    opened a terminal together with a focused view elsewhere that has
+    typed (native's duty is the same).
+  - A session view is never the opener: a program in a session started
+    from this tab gets no answer until someone types into it.
+  - A query whose introducer was in history and whose final byte is live
+    is answered here; native's parser does not answer it. That needs a
+    record split exactly at the read's `next_seq`.
+  - Tests:
+    - `terminal-queries.test.ts`: the bytes, the set, the gate, the
+      duty, and the last column.
+    - `terminal-live.test.ts`: the boundary, a link gap, a stream
+      reconnect, and a stale read.
+    - `terminal-sender.test.ts`: the answers' bound.
+    - e2e `app.spec.ts`:
+      - the five queries are answered once by the view with focus that
+        has typed;
+      - that view without focus stays silent, and so do a watching client
+        and a view that opened afterwards;
+      - a query written while the tab's link was down is not answered
+        after the reconnect, and one asked after it is.
+    - e2e `workspace-tabs.spec.ts`: a shell the page opened answers after
+      focus has left.
+    - The replay test above stays.

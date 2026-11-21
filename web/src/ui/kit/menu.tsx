@@ -32,13 +32,17 @@ export interface MenuProps {
   align?: "start" | "center" | "end";
   /** `narrow` is a composer's agent menu (256px, agent-orchestrator's
    * `w-64`); `wide` holds a description under each row (320px). */
-  width?: "auto" | "narrow" | "wide";
+  /** `compact`: 200, a card's kebab (Paseo's `DropdownMenuContent
+   * width={200}`). */
+  width?: "auto" | "compact" | "narrow" | "wide";
 }
 
-function widthClass(width: "auto" | "narrow" | "wide"): string {
+function widthClass(width: "auto" | "compact" | "narrow" | "wide"): string {
   switch (width) {
     case "auto":
       return "popup menu-popup";
+    case "compact":
+      return "popup menu-popup compact";
     case "narrow":
       return "popup menu-popup narrow";
     case "wide":

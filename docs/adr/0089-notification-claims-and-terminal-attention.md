@@ -407,6 +407,30 @@ snapshot is not a freshness guarantee across revocation. The feature remains
 unassigned, and direct Store/lease tests do not imply assigned wire or delivery
 proof. Changed-source checks and the actual drafted regressions are pending.
 
+## The clients' session claims (2026-11-21, the claims follow-up's second row)
+
+Both clients claim a session notice before showing it, behind this feature's constant:
+- the app: `view/src/notices/claims.rs`, `link/src/claims.rs`, `app/src/areas/notify/claims.rs`;
+- the page: `web/src/data/claims.ts`, wired in `features/notifications/use-notices.ts`.
+
+While the constant is unassigned, no machine admits claims, and a notice takes ADR 0114's path unchanged.
+
+- **Source.** A claim names the exact inbox entry by key and cursor. A client learns them only from
+  `inbox.list`, which pages newest first, sixteen a page, with no session filter.
+  - Once per machine per change, a client reads that machine's first page.
+  - For each notice it claims the newest unread entry of that session whose item matches the notice's
+    kind: a request for "needs you"; Finished or Limit for "finished".
+- **Limit.** An entry not on the first page is not claimed. This happens when sixteen newer entries came
+  first. The notice then falls back to ADR 0114's local path and shows (the coordinator's rule,
+  2026-11-20). Two windows may both show it in that case. The alternative was a session-scoped claim form
+  before assignment, which is a wire change on the node line.
+- **What shows.**
+  - `Admitted` and the fallback show.
+  - Every other outcome, a failed page or claim, and a lost reply show nothing. The inbox still holds
+    the entry.
+  - A claim is never retried.
+  - Failed sessions never reach a claim: the diff drops them (the "Local error attention" section).
+
 ## Owed before the feature constant is assigned
 
 The node review of TRACKER 815 (2026-11-20, the staging line merged onto the

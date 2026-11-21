@@ -15,7 +15,9 @@ const MAX_REF_BYTES: usize = 256;
 use vessel_proto::plugins::{
     DisablePlugin, EnablePlugin, GetPluginCatalog, GetPluginLogs, InspectPlugin, InstallPlugin,
     InvokePlugin, ListPlugins, PluginCatalog, PluginGeneration, PluginInspection, PluginList,
-    PluginListItem, PluginLogs, PluginOutput, ReloadPlugin, RemovePlugin, WatchPlugins,
+    PluginListItem, PluginLogs, PluginOutput, PluginSettingsRead, PluginSettingsWrite,
+    ReadPluginSettings, ReloadPlugin, RemovePlugin, ResetPluginSettings, WatchPlugins,
+    WritePluginSettings,
 };
 use vessel_proto::{Ack, ErrorCode, Scope, WireError};
 
@@ -162,6 +164,44 @@ impl NodeService {
             .map_err(|error| wire(&error))
     }
 
+    /// `plugin.settings.read` (ADR 0115, "Settings"). Admin, refused to
+    /// agents by the guard: the values may hold anything, and a helper's
+    /// refusal words reach only these callers.
+    pub(crate) async fn read_plugin_settings(
+        &self,
+        _: &Connection,
+        request: ReadPluginSettings,
+    ) -> Result<PluginSettingsRead, WireError> {
+        self.plugins
+            .read_settings(&request.plugin, &request.settings)
+            .await
+            .map_err(|error| wire(&error))
+    }
+
+    /// `plugin.settings.write`: a complete document at the revision read.
+    pub(crate) async fn write_plugin_settings(
+        &self,
+        _: &Connection,
+        request: WritePluginSettings,
+    ) -> Result<PluginSettingsWrite, WireError> {
+        self.plugins
+            .write_settings(request)
+            .await
+            .map_err(|error| wire(&error))
+    }
+
+    /// `plugin.settings.reset`: the schema's defaults.
+    pub(crate) async fn reset_plugin_settings(
+        &self,
+        _: &Connection,
+        request: ResetPluginSettings,
+    ) -> Result<PluginSettingsWrite, WireError> {
+        self.plugins
+            .reset_settings(request)
+            .await
+            .map_err(|error| wire(&error))
+    }
+
     /// The switch was saved: apply it (from `node.set_settings`).
     pub(crate) fn plugins_switched(&self, on: bool) {
         self.plugins.set_switch(on);
@@ -192,7 +232,9 @@ fn bounded(text: &str, limit: usize, field: &str) -> Result<(), WireError> {
 /// The wire kind of each plugin error; the message is the node's sentence.
 fn wire(error: &PluginError) -> WireError {
     let code = match error {
-        PluginError::NotInstalled(_) | PluginError::NoMethods(_) => ErrorCode::NotFound,
+        PluginError::NotInstalled(_)
+        | PluginError::NoMethods(_)
+        | PluginError::NoSettings { .. } => ErrorCode::NotFound,
         PluginError::Exists(_) | PluginError::Disabled(_) | PluginError::Off => ErrorCode::Conflict,
         PluginError::Source(_) | PluginError::Manifest(_) => ErrorCode::InvalidRequest,
         PluginError::Failed { .. } | PluginError::Stopping | PluginError::NotRunning(_) => {
@@ -205,7 +247,9 @@ fn wire(error: &PluginError) -> WireError {
             CallFailure::Unavailable => ErrorCode::Unavailable,
             CallFailure::Failed => ErrorCode::Internal,
         },
-        PluginError::Store(_) | PluginError::Catalog(_) => ErrorCode::Internal,
+        PluginError::Store(_) | PluginError::Catalog(_) | PluginError::SettingsStore(_) => {
+            ErrorCode::Internal
+        }
     };
     if code == ErrorCode::Internal {
         tracing::warn!(%error, "a plugin change was not kept");

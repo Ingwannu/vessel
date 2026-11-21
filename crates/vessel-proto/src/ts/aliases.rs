@@ -102,6 +102,10 @@
 //!   `ContributionId`, `RpcName`, `ThemeName`, `FileExtension`,
 //!   `FileNamePattern` and `HexColor` are what a plugin's author names or
 //!   writes, plain.
+//! - Plugin settings (ADR 0115, "Settings"): `SettingsRevision` is the
+//!   node's opaque revision a client hands back unchanged, branded;
+//!   `SettingsId` is what a plugin's author names, plain; `SettingsMessage`
+//!   is a helper's words for a person, carried content.
 //! - Terminal profiles (ADR 0117): a profile's id (made by the page or
 //!   typed with `--profile`), name, program, arguments and icon name are
 //!   what a person types or picks, plain; a launch's prompt is a message's
@@ -282,6 +286,9 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("SessionId", Alias::Handle),
     ("SessionTitle", Alias::Named),
     ("SessionUpdatedAt", Alias::Quantity),
+    ("SettingsId", Alias::Named),
+    ("SettingsMessage", Alias::Content),
+    ("SettingsRevision", Alias::Handle),
     ("Sha256Hex", Alias::Named),
     ("SkillName", Alias::Named),
     ("StreamId", Alias::Handle),

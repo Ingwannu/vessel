@@ -77,6 +77,9 @@ fn every_method_declares_authority_and_admin_is_rare() {
             "plugin.remove",
             // Running a plugin's method runs its code with the node's access.
             "plugin.invoke",
+            "plugin.settings.read",
+            "plugin.settings.write",
+            "plugin.settings.reset",
         ]
     );
     assert_eq!(
@@ -1670,6 +1673,7 @@ fn saved_limit_requests_and_sanitized_states_round_trip_with_exact_methods() {
 }
 
 mod envelope_versions;
+mod plugin_settings;
 mod profile_launch;
 mod shared_terminals;
 mod workspace_terminals;

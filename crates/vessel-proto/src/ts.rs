@@ -424,6 +424,11 @@ pub const PROTOCOLS: &[(&str, Option<crate::ProtocolVersion>, &str)] = &[
         "`origin` on `git.status`, `git.stage`, `git.unstage` and `git.discard` (ADR 0123 step B).",
     ),
     (
+        "PLUGIN_SETTINGS_PROTOCOL",
+        crate::plugins::PLUGIN_SETTINGS_PROTOCOL,
+        "`plugin.settings.read`, `.write` and `.reset` (ADR 0115, \"Settings\").",
+    ),
+    (
         "TERMINAL_PROFILES_PROTOCOL",
         crate::terminal_profiles::TERMINAL_PROFILES_PROTOCOL,
         "The node's terminal profiles in its settings, and `terminal.create`'s `profile` (ADR 0117).",

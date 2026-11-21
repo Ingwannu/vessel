@@ -290,6 +290,10 @@ const fn forwardable(method: Method) -> bool {
         // needs `admin`).
         | Method::GetPluginCatalog
         | Method::InvokePlugin
+        // Plugin settings documents (ADR 0115, "Settings"; `admin`).
+        | Method::ReadPluginSettings
+        | Method::WritePluginSettings
+        | Method::ResetPluginSettings
         // Protocol 14: forking and rewinding a session (ADR 0052).
         | Method::ForkSession
         | Method::RewindSession
