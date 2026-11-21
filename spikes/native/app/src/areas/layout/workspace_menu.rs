@@ -18,14 +18,16 @@
 //!   island, large and round (789). The tooltip and the accessible name are
 //!   "Workspace actions".
 //! - Items: Paseo's that Vessel performs, in Paseo's order: Copy workspace
-//!   path, then Import session (777's sheet for this host and folder). Left
-//!   out, as in 789: New browser tab and the terminal profiles (Paseo leaves
-//!   them out where it cannot create them; the desktop menu has neither),
-//!   Copy branch name (Vessel knows only the branch a session started on),
-//!   Show setup (no page).
+//!   path, then Import session (777's sheet for this host and folder); on a
+//!   compact window then the terminal profiles group with Edit profiles
+//!   (`terminal_profiles::menu`, ADR 0117; Paseo's desktop menu has none).
+//!   Left out, as in 789: New browser tab (Vessel cannot create one), Copy
+//!   branch name (Vessel knows only the branch a session started on), Show
+//!   setup (no page).
 //! - The wide bar had a second "…" for the session's own actions until
 //!   TRACKER 800 removed it; they are the tab menu's (TRACKER 797).
 
+use crate::areas::terminal_profiles::menu::{self as profiles, Choice};
 use crate::shell::Shell;
 use std::rc::Rc;
 use vessel_app_kit::assets::Glyph;
@@ -40,6 +42,7 @@ use vessel_app_kit::ui::{
 use vessel_app_kit::{
     ButtonState, ControlSizing, MenuHandlers, MenuItem, MenuState, Tokens, anchor_probe,
 };
+use vessel_app_view::layout::LayoutMode;
 
 #[cfg(test)]
 mod tests;
@@ -127,14 +130,29 @@ pub(super) fn overlay(
     if !area.menu.is_open() {
         return None;
     }
-    let items = items(shell);
+    let compact = super::mode(window) == LayoutMode::Compact;
+    let group = if compact {
+        profiles::group(shell, LeadingSize::Regular)
+    } else {
+        Vec::new()
+    };
+    let mut items = items(shell).to_vec();
+    items.extend(group.iter().map(|(_, item)| item.clone()));
+    let choices: Vec<Option<Choice>> = group.into_iter().map(|(choice, _)| choice).collect();
     let handlers = MenuHandlers {
         state: |shell: &mut Shell| &mut shell.areas.layout.workspace_menu.menu,
-        chose: Rc::new(|shell: &mut Shell, index, window, cx| {
-            if index == 0 {
-                shell.copy_workspace_path(cx);
-            } else {
-                shell.open_import_for_workspace(window, cx);
+        chose: Rc::new(move |shell: &mut Shell, index, window, cx| match index {
+            0 => shell.copy_workspace_path(cx),
+            1 => shell.open_import_for_workspace(window, cx),
+            _ => {
+                let choice = index
+                    .checked_sub(2)
+                    .and_then(|at| choices.get(at))
+                    .cloned()
+                    .flatten();
+                if let Some(choice) = choice {
+                    shell.terminal_profiles_choose(choice, None, window, cx);
+                }
             }
         }),
     };

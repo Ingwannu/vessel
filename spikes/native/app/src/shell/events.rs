@@ -39,6 +39,7 @@ impl Shell {
             }
             Event::TerminalClaims(answer) => self.terminal_notices_claimed(answer, cx),
             Event::NodeSettings(answer) => self.node_settings_answer(answer),
+            Event::TerminalProfiles(answer) => self.terminal_profiles_answer(answer, cx),
             Event::Diagnostics(answer) => self.diagnostics_answer(answer),
             Event::Plugins(answer) => return self.plugins_answer(answer, cx),
             Event::PluginCatalog(answer) => return self.plugin_catalog_answer(answer, cx),

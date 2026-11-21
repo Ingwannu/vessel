@@ -109,7 +109,7 @@ fn a_worktree_sessions_shell_opens_there_and_its_strip_takes_the_shells_beside_i
     let place = TerminalPlace::Worktree { worktree };
     let created = sent(&probe, cx);
     assert!(
-        matches!(created.as_slice(), [Request::Create { place: at }] if *at == place),
+        matches!(created.as_slice(), [Request::Create { place: at, .. }] if *at == place),
         "{created:?}"
     );
 
@@ -242,7 +242,7 @@ fn below_40_a_shell_stays_beside_the_session_and_nothing_else_is_asked(cx: &mut 
         matches!(
             asked.as_slice(),
             [
-                Request::Create { place: created },
+                Request::Create { place: created, .. },
                 Request::List { place: listed, changed_from: None },
             ] if *created == beside && *listed == beside
         ),

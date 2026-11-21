@@ -34,11 +34,19 @@ use futures_util::{Sink, Stream};
 use serde::Deserialize;
 use serde::de::IgnoredAny;
 use serde_json::value::RawValue;
-use tokio::io::{AsyncBufReadExt as _, AsyncRead, AsyncWrite, AsyncWriteExt as _, BufReader};
+use tokio::io::{
+    AsyncBufRead, AsyncBufReadExt as _, AsyncRead, AsyncReadExt as _, AsyncWrite,
+    AsyncWriteExt as _, BufReader,
+};
 use tokio::sync::Semaphore;
 
 /// Lines from the agent the driver may hold at once (counted lines only).
 pub(crate) const IN_FLIGHT: usize = 64;
+
+/// The longest line the agent may write, in bytes; a longer one ends the
+/// connection. The same bound as the direct drivers' (`codex::wire`,
+/// `claude::io`): a whole file read back in one tool result fits.
+const MAX_LINE: usize = 64 * 1024 * 1024;
 
 /// Permits for counted lines: taken by the stream, returned by the driver.
 #[derive(Debug, Clone)]
@@ -97,19 +105,52 @@ fn reader<R>(incoming: R, gate: Gate) -> impl Stream<Item = io::Result<String>> 
 where
     R: AsyncRead + Send + Unpin + 'static,
 {
-    let lines = BufReader::new(incoming).lines();
-    futures_util::stream::unfold((lines, gate), async |(mut lines, gate)| {
-        let line = match lines.next_line().await {
+    let incoming = BufReader::new(incoming);
+    futures_util::stream::unfold((incoming, gate), async |(mut incoming, gate)| {
+        let line = match next_line(&mut incoming, MAX_LINE).await {
             Ok(Some(line)) => line,
             Ok(None) => return None,
-            // Not UTF-8, or the pipe failed: the SDK ends the connection.
-            Err(error) => return Some((Err(error), (lines, gate))),
+            // Not UTF-8, too long, or the pipe failed: the SDK ends the
+            // connection.
+            Err(error) => return Some((Err(error), (incoming, gate))),
         };
         if counted(&line) {
             gate.take().await;
         }
-        Some((Ok(line), (lines, gate)))
+        Some((Ok(line), (incoming, gate)))
     })
+}
+
+/// The next line of `incoming` without its `\n` (or `\r\n`); `None` at the
+/// end. A line of more than `max` bytes is an `InvalidData` error once
+/// `max + 1` bytes are buffered, never read whole: an agent that writes
+/// without a newline must not grow the node's memory without bound.
+async fn next_line<R>(incoming: &mut R, max: usize) -> io::Result<Option<String>>
+where
+    R: AsyncBufRead + Unpin,
+{
+    // One byte past the bound: room for the newline of a line of exactly
+    // `max` bytes, and enough to tell a longer one.
+    let limit = u64::try_from(max).map_or(u64::MAX, |max| max.saturating_add(1));
+    let mut line = Vec::new();
+    let read = incoming.take(limit).read_until(b'\n', &mut line).await?;
+    if read == 0 {
+        return Ok(None);
+    }
+    if line.last() == Some(&b'\n') {
+        let _newline = line.pop();
+        if line.last() == Some(&b'\r') {
+            let _return = line.pop();
+        }
+    } else if line.len() > max {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!("the agent wrote a line longer than {max} bytes"),
+        ));
+    }
+    String::from_utf8(line)
+        .map(Some)
+        .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))
 }
 
 /// Just enough of a JSON-RPC message to classify it.
@@ -221,5 +262,38 @@ mod tests {
         agent.write_all(b"\xff\xfe\n").await.unwrap();
         let error = stream.next().await.unwrap().unwrap_err();
         assert_eq!(error.kind(), io::ErrorKind::InvalidData);
+    }
+
+    /// A line past the bound is refused once the bound is read, without
+    /// waiting for a newline that may never come; one at the bound passes.
+    #[tokio::test]
+    async fn a_line_longer_than_the_bound_is_an_error_before_its_end() {
+        let (mut agent, client) = tokio::io::duplex(1024);
+        let mut incoming = BufReader::new(client);
+        agent.write_all(b"abcd\nef\r\nabcdefgh").await.unwrap();
+        assert_eq!(
+            next_line(&mut incoming, 4).await.unwrap().as_deref(),
+            Some("abcd")
+        );
+        assert_eq!(
+            next_line(&mut incoming, 4).await.unwrap().as_deref(),
+            Some("ef")
+        );
+        // The agent is still connected and has written no newline.
+        let error = next_line(&mut incoming, 4).await.unwrap_err();
+        assert_eq!(error.kind(), io::ErrorKind::InvalidData);
+    }
+
+    #[tokio::test]
+    async fn the_last_line_needs_no_newline() {
+        let (mut agent, client) = tokio::io::duplex(1024);
+        let mut incoming = BufReader::new(client);
+        agent.write_all(b"abcd").await.unwrap();
+        drop(agent);
+        assert_eq!(
+            next_line(&mut incoming, 4).await.unwrap().as_deref(),
+            Some("abcd")
+        );
+        assert_eq!(next_line(&mut incoming, 4).await.unwrap(), None);
     }
 }

@@ -68,6 +68,8 @@ pub enum Command {
     },
     /// Read or change a machine's own settings.
     NodeSettings(node_settings::Ask),
+    /// Read or keep a machine's terminal profiles (ADR 0117).
+    TerminalProfiles(crate::terminal_profiles::Ask),
     /// A diagnostics call to one machine (ADR 0111).
     Diagnostics(crate::diagnostics::Ask),
     /// A plugin call to one machine (ADR 0115).
