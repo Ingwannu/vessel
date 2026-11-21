@@ -193,3 +193,27 @@ fn the_add_button_opens_the_editor_from_an_assistive_click_with_no_hover(cx: &mu
     });
     shell.update(cx, |shell, _| scene.close(shell.fixture_link()).unwrap());
 }
+
+#[gpui::test]
+fn the_list_keeps_room_under_send_feedback_while_comments_are_kept(cx: &mut TestAppContext) {
+    let (shell, cx, mut scene) = setup(cx);
+    cx.simulate_resize(gpui::size(gpui::px(1280.0), gpui::px(800.0)));
+    shell.update_in(cx, |shell, _window, _cx| {
+        let (session, project) = prepare(shell, &scene.context());
+        root(&mut scene, shell, session, project);
+        ready(&mut scene, shell);
+        let changes = &shell.areas.workspace.code.changes;
+        // `relist` counts one row past the rows: the room's.
+        assert_eq!(changes.list.rows(), changes.rows.len().saturating_add(1));
+    });
+    cx.run_until_parked();
+    let room = |cx: &mut gpui::VisualTestContext| cx.debug_bounds("review-room").unwrap();
+    assert_eq!(room(cx).size.height, gpui::px(0.0));
+    shell.update_in(cx, |shell, window, cx| {
+        let _kept = saved(shell, window, cx);
+    });
+    cx.run_until_parked();
+    // The md button, its 16 and 44: Paseo's clearance on a pointer's width.
+    assert_eq!(room(cx).size.height, gpui::px(92.0));
+    shell.update(cx, |shell, _| scene.close(shell.fixture_link()).unwrap());
+}

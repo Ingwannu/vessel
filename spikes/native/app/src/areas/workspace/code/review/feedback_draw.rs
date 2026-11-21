@@ -80,7 +80,11 @@ pub(in super::super) fn spacer(shell: &Shell, window: &Window) -> AnyElement {
         (true, true) => CLEARANCE_PHONE,
         (true, false) => CLEARANCE,
     };
-    div().w_full().h(px(room)).into_any_element()
+    div()
+        .debug_selector(|| "review-room".to_owned())
+        .w_full()
+        .h(px(room))
+        .into_any_element()
 }
 
 /// Paseo's `FloatingActionButton` on a phone: fully round, 56 high, the
@@ -97,13 +101,20 @@ pub(super) fn fab(label: String, enabled: bool, tokens: &Tokens) -> Stateful<Div
         .flex()
         .items_center()
         .gap(px(spacing::S2))
-        .bg(tokens.btn_primary_bg)
-        .text_color(tokens.btn_primary_fg)
+        // Paseo's `floating-action-button.tsx`: `surface3`, `foreground`,
+        // the md shadow, `interactionHighlight` while pressed.
+        .bg(tokens.neutral.surface3)
+        .text_color(tokens.neutral.foreground)
+        .shadow(vessel_app_kit::popup::shadow_md(tokens))
+        .when(enabled, |fab| {
+            let pressed = tokens.neutral.interaction_highlight;
+            fab.active(move |style| style.bg(pressed))
+        })
         .type_(Type::Body)
         .role(gpui::Role::Button)
         .aria_label(vessel_app_kit::ui::SharedString::from(label.clone()))
         .when(enabled, vessel_app_kit::ui::Styled::cursor_pointer)
         .when(!enabled, |fab| fab.opacity(0.5))
-        .child(glyph(Glyph::Send, FAB_ICON, tokens.btn_primary_fg))
+        .child(glyph(Glyph::Send, FAB_ICON, tokens.neutral.foreground))
         .child(label)
 }
