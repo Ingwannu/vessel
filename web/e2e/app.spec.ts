@@ -4,12 +4,12 @@
 import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Page, test, type WebSocketRoute } from "@playwright/test";
 
 import { launchAt, launchUi, openUi } from "./open";
 import { loadEnv } from "./fleet";
 import { newSessionPage, startSession, timeline } from "./kit";
-import { shown, watchTyped } from "./terminal-frames";
+import { shown, typedText, watchTyped } from "./terminal-frames";
 
 /** Whether a frame the page sent is a call of `session.send`. */
 function sendsInput(frame: unknown): boolean {
@@ -444,7 +444,6 @@ test("a live device query is answered once, by the view that has focus and has t
   // TRACKER 826, ADR 0073's duty. The fake harness prints its input line
   // back raw ("echo: …"), so the queries reach the terminal as live
   // output; the PTY's own echo of the line shows them as `^[`, no query.
-  const answer = /^ESC\[\d+;\d+RESC\[\?62;4;22c$/;
   const typed = watchTyped(page, "session.send");
   await open(page);
   await create(page, "laptop");
@@ -456,6 +455,12 @@ test("a live device query is answered once, by the view that has focus and has t
   await terminal.click();
   await page.keyboard.type("typed\r");
   await expect(terminal).toContainText("echo: typed");
+  /** Wait until `marker`'s line is drawn: whatever the views answer to
+   * what came before it has gone out by then. */
+  const synced = async (marker: string) => {
+    sendFromCli(session, `${marker}\r`);
+    await expect(terminal).toContainText(marker);
+  };
 
   // A second client only watches: no focus, nothing typed.
   const watcher = await context.newPage();
@@ -465,13 +470,25 @@ test("a live device query is answered once, by the view that has focus and has t
   const watching = watcher.getByLabel("Session terminal");
   await expect(watching).toContainText("echo: typed");
 
+  // All five queries of the set, each answered once, in order.
   let from = typed.length;
-  sendFromCli(session, "\x1b[6n\x1b[c\r");
-  await expect.poll(() => shown(typed.slice(from).join(""))).toMatch(answer);
-  // The PTY echoes the answer as typed text (`^[[?62;4;22c`), which both
-  // views draw; the watcher answered nothing.
-  await expect(watching).toContainText("[?62;4;22c");
-  expect(shown(typed.slice(from).join(""))).toMatch(answer);
+  sendFromCli(session, "\x1b[6n\x1b[c\x1b[5n\x1b[?6n\x1b]10;?\x07\r");
+  const five =
+    /^ESC\[\d+;\d+RESC\[\?62;4;22cESC\[0nESC\[\?\d+;\d+RESC\]10;rgb:[0-9a-f]{4}\/[0-9a-f]{4}\/[0-9a-f]{4}ESC\\$/;
+  await expect.poll(() => shown(typed.slice(from).join(""))).toMatch(five);
+  await synced("sync-one");
+  await expect(watching).toContainText("sync-one");
+  expect(shown(typed.slice(from).join(""))).toMatch(five);
+  expect(watched).toEqual([]);
+
+  // Focus gone, the same view stays silent: it did not open the session.
+  await terminal.locator("textarea").evaluate((node) => {
+    if (node instanceof HTMLElement) node.blur();
+  });
+  from = typed.length;
+  sendFromCli(session, "\x1b[6n\r");
+  await synced("sync-two");
+  expect(typed.slice(from)).toEqual([]);
   expect(watched).toEqual([]);
 
   // A third view opens after the queries: they are its history, never
@@ -481,17 +498,83 @@ test("a live device query is answered once, by the view that has focus and has t
   const lateUi = await launchUi(late);
   await late.goto(launchAt(lateUi.url, path));
   const lateTerminal = late.getByLabel("Session terminal");
-  await expect(lateTerminal).toContainText("[?62;4;22c");
+  await expect(lateTerminal).toContainText("sync-two");
   await lateTerminal.click();
   await late.keyboard.type("later\r");
-  await expect.poll(() => lateTyped.join("")).toBe("later\r");
+  await expect(lateTerminal).toContainText("echo: later");
+  expect(lateTyped.join("")).toBe("later\r");
   await late.close();
-  // Live again: the first view answers once more, the watcher still not.
+
+  // Focus back: answered once more, the watcher still silent.
+  await terminal.click();
   from = typed.length;
   sendFromCli(session, "\x1b[6n\x1b[c\r");
-  await expect.poll(() => shown(typed.slice(from).join(""))).toMatch(answer);
+  const two = /^ESC\[\d+;\d+RESC\[\?62;4;22c$/;
+  await expect.poll(() => shown(typed.slice(from).join(""))).toMatch(two);
+  await synced("sync-three");
+  expect(shown(typed.slice(from).join(""))).toMatch(two);
   expect(watched).toEqual([]);
   await watcher.close();
+});
+
+test("a query written while the tab's link was down is never answered late", async ({
+  page,
+}) => {
+  // TRACKER 826 review R1: the bridge client rejoins a follow from its
+  // cursor after a reconnect, so the gap's records arrive afterwards; they
+  // are history. The link is dropped by routing the page's websocket
+  // (reconnect.spec.ts), and the page's frames are read on that route.
+  let failing = false;
+  const sockets: WebSocketRoute[] = [];
+  const typed: string[] = [];
+  await page.routeWebSocket(/\/api\/ws$/, (socket) => {
+    if (failing) {
+      void socket.close();
+      return;
+    }
+    const server = socket.connectToServer();
+    socket.onMessage((message) => {
+      const text =
+        typeof message === "string" ? message : message.toString("utf8");
+      const sent = typedText(JSON.parse(text), "session.send");
+      if (sent !== null) typed.push(sent);
+      server.send(message);
+    });
+    sockets.push(socket);
+  });
+  await open(page);
+  await create(page, "laptop");
+  const terminal = page.getByLabel("Session terminal");
+  await expect(terminal).toContainText("ready");
+  const session = new URL(page.url()).pathname.split("/").at(-1);
+  if (session === undefined) throw new Error("No session id");
+  // Focus and typing: this view has the duty throughout.
+  await terminal.click();
+  await page.keyboard.type("typed\r");
+  await expect(terminal).toContainText("echo: typed");
+  const linkChip = page.getByRole("banner").getByText(/^vessel ui · /);
+
+  failing = true;
+  for (const socket of sockets.splice(0)) {
+    await socket.close();
+  }
+  await expect(linkChip).toBeVisible();
+  const from = typed.length;
+  // Written while the link is down: the node records it at once.
+  sendFromCli(session, "\x1b[6n\x1b[cGAP\r");
+  failing = false;
+  await expect(linkChip).toHaveCount(0, { timeout: 30_000 });
+  await expect(terminal).toContainText("echo: GAP");
+  sendFromCli(session, "sync-gap\r");
+  await expect(terminal).toContainText("echo: sync-gap");
+  expect(typed.slice(from)).toEqual([]);
+
+  // Live again after the reconnect: answered.
+  const after = typed.length;
+  sendFromCli(session, "\x1b[6n\r");
+  await expect
+    .poll(() => shown(typed.slice(after).join("")))
+    .toMatch(/^ESC\[\d+;\d+R$/);
 });
 
 test("Hangul is drawn with Pretendard, fetching only its subsets", async ({

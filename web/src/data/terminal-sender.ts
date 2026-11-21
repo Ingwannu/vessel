@@ -26,6 +26,12 @@ import { encodeText } from "./terminal";
 /** Most characters of keys waiting while a send is in flight. */
 export const MAX_PENDING = 1024 * 1024;
 
+/** Most characters of keys and answers waiting before a terminal's answer
+ * to a query is dropped (TRACKER 826). A flood of queries then never fills
+ * the room the person's keys need. A dropped answer is never sent late, as
+ * ADR 0073 has it, and nobody is told: the program asked too fast. */
+export const MAX_ANSWERS_PENDING = 64 * 1024;
+
 type Item =
   | { kind: "keys"; text: string }
   | { kind: "resize"; cols: number; rows: number };
@@ -60,14 +66,21 @@ export class TerminalSender {
       return;
     }
     this.#overflowing = false;
-    this.#chars += text.length;
-    const last = this.#items.at(-1);
-    if (last?.kind === "keys") {
-      last.text += text;
-    } else {
-      this.#items.push({ kind: "keys", text });
+    this.#queue(text);
+  }
+
+  /** Queue a terminal's answer to a query, in order with the keys, while
+   * at most `MAX_ANSWERS_PENDING` characters would wait; past that it is
+   * dropped without a word. */
+  answer(text: string): void {
+    if (
+      this.#closed ||
+      text === "" ||
+      this.#chars + text.length > MAX_ANSWERS_PENDING
+    ) {
+      return;
     }
-    this.#pump();
+    this.#queue(text);
   }
 
   /** Queue a size; a size queued just before is replaced. */
@@ -81,6 +94,17 @@ export class TerminalSender {
       last.rows = rows;
     } else {
       this.#items.push({ kind: "resize", cols, rows });
+    }
+    this.#pump();
+  }
+
+  #queue(text: string): void {
+    this.#chars += text.length;
+    const last = this.#items.at(-1);
+    if (last?.kind === "keys") {
+      last.text += text;
+    } else {
+      this.#items.push({ kind: "keys", text });
     }
     this.#pump();
   }

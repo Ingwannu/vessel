@@ -474,33 +474,54 @@ review are recorded in `docs/plans/backend-m12-web-identity.md`.
 - Choice:
   - The page registers xterm parser handlers for exactly ADR 0073's five
     queries (`web/src/data/terminal-queries.ts`). They build the same
-    bytes as native and Paseo's daemon. The OSC colours are the ones the
-    terminal draws, ended by ST.
+    bytes as native. A cursor report with a wrap pending names the last
+    column, as native's does; Paseo's daemon says one past it. The OSC
+    colours are the scheme's terminal colours, ended by ST. A program's
+    own OSC 10-12 set, which xterm applies, is not reflected; native
+    ignores sets too.
   - A handler swallows its query, so xterm forms no reply. It sends the
     answer through the view's ordered sender only when both hold:
-    - the bytes are live: a view reads the terminal or session as its
-      follow starts, and records from that `next_seq` are live. Until
-      that read answers, and before it, they are history;
+    - the bytes are live. A view reads the terminal or session as its
+      follow starts, and again after every gap: the tab's link closing,
+      or the bridge's stream to the node reconnecting
+      (`web/src/data/terminal-live.ts`). Records from the last read's
+      `next_seq` are live. Records before it, and everything while that
+      read has not answered, are history. So a query written during a
+      gap is never answered late, as ADR 0073 has it;
     - the view has the duty: it opened the terminal (a shell from this
-      tab's New terminal), or it has focus and the person has typed.
+      tab's New terminal), or the browser tab has focus, the terminal
+      holds it, and the person has typed.
+  - Answers wait in the view's sender with the keys, but only while at
+    most 64 KiB waits. Past that an answer is dropped, so a flood of
+    queries never fills the room the person's keys need.
   - `terminal-input`'s provenance filter is unchanged.
 - Why: one rule for both surfaces, with the native app's bytes and duty.
   The closed set keeps what reaches the PTY small and known.
 - Consequences:
   - The answer crosses the bridge, so a program that asks and exits at
     once may miss it. ADR 0073 states the same of native.
-  - A view knows no other viewer. Two views that both have focus and
-    have typed both answer, one each.
+  - A view knows no other viewer. Each of these answers, one reply each:
+    two views that both have focus and have typed; and the view that
+    opened a terminal together with a focused view elsewhere that has
+    typed (native's duty is the same).
   - A session view is never the opener: a program in a session started
     from this tab gets no answer until someone types into it.
   - A query whose introducer was in history and whose final byte is live
     is answered here; native's parser does not answer it. That needs a
     record split exactly at the read's `next_seq`.
   - Tests:
-    - `terminal-queries.test.ts`: the bytes, the set, the gate, the duty.
-    - e2e `app.spec.ts`: a live query is answered once by the view with
-      focus that has typed. A watching client and a view that opened
-      after it send nothing.
+    - `terminal-queries.test.ts`: the bytes, the set, the gate, the
+      duty, and the last column.
+    - `terminal-live.test.ts`: the boundary, a link gap, a stream
+      reconnect, and a stale read.
+    - `terminal-sender.test.ts`: the answers' bound.
+    - e2e `app.spec.ts`:
+      - the five queries are answered once by the view with focus that
+        has typed;
+      - that view without focus stays silent, and so do a watching client
+        and a view that opened afterwards;
+      - a query written while the tab's link was down is not answered
+        after the reconnect, and one asked after it is.
     - e2e `workspace-tabs.spec.ts`: a shell the page opened answers after
       focus has left.
     - The replay test above stays.

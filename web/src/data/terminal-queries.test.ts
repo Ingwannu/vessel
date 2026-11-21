@@ -6,6 +6,7 @@ import {
   ATTRIBUTES_REPLY,
   answerQueries,
   colourReply,
+  cursorCell,
   cursorReply,
   type Drawn,
   hasDuty,
@@ -83,13 +84,17 @@ const DRAWN: Drawn = {
   cursor: { r: 0xff, g: 0x80, b: 0x00 },
 };
 
-/** A view with the cursor at row 3, column 7 (0-based), answering while
- * `open.now` holds. */
-function view(open: { now: boolean }, drawn: Drawn = DRAWN) {
+/** A view on 80 columns with the cursor at row 3, column 7 (0-based
+ * `cursor`), answering while `open.now` holds. */
+function view(
+  open: { now: boolean },
+  drawn: Drawn = DRAWN,
+  cursor = { row: 2, col: 6, cols: 80 },
+) {
   const sent: string[] = [];
   const queryView: QueryView = {
     answers: () => open.now,
-    cursor: () => ({ row: 2, col: 6 }),
+    cursor: () => cursor,
     drawn: () => drawn,
     send: (reply) => sent.push(reply),
   };
@@ -116,6 +121,33 @@ describe("the answers' bytes", () => {
     expect(rgbOf("#ffffff")).toBeNull();
     expect(rgbOf("rgb(256, 0, 0)")).toBeNull();
     expect(rgbOf("")).toBeNull();
+  });
+});
+
+describe("a cursor report", () => {
+  it("names the last column while a wrap is pending, as native", () => {
+    expect(cursorCell({ row: 3, col: 10, cols: 10 })).toEqual({
+      row: 3,
+      col: 9,
+    });
+    expect(cursorCell({ row: 0, col: 4, cols: 10 })).toEqual({
+      row: 0,
+      col: 4,
+    });
+  });
+
+  it("says column 10 of 10 after a write to the last column", () => {
+    const parser = fakeParser();
+    const { sent, queryView } = view({ now: true }, DRAWN, {
+      row: 3,
+      col: 10,
+      cols: 10,
+    });
+    answerQueries(parser.parser, queryView);
+    expect(parser.csi({ final: "n" }, [6])).toBe(true);
+    expect(parser.csi({ prefix: "?", final: "n" }, [6])).toBe(true);
+    // Native's test: `ESC[4;10R` on a 10-column grid.
+    expect(sent).toEqual(["\x1b[4;10R", "\x1b[?4;10R"]);
   });
 });
 

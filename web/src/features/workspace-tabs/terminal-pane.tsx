@@ -1,17 +1,15 @@
 // The standalone terminal pane uses the same xterm mount as agent PTYs
 // and follows terminal records through the bridge's resumable stream.
-// The terminal is read as the follow starts. Records before its
-// `next_seq` then, and every record until that read answers, are history,
-// never answered; the rest are live (TRACKER 826, as native's tabs split
-// them, `terminal_tabs/stream.rs`). A record at or past that `next_seq`
-// was written after the read, so it is live whenever it arrives. If the
-// read fails, everything is history and nothing is answered.
+// Which records are live, and so may have their queries answered, is the
+// terminal's `next_seq` read as the follow starts and again after every
+// gap (`data/terminal-live.ts`, TRACKER 826).
 
 import { useEffect, useRef, useState } from "react";
 
 import { useFleet } from "../../context";
 import { errorCode } from "../../data/outcome";
 import { decodeBytes } from "../../data/terminal";
+import { liveBoundary } from "../../data/terminal-live";
 import {
   followWorkspaceTerminal,
   openedInThisTab,
@@ -22,7 +20,7 @@ import { Spinner } from "../../ui/kit";
 import { toast } from "../../ui/toasts";
 import type { NodeKey, StreamState } from "../../wire/bridge";
 import type { TerminalId } from "../../wire/proto";
-import { mountTerminal, written } from "../session/mount-terminal";
+import { mountTerminal } from "../session/mount-terminal";
 import type { TabWords } from "./words";
 
 export function TerminalPane({
@@ -55,24 +53,24 @@ export function TerminalPane({
       "on-attach",
       openedInThisTab(terminal) ? "opened" : "attached",
     );
-    let liveFrom: number | null = null;
-    let mounted = true;
-    void readWorkspaceTerminal(fleet, node, terminal).then((read) => {
-      if (mounted && read.ok) {
-        liveFrom = read.value.next_seq;
-      }
+    const live = liveBoundary({
+      read: () => readWorkspaceTerminal(fleet, node, terminal),
+      onLink: (listener) => fleet.bridge.onLink(listener),
     });
     const stop = followWorkspaceTerminal(fleet, node, terminal, {
       record: ({ seq, event }) => {
         if (event.type === "terminal") {
-          pane.write(decodeBytes(event.data), written(seq, liveFrom));
+          pane.write(decodeBytes(event.data), live.written(seq));
           setRegistry("ready");
         }
       },
-      state: setStream,
+      state: (state) => {
+        live.stream(state);
+        setStream(state);
+      },
     });
     return () => {
-      mounted = false;
+      live.stop();
       stop();
       pane.close();
     };

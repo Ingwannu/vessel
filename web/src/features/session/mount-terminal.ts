@@ -16,6 +16,7 @@ import "./terminal-view.css";
 import { FitAddon } from "@xterm/addon-fit";
 import { type ITheme, Terminal } from "@xterm/xterm";
 import { userInput } from "../../data/terminal-input";
+import type { Written } from "../../data/terminal-live";
 import {
   answerQueries,
   type Drawn,
@@ -45,16 +46,6 @@ function terminalTheme(): ITheme {
     cursor: cssColor("--term-cursor"),
     selectionBackground: cssColor("--term-selection"),
   };
-}
-
-/** Whether bytes are a follow's history (never answered) or live. */
-export type Written = "history" | "live";
-
-/** A followed record's bytes: live from `liveFrom`, the `next_seq` the
- * view read as its follow started; history before it, and while that read
- * has not answered (`null`). */
-export function written(seq: number, liveFrom: number | null): Written {
-  return liveFrom !== null && seq >= liveFrom ? "live" : "history";
 }
 
 interface MountedTerminal {
@@ -155,18 +146,21 @@ export function mountTerminal(
       historyParsing === 0 &&
       hasDuty({
         origin,
-        focused: element.contains(document.activeElement),
+        // A background browser tab keeps its active element.
+        focused:
+          document.hasFocus() && element.contains(document.activeElement),
         keyed,
       }),
     cursor: () => ({
       row: terminal.buffer.active.cursorY,
       col: terminal.buffer.active.cursorX,
+      cols: terminal.cols,
     }),
     drawn: () => drawn,
     // An answer is not typing: it neither marks the view typed nor sends
     // a size, and it waits behind the keys before it.
     send: (reply) => {
-      sender.keys(reply);
+      sender.answer(reply);
     },
   });
   const observer = new ResizeObserver(() => {

@@ -7,7 +7,7 @@ type Method = "session.send" | "terminal.send";
 
 /** The text a frame the page sent puts into a terminal through `method`,
  * or `null` for any other frame. */
-function typedText(frame: unknown, method: Method): string | null {
+export function typedText(frame: unknown, method: Method): string | null {
   if (typeof frame !== "object" || frame === null || !("call" in frame)) {
     return null;
   }

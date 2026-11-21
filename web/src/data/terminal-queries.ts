@@ -36,9 +36,10 @@ export interface Rgb {
   b: number;
 }
 
-/** The colours the terminal is drawn in now; `null` where unknown, so
- * that slot's query is not answered (native does the same with no
- * palette). */
+/** The scheme's terminal colours now; `null` where unknown, so that
+ * slot's query is not answered (native does the same with no palette).
+ * A program's own OSC 10-12 set, which xterm applies, is not reflected:
+ * the answer is the scheme's, as native's is (it ignores sets). */
 export interface Drawn {
   foreground: Rgb | null;
   background: Rgb | null;
@@ -109,6 +110,21 @@ export function rgbOf(css: string): Rgb | null {
   return { r, g, b };
 }
 
+/** The cell a cursor report names: with a wrap pending (xterm's column
+ * at `cols`, after a write to the last column) the last column, as native
+ * reports it (`reply/mod.rs` 15-18, a stated difference from Paseo's
+ * daemon, which says `cols + 1`). */
+export function cursorCell(cursor: {
+  row: number;
+  col: number;
+  cols: number;
+}): { row: number; col: number } {
+  return {
+    row: cursor.row,
+    col: Math.max(0, Math.min(cursor.col, cursor.cols - 1)),
+  };
+}
+
 /** xterm's parameters for one sequence: a number, or a number with
  * sub-parameters. */
 type Params = readonly (number | readonly number[])[];
@@ -136,9 +152,10 @@ export interface QueryView {
   /** Whether an answer may go out now: the bytes being parsed are live
    * and this view has the duty. */
   answers: () => boolean;
-  /** The cursor, 0-based, in the screen being parsed. */
-  cursor: () => { row: number; col: number };
-  /** The colours drawn now. */
+  /** The cursor, 0-based, in the screen being parsed, and the screen's
+   * width. xterm's column is `cols` while a wrap is pending. */
+  cursor: () => { row: number; col: number; cols: number };
+  /** The scheme's terminal colours now. */
   drawn: () => Drawn;
   /** Send an answer, in order with the keys. */
   send: (reply: string) => void;
@@ -169,14 +186,14 @@ export function answerQueries(
       if (query === "operating") {
         return reply(OPERATING_REPLY);
       }
-      const { row, col } = view.cursor();
+      const { row, col } = cursorCell(view.cursor());
       return reply(cursorReply(row, col, false));
     }),
     parser.registerCsiHandler({ prefix: "?", final: "n" }, (params) => {
       if (statusQuery(params) !== "cursor") {
         return false;
       }
-      const { row, col } = view.cursor();
+      const { row, col } = cursorCell(view.cursor());
       return reply(cursorReply(row, col, true));
     }),
     ...([10, 11, 12] as const).map((code) =>
