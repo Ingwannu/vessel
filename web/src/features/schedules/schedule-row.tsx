@@ -93,10 +93,7 @@ export function ScheduleListRow({
       detail={{
         description: (
           <>
-            <div>
-              {heartbeat ? "Heartbeat · " : ""}
-              {target.label}
-            </div>
+            <div>{target.label}</div>
             <div className="row-meta">{facts.join(" · ")}</div>
           </>
         ),

@@ -33,9 +33,10 @@ ADR 0072 records the native consumer decisions.
   Creator gone and Unknown. The bridge uses each book entry's own
   connection, where the node authorizes every action. As in Paseo
   (`utils/schedule-format.ts:31–33`, `components/schedules/schedule-row.tsx:196,275–277`),
-  the page labels every existing-session target Heartbeat and offers
-  deletion as its only mutation on the row. Ownership and session-end
-  cleanup use the node’s rules in ADR 0033 and ADR 0072. Vessel's Go to group and
+  the row menu calls every existing-session target a heartbeat and offers
+  deletion as its only mutation. The target line shows the session title
+  (`schedules/schedule-derivation.ts:64–72`). Ownership and session-end
+  cleanup use the node's rules in ADR 0033 and ADR 0072. Vessel's Go to group and
   shell are preserved, and the English list copy follows Paseo while
   Korean localizes the route label. Vessel has no schedule docs URL.
 - Verification. Run the web gate and the Rust half for route registration
