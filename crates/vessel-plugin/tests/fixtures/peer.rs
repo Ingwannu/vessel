@@ -11,8 +11,8 @@ use std::{
 use tokio::io::AsyncWriteExt;
 use vessel_plugin::wire;
 use vessel_proto::plugins::{
-    ClientDocument, HelperCall, HelperFailure, HelperProtocol, HelperToNode, HookName,
-    HookSubscriptions, InvocationId, LogText, NodeToHelper,
+    ClientDocument, HelperCall, HelperFailure, HelperPayload, HelperProtocol, HelperToNode,
+    HookName, HookSubscriptions, InvocationId, LogText, NodeToHelper,
 };
 
 const IDLE_INTERVAL: Duration = Duration::from_secs(1);
@@ -80,6 +80,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
             NodeToHelper::Request { request, call } => {
                 let data = match call {
                     HelperCall::Invoke { input, .. } | HelperCall::Hook { input, .. } => input,
+                    // The echo peer declares no settings, so the actor never
+                    // admits one; answer an empty object if it ever does.
+                    HelperCall::Settings { .. } => {
+                        HelperPayload::try_from(vessel_proto::RawJson::empty_object())?
+                    }
                 };
                 wire::write_helper(
                     &mut output,
@@ -113,6 +118,7 @@ async fn ready(output: &mut tokio::io::Stdout) -> Result<(), Box<dyn Error>> {
             protocol: HelperProtocol::V1,
             client,
             hooks,
+            settings: vessel_proto::plugins::SettingsDeclarations::default(),
         },
     )
     .await?;

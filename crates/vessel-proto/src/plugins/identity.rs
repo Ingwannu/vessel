@@ -44,6 +44,12 @@ pub enum InvalidPluginValue {
         "plugin filename selectors are nonempty trimmed literals without separators, wildcards or controls, at most {MAX_FILE_PATTERN_BYTES} bytes"
     )]
     FileNamePattern,
+    /// Paseo's settings ids (`defineSettings`): a lowercase letter, then
+    /// lowercase letters, digits, underscores or hyphens; a file name too.
+    #[error(
+        "plugin settings ids require a lowercase letter, then lowercase letters, digits, underscores or hyphens, at most {MAX_SETTINGS_ID_BYTES} bytes"
+    )]
+    SettingsId,
 }
 
 // Paseo bounds theme names in its JS schema; the identifier/RPC/caption bounds
@@ -55,6 +61,8 @@ const MAX_THEME_NAME_UNITS: usize = 60;
 const MAX_CONTENT_BYTES: usize = 16 * 1024;
 const MAX_EXTENSION_BYTES: usize = 32;
 const MAX_FILE_PATTERN_BYTES: usize = 256;
+// Paseo's pattern has no bound; this one keeps `<id>.json` a short file name.
+const MAX_SETTINGS_ID_BYTES: usize = 64;
 
 macro_rules! text_type {
     ($(#[$doc:meta])* $name:ident, $validate:ident, $error:ident) => {
@@ -103,6 +111,8 @@ text_type!(/// Literal extension matcher without a dot or glob; matching uses Un
     FileExtension, extension, Extension);
 text_type!(/// A literal filename matcher; unlike a stored attachment, it can name Unix dotfiles.
     FileNamePattern, file_pattern, FileNamePattern);
+text_type!(/// One settings document of an installation (Paseo's `defineSettings` id); its file's name.
+    SettingsId, settings_identifier, SettingsId);
 
 fn identifier(raw: &str) -> Option<&str> {
     (raw.len() <= MAX_ID_BYTES
@@ -110,6 +120,15 @@ fn identifier(raw: &str) -> Option<&str> {
         && raw
             .bytes()
             .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-'))
+    .then_some(raw)
+}
+
+fn settings_identifier(raw: &str) -> Option<&str> {
+    (raw.len() <= MAX_SETTINGS_ID_BYTES
+        && raw.bytes().next().is_some_and(|b| b.is_ascii_lowercase())
+        && raw
+            .bytes()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || matches!(b, b'_' | b'-')))
     .then_some(raw)
 }
 

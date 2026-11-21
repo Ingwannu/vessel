@@ -78,6 +78,9 @@ pub(crate) fn refuse_agents(principal: &Principal, method: Method) -> Result<(),
             | Method::ReloadPlugin
             | Method::RemovePlugin
             | Method::InvokePlugin
+            | Method::ReadPluginSettings
+            | Method::WritePluginSettings
+            | Method::ResetPluginSettings
     ) {
         "plugins run trusted code with the node's access; installing, running and reading them \
          is a person's administration"
@@ -219,7 +222,12 @@ const fn refused(method: Method) -> bool {
         | Method::ClaimNotification
         | Method::ClearTerminalAttention
         // A plugin method runs the plugin's code with the node's access.
-        | Method::InvokePlugin => true,
+        | Method::InvokePlugin
+        // A plugin's settings may hold anything, and the helper's refusal
+        // words reach only a person (ADR 0115, "Settings").
+        | Method::ReadPluginSettings
+        | Method::WritePluginSettings
+        | Method::ResetPluginSettings => true,
         // Orchestration: the projects, and a worktree with its setup's
         // output for a session the agent starts.
         Method::ListProjects

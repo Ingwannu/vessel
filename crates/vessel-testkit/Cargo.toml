@@ -33,6 +33,10 @@ name = "fake-lsp"
 path = "src/bin/fake_lsp.rs"
 
 [[bin]]
+name = "fake-plugin"
+path = "src/bin/fake_plugin.rs"
+
+[[bin]]
 name = "fake-codex-app-server"
 path = "src/bin/fake_codex_app_server.rs"
 

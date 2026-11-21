@@ -349,7 +349,11 @@ impl Reply {
             | Self::WatchPlugins(_)
             // The plugin catalog and method calls (ADR 0115): the same.
             | Self::GetPluginCatalog(_)
-            | Self::InvokePlugin(_) => None,
+            | Self::InvokePlugin(_)
+            // Plugin settings documents (ADR 0115, "Settings"): the same.
+            | Self::ReadPluginSettings(_)
+            | Self::WritePluginSettings(_)
+            | Self::ResetPluginSettings(_) => None,
         }
     }
 }
