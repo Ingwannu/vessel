@@ -1212,8 +1212,8 @@ browser on Unix (on Windows, open the printed address).
   snapshot; its snapshots), Agents (what each agent on a machine
   offers: model, effort, permissions), Models, Devices (pairing a phone with a QR code), Sync
   and About. Terminal sets the built-in terminal's scrollback. Files shows
-  file-panel preferences, and Open location directs workspace files,
-  changes and pull requests to their configured panels.
+  file-panel preferences. General includes Open location on wide screens
+  for workspace files, changes and pull requests.
   A machine in the sidebar opens it there. The page follows
   the system's light or dark theme until you choose one.
 - **What you choose is kept by `vessel ui`, not the browser** (ADR

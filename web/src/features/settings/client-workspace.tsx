@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useFleet } from "../../context";
 import { prefer, prefs } from "../../data/prefs";
 import { useStore } from "../../data/store";
+import { WORKSPACE_SPLIT_QUERY } from "../../data/workspace/tab-layout";
 import { Row, RowList, Select, TextField, type Choice } from "../../ui/kit";
 import { toast } from "../../ui/toasts";
 import type {
@@ -13,6 +14,7 @@ import type {
   PreferenceChange,
   PullRequestLocation,
 } from "../../wire/bridge";
+import { useMedia } from "../shell/use-media";
 import { KeptNote } from "./kept-note";
 import { SettingsPage, SettingsSection } from "./settings-page";
 
@@ -112,60 +114,68 @@ const SOURCES: readonly {
 }[] = [
   {
     source: "explorer_files",
-    label: "Clicking a file in the Explorer sidebar",
+    label: "Opening a file from the Files tab",
   },
-  { source: "diffs", label: "Clicking a change in the workspace or a chat" },
+  {
+    source: "diffs",
+    label: "Opening Changes or Diff from the workspace or a chat",
+  },
   { source: "diff_files", label: "Clicking a file in a diff" },
 ];
 
 export function OpenLocationSection() {
+  const wide = useMedia(WORKSPACE_SPLIT_QUERY);
   const locations = useStore(prefs, (state) => state.values.open_location);
   const edit = usePreferenceEdit();
+  if (!wide) {
+    return null;
+  }
   return (
-    <SettingsPage>
-      <KeptNote />
-      <SettingsSection title="Open location">
-        <RowList label="Open location">
-          {SOURCES.map(({ source, label }) => (
-            <Row
-              key={source}
-              title={<span className="open-location-label">{label}</span>}
-              control={
-                <Select
-                  aria-label={label}
-                  size="sm"
-                  width="fit"
-                  align="end"
-                  value={locations[source]}
-                  options={LOCATIONS}
-                  onChange={(destination) => {
-                    edit({
-                      set: "open_location",
-                      value: { source, destination },
-                    });
-                  }}
-                />
-              }
-            />
-          ))}
+    <SettingsSection title="Open location">
+      <RowList label="Open location">
+        {SOURCES.map(({ source, label }) => (
           <Row
-            title="Opening a pull request"
+            key={source}
+            title={<span className="open-location-label">{label}</span>}
             control={
               <Select
-                aria-label="Opening a pull request"
+                aria-label={label}
                 size="sm"
                 width="fit"
                 align="end"
-                value={locations.pull_requests}
-                options={PULL_LOCATIONS}
-                onChange={(value) => {
-                  edit({ set: "pull_request_location", value });
+                value={locations[source]}
+                options={LOCATIONS}
+                onChange={(destination) => {
+                  edit({
+                    set: "open_location",
+                    value: { source, destination },
+                  });
                 }}
               />
             }
           />
-        </RowList>
-      </SettingsSection>
-    </SettingsPage>
+        ))}
+        <Row
+          title={
+            <span className="open-location-label">
+              Opening a pull request from New tab
+            </span>
+          }
+          control={
+            <Select
+              aria-label="Opening a pull request from New tab"
+              size="sm"
+              width="fit"
+              align="end"
+              value={locations.pull_requests}
+              options={PULL_LOCATIONS}
+              onChange={(value) => {
+                edit({ set: "pull_request_location", value });
+              }}
+            />
+          }
+        />
+      </RowList>
+    </SettingsSection>
   );
 }

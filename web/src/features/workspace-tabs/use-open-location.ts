@@ -4,6 +4,7 @@ import { prefs } from "../../data/prefs";
 import {
   addDiscovered,
   tabKey,
+  WORKSPACE_SPLIT_QUERY,
   type TabLayout,
   type WorkspaceTab,
 } from "../../data/workspace/tab-layout";
@@ -42,7 +43,7 @@ export function useOpenLocation(
   update: (apply: (layout: TabLayout) => TabLayout) => void,
   selectMain: (tab: WorkspaceTab) => void,
 ): OpenLocation {
-  const wide = useMedia("(width >= 1100px)");
+  const wide = useMedia(WORKSPACE_SPLIT_QUERY);
   const [placed, setPlaced] = useState<SupportingTab | null>(null);
   const supporting =
     wide &&

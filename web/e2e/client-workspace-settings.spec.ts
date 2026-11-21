@@ -48,13 +48,18 @@ test("terminal scrollback saves bounded lines and Files shows the real empty sta
 test("explorer files open beside their tree and keep one dirty editor when the pane changes", async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.setViewportSize({ width: 390, height: 844 });
   const origin = await openUi(page);
-  const settings = `${origin}/settings/open-location`;
-  const source = page.getByRole("combobox", {
-    name: "Clicking a file in the Explorer sidebar",
-  });
+  const settings = `${origin}/settings/general`;
   await page.goto(settings);
+  await expect(page.getByRole("heading", { name: "Composer" })).toBeVisible();
+  const placement = page.getByRole("heading", { name: "Open location" });
+  await expect(placement).toHaveCount(0);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await expect(placement).toBeVisible();
+  const source = page.getByRole("combobox", {
+    name: "Opening a file from the Files tab",
+  });
   try {
     await acknowledgePreference(
       page,

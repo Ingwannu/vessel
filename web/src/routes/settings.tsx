@@ -17,7 +17,6 @@ import { AppearanceSection } from "../features/settings/appearance";
 import { DevicesSection } from "../features/settings/devices-section";
 import {
   FilesSection,
-  OpenLocationSection,
   TerminalSection,
 } from "../features/settings/client-workspace";
 import { GeneralSection } from "../features/settings/general";
@@ -66,8 +65,6 @@ export function SettingsPage(): ReactElement | null {
       return <TerminalSection />;
     case "files":
       return <FilesSection />;
-    case "open-location":
-      return <OpenLocationSection />;
     case "agents":
       return <AgentsSection machine={place.machine} agent={place.agent} />;
     case "models":
