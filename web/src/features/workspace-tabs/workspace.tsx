@@ -2,7 +2,6 @@
 
 import { type ReactNode, useCallback, useState } from "react";
 
-import { sessionName } from "../../data/titles";
 import { OpenChanges, WorkspaceChat } from "../workspace/workspace-chat";
 import type { ProjectsView } from "../../data/workspace/project-store";
 import { tabKey, type WorkspaceTab } from "../../data/workspace/tab-layout";
@@ -18,10 +17,12 @@ import { SessionBar } from "../session/session-bar";
 import { NewSession } from "../compose/new-session";
 import { useMedia } from "../shell/use-media";
 import { Launcher, TabChrome } from "./chrome";
-import type { TabItem } from "./chrome-parts";
 import { CodePane } from "./file-pane";
+import { pullPaneServed } from "../../data/workspace/pull/served";
+import { PullPane } from "../workspace/pull/pull-pane";
 import { RenameTab } from "./rename";
 import { TerminalPane } from "./terminal-pane";
+import { tabItem } from "./tab-item";
 import { useWorkspace } from "./use-workspace";
 import { tabWords } from "./words";
 
@@ -66,45 +67,7 @@ export function Workspace({
   const state = useWorkspace(node, anchor, root, projects, scope, words);
   const { active, actions, lifecycle, layout, markDirty, openFile, select } =
     state;
-  const items = layout.tabs.map((tab): TabItem => {
-    const key = tabKey(tab);
-    const dirty = state.dirty.has(key);
-    switch (tab.kind) {
-      case "agent": {
-        const known = state.session(tab.id);
-        return {
-          tab,
-          label: known === undefined ? words.agent : sessionName(known),
-          icon: known?.spec.mode === "terminal" ? "terminal" : "message",
-          dirty,
-        };
-      }
-      case "terminal":
-        return {
-          tab,
-          label:
-            state.terminals.find((item) => item.id === tab.id)?.title ??
-            words.terminal,
-          icon: "terminal",
-          dirty,
-        };
-      case "file":
-        return {
-          tab,
-          label: tab.path.split("/").at(-1) ?? tab.path,
-          icon: "file",
-          dirty,
-        };
-      case "files":
-        return { tab, label: words.files, icon: "folder", dirty };
-      case "changes":
-        return { tab, label: words.changes, icon: "git-compare", dirty };
-      case "diff":
-        return { tab, label: words.diff, icon: "git-compare", dirty };
-      case "draft":
-        return { tab, label: words.newTab, icon: "compose", dirty };
-    }
-  });
+  const items = layout.tabs.map((tab) => tabItem(tab, state, words));
   const launch = compact
     ? actions.filter((action) => action.label !== words.diff)
     : actions;
@@ -166,6 +129,15 @@ export function Workspace({
                 markDirty(key, dirty);
               },
             }}
+          />
+        ) : null;
+      case "pull":
+        return selected ? (
+          <PullPane
+            node={node}
+            session={anchor}
+            served={pullPaneServed(state.protocol)}
+            openChat={openChat}
           />
         ) : null;
       case "files":

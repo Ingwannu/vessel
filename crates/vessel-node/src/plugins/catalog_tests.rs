@@ -258,6 +258,7 @@ fn answering_plugin(fixture: &Fixture, name: &str) -> std::path::PathBuf {
         protocol: HelperProtocol::V1,
         client: ClientDocument::new(vec!["echo.read".parse().unwrap()], vec![], vec![]).unwrap(),
         hooks: HookSubscriptions::default(),
+        settings: vessel_proto::plugins::SettingsDeclarations::default(),
     });
     let answer = frame(&HelperToNode::Result {
         request: InvocationId::new(NonZeroU64::MIN),

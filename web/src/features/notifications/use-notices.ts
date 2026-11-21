@@ -15,6 +15,7 @@ import { useEffect, useRef } from "react";
 
 import { useFleet } from "../../context";
 import { playsSound, showsSystem } from "../../data/alerts";
+import { askBeforeTelling, claimCalls, claimsOn } from "../../data/claims";
 import {
   type Notice,
   type Seen,
@@ -28,6 +29,7 @@ import { sessionName } from "../../data/titles";
 import { playNotice, unlockSound } from "./sound";
 import { entriesOf } from "../../data/records";
 import { shownSession, useWhere } from "../../data/where";
+import type { NodeKey } from "../../wire/bridge";
 
 function away(): boolean {
   return document.visibilityState !== "visible" || !document.hasFocus();
@@ -87,7 +89,23 @@ export function useNotices(): void {
         return;
       }
       const front = !away();
-      told(found, { front, shown: shown.current }).forEach(tell);
+      // A machine that admits claims (ADR 0089) is asked first, once per
+      // machine; every other machine's notices are told at once (ADR 0114).
+      const asking = new Map<NodeKey, Notice[]>();
+      for (const notice of told(found, { front, shown: shown.current })) {
+        if (claimsOn(fleet.store.get().statuses[notice.node])) {
+          asking.set(notice.node, [...(asking.get(notice.node) ?? []), notice]);
+        } else {
+          tell(notice);
+        }
+      }
+      for (const [node, notices] of asking) {
+        void askBeforeTelling(claimCalls(fleet, node), notices).then(
+          (admitted) => {
+            admitted.forEach(tell);
+          },
+        );
+      }
       if (!front && prefs.get().values.notifications.title) {
         unseen += found.length;
         document.title = titleWith(base, unseen);

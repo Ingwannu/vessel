@@ -302,6 +302,9 @@ impl Method {
             | Self::WatchPlugins
             | Self::GetPluginCatalog
             | Self::InvokePlugin
+            | Self::ReadPluginSettings
+            | Self::WritePluginSettings
+            | Self::ResetPluginSettings
             | Self::InviteDevice
             | Self::ListDevices
             | Self::RevokeDevice
