@@ -12,8 +12,11 @@ use vessel_app_link::terminals::Request as TerminalRequest;
 use vessel_app_link::workspace::{Ask, WorktreeAsk};
 use vessel_app_view::board::{Attention, CardDetail, Phrase};
 use vessel_app_view::{Card, Machine, Reach};
+use vessel_proto::registry::DiffStat;
 use vessel_proto::terminals::{TerminalInfo, TerminalKind, TerminalList, TerminalPlace};
-use vessel_proto::workspace::{IfLost, KeptReason, RemoveWorktree, SetupState, WorktreeInfo};
+use vessel_proto::workspace::{
+    IfLost, KeptReason, RemoveWorktree, RemoveWorktreeOutcome, SetupState, WorktreeInfo,
+};
 use vessel_proto::{Creator, ProjectId, ProtocolVersion, SessionId, TerminalId, WorktreeId};
 
 use super::{Removing, closing_terminals};
@@ -99,14 +102,7 @@ fn open<'a>(
                 connection_epoch: None,
             }];
             let mut detail = Detail::new(worktree.project);
-            detail.removing = Some(Removing {
-                worktree,
-                reasons: vec![KeptReason::InUse],
-                busy: None,
-                error: None,
-                terminals: None,
-                recount: None,
-            });
+            detail.removing = Some(Removing::new(worktree, vec![KeptReason::InUse], None, None));
             shell.areas.workspace.page.detail = Some(detail);
             parts = Some(commands);
             shell
@@ -134,6 +130,39 @@ fn removing(shell: &Shell) -> &Removing {
         .as_ref()
         .and_then(|detail| detail.removing.as_ref())
         .unwrap()
+}
+
+#[gpui::test]
+fn each_kept_reply_supplies_its_own_warning_count(cx: &mut TestAppContext) {
+    let worktree = worktree();
+    let (probe, cx) = open(cx, &worktree, vessel_proto::PROTOCOL_VERSION, Vec::new());
+    let shell = probe.read_with(cx, |probe, _| probe.0.clone());
+    let ask = RemoveWorktree {
+        worktree: worktree.id,
+        if_lost: IfLost::Keep,
+        end_terminals: false,
+    };
+    let dirty = KeptReason::Uncommitted { files: 1 };
+    shell.update_in(cx, |shell, _window, _cx| {
+        for diff_stat in [
+            Some(DiffStat {
+                additions: 2,
+                deletions: 1,
+            }),
+            None,
+        ] {
+            shell.worktree_removed(
+                "laptop",
+                &ask,
+                Ok(RemoveWorktreeOutcome::Kept {
+                    reasons: vec![dirty],
+                    diff_stat,
+                }),
+            );
+            assert_eq!(removing(shell).reasons, [dirty]);
+            assert_eq!(removing(shell).diff_stat, diff_stat);
+        }
+    });
 }
 
 #[gpui::test]

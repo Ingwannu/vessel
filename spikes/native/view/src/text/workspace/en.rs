@@ -22,7 +22,7 @@ use crate::workspace::save::SaveFailure;
 pub struct En;
 
 /// `count` with its noun, singular when one.
-fn counted(count: u64, one: &str, many: &str) -> String {
+pub(super) fn counted(count: u64, one: &str, many: &str) -> String {
     format!("{count} {}", if count == 1 { one } else { many })
 }
 

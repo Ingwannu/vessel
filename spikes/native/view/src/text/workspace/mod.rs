@@ -30,6 +30,7 @@ mod ko;
 pub mod labels;
 mod labels_en;
 mod labels_ko;
+mod removal_words;
 mod script_words;
 
 use chrono::{DateTime, FixedOffset, NaiveDate, Utc};
@@ -43,6 +44,7 @@ use vessel_proto::workspace::{
 pub use en::En;
 pub use ko::Ko;
 pub use labels::Labels;
+pub use removal_words::removal_reason;
 
 use crate::workspace::branch_name::BranchNameProblem;
 use crate::workspace::changes::{FileNote, ScopeKind};
