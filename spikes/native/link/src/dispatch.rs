@@ -96,7 +96,10 @@ impl State {
                 session,
                 id,
                 option,
-            } => self.input(&machine, session, permission_input(id, option)).await,
+            } => {
+                self.input(&machine, session, permission_input(id, option))
+                    .await
+            }
             Command::Pair {
                 offer,
                 name,

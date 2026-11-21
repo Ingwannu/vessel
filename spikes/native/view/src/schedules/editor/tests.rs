@@ -83,23 +83,30 @@ fn an_older_forecast_cannot_settle_a_new_rule_or_supply_its_elapsed_anchor() {
     };
 
     let connection = ConnectionEpochs::default()
-        .admit(MachineKey::from_book("laptop"), vessel_proto::NodeId::random())
+        .admit(
+            MachineKey::from_book("laptop"),
+            vessel_proto::NodeId::random(),
+        )
         .unwrap();
     let mut form = Form::new(connection, Draft::create(None));
     let mut tickets = Tickets::default();
     let targets = form.issue(&mut tickets, Ask::Targets).unwrap();
-    assert!(form.accept(&targets, Ok(Value::Targets(Box::new(Targets {
-        projects: Vec::new(),
-        worktrees: Vec::new(),
-        harnesses: Vec::new(),
-        agents: Vec::new(),
-        scopes: Ok(vec![Scope::Operate]),
-        machine_zone: Some("Asia/Seoul".parse().unwrap()),
-        device_zone: Some("Europe/London".parse().unwrap()),
-    })))));
+    assert!(form.accept(
+        &targets,
+        Ok(Value::Targets(Box::new(Targets {
+            projects: Vec::new(),
+            worktrees: Vec::new(),
+            harnesses: Vec::new(),
+            agents: Vec::new(),
+            scopes: Ok(vec![Scope::Operate]),
+            machine_zone: Some("Asia/Seoul".parse().unwrap()),
+            device_zone: Some("Europe/London".parse().unwrap()),
+        })))
+    ));
     assert_eq!(form.draft.cadence.zone(), "Europe/London");
     form.draft.fields.set_prompt("Check the report".to_owned());
-    form.draft.select_model(HarnessKind::ClaudeCode.into(), None);
+    form.draft
+        .select_model(HarnessKind::ClaudeCode.into(), None);
     form.draft.set_place(SessionPlace::Project {
         project: "00000000-0000-4000-8000-000000000001".parse().unwrap(),
         dir: None,
@@ -107,11 +114,13 @@ fn an_older_forecast_cannot_settle_a_new_rule_or_supply_its_elapsed_anchor() {
     form.draft.cadence.select(super::cadence::Choice::Interval);
     form.draft.cadence.set_unit(IntervalUnit::Minutes);
     let after = DateTime::UNIX_EPOCH;
-    let input = |cadence| Ask::Preview(PreviewSchedule {
-        cadence,
-        after: Some(after),
-        count: PreviewCount::try_from(1).unwrap(),
-    });
+    let input = |cadence| {
+        Ask::Preview(PreviewSchedule {
+            cadence,
+            after: Some(after),
+            count: PreviewCount::try_from(1).unwrap(),
+        })
+    };
     let old_rule = form.draft.cadence.checked().unwrap().clone();
     let old = form.issue(&mut tickets, input(old_rule)).unwrap();
     form.draft.cadence.set_count("2".to_owned());
@@ -121,7 +130,10 @@ fn an_older_forecast_cannot_settle_a_new_rule_or_supply_its_elapsed_anchor() {
     let Cadence::Every { seconds, .. } = new_rule else {
         panic!("expected elapsed cadence");
     };
-    let canonical = Cadence::Every { seconds, anchor: Some(after) };
+    let canonical = Cadence::Every {
+        seconds,
+        anchor: Some(after),
+    };
     let forecast = SchedulePreview {
         after,
         cadence: canonical.clone(),

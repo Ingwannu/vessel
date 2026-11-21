@@ -118,7 +118,10 @@ fn device_zone() -> Option<TimeZoneName> {
 
 fn form_failure(ask: &Ask, error: RequestFailure) -> Failure {
     let read = failure(page::Ask::List, error);
-    if matches!(read, Failure::ConnectionChanged | Failure::Offline | Failure::Unexpected) {
+    if matches!(
+        read,
+        Failure::ConnectionChanged | Failure::Offline | Failure::Unexpected
+    ) {
         ask.interrupted(read)
     } else {
         read
