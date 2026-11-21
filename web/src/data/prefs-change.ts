@@ -211,6 +211,7 @@ export function keepSections(
     appearance: same(previous.appearance, next.appearance),
     layout: same(previous.layout, next.layout),
     terminal: same(previous.terminal, next.terminal),
+    editor: same(previous.editor, next.editor),
     open_location: same(previous.open_location, next.open_location),
     composer: same(previous.composer, next.composer),
     shortcuts: same(previous.shortcuts, next.shortcuts),
@@ -223,6 +224,7 @@ export function keepSections(
     kept.appearance === previous.appearance &&
     kept.layout === previous.layout &&
     kept.terminal === previous.terminal &&
+    kept.editor === previous.editor &&
     kept.open_location === previous.open_location &&
     kept.composer === previous.composer &&
     kept.shortcuts === previous.shortcuts &&
