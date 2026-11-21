@@ -81,8 +81,9 @@ describe("terminal profiles on the page", () => {
     expect(newProfileId(36, 0.5)).toMatch(/^profile_10_[0-9a-z]*$/);
   });
 
-  it("are served only from their assigned protocol", () => {
+  it("are served from protocol 45", () => {
     expect(profilesServed(null)).toBe(false);
-    expect(profilesServed(1)).toBe(false);
+    expect(profilesServed(44)).toBe(false);
+    expect(profilesServed(45)).toBe(true);
   });
 });
