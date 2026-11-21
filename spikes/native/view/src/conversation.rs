@@ -335,6 +335,9 @@ fn text_of(content: &[ContentBlock]) -> String {
         match block {
             ContentBlock::Text { text: part, .. } => text.push_str(part),
             ContentBlock::ResourceLink { name, .. } => text.push_str(name),
+            // A prompt's context and review blocks (ADR 0124) copy as a
+            // placeholder like a file, as the page's blockText does; the
+            // timeline draws them as sent pills (`SentContext`).
             ContentBlock::Opaque { .. }
             | ContentBlock::Attachment { .. }
             | ContentBlock::Context(_)

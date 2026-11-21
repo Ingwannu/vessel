@@ -23,6 +23,7 @@ import { SidebarProjects } from "../projects/sidebar-projects";
 import { useMedia } from "./use-media";
 import { ThemeMenu } from "../theme/theme";
 import { SidebarMachines } from "./sidebar-machines";
+import { SidebarPluginFoot, SidebarPluginItems } from "./sidebar-plugins";
 import { SidebarUsage } from "../usage/sidebar-usage";
 import { SidebarSettings } from "./sidebar-settings";
 import { SidebarStatuses } from "./sidebar-statuses";
@@ -115,6 +116,7 @@ export function Sidebar({
           <span className="label">Board</span>
           <span className="count">{live}</span>
         </Link>
+        <SidebarPluginItems placement="header" />
       </div>
       {/* The projects are read when their group is first drawn; on a phone
           the sidebar beside the page is hidden, so its group waits for the
@@ -132,6 +134,7 @@ export function Sidebar({
         <SidebarStatuses />
       )}
       <SidebarUsage />
+      <SidebarPluginFoot />
       <div className="side-foot">
         <Link className={rowClass(inSettings)} to="/settings">
           <Icon name="settings" size={16} />
