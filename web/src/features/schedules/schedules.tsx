@@ -89,6 +89,12 @@ export function Schedules() {
   const retry = () => {
     if (reads.bookError !== null) void fleet.loadBook();
     schedules.retry();
+    for (const node of book) {
+      const state = connections[node.key]?.state;
+      if (state === "failed" || state === "reconnecting") {
+        void fleet.refresh(node.key);
+      }
+    }
   };
 
   if (view.phase === "loading") {
@@ -110,6 +116,7 @@ export function Schedules() {
   }
 
   const rows = visibleRows(view.rows, host, status);
+  const activeEmpty = view.rows.length === 0 || status === "active";
   const choices = [
     {
       value: ALL_HOSTS,
@@ -175,13 +182,9 @@ export function Schedules() {
         {rows.length === 0 ? (
           <EmptyState
             icon="calendar-clock"
-            title={
-              status === "active" ? "No active schedules" : "No ended schedules"
-            }
+            title={activeEmpty ? "No active schedules" : "No ended schedules"}
           >
-            {status === "active"
-              ? "Schedules run agents on a cadence."
-              : undefined}
+            {activeEmpty ? "Schedules run agents on a cadence." : undefined}
           </EmptyState>
         ) : (
           <RowList label="Schedules">

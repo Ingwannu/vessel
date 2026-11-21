@@ -33,13 +33,13 @@ const ACTIONS = {
   pause: { icon: "pause", label: "Pause schedule", pending: "Pausing…" },
   resume: { icon: "play", label: "Resume schedule", pending: "Resuming…" },
   run: { icon: "play", label: "Run now", pending: "Starting…" },
-  delete: { icon: "trash", label: "Delete", pending: "Deleting…" },
 } satisfies Record<
-  ScheduleAction,
+  Exclude<ScheduleAction, "delete">,
   { icon: IconName; label: string; pending: string }
 >;
 
 function providerMark(harness: HarnessRef | undefined) {
+  if (typeof harness !== "string") return { icon: "bot" as const };
   switch (harness) {
     case "claude-code":
       return { node: <ProviderMark name="claude" size={16} /> };
@@ -47,7 +47,7 @@ function providerMark(harness: HarnessRef | undefined) {
       return { node: <ProviderMark name="codex" size={16} /> };
     case "open-code":
       return { node: <ProviderMark name="opencode" size={16} /> };
-    default:
+    case "gemini":
       return { icon: "bot" as const };
   }
 }
@@ -104,7 +104,11 @@ export function ScheduleListRow({
       control={
         <Badge
           tone={
-            state === "Active" ? "ok" : state === "Paused" ? "warn" : "neutral"
+            state === "Active"
+              ? "ok"
+              : state === "Target gone" || state === "Creator gone"
+                ? "danger"
+                : "neutral"
           }
         >
           {state}
@@ -113,6 +117,7 @@ export function ScheduleListRow({
       menu={
         <Menu
           align="end"
+          width="actions"
           trigger={<IconButton label={`Actions for ${title}`} icon="more" />}
         >
           {actions

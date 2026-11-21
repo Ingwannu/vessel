@@ -10,7 +10,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  padding: 12px 24px;
+  padding: 16px 24px;
 }
 
 .schedules-list {
@@ -38,6 +38,17 @@
   white-space: nowrap;
 }
 
+.schedules-list .row > .row-icon,
+.schedules-list .row > .provider-mark,
+.schedules-list .row > .provider-mark-pair {
+  align-self: flex-start;
+  margin-top: 2px;
+}
+
+.schedules-list .row-controls .ico-more {
+  transform: rotate(90deg);
+}
+
 .schedules-list .row-controls {
   display: flex;
   align-items: center;
@@ -45,7 +56,9 @@
 }
 
 .schedules-empty > .empty {
+  align-items: center;
   margin: auto;
+  text-align: center;
 }
 
 .schedules-centered {

@@ -160,9 +160,9 @@ describe("paletteEntries", () => {
     );
     expect(entry).toMatchObject({
       label: "일정",
-      keywords: expect.stringContaining("recurring"),
       target: { kind: "route", to: "/schedules" },
     });
+    expect(entry?.keywords).toContain("recurring");
   });
 
   it("switches the theme three ways", () => {

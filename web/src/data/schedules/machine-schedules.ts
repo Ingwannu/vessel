@@ -99,8 +99,12 @@ export class MachineSchedules {
       if (latest !== undefined) this.#set(node, { ...latest, read });
     };
     void this.#bridge.call(node, "schedule.list", {}).then(
-      ({ schedules }) => settle({ kind: "ready", schedules }),
-      () => settle({ kind: "failed", reason: "Could not load schedules" }),
+      ({ schedules }) => {
+        settle({ kind: "ready", schedules });
+      },
+      () => {
+        settle({ kind: "failed", reason: "Could not load schedules" });
+      },
     );
   }
 
@@ -151,7 +155,7 @@ export class MachineSchedules {
     deleted: boolean,
   ): void {
     const latest = this.store.get().machines.get(node);
-    if (latest === undefined || latest.generation !== generation) return;
+    if (latest?.generation !== generation) return;
     // Keep the server snapshot under the pending overlay. A refusal removes
     // only its overlay, without reverting another row's successful action.
     const pending = new Map(latest.pending);

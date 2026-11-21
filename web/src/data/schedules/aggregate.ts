@@ -35,12 +35,12 @@ export function aggregate(state: ScheduleReads): ScheduleListView {
         break;
     }
   }
-  rows.sort(
-    (a, b) =>
-      Date.parse(b.info.created_at) - Date.parse(a.info.created_at) ||
-      a.node.localeCompare(b.node) ||
-      a.info.id.localeCompare(b.info.id),
-  );
+  rows.sort((a, b) => {
+    const dates = Date.parse(b.info.created_at) - Date.parse(a.info.created_at);
+    if (Number.isFinite(dates) && dates !== 0) return dates;
+    const hosts = a.node.localeCompare(b.node);
+    return hosts === 0 ? a.info.id.localeCompare(b.info.id) : hosts;
+  });
   const failed =
     state.bookError !== null || (errors.length > 0 && successes === 0);
   const phase =

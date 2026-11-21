@@ -32,11 +32,11 @@ export function scheduleTitle(info: ScheduleInfo): string {
     definition.target.kind === "new_session"
       ? definition.target.spec.title
       : null;
+  const first = [definition.name, title, ...definition.prompt.split("\n")]
+    .map((value) => value?.trim() ?? "")
+    .find((value) => value !== "");
   return (
-    (definition.name?.trim() ||
-      title?.trim() ||
-      definition.prompt.trim().split("\n", 1)[0]) ??
-    "Untitled schedule"
+    first ?? (isHeartbeat(info) ? "Untitled heartbeat" : "Untitled schedule")
   );
 }
 
@@ -128,10 +128,7 @@ export function cadenceLabel(cadence: Cadence): string {
     case "unknown":
       return "Unknown cadence";
     case "cron":
-      return (
-        CRON_PRESETS.find((preset) => preset.value === cadence.expr)?.label ??
-        cadence.expr
-      );
+      return cronLabel(cadence.expr, cadence.zone);
     case "every": {
       const units = [
         [86_400, "day"],
@@ -142,18 +139,66 @@ export function cadenceLabel(cadence: Cadence): string {
         ([size]) => cadence.seconds % size === 0,
       ) ?? [1, "second"];
       const count = cadence.seconds / size;
-      return count === 1 ? `Every ${unit}` : `Every ${count} ${unit}s`;
+      return `Every ${count} ${unit}${count === 1 ? "" : "s"}`;
     }
   }
 }
 
-function nextRun(instant: string, now: number): string {
-  const minutes = Math.ceil((Date.parse(instant) - now) / 60_000);
+const DAYS = [
+  "Sundays",
+  "Mondays",
+  "Tuesdays",
+  "Wednesdays",
+  "Thursdays",
+  "Fridays",
+  "Saturdays",
+];
+
+function cronDay(day: string): string | null {
+  switch (day) {
+    case "*":
+      return "Daily";
+    case "1-5":
+      return "Weekdays";
+    case "0,6":
+    case "6,0":
+      return "Weekends";
+    default:
+      return /^[0-6]$/u.test(day) ? (DAYS[Number(day)] ?? null) : null;
+  }
+}
+
+function cronLabel(expression: string, zone: string): string {
+  const [minute, hour, date, month, day] = expression.trim().split(/\s+/u);
+  if (
+    minute === undefined ||
+    hour === undefined ||
+    day === undefined ||
+    date !== "*" ||
+    month !== "*"
+  )
+    return expression;
+  if (minute === "*" && hour === "*" && day === "*") return "Every minute";
+  if (!/^\d+$/u.test(minute)) return expression;
+  const mm = minute.padStart(2, "0");
+  if (hour === "*") {
+    if (day !== "*") return expression;
+    return Number(minute) === 0 ? "Every hour" : `Every hour at :${mm}`;
+  }
+  const days = cronDay(day);
+  return days !== null && /^\d+$/u.test(hour)
+    ? `${days} at ${hour.padStart(2, "0")}:${mm} ${zone}`
+    : expression;
+}
+
+function nextRun(instant: string, now: number): string | null {
+  const minutes = (Date.parse(instant) - now) / 60_000;
+  if (!Number.isFinite(minutes)) return null;
   if (minutes < 1) return "Next run soon";
-  if (minutes < 60) return `Next run in ${minutes}m`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `Next run in ${hours}h`;
-  return `Next run in ${Math.floor(hours / 24)}d`;
+  if (minutes < 60) return `Next run in ${Math.round(minutes)}m`;
+  const hours = minutes / 60;
+  if (hours < 24) return `Next run in ${Math.round(hours)}h`;
+  return `Next run in ${Math.round(hours / 24)}d`;
 }
 
 export function scheduleMeta(
@@ -170,7 +215,8 @@ export function scheduleMeta(
       : `Last run ${sinceLabel(info.last_run.at, now)}`,
   ];
   if (info.state.state === "active" && pending !== "pause") {
-    meta.push(nextRun(info.state.next_due, now));
+    const next = nextRun(info.state.next_due, now);
+    if (next !== null) meta.push(next);
   }
   if (machine !== null) meta.push(machine);
   return meta;
