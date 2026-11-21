@@ -1,0 +1,72 @@
+.schedules-page {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.schedules-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+}
+
+.schedules-list {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 24px 24px;
+}
+
+.schedules-list > .row-list {
+  flex: none;
+}
+
+.schedules-list > .alert:first-child {
+  margin-top: 4px;
+}
+
+.schedules-list .row-description {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.schedules-list .row-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.schedules-empty > .empty {
+  margin: auto;
+}
+
+.schedules-centered {
+  display: grid;
+  flex: 1;
+  place-content: center;
+  justify-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+}
+
+.schedules-centered > p {
+  margin: 0;
+}
+
+@media (--compact) {
+  .schedules-list {
+    padding-inline: 12px;
+  }
+
+  .schedules-toolbar {
+    padding-inline: 12px;
+  }
+}
