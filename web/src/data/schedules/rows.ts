@@ -218,6 +218,6 @@ export function scheduleMeta(
     const next = nextRun(info.state.next_due, now);
     if (next !== null) meta.push(next);
   }
-  if (machine !== null) meta.push(machine);
+  if (machine !== null && machine !== "") meta.unshift(machine);
   return meta;
 }

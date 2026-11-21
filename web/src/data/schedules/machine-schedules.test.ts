@@ -8,7 +8,7 @@ import { Fleet } from "../fleet";
 import { bookNode, connectedAs } from "../fixtures/machines";
 import { aggregate } from "./aggregate";
 import { MachineSchedules } from "./machine-schedules";
-import { rowActions } from "./rows";
+import { rowActions, scheduleMeta } from "./rows";
 
 const laptop = bookNode("laptop");
 const studio = bookNode("studio");
@@ -169,6 +169,16 @@ describe("machine schedules", () => {
     expect(call).toHaveBeenNthCalledWith(2, laptop.key, "schedule.delete", {
       schedule: schedule.id,
     });
+  });
+
+  it("puts the machine first when the schedule list spans several hosts", () => {
+    const now = Date.parse(when);
+    const singleHost = scheduleMeta(schedule, null, now, undefined);
+    expect(singleHost[0]).toBe("Every hour");
+    expect(scheduleMeta(schedule, "laptop", now, undefined)).toEqual([
+      "laptop",
+      ...singleHost,
+    ]);
   });
 
   it("shows only delete for an agent-owned schedule targeting itself", () => {
