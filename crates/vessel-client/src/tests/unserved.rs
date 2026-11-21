@@ -145,6 +145,7 @@ macro_rules! methods {
             get_schedule: vessel_proto::automation::GetSchedule => vessel_proto::automation::ScheduleInfo;
             create_schedule: vessel_proto::automation::CreateSchedule => vessel_proto::automation::ScheduleInfo;
             update_schedule: vessel_proto::automation::UpdateSchedule => vessel_proto::automation::ScheduleInfo;
+            update_schedule_cadence: vessel_proto::automation::UpdateScheduleCadence => vessel_proto::automation::ScheduleInfo;
             pause_schedule: vessel_proto::automation::PauseSchedule => vessel_proto::automation::ScheduleInfo;
             resume_schedule: vessel_proto::automation::ResumeSchedule => vessel_proto::automation::ScheduleInfo;
             run_schedule: vessel_proto::automation::RunSchedule => vessel_proto::automation::ScheduleRun;

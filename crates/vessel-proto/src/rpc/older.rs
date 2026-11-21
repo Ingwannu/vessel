@@ -205,6 +205,7 @@ impl Reply {
             Self::GetSchedule(value) => templates::schedule(value, protocol).map(Self::GetSchedule),
             Self::CreateSchedule(value) => templates::schedule(value, protocol).map(Self::CreateSchedule),
             Self::UpdateSchedule(value) => templates::schedule(value, protocol).map(Self::UpdateSchedule),
+            Self::UpdateScheduleCadence(value) => templates::schedule(value, protocol).map(Self::UpdateScheduleCadence),
             Self::PauseSchedule(value) => templates::schedule(value, protocol).map(Self::PauseSchedule),
             Self::ResumeSchedule(value) => templates::schedule(value, protocol).map(Self::ResumeSchedule),
             // Replies of calls newer than every peer that can ask them, or

@@ -400,6 +400,7 @@ impl Call {
             | Self::PreviewSchedule(_)
             | Self::ListSchedules(_)
             | Self::GetSchedule(_)
+            | Self::UpdateScheduleCadence(_)
             | Self::PauseSchedule(_)
             | Self::ResumeSchedule(_)
             | Self::RunSchedule(_)

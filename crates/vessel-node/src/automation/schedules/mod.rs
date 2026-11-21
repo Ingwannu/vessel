@@ -42,7 +42,7 @@ use std::time::Duration;
 use chrono::{DateTime, Utc};
 use tokio::sync::{mpsc, oneshot};
 use vessel_proto::automation::{
-    EndReason, RunOutcome, ScheduleDefinition, ScheduleInfo, ScheduleRun,
+    Cadence, EndReason, RunOutcome, ScheduleDefinition, ScheduleInfo, ScheduleRun,
 };
 use vessel_proto::{Creator, ScheduleId, SessionId};
 
@@ -139,6 +139,13 @@ pub(crate) trait Runner: Send + Sync + 'static {
     fn agent_alive(&self, session: SessionId) -> bool;
 }
 
+/// Both edit forms use the same scheduler transaction and revision checks.
+#[derive(Debug)]
+pub(crate) enum DefinitionChange {
+    Replace(Box<ScheduleDefinition>),
+    Cadence(Cadence),
+}
+
 /// A command to the scheduler (only its handle makes them).
 #[derive(Debug)]
 pub(crate) enum Command {
@@ -158,7 +165,7 @@ pub(crate) enum Command {
     Update {
         schedule: ScheduleId,
         revision: u32,
-        definition: Box<ScheduleDefinition>,
+        change: DefinitionChange,
         asker: Asker,
         reply: oneshot::Sender<Result<ScheduleInfo, AutomationError>>,
     },
@@ -257,10 +264,37 @@ impl Schedules {
         definition: ScheduleDefinition,
         asker: Asker,
     ) -> Result<ScheduleInfo, AutomationError> {
+        self.change(
+            schedule,
+            revision,
+            DefinitionChange::Replace(Box::new(definition)),
+            asker,
+        )
+        .await
+    }
+
+    pub(crate) async fn update_cadence(
+        &self,
+        schedule: ScheduleId,
+        revision: u32,
+        cadence: Cadence,
+        asker: Asker,
+    ) -> Result<ScheduleInfo, AutomationError> {
+        self.change(schedule, revision, DefinitionChange::Cadence(cadence), asker)
+            .await
+    }
+
+    async fn change(
+        &self,
+        schedule: ScheduleId,
+        revision: u32,
+        change: DefinitionChange,
+        asker: Asker,
+    ) -> Result<ScheduleInfo, AutomationError> {
         self.ask(|reply| Command::Update {
             schedule,
             revision,
-            definition: Box::new(definition),
+            change,
             asker,
             reply,
         })

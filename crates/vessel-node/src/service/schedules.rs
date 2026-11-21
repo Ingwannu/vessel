@@ -6,12 +6,12 @@
 use vessel_proto::automation::{
     CreateSchedule, DeleteSchedule, GetSchedule, ListRuns, ListSchedules, PauseSchedule,
     ResumeSchedule, RunList, RunSchedule, ScheduleInfo, ScheduleList, ScheduleRun, ScheduleTarget,
-    UpdateSchedule,
+    UpdateSchedule, UpdateScheduleCadence,
 };
 use vessel_proto::{Ack, ErrorCode, OriginBy, SessionMode, SessionSpec, WireError};
 
 use super::{Connection, NodeService, wire};
-use crate::automation::schedules::rules::{Asker, Via};
+use crate::automation::schedules::rules::{Asker, Via, heartbeat_target};
 use crate::principal::Principal;
 use crate::profiles::launch::creator;
 
@@ -99,6 +99,31 @@ impl NodeService {
                 request.definition,
                 asker,
             )
+            .await
+            .map_err(|error| error.to_wire())
+    }
+
+    pub(crate) async fn update_schedule_cadence(
+        &self,
+        connection: &Connection,
+        request: UpdateScheduleCadence,
+    ) -> Result<ScheduleInfo, WireError> {
+        let asker = asker(connection.principal());
+        let info = self
+            .schedules
+            .get(request.schedule)
+            .await
+            .map_err(|error| error.to_wire())?;
+        asker
+            .check_update(&info, request.revision)
+            .map_err(|error| error.to_wire())?;
+        let session = heartbeat_target(&info).map_err(|error| error.to_wire())?;
+        self.check_target(connection.principal(), &ScheduleTarget::Session { session })
+            .await?;
+        // Only the scheduler can confirm this is still the revision whose
+        // stored target was just checked. The request never carries a target.
+        self.schedules
+            .update_cadence(request.schedule, request.revision, request.cadence, asker)
             .await
             .map_err(|error| error.to_wire())
     }

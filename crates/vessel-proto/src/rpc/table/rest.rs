@@ -95,6 +95,7 @@ macro_rules! method_table_rest {
             CreateSchedule / create_schedule / "schedule.create" [Operate, 11, unary]: $crate::automation::CreateSchedule => $crate::automation::ScheduleInfo;
             /// Replace a schedule's definition (protocol 11).
             UpdateSchedule / update_schedule / "schedule.update" [Operate, 11, unary]: $crate::automation::UpdateSchedule => $crate::automation::ScheduleInfo;
+            UpdateScheduleCadence / update_schedule_cadence / "schedule.update_cadence" [Operate, (pending $crate::automation::HEARTBEAT_CADENCE_PROTOCOL), unary]: $crate::automation::UpdateScheduleCadence => $crate::automation::ScheduleInfo;
             /// Stop a schedule's runs (protocol 11).
             PauseSchedule / pause_schedule / "schedule.pause" [Operate, 11, unary]: $crate::automation::PauseSchedule => $crate::automation::ScheduleInfo;
             /// Let a paused schedule run again (protocol 11).

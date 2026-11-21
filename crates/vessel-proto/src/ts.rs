@@ -429,6 +429,11 @@ pub const PROTOCOLS: &[(&str, Option<crate::ProtocolVersion>, &str)] = &[
         "`plugin.settings.read`, `.write` and `.reset` (ADR 0115, \"Settings\").",
     ),
     (
+        "HEARTBEAT_CADENCE_PROTOCOL",
+        crate::automation::HEARTBEAT_CADENCE_PROTOCOL,
+        "`schedule.update_cadence`, for editing a heartbeat while retaining its owner (ADR 0033).",
+    ),
+    (
         "ATTENTION_NOTIFICATIONS_PROTOCOL",
         crate::notifications::ATTENTION_NOTIFICATIONS_PROTOCOL,
         "`notification.claim`, terminal attention, `Terminal` presence focus and a window's `notifies` (ADR 0089).",

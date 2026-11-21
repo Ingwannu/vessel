@@ -30,6 +30,7 @@ use super::text::{PromptText, ScheduleName, TimeZoneName};
 use crate::id::{ScheduleId, SessionId};
 use crate::profile::Creator;
 use crate::session::SessionSpec;
+use crate::ProtocolVersion;
 
 /// Seconds between an `every` schedule's due times: at least a minute
 /// (all three references' floor), at most 366 days.
@@ -311,7 +312,8 @@ pub struct ScheduleInfo {
     /// Its newest run.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub last_run: Option<ScheduleRun>,
-    /// Who last wrote its definition; a run acts as them (ADR 0033).
+    /// The creator or last full-definition writer; a run acts as them
+    /// (ADR 0033). A cadence-only edit keeps the existing owner.
     pub defined_by: Creator,
     /// When it was made.
     pub created_at: DateTime<Utc>,
@@ -367,6 +369,22 @@ pub struct UpdateSchedule {
     pub definition: ScheduleDefinition,
 }
 
+/// Protocol for editing a heartbeat's cadence without changing its owner (ADR 0033).
+pub const HEARTBEAT_CADENCE_PROTOCOL: Option<ProtocolVersion> = None;
+
+/// `schedule.update_cadence`: change only an existing-session schedule's
+/// cadence. Needs a direct connection and `operate`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+pub struct UpdateScheduleCadence {
+    /// Which schedule.
+    pub schedule: ScheduleId,
+    /// The revision the change was made from; another is `conflict`.
+    pub revision: u32,
+    /// The new cadence.
+    pub cadence: Cadence,
+}
+
 /// `schedule.pause`: stop a schedule's runs. Needs `operate`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
@@ -404,6 +422,28 @@ pub struct DeleteSchedule {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn cadence_update_uses_the_feature_protocol_and_direct_operate_scope() {
+        use crate::rpc::Request;
+        use crate::Scope;
+
+        let method = UpdateScheduleCadence::METHOD;
+        let request = UpdateScheduleCadence {
+            schedule: ScheduleId::random(),
+            revision: 2,
+            cadence: Cadence::Cron {
+                expr: "0 9 * * *".parse().unwrap(),
+                zone: "Asia/Seoul".parse().unwrap(),
+            },
+        };
+        let encoded = serde_json::to_value(request.clone().into_call()).unwrap();
+        assert_eq!(encoded["method"], "schedule.update_cadence");
+        assert_eq!(encoded["params"].as_object().unwrap().len(), 3);
+        assert_eq!(method.scope(), Some(Scope::Operate));
+        assert!(!method.forwardable());
+        assert_eq!(request.into_call().required_protocol(), HEARTBEAT_CADENCE_PROTOCOL);
+    }
 
     #[test]
     fn numbers_are_held_to_their_ranges() {
