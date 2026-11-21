@@ -18,7 +18,15 @@
 //   would grow without end.
 // - Failures: a send that fails is not repeated (it may have been
 //   applied); the stream's own state says why, and later items still go,
-//   in order.
+//   in order. The rest of a text cut into several sends (a long paste) is
+//   dropped when one of its parts fails, so it never lands with a hole in
+//   it (P4w node review note 1); keys typed after it are kept apart from
+//   that rest and still go. A bracketed paste (xterm hands it over whole,
+//   between its markers) is never joined with other keys, and when its
+//   part fails, the unsent part of its end marker still goes first, so
+//   the program leaves paste mode before those keys (app review R1 on the
+//   native packet: else Enter would not run the line). Native's sender
+//   does the same.
 // - Send size (the P1 review carry-over, P4): the node refuses a send of
 //   more than `SendTerminal::MAX_BYTES` (64 KiB) whole, so a longer paste
 //   was lost unseen. One send carries at most that many bytes of UTF-8,
@@ -37,6 +45,10 @@ export const MAX_PENDING = 1024 * 1024;
  * the room the person's keys need. A dropped answer is never sent late, as
  * ADR 0073 has it, and nobody is told: the program asked too fast. */
 export const MAX_ANSWERS_PENDING = 64 * 1024;
+
+/** A bracketed paste's markers (xterm's `bracketTextForPaste`). */
+const PASTE_START = "\x1b[200~";
+const PASTE_END = "\x1b[201~";
 
 /** Most bytes one send carries (`SendTerminal::MAX_BYTES`). */
 export const MAX_SEND_BYTES = 64 * 1024;
@@ -59,8 +71,15 @@ export function cutAt(text: string, bytes: number): [string, string] {
 }
 
 type Item =
-  | { kind: "keys"; text: string }
+  // `rest`: what is left of a text whose first part was sent; `closes`: that
+  // rest ends a bracketed paste, its end marker last.
+  | { kind: "keys"; text: string; rest: boolean; closes: boolean }
   | { kind: "resize"; cols: number; rows: number };
+
+/** Whether `text` is one bracketed paste, markers included. */
+function bracketedPaste(text: string): boolean {
+  return text.startsWith(PASTE_START) && text.endsWith(PASTE_END);
+}
 
 export class TerminalSender {
   readonly #send: (input: TerminalInput) => Promise<unknown>;
@@ -127,10 +146,15 @@ export class TerminalSender {
   #queue(text: string): void {
     this.#chars += text.length;
     const last = this.#items.at(-1);
-    if (last?.kind === "keys") {
+    if (
+      last?.kind === "keys" &&
+      !last.rest &&
+      !bracketedPaste(last.text) &&
+      !bracketedPaste(text)
+    ) {
       last.text += text;
     } else {
-      this.#items.push({ kind: "keys", text });
+      this.#items.push({ kind: "keys", text, rest: false, closes: false });
     }
     this.#pump();
   }
@@ -154,8 +178,10 @@ export class TerminalSender {
     if (item.kind === "keys") {
       const [part, rest] = cutAt(item.text, MAX_SEND_BYTES);
       if (rest !== "") {
-        // The rest goes next, before anything queued after it.
-        this.#items.unshift({ kind: "keys", text: rest });
+        // The rest goes next, before anything queued after it. A
+        // bracketed paste's rest keeps the end marker it ends with.
+        const closes = item.rest ? item.closes : bracketedPaste(item.text);
+        this.#items.unshift({ kind: "keys", text: rest, rest: true, closes });
       }
       this.#chars -= part.length;
       input = { kind: "data", data: encodeText(part) };
@@ -163,11 +189,34 @@ export class TerminalSender {
       input = { kind: "resize", size: { cols: item.cols, rows: item.rows } };
     }
     this.#busy = true;
-    this.#send(input)
-      .catch(() => undefined)
-      .finally(() => {
-        this.#busy = false;
-        this.#pump();
-      });
+    this.#send(input).then(
+      () => {
+        this.#answered(true);
+      },
+      () => {
+        this.#answered(false);
+      },
+    );
+  }
+
+  /** The send in flight answered; a failed part drops the rest of its
+   * text, which is first in the queue while it waits, all but the unsent
+   * part of a bracketed paste's end marker. */
+  #answered(taken: boolean): void {
+    this.#busy = false;
+    const first = this.#items[0];
+    if (!taken && first?.kind === "keys" && first.rest) {
+      const kept = first.closes
+        ? first.text.slice(Math.max(0, first.text.length - PASTE_END.length))
+        : "";
+      this.#chars -= first.text.length - kept.length;
+      if (kept === "") {
+        this.#items.shift();
+      } else {
+        first.text = kept;
+        first.closes = false;
+      }
+    }
+    this.#pump();
   }
 }
