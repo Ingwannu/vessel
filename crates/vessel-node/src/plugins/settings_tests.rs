@@ -20,6 +20,11 @@ fn json(text: &str) -> RawJson {
     RawJson::from_text(text).unwrap()
 }
 
+/// `raw` as a value, so key order does not matter.
+fn value(raw: &RawJson) -> serde_json::Value {
+    serde_json::from_str(raw.as_text()).unwrap()
+}
+
 /// `name` running `fake-plugin` through a one-line `sh` wrapper (the
 /// manifest's command is inside the plugin's folder).
 fn fake_plugin(fixture: &Fixture, name: &str) {
@@ -68,12 +73,13 @@ async fn a_missing_document_reads_its_defaults_and_a_save_is_kept_owner_only() {
         .read_settings(&id("prefs"), &display())
         .await
         .unwrap();
+    let PluginSettingsRead::Ready { revision, values } = read else {
+        panic!("ready: {read:?}");
+    };
+    assert_eq!(revision, SettingsRevision::missing());
     assert_eq!(
-        read,
-        PluginSettingsRead::Ready {
-            revision: SettingsRevision::missing(),
-            values: json(r#"{"color":"blue","size":1}"#),
-        }
+        value(&values),
+        serde_json::json!({"color": "blue", "size": 1})
     );
     let saved = plugins
         .write_settings(write("prefs", SettingsRevision::missing(), r#"{"size":3}"#))
@@ -82,7 +88,10 @@ async fn a_missing_document_reads_its_defaults_and_a_save_is_kept_owner_only() {
     let PluginSettingsWrite::Saved { revision, values } = saved else {
         panic!("saved: {saved:?}");
     };
-    assert_eq!(values, json(r#"{"color":"blue","size":3}"#));
+    assert_eq!(
+        value(&values),
+        serde_json::json!({"color": "blue", "size": 3})
+    );
     assert_ne!(revision, SettingsRevision::missing());
     let data = fixture.data();
     let file = std::fs::metadata(data.plugin_settings_path(&id("prefs"), &display())).unwrap();
@@ -108,13 +117,19 @@ async fn a_missing_document_reads_its_defaults_and_a_save_is_kept_owner_only() {
             && notice["values"]["size"] == 3),
         "{told:?}"
     );
-    assert_eq!(
-        plugins
-            .read_settings(&id("prefs"), &display())
-            .await
-            .unwrap(),
-        PluginSettingsRead::Ready { revision, values }
-    );
+    let again = plugins
+        .read_settings(&id("prefs"), &display())
+        .await
+        .unwrap();
+    let PluginSettingsRead::Ready {
+        revision: now,
+        values: read,
+    } = again
+    else {
+        panic!("ready: {again:?}");
+    };
+    assert_eq!(now, revision);
+    assert_eq!(value(&read), value(&values));
     fixture.finish().await;
 }
 
@@ -200,7 +215,10 @@ async fn an_older_document_migrates_once_and_a_newer_one_is_kept_until_a_reset()
     let PluginSettingsRead::Ready { revision, values } = read else {
         panic!("ready: {read:?}");
     };
-    assert_eq!(values, json(r#"{"color":"red","size":1}"#));
+    assert_eq!(
+        value(&values),
+        serde_json::json!({"color": "red", "size": 1})
+    );
     // Delivered once, as migrated; the read after it did not migrate again.
     let told = notices(&fixture, "prefs");
     assert_eq!(told.len(), 1, "{told:?}");
@@ -245,7 +263,10 @@ async fn an_older_document_migrates_once_and_a_newer_one_is_kept_until_a_reset()
     let PluginSettingsWrite::Saved { values, .. } = reset else {
         panic!("reset: {reset:?}");
     };
-    assert_eq!(values, json(r#"{"color":"blue","size":1}"#));
+    assert_eq!(
+        value(&values),
+        serde_json::json!({"color": "blue", "size": 1})
+    );
     fixture.finish().await;
 }
 
