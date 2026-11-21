@@ -226,3 +226,44 @@ The page's as-built rules (TRACKER 829) and the node's agent placement (TRACKER 
      terminal's own state, so the toast, the app's usual notice, is used instead.
   2. The sender keeps an offset into a queued text instead of splitting it, so each send copies only its part.
   3. The scrollback hint gains a word on memory.
+
+## P4: the virtual key bar (native)
+
+Paseo 0.15.4, `packages/app/src/terminal/runtime/terminal-virtual-keyboard.ts`:
+- The three tables: two rows (25-42), one wide row (44-59), three columns (61-82).
+- Which one, by the bar's width (84-97): under 300 three columns; 660 or more and not compact one row; else two.
+- When the bar shows (99-104): its mobile app always; desktop and web only when compact, which is under 600.
+- Paste only on its mobile app (121-123).
+
+`components/terminal-pane.tsx`:
+- 117: at most 880 wide.
+- 119-123: the modifier labels.
+- 161-257: the buttons.
+- 795-830, 1052-1083: sticky modifiers.
+- 1241-1257 and the `keyboard*`/`keyButton*` styles: the layout.
+
+Vessel:
+- `view/src/terminal/key_bar.rs`:
+  - The tables and widths as data.
+  - `Sticky`: the modifiers set on the bar.
+  - `press`: a bar key with them.
+  - `pressed`: a keyboard key with them and those held.
+  - `typed`: Paseo's `mapTerminalDataToKey` for the next typed character; anything else goes as typed.
+  - Every key is encoded by `keys.rs`, so a bar key sends what the same key pressed sends.
+- `app/src/areas/terminal_tabs/key_bar.rs`:
+  - The bar is drawn under a shell tab's screen, after the trouble line, while the window is compact (the kit's phone
+    width).
+  - A key goes out through the pane's sender as typing does. A modifier toggles, with `aria-selected`.
+  - Either press gives the shell its focus back.
+  - The pane keeps its `Sticky`. While one is set, the keyboard's keys go through the key path, as Paseo intercepts
+    them (`shouldInterceptDomTerminalKey`), and the IME's commit goes through `typed`.
+- Stated differences: no keyboard toggle (a desktop has no soft keyboard) and no Paste, as Paseo's desktop. Their slots
+  are left out and the other buttons widen.
+- The agent terminal is read-only and has no bar.
+- Tests:
+  - view `key_bar` tests: widths, tables, press, typed and pressed.
+  - app `terminal_tabs::tests::p4`:
+    - a bar key with a set modifier, and the clear;
+    - the next typed or pressed character;
+    - unchanged typing without one;
+    - the bar only when compact.

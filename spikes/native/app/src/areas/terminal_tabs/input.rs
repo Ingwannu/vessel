@@ -21,6 +21,7 @@ use std::ops::Range;
 
 use gpui::{EntityInputHandler, KeyDownEvent, UTF16Selection};
 use vessel_app_kit::ui::{Bounds, Context, Pixels, WeakEntity, Window};
+use vessel_app_view::terminal::key_bar;
 use vessel_app_view::terminal::{
     Function, Key, Mods, Named, Taken, Typed, encode_key, encode_paste,
 };
@@ -111,7 +112,7 @@ impl EntityInputHandler for TerminalKeys {
         let text = text.to_owned();
         self.tell(cx, move |shell, key, cx| {
             shell.terminal_tab_preedit(key, None, cx);
-            shell.terminal_tab_type(key, &text, cx);
+            shell.terminal_tab_type_text(key, &text, cx);
         });
     }
 
@@ -285,26 +286,31 @@ impl Shell {
         if modifiers.platform || (modifiers.control && modifiers.alt && stroke.key_char.is_some()) {
             return;
         }
-        let Some(pane) = self.areas.terminal_tabs.panes.get(key) else {
+        let Some(pane) = self.areas.terminal_tabs.panes.get_mut(key) else {
             return;
         };
-        let cursor = pane
-            .model
-            .as_ref()
-            .map(|model| model.grid().cursor_keys())
-            .unwrap_or_default();
+        let cursor = pane.cursor_keys();
         let mods = mods_of(modifiers);
-        let sequence = if let Some(named) = named(&stroke.key) {
-            encode_key(Key::Named(named), mods, cursor)
-        } else if (modifiers.control || modifiers.alt)
+        // With modifiers set on the key bar every key is taken here, as
+        // Paseo intercepts keys while modifiers wait
+        // (`shouldInterceptDomTerminalKey`).
+        let sticky = !pane.sticky.is_empty();
+        let pressed = if let Some(named) = named(&stroke.key) {
+            Key::Named(named)
+        } else if (modifiers.control || modifiers.alt || sticky)
             && let Some(chord) = character(&stroke.key)
         {
-            encode_key(Key::Char(chord), mods, cursor)
+            Key::Char(chord)
         } else {
             // Text: the input handler receives it.
             return;
         };
+        let sequence = key_bar::pressed(pressed, mods, &mut pane.sticky, cursor)
+            .unwrap_or_else(|| encode_key(pressed, mods, cursor));
         self.terminal_tab_type(key, &sequence, cx);
+        if sticky {
+            cx.notify();
+        }
         cx.stop_propagation();
     }
 
