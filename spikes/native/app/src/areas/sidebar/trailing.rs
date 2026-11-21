@@ -59,9 +59,11 @@ pub(super) fn slot(card: &Card, shell: &Shell, tokens: &Tokens) -> Option<AnyEle
     }
 }
 
-/// `+N -N`, the page's card colours. The minus is ASCII, as Paseo's
-/// `DiffStat` writes it (`components/diff-stat.tsx`).
+/// `+N -N` as Paseo's `DiffStat` draws it on every surface
+/// (`components/diff-stat.tsx`): an ASCII minus, statusSuccess and
+/// statusDanger, the same as the composer's pill.
 fn counts(stat: DiffStat, tokens: &Tokens) -> AnyElement {
+    let status = tokens.status();
     div()
         .flex_none()
         .flex()
@@ -72,12 +74,12 @@ fn counts(stat: DiffStat, tokens: &Tokens) -> AnyElement {
         .type_(Type::Meta)
         .child(
             div()
-                .text_color(tokens.st_ready)
+                .text_color(status.success.foreground)
                 .child(format!("+{}", format_diff_count(stat.additions))),
         )
         .child(
             div()
-                .text_color(tokens.danger)
+                .text_color(status.error.foreground)
                 .child(format!("-{}", format_diff_count(stat.deletions))),
         )
         .into_any_element()
