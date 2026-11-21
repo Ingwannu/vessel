@@ -17,11 +17,9 @@ crates/vessel-llm/src/upstream/anthropic.rs 575
 crates/vessel-llm/src/upstream/responses.rs 511
 crates/vessel-llm/src/wire/anthropic.rs 646
 crates/vessel-llm/src/wire/responses.rs 882
-crates/vessel-lsp/src/manager.rs 576
-crates/vessel-node/src/fleet/links.rs 1192
+crates/vessel-node/src/fleet/links.rs 1164
 crates/vessel-node/src/models/proxy.rs 1521
-crates/vessel-node/src/node.rs 642
-crates/vessel-node/src/transfers/mod.rs 515
+crates/vessel-node/src/node.rs 576
 crates/vessel-proto/src/fleet.rs 663
 crates/vessel-relay/src/server/mod.rs 907
 crates/vessel-store/src/data_dir.rs 508

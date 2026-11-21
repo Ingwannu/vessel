@@ -66,9 +66,7 @@ impl PtyProcess {
         let program = || spec.program.display().to_string();
         let pair = native_pty_system()
             .openpty(size.to_pty())
-            .map_err(|error| PtyError::Open {
-                message: error.to_string(),
-            })?;
+            .map_err(|error| PtyError::Open(std::io::Error::other(error)))?;
         let child = crate::diagnostics::spawn_backend(&*pair.slave, spec)?;
         // The node must not hold the slave end, or the output would never
         // end: the PTY stays open while any process has it.
