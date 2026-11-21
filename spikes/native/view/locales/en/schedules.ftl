@@ -484,9 +484,13 @@ schedules-form-preview-line = { $description } · Next run { DATETIME($at) }
 # The retained elapsed cadence on an older node.
 schedules-form-elapsed-without-preview = { $cadence } · Preview is unavailable on this machine
 
-# Read-only heartbeat sheet and the row that opens it.
+# Heading of the sheet on which a person can inspect a heartbeat.
 schedules-heartbeat-title = Heartbeat
+# Accessible name of a heartbeat row that opens detail. $title is the displayed schedule name.
 schedules-heartbeat-open-row = View heartbeat { $title }
+# The fixed existing session to which the recurring prompt is sent.
 schedules-heartbeat-target = Target
+# Dismiss the read-only heartbeat sheet.
 schedules-heartbeat-close = Close
+# Read-only reason when the node does not support changing heartbeat cadence.
 schedules-heartbeat-older = Updating heartbeat cadence requires a newer node.
