@@ -54,6 +54,9 @@ use crate::error::ServiceError;
 use crate::principal::Principal;
 
 mod execution;
+mod tool_move;
+
+pub(crate) use tool_move::ToolMove;
 
 /// Live sessions an agent may own (that it created itself) at once.
 pub(crate) const MAX_OWNED: usize = 8;
@@ -77,8 +80,10 @@ pub(crate) struct Agents {
 struct Entry {
     /// The existing registry owns one bounded current execution/watch value.
     execution: execution::Execution,
-    /// Accepted credentials: one, or two while a profile move runs.
-    credentials: Vec<CredentialHash>,
+    /// The current launch's internal tool credential, when it got one.
+    credential: Option<CredentialHash>,
+    /// A replacement can connect before it is known to be ready.
+    pending_tools: Option<tool_move::PendingTools>,
     /// What the session's agent may do.
     scopes: Vec<Scope>,
     /// 0 for a session a user created.
@@ -135,13 +140,8 @@ impl Agents {
         principal: &Principal,
         with_credential: bool,
     ) -> Result<Option<AgentSecret>, ServiceError> {
-        let (secret, credentials) = if with_credential {
-            let secret = mint()?;
-            let hash = CredentialHash::of_agent(&secret);
-            (Some(secret), vec![hash])
-        } else {
-            (None, Vec::new())
-        };
+        let secret = with_credential.then(mint).transpose()?;
+        let credential = secret.as_ref().map(CredentialHash::of_agent);
         let mut sessions = self.lock();
         let (scopes, depth, parent) = match principal {
             Principal::Owner => (AGENT_SCOPES.to_vec(), 0, None),
@@ -185,7 +185,8 @@ impl Agents {
             id,
             Entry {
                 execution: execution::Execution::new(),
-                credentials,
+                credential,
+                pending_tools: None,
                 scopes,
                 depth,
                 parent,
@@ -259,8 +260,9 @@ impl Agents {
         // before the end is still closed by `retire`.
         if entry.has_ended()
             || !entry
-                .credentials
+                .credential
                 .iter()
+                .chain(entry.pending_tools.as_ref().and_then(tool_move::PendingTools::credential))
                 .any(|hash| hash.matches_agent(&auth.secret))
         {
             return None;
@@ -282,44 +284,6 @@ impl Agents {
                 closing,
             },
         ))
-    }
-
-    /// A profile move of `id` begins: a second credential, for the agent
-    /// it starts. `None` when the session has no credential.
-    ///
-    /// # Errors
-    /// Another move of the session is running, or no random bytes.
-    pub(crate) fn begin_move(&self, id: SessionId) -> Result<Option<AgentSecret>, ServiceError> {
-        let mut sessions = self.lock();
-        let Some(entry) = sessions.get_mut(&id) else {
-            return Ok(None);
-        };
-        match entry.credentials.len() {
-            0 => Ok(None),
-            1 => {
-                let secret = mint()?;
-                entry.credentials.push(CredentialHash::of_agent(&secret));
-                Ok(Some(secret))
-            }
-            _ => Err(ServiceError::MoveRunning(id)),
-        }
-    }
-
-    /// The move begun with [`begin_move`](Self::begin_move) ended: keep
-    /// the new credential if the session moved, the old one if not. A
-    /// no-op when no move began.
-    pub(crate) fn end_move(&self, id: SessionId, moved: bool) {
-        let mut sessions = self.lock();
-        let Some(entry) = sessions.get_mut(&id) else {
-            return;
-        };
-        if entry.credentials.len() == 2 {
-            let _retired = if moved {
-                entry.credentials.remove(0)
-            } else {
-                entry.credentials.swap_remove(1)
-            };
-        }
     }
 
     fn unregister(&self, session: SessionId, key: u64) {

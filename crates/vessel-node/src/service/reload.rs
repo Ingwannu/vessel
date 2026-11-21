@@ -25,6 +25,7 @@ use vessel_proto::{Mark, SessionId, SessionInfo, WireError};
 use vessel_session::{NotReloadable, Reload, SessionError, SessionHandle};
 
 use super::{Connection, NodeService, wire};
+use crate::agents::ToolMove;
 use crate::error::ServiceError;
 
 impl NodeService {
@@ -56,13 +57,16 @@ impl NodeService {
         if info.marks.archived_at.is_some() {
             let _unarchived = self.sessions.mark(id, Mark::Unarchive).await?;
         }
+        let mut tool_move = None;
         let reloaded = self
             .sessions
             .reload(id, async |handle: &SessionHandle| {
-                self.plan(id, handle).await
+                self.plan(id, handle, &mut tool_move).await
             })
             .await;
-        self.agents.end_move(id, reloaded.is_ok());
+        if let Some(tool_move) = tool_move {
+            tool_move.finish(reloaded.is_ok());
+        }
         self.models.end_move(id, reloaded.is_ok());
         match reloaded {
             // Ended, or ending while this call ran: started again once its
@@ -85,7 +89,12 @@ impl NodeService {
 
     /// A live session's reload: its launch as a start again's, with a new
     /// credential and token, and its log's prompts before this run.
-    async fn plan(&self, id: SessionId, handle: &SessionHandle) -> Result<Reload, ServiceError> {
+    async fn plan(
+        &self,
+        id: SessionId,
+        handle: &SessionHandle,
+        tool_move: &mut Option<ToolMove>,
+    ) -> Result<Reload, ServiceError> {
         let info = handle.info();
         let before = self.sessions.prompts_before(id, handle.run_start()).await?;
         let mut launch = self.launcher.again(&self.profiles, &info)?;
@@ -96,7 +105,10 @@ impl NodeService {
         };
         let route = info.model.as_ref().map(|model| &model.route);
         launch.model_proxy = self.models.begin_move(id, route, &profile)?;
-        if let Some(secret) = self.agents.begin_move(id)? {
+        let inject = self.launcher.has_tools() && self.settings.inject_vessel_tools().await;
+        let (transition, secret) = self.agents.begin_move(id, inject)?;
+        *tool_move = transition;
+        if let Some(secret) = secret {
             self.launcher
                 .attach_tools(&mut launch.mcp_servers, id, &secret)?;
         }

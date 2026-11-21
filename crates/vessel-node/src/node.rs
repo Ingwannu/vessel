@@ -5,7 +5,6 @@ use std::path::Path;
 use std::sync::Arc;
 
 use crate::settings::Settings;
-use chrono::Utc;
 use tokio::net::TcpListener;
 use tokio::sync::Semaphore;
 use tokio::sync::watch;
@@ -19,7 +18,7 @@ use vessel_relay::address::ClientAddress;
 use vessel_relay::{LinkState, TlsConfig};
 use vessel_secure::NodeKeypair;
 use vessel_session::{AttachmentLoader, SessionRuntime};
-use vessel_store::{DataDir, NodeLock, NodeOwner, NodeToken, Opened, Store};
+use vessel_store::{DataDir, NodeLock, NodeToken, Opened, Store};
 
 use crate::agents::Agents;
 use crate::attachments::staging;
@@ -541,13 +540,7 @@ fn prepare(dir: &DataDir, env: HarnessEnv) -> Result<Prepared, NodeError> {
     // so its identity exists before any device pairs.
     let key = dir.load_or_create_node_key().map_err(NodeError::DataDir)?;
     let keypair = NodeKeypair::from_secret(*key.expose());
-    let owner = NodeOwner {
-        pid: std::process::id(),
-        executable: std::env::current_exe().unwrap_or_default(),
-        version: env!("CARGO_PKG_VERSION").to_owned(),
-        started_at: Utc::now(),
-    };
-    let lock = NodeLock::acquire(dir, &owner).map_err(NodeError::AlreadyRunning)?;
+    let lock = setup::lock_data_dir(dir)?;
     // After the lock: the MCP directory is emptied, which only the node
     // owning the data directory may do.
     let mcp_dir = dir.prepare_mcp_dir().map_err(NodeError::McpDir)?;

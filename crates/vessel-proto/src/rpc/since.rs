@@ -11,6 +11,7 @@ use crate::title::SessionTitle;
 
 use super::Call;
 
+mod settings;
 mod templates;
 
 impl Call {
@@ -191,36 +192,7 @@ impl Call {
                 } => Some(crate::terminals::SHARED_TERMINALS_PROTOCOL?.get()),
                 TerminalInput::Resize { intent: None, .. } | TerminalInput::Data { .. } => None,
             },
-            // A write guarded by its content came in 11: a protocol 10 node
-            // cannot decode it (its guard compared a time instead).
-            // Drivers came in 18 (ADR 0057): an older node would keep
-            // running the agent over ACP and say nothing.
-            Self::SetNodeSettings(request) => {
-                let drivers = request.drivers.map(|_| 18);
-                // The plugin switch (ADR 0115) needs the plugin protocol.
-                let plugins = match request.plugins_enabled {
-                    Some(_) => Some(crate::plugins::PLUGINS_PROTOCOL?.get()),
-                    None => None,
-                };
-                // The terminal agent hooks switch (ADR 0089) needs the
-                // attention protocol: one number carries the whole feature.
-                let hooks = match request.terminal_agent_hooks {
-                    Some(_) => Some(crate::notifications::ATTENTION_NOTIFICATIONS_PROTOCOL?.get()),
-                    None => None,
-                };
-                // The terminal profiles (ADR 0117): an older node would
-                // keep its list and say nothing.
-                let profiles = match request.terminal_profiles {
-                    Some(_) => Some(crate::terminal_profiles::TERMINAL_PROFILES_PROTOCOL?.get()),
-                    None => None,
-                };
-                let base = drivers.max(plugins).max(hooks).max(profiles);
-                if request.metadata.is_some() {
-                    Some(crate::GENERATED_NAMES?.get()).max(base)
-                } else {
-                    base
-                }
-            }
+            Self::SetNodeSettings(request) => settings::fields_since(request)?,
             Self::WriteFile(request) => match request.expect {
                 crate::workspace::WriteExpect::Content { .. } => Some(11),
                 crate::workspace::WriteExpect::Absent | crate::workspace::WriteExpect::Any => None,
