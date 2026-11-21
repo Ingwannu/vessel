@@ -29,6 +29,7 @@ import type {
   WorkspaceRoot,
 } from "../../wire/proto";
 import type { TabAction } from "./chrome-parts";
+import { launchActions } from "./launch-actions";
 import { childAgent, isLiveTerminal } from "./close-tabs";
 import { useTabLifecycle } from "./lifecycle";
 import { useLaunchShortcuts } from "./launch-shortcuts";
@@ -204,60 +205,17 @@ export function useWorkspace(
     newTerminal,
     canCreateTerminal,
   );
-  const actions: TabAction[] = [
-    {
-      label: words.agent,
-      icon: "compose",
-      run: newAgent,
-      ...(shortcuts.agent === null ? {} : { shortcut: shortcuts.agent }),
-    },
-    {
-      label: words.terminal,
-      icon: "terminal",
-      disabled: !canCreateTerminal,
-      // Only with no place: below protocol 40 (a workspace whose agents are
-      // all archived), or a folder the page cannot name.
-      ...(place === null && terminalEnabled
-        ? { description: words.terminalNeedsAgent }
-        : {}),
-      run: newTerminal,
-      ...(shortcuts.terminal === null ? {} : { shortcut: shortcuts.terminal }),
-    },
-    {
-      label: words.changes,
-      icon: "git-compare",
-      run: () => {
-        select({ kind: "changes" });
-      },
-    },
-    // Paseo's pane sits after Changes; offered while the session has a
-    // pull request read (TRACKER 430).
-    ...(anchor.pull_request?.summary == null || !pullPaneServed(protocol)
-      ? []
-      : [
-          {
-            label: words.pullRequest,
-            icon: "git-pull-request" as const,
-            run: () => {
-              select({ kind: "pull" });
-            },
-          },
-        ]),
-    {
-      label: words.diff,
-      icon: "git-compare",
-      run: () => {
-        select({ kind: "diff" });
-      },
-    },
-    {
-      label: words.files,
-      icon: "folder",
-      run: () => {
-        select({ kind: "files" });
-      },
-    },
-  ];
+  const actions = launchActions({
+    words,
+    select,
+    newAgent,
+    newTerminal,
+    canCreateTerminal,
+    needsAgent: place === null && terminalEnabled,
+    shortcuts,
+    pullOffered:
+      anchor.pull_request?.summary != null && pullPaneServed(protocol),
+  });
   const openFile = (path: RelPath, line: number | null) => {
     if (line !== null) {
       nextLine.current += 1;
