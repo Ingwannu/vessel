@@ -42,6 +42,7 @@ import { onSchemeChange } from "../../data/theme";
 import { TerminalSender } from "../../data/terminal-sender";
 import { type TerminalPalette, terminalTheme } from "./terminal-palette";
 import type { TerminalInput, TerminalSize } from "../../wire/proto";
+import { terminalSearch, type TerminalSearch } from "./terminal-search";
 
 /** The mono stack (tokens.css `--font-mono`): Geist Mono, the real
  * monospace faces, then Pretendard, then `monospace` (the operator's font
@@ -64,6 +65,7 @@ export interface TerminalKeyBar {
 interface MountedTerminal {
   write: (data: Uint8Array, written: Written) => void;
   keyBar: TerminalKeyBar;
+  find: TerminalSearch;
   close: () => void;
 }
 
@@ -89,6 +91,8 @@ export function mountTerminal(
 ): MountedTerminal {
   const theme = terminalTheme(palette);
   const terminal = new Terminal({
+    // The pinned search addon uses xterm's decoration API for its matches.
+    allowProposedApi: true,
     fontFamily: TERMINAL_FONT,
     // Appearance's code font, a pixel up, as the terminal token is.
     fontSize: prefs.get().values.appearance.code_size + 1,
@@ -239,15 +243,17 @@ export function mountTerminal(
     sendSize();
   });
   observer.observe(element);
+  const find = terminalSearch(terminal);
   return {
     keyBar,
+    find,
     write: (data: Uint8Array, written: Written) => {
       if (written === "live") {
-        terminal.write(data);
+        find.write(data);
         return;
       }
       historyParsing += 1;
-      terminal.write(data, () => {
+      find.write(data, () => {
         historyParsing -= 1;
       });
     },
@@ -262,6 +268,7 @@ export function mountTerminal(
       input.dispose();
       queries.dispose();
       sender.close();
+      find.clear();
       terminal.dispose();
     },
   };

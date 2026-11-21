@@ -33,6 +33,10 @@ export function openedInThisTab(terminal: TerminalId): boolean {
   return openedHere.has(terminal);
 }
 
+export function rememberOpenedTerminal(terminal: TerminalId): void {
+  openedHere.add(terminal);
+}
+
 /** Open a shell in `place`, or terminal profile `profile`'s program (ADR
  * 0117; no prompt, so its placeholder arguments are left out). */
 export async function openWorkspaceTerminal(
@@ -49,7 +53,7 @@ export async function openWorkspaceTerminal(
     ),
   );
   if (result.ok) {
-    openedHere.add(result.value.id);
+    rememberOpenedTerminal(result.value.id);
   }
   return result;
 }
