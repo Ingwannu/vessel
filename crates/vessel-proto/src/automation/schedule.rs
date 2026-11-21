@@ -370,8 +370,7 @@ pub struct UpdateSchedule {
 }
 
 /// Protocol for editing a heartbeat's cadence without changing its owner (ADR 0033).
-pub const HEARTBEAT_CADENCE_PROTOCOL: Option<ProtocolVersion> =
-    Some(ProtocolVersion::new(48));
+pub const HEARTBEAT_CADENCE_PROTOCOL: Option<ProtocolVersion> = Some(ProtocolVersion::new(48));
 
 /// `schedule.update_cadence`: change only an existing-session schedule's
 /// cadence. Needs a direct connection and `operate`.
