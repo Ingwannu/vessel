@@ -1141,6 +1141,9 @@ browser on Unix (on Windows, open the printed address).
   you switch tabs. Desktop tabs can be dragged to reorder them. At
   compact widths, the tab count opens the switcher. Tab order is kept
   for the current browser and launch.
+  The workspace's **Scripts** control lists scripts and services from its
+  checkout's `vessel.toml`. Run and Restart open the output terminal, and
+  Stop ends a running command. A changed command set requires approval.
   **Changes** and **Files** show the code
   of its worktree or project (the branch's chip in the title bar opens
   Changes, in a sheet on a phone): every changed file's diff, by

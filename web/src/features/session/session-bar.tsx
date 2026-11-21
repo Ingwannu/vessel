@@ -5,6 +5,7 @@
 
 import "./session-bar.css";
 
+import type { ReactNode } from "react";
 import { useAgents } from "../../context";
 import { agentMark, agentName } from "../../data/agents";
 import { isLive, statusTone, statusWord } from "../../data/format";
@@ -27,6 +28,7 @@ export function SessionBar({
   file,
   onPlace,
   onSummary,
+  workspaceActions,
 }: {
   node: NodeKey;
   /** The machine's name. */
@@ -40,6 +42,7 @@ export function SessionBar({
   /** Opens the session's changes from its branch's chip. */
   onPlace?: () => void;
   onSummary?: () => void;
+  workspaceActions?: ReactNode;
 }) {
   const live = isLive(session);
   const agents = useAgents(node);
@@ -66,6 +69,7 @@ export function SessionBar({
         </Badge>
       )}
       <span className="session-bar-end">
+        {workspaceActions}
         {onSummary === undefined ? null : (
           <IconButton
             label="Summary"
