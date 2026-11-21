@@ -14965,7 +14965,7 @@ export const ORIGIN_LINK_PROTOCOL = 42;
 export const PLUGIN_SETTINGS_PROTOCOL = 43;
 
 /**
- * `notification.claim`, terminal attention and `Terminal` presence focus (ADR 0089); `null` until assigned.
+ * `notification.claim`, terminal attention, `Terminal` presence focus and a window's `notifies` (ADR 0089).
  */
 export const ATTENTION_NOTIFICATIONS_PROTOCOL = 47;
 
