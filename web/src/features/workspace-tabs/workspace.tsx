@@ -5,6 +5,7 @@ import { type ReactNode, useCallback, useState } from "react";
 import { OpenChanges, WorkspaceChat } from "../workspace/workspace-chat";
 import type { ProjectsView } from "../../data/workspace/project-store";
 import { tabKey, type WorkspaceTab } from "../../data/workspace/tab-layout";
+import { SCRIPT_PROTOCOL } from "../../data/workspace/scripts";
 import { Button, Dialog, Skeleton } from "../../ui/kit";
 import type { NodeKey } from "../../wire/bridge";
 import type {
@@ -21,6 +22,7 @@ import { CodePane } from "./file-pane";
 import { pullReach } from "../../data/workspace/pull/served";
 import { PullPane } from "../workspace/pull/pull-pane";
 import { RenameTab } from "./rename";
+import { ScriptsControl } from "./scripts-control";
 import { TerminalPane } from "./terminal-pane";
 import { tabItem } from "./tab-item";
 import { useTerminalAttention } from "./use-terminal-attention";
@@ -74,6 +76,9 @@ export function Workspace({
     ? actions.filter((action) => action.label !== words.diff)
     : actions;
   const heading = state.heading;
+  const scriptProject =
+    root?.kind === "project" ? root.project : anchor.workspace?.project;
+  const scriptSession = root?.kind === "worktree" ? anchor.id : null;
   const openSummary = () => {
     select({ kind: "agent", id: heading.id });
     setSummaryOpen(true);
@@ -183,6 +188,24 @@ export function Workspace({
         renamed={title?.id === heading.id ? title.name : null}
         file={state.shownFile}
         onPlace={openChanges}
+        workspaceActions={
+          state.protocol !== null &&
+          state.protocol >= SCRIPT_PROTOCOL &&
+          root !== null &&
+          scriptProject !== undefined ? (
+            <ScriptsControl
+              key={`${scope}:${scriptSession ?? "project"}`}
+              node={node}
+              project={scriptProject}
+              session={scriptSession}
+              compact={compact}
+              terminals={state.terminals}
+              onTerminal={(id) => {
+                select({ kind: "terminal", id });
+              }}
+            />
+          ) : null
+        }
         {...(narrowSummary && heading.spec.mode === "structured"
           ? { onSummary: openSummary }
           : {})}

@@ -399,6 +399,10 @@ session's id cannot be passed where a machine's key is wanted, as in
 Rust. The brand exists only in the type; the wire is unchanged. What a
 person types or names (a book name, a profile, a path, a title, a URL,
 a key binding), quantities, secrets and content stay plain.
+
+The workspace Scripts control uses the owning node's script registry and
+project command approval. Its output opens in the workspace terminal tabs.
+See `docs/plans/page-workspace-scripts.md` for the live and staged contracts.
 `vessel-proto`'s `ts/aliases.rs` classifies every primitive alias in one
 table, with the rule; the generator fails its test on an alias in no
 class and on an entry no file declares any more, so a new alias is
