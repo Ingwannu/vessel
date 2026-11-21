@@ -146,7 +146,7 @@ export function Sidebar({
       <SidebarPluginFoot />
       <div className="side-foot">
         <Link className={rowClass(inSettings)} to="/settings">
-          <Icon name="settings" size={16} />
+          <Icon name="gear" size={16} />
           <span className="label">Settings</span>
         </Link>
         <ThemeMenu

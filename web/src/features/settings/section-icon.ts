@@ -9,9 +9,9 @@ import type { IconName } from "../../ui/kit";
 export function sectionIcon(section: SettingsSection): IconName {
   switch (section) {
     case "general":
-      return "settings";
+      return "gear";
     case "appearance":
-      return "sun";
+      return "palette";
     case "shortcuts":
       return "keyboard";
     case "notifications":
@@ -41,6 +41,6 @@ export function sectionIcon(section: SettingsSection): IconName {
     case "diagnostics":
       return "stethoscope";
     case "about":
-      return "home";
+      return "info";
   }
 }
