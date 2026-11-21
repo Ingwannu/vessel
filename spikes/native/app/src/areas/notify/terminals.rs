@@ -28,10 +28,23 @@ use crate::shell::Shell;
 
 impl Shell {
     /// A machine's followed terminal list brought notices: ask the machine
-    /// about the ones Settings' alerts would tell.
-    pub(crate) fn terminal_notices_found(&self, machine: String, notices: Vec<TerminalNotice>) {
+    /// about the ones Settings' alerts would tell. A window that does not
+    /// notify never claims, so it never takes a notice from one that does:
+    /// it tells them itself, which for a window that only sounds is the
+    /// sound (ADR 0089, "Turned on", item 5; the page's
+    /// `use-terminal-notices.ts`).
+    pub(crate) fn terminal_notices_found(
+        &mut self,
+        machine: String,
+        notices: Vec<TerminalNotice>,
+        cx: &mut Context<'_, Self>,
+    ) {
         let told = announce_terminals(notices, self.prefs.settings.notifications.alerts);
         if told.is_empty() {
+            return;
+        }
+        if !self.window_notifies() {
+            self.terminal_notices_told(&told, cx);
             return;
         }
         self.command(Command::TerminalClaims(TerminalAsk { machine, told }));
@@ -49,6 +62,11 @@ impl Shell {
             .filter(|(_one, asked)| *asked == Asked::Answered(NotificationClaim::Admitted))
             .map(|(one, _asked)| one)
             .collect();
+        self.terminal_notices_told(&told, cx);
+    }
+
+    /// Count `told` in the window's title, then show and sound it.
+    fn terminal_notices_told(&mut self, told: &[TerminalAnnounce], cx: &mut Context<'_, Self>) {
         if told.is_empty() {
             return;
         }
@@ -58,7 +76,7 @@ impl Shell {
             area.title = Some(title_with(&area.base, area.unseen.count()).into());
             cx.notify();
         }
-        self.tell_terminals(&told, cx);
+        self.tell_terminals(told, cx);
     }
 
     /// Show `told`'s system notifications, titled in Paseo's words with

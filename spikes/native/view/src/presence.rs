@@ -46,6 +46,14 @@
 //!   session's conversation. This changes push today. Before, a terminal
 //!   tab reported its route's session, and that session's push was held
 //!   back; now it goes, as Paseo's does while a terminal has the focus.
+//! - Notifies (ADR 0089, "Turned on", item 5): Paseo elects a claim's
+//!   recipient only among clients subscribed with `notifications: true`
+//!   (`websocket-server.ts:2884-2894,2987-2989`). A window whose Settings
+//!   do not show the system's notifications, or that cannot reach the
+//!   system's service, reports `notifies: false` to a machine that admits
+//!   claims ([`Presence::notify`]). It still counts as present, so it still
+//!   suppresses and holds push back. It never claims, and tells its notices
+//!   by ADR 0114's local path.
 
 use std::collections::HashMap;
 use std::hash::Hash;
@@ -91,6 +99,7 @@ pub struct Presence {
     visible: bool,
     shown: Option<(String, Shown)>,
     last_immediate: Option<Millis>,
+    notifies: bool,
 }
 
 impl Presence {
@@ -102,7 +111,19 @@ impl Presence {
             visible,
             shown: None,
             last_immediate: None,
+            notifies: true,
         }
+    }
+
+    /// Whether the window tells notices as the system's notifications
+    /// (ADR 0089, "Turned on", item 5): only such a window may be a claim's
+    /// recipient, as Paseo elects only clients subscribed with
+    /// `notifications: true` (`websocket-server.ts:2884-2894`). A change
+    /// sends at once (`true`).
+    pub const fn notify(&mut self, notifies: bool) -> bool {
+        let moved = self.notifies != notifies;
+        self.notifies = notifies;
+        moved
     }
 
     /// Real input: a key, a pointer, a wheel, the window activated.
@@ -167,6 +188,7 @@ impl Presence {
             visible: self.visible,
             last_input: self.last_input,
             now,
+            notifies: self.notifies,
         }
     }
 }
@@ -178,6 +200,7 @@ pub struct Snapshot {
     visible: bool,
     last_input: Millis,
     now: Millis,
+    notifies: bool,
 }
 
 impl Snapshot {
@@ -222,7 +245,9 @@ impl<K: Eq + Hash> Told<K> {
     /// The report for `machine` on `connection`, `later` milliseconds after
     /// `snapshot` was taken. A connection not told before hears `Active`
     /// only for input in the last 15 s. `terminals`: the machine admits
-    /// claims, so it may hear a shown terminal ([`Snapshot::focus`]).
+    /// claims, so it may hear a shown terminal ([`Snapshot::focus`]) and
+    /// that this window does not notify; any other machine hears that it
+    /// does, which is the field's absent value and every window's before.
     pub fn report(
         &mut self,
         connection: K,
@@ -250,9 +275,7 @@ impl<K: Eq + Hash> Told<K> {
                 PushActivity::Unchanged
             },
             idle_age: None,
-            // The meaning before the field (ADR 0089): this window may be a
-            // claim's local recipient. U's native half decides it per window.
-            notifies: true,
+            notifies: !terminals || snapshot.notifies,
         }
     }
 

@@ -168,6 +168,29 @@ fn a_shown_terminal_is_terminal_focus_only_to_a_machine_that_admits_claims() {
     );
 }
 
+/// A window that does not show the system's notifications says so only to
+/// a machine that admits claims, which then never elects it (ADR 0089,
+/// "Turned on", item 5); any other machine hears the field's absent value.
+#[test]
+fn a_window_that_does_not_notify_says_so_only_to_a_machine_that_admits_claims() {
+    let mut presence = Presence::new(0, true);
+    let mut told: Told<&'static str> = Told::default();
+    assert!(
+        told.report(BOX, BOX, &presence.snapshot(0), 0, true)
+            .notifies
+    );
+    assert!(presence.notify(false), "a change goes at once");
+    assert!(!presence.notify(false), "the same goes with the heartbeat");
+    let snapshot = presence.snapshot(1_000);
+    assert!(!told.report(BOX, BOX, &snapshot, 0, true).notifies);
+    assert!(told.report(LAB, LAB, &snapshot, 0, false).notifies);
+    assert!(presence.notify(true));
+    assert!(
+        told.report(BOX, BOX, &presence.snapshot(2_000), 0, true)
+            .notifies
+    );
+}
+
 #[test]
 fn a_new_shown_session_is_input_and_goes_at_once_the_same_one_does_not() {
     let mut presence = Presence::new(0, true);
