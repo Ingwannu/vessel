@@ -6,9 +6,10 @@ import { join } from "node:path";
 
 import { expect, type Page, test } from "@playwright/test";
 
-import { openUi } from "./open";
+import { launchAt, launchUi, openUi } from "./open";
 import { loadEnv } from "./fleet";
 import { newSessionPage, startSession, timeline } from "./kit";
+import { watchTyped } from "./terminal-frames";
 
 /** Whether a frame the page sent is a call of `session.send`. */
 function sendsInput(frame: unknown): boolean {
@@ -420,6 +421,77 @@ test("terminal replay cannot answer device queries, while keys and paste still w
   await page.keyboard.press("Enter");
   await expect(terminal).toContainText("echo: 한글 pasted");
   expect(inputs).toBeGreaterThan(0);
+});
+
+/** `vessel send` from the test, as a second client would type. */
+function sendFromCli(session: string, text: string): void {
+  const env = loadEnv();
+  execFileSync(env.vessel, ["--node", "laptop", "send", session, text], {
+    env: {
+      PATH: process.env["PATH"],
+      HOME: env.root,
+      USERPROFILE: env.root,
+      VESSEL_CONFIG_DIR: join(env.root, "config"),
+      VESSEL_DATA_DIR: join(env.root, "ui-data"),
+    },
+  });
+}
+
+test("a live device query is answered once, by the view that has focus and has typed", async ({
+  page,
+  context,
+}) => {
+  // TRACKER 826, ADR 0073's duty. The fake harness prints its input line
+  // back raw ("echo: …"), so the queries reach the terminal as live
+  // output; the PTY's own echo of the line shows them as `^[`, no query.
+  const answer = /^\x1b\[\d+;\d+R\x1b\[\?62;4;22c$/;
+  const typed = watchTyped(page, "session.send");
+  await open(page);
+  await create(page, "laptop");
+  const terminal = page.getByLabel("Session terminal");
+  await expect(terminal).toContainText("ready");
+  const path = new URL(page.url()).pathname;
+  const session = path.split("/").at(-1);
+  if (session === undefined) throw new Error("No session id");
+  await terminal.click();
+  await page.keyboard.type("typed\r");
+  await expect(terminal).toContainText("echo: typed");
+
+  // A second client only watches: no focus, nothing typed.
+  const watcher = await context.newPage();
+  const watched = watchTyped(watcher, "session.send");
+  const { url } = await launchUi(watcher);
+  await watcher.goto(launchAt(url, path));
+  const watching = watcher.getByLabel("Session terminal");
+  await expect(watching).toContainText("echo: typed");
+
+  let from = typed.length;
+  sendFromCli(session, "\x1b[6n\x1b[c\r");
+  await expect.poll(() => typed.slice(from).join("")).toMatch(answer);
+  // The PTY echoes the answer as typed text (`^[[?62;4;22c`), which both
+  // views draw; the watcher answered nothing.
+  await expect(watching).toContainText("[?62;4;22c");
+  expect(typed.slice(from).join("")).toMatch(answer);
+  expect(watched).toEqual([]);
+
+  // A third view opens after the queries: they are its history, never
+  // answered, even once it has focus and has typed.
+  const late = await context.newPage();
+  const lateTyped = watchTyped(late, "session.send");
+  const lateUi = await launchUi(late);
+  await late.goto(launchAt(lateUi.url, path));
+  const lateTerminal = late.getByLabel("Session terminal");
+  await expect(lateTerminal).toContainText("[?62;4;22c");
+  await lateTerminal.click();
+  await late.keyboard.type("later\r");
+  await expect.poll(() => lateTyped.join("")).toBe("later\r");
+  await late.close();
+  // Live again: the first view answers once more, the watcher still not.
+  from = typed.length;
+  sendFromCli(session, "\x1b[6n\x1b[c\r");
+  await expect.poll(() => typed.slice(from).join("")).toMatch(answer);
+  expect(watched).toEqual([]);
+  await watcher.close();
 });
 
 test("Hangul is drawn with Pretendard, fetching only its subsets", async ({

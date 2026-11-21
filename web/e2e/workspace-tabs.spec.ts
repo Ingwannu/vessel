@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import { openUi } from "./open";
 import { openPanelTab, panelTab, startInShop } from "./shop";
+import { watchTyped } from "./terminal-frames";
 
 test("workspace files retain a dirty edit, reorder, and ask once on a bulk close", async ({
   page,
@@ -81,6 +82,37 @@ test("workspace files retain a dirty edit, reorder, and ask once on a bulk close
   await page.getByRole("button", { name: "Close · Agent" }).click();
   await expect(stale).toHaveCount(0);
   await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+
+test("a shell this page opened answers a live cursor query after focus has left", async ({
+  page,
+}) => {
+  // TRACKER 826, ADR 0073's duty: the view that opened a terminal answers
+  // until another qualifies, so a program started there is not left
+  // waiting (nvim asks at once).
+  const typed = watchTyped(page, "terminal.send");
+  await openUi(page);
+  await startInShop(page, "Local", "Answer a terminal query");
+  await expect(page).toHaveURL(/\/sessions\/[^/]+\/[^/]+$/);
+  await page.keyboard.press("Alt+Shift+T");
+  const terminal = page.locator(".workspace-terminal .xterm-host");
+  await expect(terminal).toBeVisible();
+  await terminal.click();
+  await page.keyboard.insertText("sleep 2; printf '\\033[6n'; echo asked");
+  await page.keyboard.press("Enter");
+  // Focus leaves the terminal before the shell asks.
+  const heading = page.getByRole("heading", {
+    name: "Answer a terminal query",
+    exact: true,
+  });
+  await heading.click();
+  await expect
+    .poll(() => page.evaluate(() => document.activeElement === document.body))
+    .toBe(true);
+  // The typed line, then exactly one answer, sent without focus.
+  await expect
+    .poll(() => typed.join(""))
+    .toMatch(/echo asked\r\x1b\[\d+;\d+R$/);
 });
 
 test("a standalone terminal accepts input and closes through the compact switcher", async ({

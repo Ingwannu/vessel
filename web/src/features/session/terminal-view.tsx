@@ -8,18 +8,23 @@
 // and sizes go out one send at a time, in order (data/terminal-sender.ts).
 // A routed session's model calls (protocol 7) are summed into the frame's
 // chrome; the records hold metadata only.
+//
+// Terminal queries (TRACKER 826): the session is read as the follow
+// starts, and records from its `next_seq` then are live, the rest history
+// (`mount-terminal.ts`). This view is never the one that opened the
+// session, so it answers once it has focus and the person has typed.
 
 import { useEffect, useRef, useState } from "react";
 
 import { useFleet } from "../../context";
-import { followSession, sendTerminal } from "../../data/calls";
+import { followSession, readSession, sendTerminal } from "../../data/calls";
 import { addCall, type Usage, usageLine } from "../../data/models";
 import { decodeBytes } from "../../data/terminal";
 import { Banner, Tooltip } from "../../ui/kit";
 import { toast } from "../../ui/toasts";
 import type { NodeKey, StreamState } from "../../wire/bridge";
 import type { SessionInfo } from "../../wire/proto";
-import { mountTerminal } from "./mount-terminal";
+import { mountTerminal, written } from "./mount-terminal";
 
 export function TerminalView({
   node,
@@ -53,11 +58,21 @@ export function TerminalView({
       () =>
         toast("Keys dropped: the session is not reading its input", "error"),
     );
+    let liveFrom: number | null = null;
+    let mounted = true;
+    void readSession(fleet, node, session.id).then((read) => {
+      if (mounted && read.ok) {
+        liveFrom = read.value.next_seq;
+      }
+    });
     const stop = followSession(fleet, node, session.id, 0, {
       record: (record) => {
         const event = record.event;
         if (event.type === "terminal") {
-          terminal.write(decodeBytes(event.data));
+          terminal.write(
+            decodeBytes(event.data),
+            written(record.seq, liveFrom),
+          );
         } else if (event.type === "model_call") {
           setUsage((current) => {
             const mine = current?.id === session.id ? current : null;
@@ -75,6 +90,7 @@ export function TerminalView({
       state: setStream,
     });
     return () => {
+      mounted = false;
       stop();
       terminal.close();
     };
