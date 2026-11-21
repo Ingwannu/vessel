@@ -16,7 +16,7 @@ use vessel_app_kit::breakpoint::TOUCH_TARGET;
 use vessel_app_kit::picker::glyph;
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, InteractiveElement as _, IntoElement as _, MouseButton,
+    AnyElement, Context, Div, InteractiveElement as _, IntoElement, MouseButton,
     MouseDownEvent, ParentElement as _, SharedString, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{MenuHandlers, MenuItem, Tokens, composer_card, menu};
@@ -31,14 +31,36 @@ mod select;
 use super::pictures::picture;
 use crate::shell::Shell;
 
-/// The session composer's card: its `/` menu, its files, its text.
+/// The session card, and the diff rail above it. The rail is Paseo's
+/// `ComposerTrackBar`: one line over the transcript, with no background
+/// of its own. The card's control row is added with [`SessionCard::child`],
+/// so it stays inside the card.
+pub(crate) struct SessionCard {
+    rail: Option<AnyElement>,
+    card: Div,
+}
+
+impl SessionCard {
+    /// `controls` is the card's own row (attach, the agent's controls, send).
+    pub(crate) fn child(self, controls: impl IntoElement) -> Div {
+        div()
+            .w_full()
+            .flex()
+            .flex_col()
+            .children(self.rail)
+            .child(self.card.child(controls))
+    }
+}
+
+/// The session composer's card: its `/` menu, its files, its text, and the
+/// diff rail above the card.
 pub(crate) fn session_card(
     shell: &Shell,
     tokens: &Tokens,
     touch: bool,
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
-) -> Div {
+) -> SessionCard {
     let menu = shell
         .session_tray_key()
         .and_then(|target| super::mentions::menu(shell, target, tokens, window, cx))
@@ -50,7 +72,7 @@ pub(crate) fn session_card(
         && shell.areas.composer.attach_for == shell.session_tray_key())
     .then(|| attach_menu(shell, tokens, touch, cx))
     .flatten();
-    dropped_on(
+    let card = dropped_on(
         composer_card(tokens, touch),
         shell.session_tray_key(),
         tokens,
@@ -75,8 +97,18 @@ pub(crate) fn session_card(
             .session_tray_key()
             .and_then(|target| super::context::tray(shell, target, tokens, touch, cx)),
     )
-    .children(super::diff_pill::pill(shell, tokens, cx))
-    .child(super::text(shell, tokens, touch, window, cx))
+    .child(super::text(shell, tokens, touch, window, cx));
+    // Above the card, not in it (Paseo's track bar, and the page's dock).
+    let rail = super::diff_pill::pill(shell, tokens, cx).map(|pill| {
+        div()
+            .w_full()
+            .flex()
+            .flex_row()
+            .pb(px(spacing::S2))
+            .child(pill)
+            .into_any_element()
+    });
+    SessionCard { rail, card }
 }
 
 /// The new chat's card: its `/` menu, its files, its text.

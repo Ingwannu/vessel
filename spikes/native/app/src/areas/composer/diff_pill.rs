@@ -1,6 +1,7 @@
 //! The composer's diff count (Paseo's `composer/diff-stat-pill.tsx`). It
 //! shows when a side is greater than zero, and a press opens the session's
-//! existing Changes tab. There is no second diff pane.
+//! existing Changes tab. There is no second diff pane. The session card
+//! draws it in the rail above the card, not inside the card.
 
 use gpui::ClickEvent;
 use vessel_app_kit::theme::spacing;
