@@ -1,10 +1,12 @@
 //! The web UI's files, embedded at build time (`build.rs`), and how they
 //! are served.
 //!
-//! The app routes in the browser, so a path that names no file and has no
-//! extension (`/nodes/gpu-box/sessions`) is answered with `index.html`;
-//! one with an extension that is not there (`/missing.js`) is a `404`, so a
-//! broken bundle shows as a missing file rather than as a page.
+//! The app routes in the browser, so a path that names no file is answered
+//! with `index.html` when it is one of the app's routes ([`APP_ROUTES`]:
+//! `/fleet/gpu.box` is a page even though a node name may hold a dot) or
+//! has no extension; any other path with an extension that is not there
+//! (`/missing.js`) is a `404`, so a broken bundle shows as a missing file
+//! rather than as a page.
 //! `index.html` is never cached, so a new build is picked up at once;
 //! files whose names carry their content's hash are cached for a year as
 //! immutable; anything else revalidates by its content `ETag`. Nothing here
@@ -110,6 +112,24 @@ const OTHER_CACHE: &str = "no-cache";
 
 include!(concat!(env!("OUT_DIR"), "/files.rs"));
 
+/// The first segments of the app's routes (`web/src/app.tsx`, and `/kit`
+/// in `web/src/main.tsx`; keep the two in step). Later segments are node
+/// names and session ids, which may hold dots, so the extension rule
+/// cannot tell them from files.
+const APP_ROUTES: [&str; 7] = [
+    "fleet", "new", "sessions", "sync", "devices", "settings", "kit",
+];
+
+/// Whether `path` lies under one of the app's routes.
+fn is_app_route(path: &str) -> bool {
+    let first = path
+        .trim_start_matches('/')
+        .split('/')
+        .next()
+        .unwrap_or_default();
+    APP_ROUTES.contains(&first)
+}
+
 /// The file at `path`, if embedded (`FILES` is sorted by path).
 pub(crate) fn find(path: &str) -> Option<&'static File> {
     FILES
@@ -135,10 +155,12 @@ pub(crate) fn serve(
     let last = path.rsplit('/').next().unwrap_or_default();
     let file = match find(path) {
         Some(file) => file,
-        None if path == "/" || !last.contains('.') => match find("/index.html") {
-            Some(index) => index,
-            None => return StatusCode::NOT_FOUND.into_response(),
-        },
+        None if path == "/" || is_app_route(path) || !last.contains('.') => {
+            match find("/index.html") {
+                Some(index) => index,
+                None => return StatusCode::NOT_FOUND.into_response(),
+            }
+        }
         None => return StatusCode::NOT_FOUND.into_response(),
     };
     if file.path == "/index.html" {

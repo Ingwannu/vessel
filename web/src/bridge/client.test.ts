@@ -246,3 +246,55 @@ test("an op's failure keeps the bridge's reason, and a lost socket says so", asy
   socket.cut();
   await expect(lost).rejects.toMatchObject({ reason: "disconnected" });
 });
+
+test("a page-side bug handling a frame neither refuses nor drops the key", async () => {
+  const { bridge, socket } = start();
+  const welcome = await answer(socket);
+  socket.message(welcome);
+  await vi.waitFor(() => {
+    expect(bridge.link.kind).toBe("open");
+  });
+  const quiet = vi.spyOn(console, "error").mockImplementation(() => undefined);
+  bridge.onNode(() => {
+    throw new Error("a listener bug");
+  });
+  socket.message({ type: "node", node: "gpu", status: { state: "idle" } });
+  socket.message({ type: "node", node: "box", status: { state: "idle" } });
+  await vi.waitFor(() => {
+    expect(bridge.statuses().size).toBe(2);
+  });
+  expect(bridge.link.kind).toBe("open");
+  expect(quiet).toHaveBeenCalled();
+  quiet.mockRestore();
+});
+
+test("a frame that is not JSON after the welcome redials instead of refusing", async () => {
+  const { bridge, socket } = start();
+  const welcome = await answer(socket);
+  socket.message(welcome);
+  await vi.waitFor(() => {
+    expect(bridge.link.kind).toBe("open");
+  });
+  socket.dispatchEvent(new MessageEvent("message", { data: "{not json" }));
+  await vi.waitFor(() => {
+    expect(bridge.link.kind).toBe("closed");
+  });
+});
+
+test("a frame of the wrong shape after the welcome is a refusal", async () => {
+  const { bridge, socket } = start();
+  const welcome = await answer(socket);
+  socket.message(welcome);
+  await vi.waitFor(() => {
+    expect(bridge.link.kind).toBe("open");
+  });
+  socket.dispatchEvent(
+    new MessageEvent("message", {
+      data: JSON.stringify({ type: "from-a-newer-ui" }),
+    }),
+  );
+  await vi.waitFor(() => {
+    expect(bridge.link.kind).toBe("refused");
+  });
+  expect(Socket.all.length).toBe(1);
+});
