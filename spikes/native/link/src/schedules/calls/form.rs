@@ -136,8 +136,8 @@ async fn choices(client: &SelectedConnection, ask: &Ask) -> Result<Choices, Fail
     Ok(Choices {
         projects: projects.map_err(read)?.projects,
         worktrees: worktrees.map_err(read)?.worktrees,
-        harnesses: harnesses.map_err(read)?.harnesses,
-        agents: agents.map_err(read)?.agents,
+        harnesses: harnesses.map_err(read)?,
+        agents: agents.map_err(read)?,
     })
 }
 
