@@ -32,7 +32,10 @@ fn declaration_parser_errors_seal_every_input_bearing_diagnostic_level() {
     }
 }
 use crate::plugins::PanelLocation;
-use crate::plugins::declarations::{ChoiceOption, CommandContext, Control, PanelContext};
+use crate::plugins::declarations::{
+    Action, Button, ButtonBehavior, ChoiceOption, CommandContext, Control, ControlContent,
+    PanelContext, Surface,
+};
 
 fn screen(id: &str, controls: Vec<Control>) -> Contribution {
     Contribution {
