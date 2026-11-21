@@ -235,28 +235,28 @@ mod tests {
         let search = OsString::from("/opt/a::/usr/bin");
         let found = on(&["/usr/bin/claude", "/work/site/bin/tool", "/opt/tools/x"]);
         assert_eq!(
-            find_program("claude", here, Some(&search), &found),
+            find_program("claude", here, Some(&search), found),
             Some(PathBuf::from("/usr/bin/claude"))
         );
-        assert_eq!(find_program("codex", here, Some(&search), &found), None);
+        assert_eq!(find_program("codex", here, Some(&search), found), None);
         assert_eq!(
-            find_program("bin/tool", here, Some(&search), &found),
+            find_program("bin/tool", here, Some(&search), found),
             Some(PathBuf::from("/work/site/bin/tool"))
         );
         assert_eq!(
-            find_program("/opt/tools/x", here, Some(&search), &found),
+            find_program("/opt/tools/x", here, Some(&search), found),
             Some(PathBuf::from("/opt/tools/x"))
         );
-        assert_eq!(find_program("./missing", here, Some(&search), &found), None);
+        assert_eq!(find_program("./missing", here, Some(&search), found), None);
         // An empty entry is not the node's own folder.
         let only_empty = OsString::from(":");
         let local = on(&["claude"]);
         assert_eq!(
-            find_program("claude", here, Some(&only_empty), &local),
+            find_program("claude", here, Some(&only_empty), local),
             None
         );
         assert_eq!(
-            find_program("claude", here, None, &found),
+            find_program("claude", here, None, found),
             Some(PathBuf::from("claude"))
         );
     }

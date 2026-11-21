@@ -125,10 +125,10 @@ impl Fixture {
                 prompt: prompt.map(|text| Prompt::parse(text).unwrap()),
             }),
         };
-        match self.direct(request).await? {
-            Reply::CreateTerminal(info) => Ok(info),
-            other => panic!("not a terminal: {other:?}"),
-        }
+        let Reply::CreateTerminal(info) = self.direct(request).await? else {
+            panic!("not a terminal");
+        };
+        Ok(info)
     }
 
     /// Type `args` and wait for the line it prints.
