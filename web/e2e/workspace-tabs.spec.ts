@@ -94,7 +94,10 @@ test("a shell this page opened answers a live cursor query after focus has left"
   await openUi(page);
   await startInShop(page, "Local", "Answer a terminal query");
   await expect(page).toHaveURL(/\/sessions\/[^/]+\/[^/]+$/);
-  await page.keyboard.press("Alt+Shift+T");
+  // From the New tab menu, not the shortcut: right after the session
+  // opens, the shortcut can land before the page takes keys.
+  await page.getByRole("button", { name: "New tab", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Terminal", exact: true }).click();
   const terminal = page.locator(".workspace-terminal .xterm-host");
   await expect(terminal).toBeVisible();
   await terminal.click();
