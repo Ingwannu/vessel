@@ -150,7 +150,7 @@ fn immediate_heartbeats_go_at_most_every_five_seconds() {
 #[test]
 fn a_shown_terminal_is_terminal_focus_only_to_a_machine_that_admits_claims() {
     let mut presence = Presence::new(0, true);
-    let terminal = vessel_proto::TerminalId::random();
+    let terminal = TerminalId::random();
     assert!(presence.show(Some((BOX, session(1).into())), 1_000));
     assert!(
         presence.show(Some((BOX, Shown::Terminal(terminal))), 2_000),

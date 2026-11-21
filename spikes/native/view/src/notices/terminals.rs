@@ -92,7 +92,10 @@ fn asking(info: &TerminalInfo) -> Option<(TerminalAttentionRevision, NoticeKind)
         TerminalActivity::Attention { reason } => {
             kind_of(reason).map(|kind| (attention.revision, kind))
         }
-        _ => None,
+        TerminalActivity::Untracked
+        | TerminalActivity::Idle
+        | TerminalActivity::Working
+        | TerminalActivity::Unknown => None,
     }
 }
 
