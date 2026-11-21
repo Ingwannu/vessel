@@ -41,7 +41,15 @@ fn a_comment_is_written_under_its_line_edited_in_place_and_deleted(cx: &mut Test
                 .is_empty()
         );
 
-        let editor = shell.areas.workspace.code.changes.review.editor.as_ref().unwrap();
+        let editor = shell
+            .areas
+            .workspace
+            .code
+            .changes
+            .review
+            .editor
+            .as_ref()
+            .unwrap();
         editor.field.set_text("Cap this.", window, cx);
         shell.review_save(window, cx);
         assert!(shell.areas.workspace.code.changes.review.editor.is_none());
@@ -59,7 +67,15 @@ fn a_comment_is_written_under_its_line_edited_in_place_and_deleted(cx: &mut Test
 
         // Edit: the editor opens with the comment's words; Cancel keeps it.
         shell.review_open(target(), Some(id), 3, window, cx);
-        let editor = shell.areas.workspace.code.changes.review.editor.as_ref().unwrap();
+        let editor = shell
+            .areas
+            .workspace
+            .code
+            .changes
+            .review
+            .editor
+            .as_ref()
+            .unwrap();
         assert_eq!(editor.field.text(cx), "Cap this.");
         assert_eq!(editor.comment, Some(id));
         shell.review_cancel(cx);
@@ -70,7 +86,15 @@ fn a_comment_is_written_under_its_line_edited_in_place_and_deleted(cx: &mut Test
         );
 
         shell.review_open(target(), Some(id), 3, window, cx);
-        let editor = shell.areas.workspace.code.changes.review.editor.as_ref().unwrap();
+        let editor = shell
+            .areas
+            .workspace
+            .code
+            .changes
+            .review
+            .editor
+            .as_ref()
+            .unwrap();
         editor.field.set_text("Cap this at 30 seconds.", window, cx);
         shell.review_save(window, cx);
         let kept = shell

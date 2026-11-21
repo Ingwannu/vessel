@@ -152,14 +152,21 @@ impl Shell {
             field.set_text(&body, window, cx);
         }
         field.focus(window, cx);
-        let before = self.areas.workspace.code.changes.review.editor.replace(Editor {
-            key,
-            target,
-            comment,
-            field,
-            body,
-            row,
-        });
+        let before = self
+            .areas
+            .workspace
+            .code
+            .changes
+            .review
+            .editor
+            .replace(Editor {
+                key,
+                target,
+                comment,
+                field,
+                body,
+                row,
+            });
         if let Some(before) = before {
             self.review_measure(before.row);
         }
