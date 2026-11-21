@@ -133,6 +133,7 @@ pub(crate) fn panel(
         .bg(tokens.neutral.surface0)
         .child(screen)
         .children(trouble_line(shell, pane.stage, tokens))
+        .children(super::key_bar::bar(pane.sticky, &key, tokens, window, cx))
         .into_any_element()
 }
 
