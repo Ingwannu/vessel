@@ -163,7 +163,7 @@ impl Link {
             Command::TerminalClaims(ask) => self.emit(Event::TerminalClaims(ask.failed())),
             Command::NodeSettings(ask) => self.emit(refuse::node_settings(ask)),
             Command::Diagnostics(ask) => self.emit(refuse::diagnostics(ask)),
-            Command::Schedules(request) => self.emit(crate::Event::Schedules(
+            Command::Schedules(request) => self.emit(Event::Schedules(
                 crate::schedules::Answer::refused(request, vessel_app_view::schedules::load::Failure::NoTransport),
             )),
             Command::Plugins(ask) => self.emit(refuse::plugins(ask)),
