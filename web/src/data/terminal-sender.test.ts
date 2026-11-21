@@ -1,7 +1,11 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import type { TerminalInput } from "../wire/proto";
-import { MAX_PENDING, TerminalSender } from "./terminal-sender";
+import {
+  MAX_ANSWERS_PENDING,
+  MAX_PENDING,
+  TerminalSender,
+} from "./terminal-sender";
 
 beforeAll(() => {
   // The page's base64 helpers use the browser's `btoa`.
@@ -95,6 +99,25 @@ describe("terminal input", () => {
     sender.keys("v");
     await answer();
     expect(sent.slice(2)).toEqual(["v"]);
+  });
+
+  it("keeps answers in order with keys, dropping only answers past their bound", async () => {
+    const { sent, send, answer } = sends();
+    let dropped = 0;
+    const sender = new TerminalSender(send, () => {
+      dropped += 1;
+    });
+    sender.keys("a");
+    sender.answer("\x1b[0n");
+    sender.keys("b");
+    sender.keys("k".repeat(MAX_ANSWERS_PENDING));
+    // Past the answers' bound: dropped, unsaid, while keys still fit.
+    sender.answer("\x1b[?62;4;22c");
+    sender.keys("c");
+    expect(dropped).toBe(0);
+    await answer();
+    await answer();
+    expect(sent).toEqual(["a", `\x1b[0nb${"k".repeat(MAX_ANSWERS_PENDING)}c`]);
   });
 
   it("sends nothing after close", async () => {

@@ -1,13 +1,18 @@
 // The standalone terminal pane uses the same xterm mount as agent PTYs
 // and follows terminal records through the bridge's resumable stream.
+// Which records are live, and so may have their queries answered, is the
+// terminal's `next_seq` read as the follow starts and again after every
+// gap (`data/terminal-live.ts`, TRACKER 826).
 
 import { useEffect, useRef, useState } from "react";
 
 import { useFleet } from "../../context";
 import { errorCode } from "../../data/outcome";
 import { decodeBytes } from "../../data/terminal";
+import { liveBoundary } from "../../data/terminal-live";
 import {
   followWorkspaceTerminal,
+  openedInThisTab,
   readWorkspaceTerminal,
   sendWorkspaceTerminal,
 } from "../../data/workspace/terminals";
@@ -46,17 +51,26 @@ export function TerminalPane({
       () => undefined,
       () => toast(words.dropped, "error"),
       "on-attach",
+      openedInThisTab(terminal) ? "opened" : "attached",
     );
+    const live = liveBoundary({
+      read: () => readWorkspaceTerminal(fleet, node, terminal),
+      onLink: (listener) => fleet.bridge.onLink(listener),
+    });
     const stop = followWorkspaceTerminal(fleet, node, terminal, {
-      record: ({ event }) => {
+      record: ({ seq, event }) => {
         if (event.type === "terminal") {
-          pane.write(decodeBytes(event.data));
+          pane.write(decodeBytes(event.data), live.written(seq));
           setRegistry("ready");
         }
       },
-      state: setStream,
+      state: (state) => {
+        live.stream(state);
+        setStream(state);
+      },
     });
     return () => {
+      live.stop();
       stop();
       pane.close();
     };

@@ -320,10 +320,11 @@ bytes are those above:
   answered late. The app does not invent a reply and does not show an
   error of its own. The grid's slice tests this as
   `nobody_answers_a_live_query_when_no_viewer_may`.
-- The page's xterm.js also answers. This track does not change the
-  page, so a page that is open beside the answering native viewer can
-  still answer the same live query. That remaining double answer is
-  stated, not hidden.
+- The page answers by this same rule since TRACKER 826 (ADR 0017,
+  amendment "the page answers live terminal queries"): the same five
+  replies, live bytes only, the opener or the view with focus that has
+  typed. A page and a native viewer that both have the duty both answer
+  the same live query. That double answer is stated, not hidden.
 
 ## Why this and not the others
 

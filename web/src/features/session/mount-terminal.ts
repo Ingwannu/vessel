@@ -1,5 +1,14 @@
 // Shared xterm surface so session and standalone PTYs agree on fonts,
 // input ordering, hyperlink policy and focus-sensitive resize.
+//
+// Terminal queries (TRACKER 826, ADR 0073 for the page): each write is
+// history or live, as the view's follow says. The page's own handlers
+// (`data/terminal-queries.ts`) answer only while no history write is
+// still being parsed, and only when this view has the duty: it opened
+// the terminal, or it has focus and the person has typed into it.
+// xterm parses writes in order and calls each write's callback right
+// after its own bytes, and a follow's history always comes before its
+// live records, so a count of history writes not yet parsed is enough.
 
 import "@xterm/xterm/css/xterm.css";
 import "./terminal-view.css";
@@ -7,6 +16,14 @@ import "./terminal-view.css";
 import { FitAddon } from "@xterm/addon-fit";
 import { type ITheme, Terminal } from "@xterm/xterm";
 import { userInput } from "../../data/terminal-input";
+import type { Written } from "../../data/terminal-live";
+import {
+  answerQueries,
+  type Drawn,
+  hasDuty,
+  type Origin,
+  rgbOf,
+} from "../../data/terminal-queries";
 import { openExternal } from "../../data/links";
 import { prefs } from "../../data/prefs";
 import { cssColor, onSchemeChange } from "../../data/theme";
@@ -32,8 +49,19 @@ function terminalTheme(): ITheme {
 }
 
 interface MountedTerminal {
-  write: (data: Uint8Array) => void;
+  write: (data: Uint8Array, written: Written) => void;
   close: () => void;
+}
+
+/** The colours `theme` draws, for the colour queries. */
+function drawnOf(theme: ITheme): Drawn {
+  const colour = (css: string | undefined) =>
+    css === undefined ? null : rgbOf(css);
+  return {
+    foreground: colour(theme.foreground),
+    background: colour(theme.background),
+    cursor: colour(theme.cursor),
+  };
 }
 
 export function mountTerminal(
@@ -42,7 +70,9 @@ export function mountTerminal(
   onSize: (size: TerminalSize) => void,
   onDropped: () => void,
   resize: "after-typing" | "on-attach" = "after-typing",
+  origin: Origin = "attached",
 ): MountedTerminal {
+  const theme = terminalTheme();
   const terminal = new Terminal({
     fontFamily: TERMINAL_FONT,
     // Appearance's code font, a pixel up, as the terminal token is.
@@ -61,11 +91,14 @@ export function mountTerminal(
       },
       allowNonHttpProtocols: false,
     },
-    theme: terminalTheme(),
+    theme,
   });
   // The terminal's tokens differ a shade between the schemes.
+  let drawn = drawnOf(theme);
   const stopScheme = onSchemeChange(() => {
-    terminal.options.theme = terminalTheme();
+    const next = terminalTheme();
+    terminal.options.theme = next;
+    drawn = drawnOf(next);
   });
   const fit = new FitAddon();
   let codeSize = prefs.get().values.appearance.code_size;
@@ -95,13 +128,40 @@ export function mountTerminal(
   if (resize === "on-attach") {
     element.addEventListener("focusin", sendSize);
   }
+  // `typed` starts true for a pane that claims its size on attach; the
+  // duty needs real typing.
+  let keyed = false;
+  let historyParsing = 0;
   const input = userInput(terminal, (data) => {
     const first = !typed;
     typed = true;
+    keyed = true;
     if (first) {
       sendSize();
     }
     sender.keys(data);
+  });
+  const queries = answerQueries(terminal.parser, {
+    answers: () =>
+      historyParsing === 0 &&
+      hasDuty({
+        origin,
+        // A background browser tab keeps its active element.
+        focused:
+          document.hasFocus() && element.contains(document.activeElement),
+        keyed,
+      }),
+    cursor: () => ({
+      row: terminal.buffer.active.cursorY,
+      col: terminal.buffer.active.cursorX,
+      cols: terminal.cols,
+    }),
+    drawn: () => drawn,
+    // An answer is not typing: it neither marks the view typed nor sends
+    // a size, and it waits behind the keys before it.
+    send: (reply) => {
+      sender.answer(reply);
+    },
   });
   const observer = new ResizeObserver(() => {
     fit.fit();
@@ -110,8 +170,15 @@ export function mountTerminal(
   });
   observer.observe(element);
   return {
-    write: (data: Uint8Array) => {
-      terminal.write(data);
+    write: (data: Uint8Array, written: Written) => {
+      if (written === "live") {
+        terminal.write(data);
+        return;
+      }
+      historyParsing += 1;
+      terminal.write(data, () => {
+        historyParsing -= 1;
+      });
     },
     close: () => {
       stopScheme();
@@ -119,6 +186,7 @@ export function mountTerminal(
       observer.disconnect();
       element.removeEventListener("focusin", sendSize);
       input.dispose();
+      queries.dispose();
       sender.close();
       terminal.dispose();
     },
