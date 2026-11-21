@@ -43,6 +43,7 @@ fn a_workspace_place_and_ending_a_worktrees_terminals_need_their_protocol() {
             place,
             size: None,
             title: None,
+            profile: None,
         }
         .into_call()
     };

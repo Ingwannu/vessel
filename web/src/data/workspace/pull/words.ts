@@ -54,6 +54,9 @@ const en = {
   tooOldTitle: "Update Vessel on this machine",
   tooOldDescription:
     "This machine's Vessel is too old to show a pull request's checks and activity.",
+  // A machine not connected (TRACKER 833; the page's plugins wording).
+  offlineTitle: "This machine is offline",
+  offlineDescription: "Reconnect to this machine to see its pull request.",
   // The state beside its icon.
   stateOpen: "Open",
   stateDraft: "Draft",
@@ -151,6 +154,8 @@ const ko: typeof en = {
   tooOldTitle: "이 머신의 Vessel을 업데이트하세요",
   tooOldDescription:
     "이 머신의 Vessel이 오래되어 풀 리퀘스트의 검사와 활동을 표시할 수 없습니다.",
+  offlineTitle: "이 머신이 오프라인입니다",
+  offlineDescription: "이 머신에 다시 연결하면 풀 리퀘스트를 볼 수 있습니다.",
   stateOpen: "열림",
   stateDraft: "초안",
   stateMerged: "병합됨",

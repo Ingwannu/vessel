@@ -36,6 +36,7 @@ impl Fixture {
                 },
                 size: None,
                 title: None,
+                profile: None,
             })
             .await
             .unwrap()

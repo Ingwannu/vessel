@@ -10,6 +10,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { useFleet } from "../../context";
+import { admitsClaims, readInbox } from "../../data/claims";
 import { markSession } from "../../data/conversation-calls";
 import { hasConversation } from "../../data/delivery";
 import { isUnread, readThrough } from "../../data/marks";
@@ -92,6 +93,13 @@ export function useReadMarks(
     sent.current = through;
     last.current = Date.now();
     heldAt.current = null;
+    if (admitsClaims(protocol)) {
+      // Claims row 4: `inbox.read` takes the `Read` scope, so a device given
+      // only `read` marks too. It answers an Ack; the session's list shows
+      // the mark.
+      void readInbox(fleet, node, session.id, through);
+      return undefined;
+    }
     void markSession(fleet, node, session.id, { mark: "read", through }).then(
       (outcome) => {
         if (outcome.ok) {

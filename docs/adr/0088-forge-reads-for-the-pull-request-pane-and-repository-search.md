@@ -140,6 +140,23 @@ through the client as every request does, which keeps a redirect's
   lines, saying when it cut;
 - the signed URL is never logged, stored or sent to a client.
 
+Trust boundary (added 2026-11-21, the node reviewer's note on the P2
+packet). The `Location` comes from the configured forge host, and that
+host is trusted: a GitHub Enterprise Server, or a compromised one, could
+point it at any `https` address, which the node then fetches without
+authorization and returns up to 200 lines of to a `read` caller who can
+see the session. The node refuses, before any request, a `Location` whose
+host is `localhost` (or a name under it) or a literal address in a
+loopback, private, link-local, unique-local (fc00::/7), shared
+(100.64.0.0/10), broadcast or unspecified range, an IPv4-mapped IPv6
+address included. A name that only resolves to such an address is not
+refused (a stated gap): filtering by resolution belongs to the shared
+resolver of ADR 0104, not to this one request.
+
+No cache. As Paseo, the node keeps no report: each `pr.check` reads the
+check, its jobs and their logs again (up to 5 jobs, each an API call and
+one signed request), so a client asking again spends API quota again.
+
 ## Alternatives
 
 - `gh` per call, as Paseo does. ADR 0029 rejected it for every forge

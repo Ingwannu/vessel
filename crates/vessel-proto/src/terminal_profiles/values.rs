@@ -7,18 +7,20 @@ use serde::{Deserialize, Serialize};
 
 use super::{
     Argument, Icon, Id, MAX_ARGUMENTS, MAX_COMMAND_BYTES, MAX_PROFILES, Name, PROMPT_SENTINEL,
-    ProfileError, Program, Prompt, TextKind,
+    ProfileError, Program, Prompt, RESOLVED_ARGUMENT_BYTES, TextKind,
 };
 
 /// A validated administrator-defined terminal launch template.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "ProfileWire", into = "ProfileWire")]
-#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(rename = "TerminalProfile"))]
 pub struct Profile {
     id: Id,
     name: Name,
     command: Program,
     args: Vec<Argument>,
+    // Absent on the wire when unset (`ProfileWire`), as Paseo's `icon?`.
+    #[cfg_attr(feature = "ts", ts(optional))]
     icon: Option<Icon>,
 }
 
@@ -79,6 +81,18 @@ impl Profile {
         self.icon.as_ref()
     }
 
+    /// The program template, as configured (Settings shows and edits it).
+    #[must_use]
+    pub const fn command(&self) -> &Program {
+        &self.command
+    }
+
+    /// The argument templates, as configured.
+    #[must_use]
+    pub fn args(&self) -> &[Argument] {
+        &self.args
+    }
+
     /// Profiles without a placeholder launch read-only, as the reference does.
     #[must_use]
     pub fn takes_prompt(&self) -> bool {
@@ -106,10 +120,10 @@ impl Profile {
             if text.is_empty() && prompt_only(arg) {
                 continue;
             }
-            args.push(Argument::parse(substitute(
+            args.push(Argument::resolved(substitute(
                 arg,
                 text,
-                Argument::MAX_BYTES,
+                RESOLVED_ARGUMENT_BYTES,
                 TextKind::Argument,
             )?)?);
         }
@@ -219,9 +233,9 @@ impl fmt::Debug for Resolved {
 }
 
 /// A bounded ordered profile set; an explicit empty list disables all profiles.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "Vec<Profile>", into = "Vec<Profile>")]
-#[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(type = "Profile[]"))]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(rename = "TerminalProfiles"))]
 pub struct Profiles(Vec<Profile>);
 
 impl Profiles {

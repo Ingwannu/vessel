@@ -431,6 +431,76 @@ While the constant is unassigned, no machine admits claims, and a notice takes A
   - A claim is never retried.
   - Failed sessions never reach a claim: the diff drops them (the "Local error attention" section).
 
+## The page's terminal notices (2026-11-21, the claims follow-up's third row, page part)
+
+The page does what the app does (ADR 0114 "Terminal notices"), behind this feature's constant.
+
+- **The constant on the page.** `ts.rs` PROTOCOLS now exports `ATTENTION_NOTIFICATIONS_PROTOCOL` into
+  `wire/proto.ts` (`null` while unassigned). `data/claims.ts` imports it, typed `number | null`, so neither
+  value makes a guard look constant to strict lint. Assigning the number on the node line turns the page's
+  claims on with no page edit (node review note on row 2).
+- **Notices** (`data/terminal-notices.ts`, `features/notifications/use-terminal-notices.ts`):
+  - each connected machine that admits claims has its whole terminal list followed (`terminal.list` with no
+    place, waiting on `changed_from`);
+  - a connection's first list tells nothing; a Finished or Needs-input attention at a revision not told before
+    is a notice; a failed terminal never is;
+  - Settings' alerts decide first (alerts off claims nothing); the claim names the exact revision; only
+    `admitted` shows, titled "Terminal finished" or "Terminal needs input" with the terminal's title;
+  - a click opens a session whose workspace holds the terminal's place (`holds`) and asks that workspace for
+    the terminal's tab (`data/terminal-tab-request.ts`);
+  - when a list answers without its revision moving, the follower waits a quiet second before asking again,
+    so a node that cannot wait does not make it spin (app review note on row 3).
+- **Presence** (`data/presence.ts`, `data/shown-terminal.ts`): the workspace's active terminal tab is reported
+  as `terminal` focus to a machine that admits claims, and as `elsewhere` to any other. This changes push
+  today: before, the page reported the route's session, so that session's push was held back while a terminal
+  tab had the focus. Paseo sets the focused agent only for an agent tab (`workspace-screen.tsx:1436-1456`).
+- **Viewing clears** (`features/workspace-tabs/use-terminal-attention.ts`): while the page is visible and the
+  active terminal asks for the person, `terminal.attention_clear` goes with the exact revision its list shows,
+  once per revision, on a machine that admits claims.
+- **Tests:** `data/terminal-notices.test.ts` (the first list, a new revision once, the kinds, a failed terminal,
+  the exact clear, `holds` for each place kind, the tab request taken once) and `data/presence.test.ts` (a
+  shown terminal is `terminal` focus only to a machine that admits claims).
+
+## The page's inbox read (2026-11-21, the claims follow-up's fourth row, page part)
+
+On a machine that admits this feature's constant, the page marks the session shown read with `inbox.read`
+(`{session, through}`) instead of `session.mark read` (`features/session/use-read-marks.ts`, `data/claims.ts`'s
+`readInbox` and `admitsClaims`). When a read is due is unchanged (ADR 0026).
+
+- `inbox.read` takes the `Read` scope, so a device given only `read` marks too.
+- It answers an Ack, and the session's list shows the mark.
+- Below the constant, and always while it is unassigned, the read mark stays as it is. The person's own "Mark as
+  read" stays `session.mark`.
+- The app does the same (ADR 0114 "Inbox read").
+
+## The page's badge and favicon (2026-11-21, the claims follow-up's fifth row, page part)
+
+Not behind this feature's constant: this changes the page today. Paseo shows how many workspaces want the person
+on the desktop's dock and swaps its favicon among none, running and attention (`use-favicon-status.ts`,
+`desktop-badge-state.ts:5-14`). The page now does both.
+
+- **Paseo's rule, ported** (`web/src/data/badge.ts`):
+  - each agent falls in one bucket, by priority needs input, failed, running, attention, done
+    (`protocol/src/agent-state-bucket.ts:14-36`);
+  - a workspace takes the highest-priority bucket of its agents;
+  - the badge counts workspaces in needs input, failed or attention;
+  - the favicon looks at the agents themselves: running when any runs, else attention when any wants
+    attention, else none. A failed agent turns no favicon.
+- **Vessel's buckets:** needs input is the node's `blocked` phrase, failed a failed session, running a live
+  one, attention an unread one (`marks.unread`, Vessel's "requires attention"), done the rest. Archived
+  sessions count for nothing. A workspace is the sidebar's: the session's project or worktree root, or the
+  session alone.
+- **The badge:** `navigator.setAppBadge(n)`, or `clearAppBadge()` at none, where the browser offers it (an
+  installed page). Elsewhere nothing is set. `features/notifications/use-badge.ts`, mounted by the shell.
+- **The favicon:** the build writes `favicon-running.svg` and `favicon-attention.svg` beside `favicon.svg`
+  (`web/vite-mark.ts`): the same tile with Paseo's dot at its ratio (cx = cy = 570, r = 130 of a 700 side) and
+  colours (#3b82f6 running, #22c55e attention). The hook points `link[rel=icon]` at the one in force.
+- **Native:** the row's app part follows on the app line. An OS dock or taskbar badge needs a GPUI patch,
+  which stays a stated difference (TRACKER 831).
+- **Tests:** `data/badge.test.ts` (each bucket; a workspace's most pressing session and the count; the
+  favicon's three states); `e2e/brand.spec.ts` (the icon link is one of the three; both variants are served
+  with their dot).
+
 ## Owed before the feature constant is assigned
 
 The node review of TRACKER 815 (2026-11-20, the staging line merged onto the

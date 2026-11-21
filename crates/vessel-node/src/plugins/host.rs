@@ -32,7 +32,9 @@ use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
 use vessel_plugin::{PreparedCommand, RuntimeError, RuntimeState, SharedLogs, Supervisor};
 use vessel_proc::CommandSpec;
-use vessel_proto::plugins::{ClientDocument, MAX_DOCUMENT_BYTES, PluginAddress};
+use vessel_proto::plugins::{
+    ClientDocument, MAX_DOCUMENT_BYTES, PluginAddress, SettingsDeclarations,
+};
 
 use super::manifest::Manifest;
 
@@ -244,7 +246,15 @@ async fn read_client(path: &Path, directory: &Path) -> Result<ClientDocument, St
     let bytes = tokio::fs::read(&real)
         .await
         .map_err(|error| failed(error.to_string()))?;
-    serde_json::from_slice(&bytes).map_err(|error| failed(error.to_string()))
+    let document: ClientDocument =
+        serde_json::from_slice(&bytes).map_err(|error| failed(error.to_string()))?;
+    // Settings documents live with a helper (ADR 0115, "Surfaces").
+    document
+        .check_settings(&SettingsDeclarations::default())
+        .map_err(|_undeclared| {
+            failed("it binds settings, and a plugin without a helper has none".to_owned())
+        })?;
+    Ok(document)
 }
 
 /// The launch for `command` run in `directory`.

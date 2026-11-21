@@ -58,6 +58,7 @@ fn settings(plugins_enabled: bool) -> NodeSettings {
         metadata: None,
         plugins_enabled,
         terminal_agent_hooks: false,
+        terminal_profiles: None,
     }
 }
 
