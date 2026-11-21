@@ -36,3 +36,18 @@ fn the_terminal_change_accepts_only_the_buffer_range() {
         );
     }
 }
+
+#[test]
+fn the_editor_choice_defaults_off_and_keeps_other_fields() {
+    let original = br#"{"editor":{"future":true},"terminal":{"scrollback":50}}"#;
+    let Decoded::Current(doc) = PrefsDoc::decode(original).unwrap() else {
+        panic!("current preferences");
+    };
+    assert!(!doc.values().editor.vim_keybindings);
+    let changed = doc.changed(&PreferenceChange::VimKeybindings(true)).unwrap();
+    assert!(changed.values().editor.vim_keybindings);
+    let written: serde_json::Value = serde_json::from_slice(&changed.encode().unwrap()).unwrap();
+    assert_eq!(written["editor"]["vim_keybindings"], true);
+    assert_eq!(written["editor"]["future"], true);
+    assert_eq!(written["terminal"]["scrollback"], 50);
+}

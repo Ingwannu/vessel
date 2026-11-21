@@ -26,8 +26,8 @@ use serde::{Deserialize, Serialize};
 use vessel_proto::{NodeId, RawJson};
 
 use self::sections::{
-    AppearanceFile, ComposerFile, LayoutFile, MachineFile, NotificationsFile, OpenLocationFile,
-    SidebarFile, StoredAgent, TerminalFile, UsageFile,
+    AppearanceFile, ComposerFile, EditorFile, LayoutFile, MachineFile, NotificationsFile,
+    OpenLocationFile, SidebarFile, StoredAgent, TerminalFile, UsageFile,
 };
 use super::lenient::{Blank, Entries, Field};
 use crate::wire::{
@@ -51,6 +51,8 @@ struct Body {
     layout: Field<LayoutFile>,
     #[serde(skip_serializing_if = "Field::is_blank")]
     terminal: Field<TerminalFile>,
+    #[serde(skip_serializing_if = "Field::is_blank")]
+    editor: Field<EditorFile>,
     #[serde(skip_serializing_if = "Field::is_blank")]
     open_location: Field<OpenLocationFile>,
     #[serde(skip_serializing_if = "Field::is_blank")]
@@ -179,6 +181,11 @@ impl PrefsDoc {
                 .read()
                 .map(TerminalFile::values)
                 .unwrap_or_default(),
+            editor: body
+                .editor
+                .read()
+                .map(EditorFile::values)
+                .unwrap_or_default(),
             open_location: body
                 .open_location
                 .read()
@@ -273,6 +280,9 @@ impl PrefsDoc {
             }
             PreferenceChange::TerminalScrollback(lines) => {
                 body.terminal.make_read().scrollback.set(*lines);
+            }
+            PreferenceChange::VimKeybindings(enabled) => {
+                body.editor.make_read().vim_keybindings.set(*enabled);
             }
             PreferenceChange::OpenLocation {
                 source,
