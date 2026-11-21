@@ -185,7 +185,11 @@ impl Shell {
         if !open {
             return Delivery::Interrupt;
         }
-        if !self.areas.session.conversation.turn_running() {
+        // A permission request waiting holds the turn: Paseo's interrupt
+        // (or steer) applies, not a queue behind it.
+        if !self.areas.session.conversation.turn_running()
+            && !self.areas.conversation.permission_waits()
+        {
             Delivery::Queue
         } else if self.prefs.settings.composer.delivery == TurnDelivery::Steer && self.steers() {
             Delivery::Steer
