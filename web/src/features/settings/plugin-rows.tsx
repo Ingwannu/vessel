@@ -32,6 +32,12 @@ export interface PluginRowHandlers {
   onAction: (action: PluginAction, plugin: PluginListItem) => void;
   onLogs: (plugin: PluginListItem) => void;
   onRemove: (plugin: PluginListItem) => void;
+  /** The plugin's settings screens (ADR 0115, "Surfaces"): first in its
+   * menu, as Paseo's `PluginSettingsMenuItems` (plugins-page.tsx:86). */
+  settingsOf: (
+    plugin: PluginListItem,
+  ) => readonly { id: string; title: string }[];
+  onSettings: (plugin: PluginListItem, screen: string) => void;
 }
 
 /** The installations, or why there are none to show. */
@@ -160,6 +166,17 @@ function PluginRow({
               />
             }
           >
+            {handlers.settingsOf(plugin).map((screen) => (
+              <MenuItem
+                key={screen.id}
+                disabled={busy}
+                onSelect={() => {
+                  handlers.onSettings(plugin, screen.id);
+                }}
+              >
+                {screen.title}
+              </MenuItem>
+            ))}
             <MenuItem
               onSelect={() => {
                 handlers.onLogs(plugin);

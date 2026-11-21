@@ -16,8 +16,9 @@
 //   machine's plugins, as Paseo's registry), and pure functions over it that
 //   the palette, the composer and Appearance read.
 // - Invoke-bound items show only where the catalog says the caller may
-//   invoke (`may_invoke`, coordinator ruling 2026-11-20). An `open_screen`
-//   action waits for screens (P3b) and is left out until then.
+//   invoke (`may_invoke`, coordinator ruling 2026-11-20). Items that open a
+//   screen or a settings screen are data/plugin-surfaces.ts's (ADR 0115,
+//   "Surfaces").
 
 import type { NodeKey } from "../wire/bridge";
 import {

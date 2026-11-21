@@ -160,6 +160,15 @@
   user-select: none;
 }
 
+/* A group heading with an accessory at its end (MenuGroup's
+   `accessory`). */
+.menu-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-right: 4px;
+}
+
 .menu-separator {
   height: 1px;
   margin: 4px -4px;

@@ -34,7 +34,9 @@ import { childAgent, isLiveTerminal } from "./close-tabs";
 import { useTabLifecycle } from "./lifecycle";
 import { useLaunchShortcuts } from "./launch-shortcuts";
 import { useLayout } from "./use-layout";
+import type { ProfileGroup } from "./profile-rows";
 import { useTerminalPlace, useTerminals } from "./use-terminals";
+import { useTerminalProfiles } from "./use-terminal-profiles";
 import type { TabWords } from "./words";
 
 const NO_SESSIONS: readonly SessionInfo[] = [];
@@ -65,6 +67,8 @@ interface WorkspaceState {
   markDirty: (key: string, dirty: boolean) => void;
   lifecycle: ReturnType<typeof useTabLifecycle>;
   actions: readonly TabAction[];
+  /** The machine's terminal profiles for New tab (ADR 0117). */
+  profiles: ProfileGroup;
   terminals: readonly TerminalInfo[];
   openFile: (path: RelPath, line: number | null) => void;
   move: (source: string, target: string, side: "before" | "after") => void;
@@ -186,8 +190,9 @@ export function useWorkspace(
     forgetTerminal: terminals.forget,
     renamedTerminal: terminals.renamed,
   });
-  const launchTerminal = async () => {
-    const result = await terminals.create();
+  // A shell, or a terminal profile's program (ADR 0117).
+  const launchTerminal = async (profile?: string) => {
+    const result = await terminals.create(profile);
     if (result?.ok === true) {
       select({ kind: "terminal", id: result.value.id });
     } else if (result !== null) {
@@ -200,6 +205,13 @@ export function useWorkspace(
   const newTerminal = () => void launchTerminal();
   const canCreateTerminal =
     terminalEnabled && !terminals.creating && place !== null;
+  const profileRows = useTerminalProfiles(node, protocol, terminalEnabled);
+  const profiles: ProfileGroup = {
+    machine: node,
+    rows: profileRows,
+    disabled: !canCreateTerminal,
+    launch: (profile) => void launchTerminal(profile.id),
+  };
   const shortcuts = useLaunchShortcuts(
     newAgent,
     newTerminal,
@@ -243,6 +255,7 @@ export function useWorkspace(
     markDirty,
     lifecycle,
     actions,
+    profiles,
     terminals: terminals.rows,
     openFile,
     move: (source: string, target: string, side: "before" | "after") => {

@@ -60,7 +60,8 @@ export function useTerminalPlace(
 interface WorkspaceTerminals {
   rows: readonly TerminalInfo[];
   creating: boolean;
-  create: () => Promise<Outcome<TerminalInfo> | null>;
+  /** A shell, or terminal profile `profile`'s program (ADR 0117). */
+  create: (profile?: string) => Promise<Outcome<TerminalInfo> | null>;
   renamed: (terminal: TerminalInfo) => void;
   forget: (id: TerminalId) => void;
 }
@@ -115,13 +116,18 @@ export function useTerminals(
   return {
     rows,
     creating,
-    create: async () => {
+    create: async (profile?: string) => {
       if (!enabled || place === null || pending.current) {
         return null;
       }
       pending.current = true;
       setCreating(true);
-      const result = await openWorkspaceTerminal(fleet, node, place);
+      const result = await openWorkspaceTerminal(
+        fleet,
+        node,
+        place,
+        profile ?? null,
+      );
       pending.current = false;
       revision.current += 1;
       setCreating(false);

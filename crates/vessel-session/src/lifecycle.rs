@@ -185,9 +185,13 @@ impl Lifecycle {
         }
         content.iter().find_map(|block| match block {
             ContentBlock::Text { text } => SessionTitle::from_prompt(text),
+            // A title comes from the person's own words, not what they
+            // attached (ADR 0124).
             ContentBlock::ResourceLink { .. }
             | ContentBlock::Opaque { .. }
-            | ContentBlock::Attachment { .. } => None,
+            | ContentBlock::Attachment { .. }
+            | ContentBlock::Context(_)
+            | ContentBlock::Review(_) => None,
         })
     }
 

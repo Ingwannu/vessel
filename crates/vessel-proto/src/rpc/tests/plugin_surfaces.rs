@@ -1,6 +1,5 @@
 //! ADR 0115's surfaces (`PLUGIN_SURFACES_PROTOCOL`): new declaration kinds
-//! in the catalog and no method, after the settings documents they bind; the
-//! newest protocol.
+//! in the catalog and no method, after the settings documents they bind.
 
 use super::*;
 use crate::plugins::{PLUGIN_SETTINGS_PROTOCOL, PLUGIN_SURFACES_PROTOCOL};

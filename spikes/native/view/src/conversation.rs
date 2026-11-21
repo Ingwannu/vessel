@@ -335,7 +335,13 @@ fn text_of(content: &[ContentBlock]) -> String {
         match block {
             ContentBlock::Text { text: part, .. } => text.push_str(part),
             ContentBlock::ResourceLink { name, .. } => text.push_str(name),
-            ContentBlock::Opaque { .. } | ContentBlock::Attachment { .. } => {
+            // A prompt's context and review blocks (ADR 0124) copy as a
+            // placeholder like a file, as the page's blockText does until the
+            // timeline draws them as pills.
+            ContentBlock::Opaque { .. }
+            | ContentBlock::Attachment { .. }
+            | ContentBlock::Context(_)
+            | ContentBlock::Review(_) => {
                 text.push_str("[attachment]");
             }
         }

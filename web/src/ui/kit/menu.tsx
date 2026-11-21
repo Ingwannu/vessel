@@ -79,18 +79,22 @@ export function Menu({
  * shortcut. */
 function RowContent({
   icon,
+  leading,
   children,
   description,
   shortcut,
 }: {
   icon: IconName | undefined;
+  /** Drawn where the icon goes, for a mark that is not an icon (a
+   * vendor's, ADR 0117's profile rows). */
+  leading?: ReactNode;
   children: ReactNode;
   description: string | undefined;
   shortcut: string | undefined;
 }) {
   return (
     <>
-      {icon === undefined ? null : <Icon name={icon} size={15} />}
+      {leading ?? (icon === undefined ? null : <Icon name={icon} size={15} />)}
       {description === undefined ? (
         <span className="label">{children}</span>
       ) : (
@@ -110,6 +114,7 @@ function RowContent({
 
 export function MenuItem({
   icon,
+  leading,
   onSelect,
   shortcut,
   description,
@@ -119,6 +124,8 @@ export function MenuItem({
   children,
 }: {
   icon?: IconName;
+  /** In place of `icon`: a mark that is not one of the kit's icons. */
+  leading?: ReactNode;
   onSelect: () => void;
   shortcut?: string;
   description?: string;
@@ -138,7 +145,12 @@ export function MenuItem({
         onSelect();
       }}
     >
-      <RowContent icon={icon} description={description} shortcut={shortcut}>
+      <RowContent
+        icon={icon}
+        leading={leading}
+        description={description}
+        shortcut={shortcut}
+      >
         {children}
       </RowContent>
     </Base.Item>
@@ -267,21 +279,4 @@ function RadioRow<V extends string>({ option }: { option: Choice<V> }) {
 
 export function MenuSeparator() {
   return <Base.Separator className="menu-separator" />;
-}
-
-/** A heading over the rows that follow it, in a group so a screen reader
- * hears it with them. */
-export function MenuGroup({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactNode;
-}) {
-  return (
-    <Base.Group>
-      <Base.GroupLabel className="menu-label">{label}</Base.GroupLabel>
-      {children}
-    </Base.Group>
-  );
 }
