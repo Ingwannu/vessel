@@ -19,7 +19,7 @@
 //!   nothing here yet.
 
 use vessel_app_kit::settings;
-use vessel_app_kit::theme::spacing;
+use vessel_app_kit::theme::{radius, spacing};
 use vessel_app_kit::ui::{
     AnyElement, Context, FluentBuilder as _, Hsla, IntoElement as _, ParentElement as _,
     SharedString, StatefulInteractiveElement as _, Styled as _, Window, div, px,
@@ -371,7 +371,7 @@ fn button_element(
                     .flex_col()
                     .gap(px(spacing::S3))
                     .p(px(spacing::S3))
-                    .rounded(px(8.0))
+                    .rounded(px(radius::R2))
                     .border_1()
                     .border_color(tokens.border_subtle)
                     .children(render(shell, scope, &surface.controls, tokens, window, cx))

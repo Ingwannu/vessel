@@ -10,7 +10,7 @@
 //!   Q1).
 
 use vessel_app_kit::settings;
-use vessel_app_kit::theme::spacing;
+use vessel_app_kit::theme::{radius, spacing};
 use vessel_app_kit::ui::{
     AnyElement, Context, IntoElement as _, ParentElement as _, SharedString,
     StatefulInteractiveElement as _, Styled as _, div, px,
@@ -58,8 +58,8 @@ pub(super) fn text_field(
         // Without admin, or declared after the screen opened: an empty,
         // disabled box.
         None => div()
-            .h(px(32.0))
-            .rounded(px(8.0))
+            .h(px(spacing::S8))
+            .rounded(px(radius::R2))
             .border_1()
             .border_color(tokens.border_faint)
             .bg(tokens.bg_well)

@@ -39,6 +39,9 @@ use vessel_proto::plugins::{ContributionId, PluginId, Surface};
 use crate::routes::Route;
 use crate::shell::Shell;
 
+/// The body's reading width, the Settings page's (`settings/page.rs`).
+const PAGE_WIDTH: f32 = 720.0;
+
 mod controls;
 mod inputs;
 mod menu;
@@ -206,7 +209,7 @@ pub(crate) fn render(
                 .p(px(spacing::S6))
                 .child(
                     div()
-                        .max_w(px(720.0))
+                        .max_w(px(PAGE_WIDTH))
                         .mx_auto()
                         .flex()
                         .flex_col()
