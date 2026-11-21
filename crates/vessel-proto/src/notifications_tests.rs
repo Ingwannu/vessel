@@ -62,8 +62,10 @@ fn pending_calls_and_terminal_focus_are_never_sent_as_an_older_field() {
         Some(crate::Scope::Operate)
     );
 }
+/// Below ADR 0089's protocol every terminal reply, direct or nested, drops
+/// the attention; from it, the attention goes as it is.
 #[test]
-fn direct_lists_scripts_subscriptions_and_nested_fleet_omit_unassigned_attention() {
+fn direct_lists_scripts_subscriptions_and_nested_fleet_omit_attention_below_its_protocol() {
     let terminal = terminal();
     let script = crate::scripts::ScriptRunOutcome::Started {
         terminal: Box::new(terminal.clone()),
@@ -88,7 +90,11 @@ fn direct_lists_scripts_subscriptions_and_nested_fleet_omit_unassigned_attention
         Reply::RunScript(script.clone()),
         Reply::RestartScript(script),
     ];
-    for protocol in [ProtocolVersion::new(11), crate::PROTOCOL_VERSION] {
+    let below = ATTENTION_NOTIFICATIONS_PROTOCOL.map_or(crate::PROTOCOL_VERSION, |since| {
+        ProtocolVersion::new(since.get().saturating_sub(1))
+    });
+    for protocol in [ProtocolVersion::new(11), below, crate::PROTOCOL_VERSION] {
+        let kept = ATTENTION_NOTIFICATIONS_PROTOCOL.is_some_and(|since| protocol >= since);
         for reply in &replies {
             let wrappers = [
                 reply.clone(),
@@ -109,10 +115,12 @@ fn direct_lists_scripts_subscriptions_and_nested_fleet_omit_unassigned_attention
                 };
                 let older = frame.for_protocol(protocol).unwrap_or(frame);
                 let json = serde_json::to_value(&older).unwrap();
-                assert!(
-                    !serde_json::to_string(&json)
+                assert_eq!(
+                    serde_json::to_string(&json)
                         .unwrap()
-                        .contains("\"attention\"")
+                        .contains("\"attention\""),
+                    kept,
+                    "attention at {protocol:?}"
                 );
                 let _decoded: ServerFrame = serde_json::from_value(json).unwrap();
             }
