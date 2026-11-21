@@ -323,4 +323,6 @@ scheduler checks the revision again because another definition could
 have changed the target while that read was in flight. The same actor
 transaction settles cadence and persists the result. The owner, target,
 prompt, run history, limit, expiry and catch-up stay with the saved record.
-The method stays pending until the integrator assigns its protocol.
+The method landed pending at protocol 47. Its activation assigned
+`HEARTBEAT_CADENCE_PROTOCOL` 48 at its node-line merge.
+A client offers the editor when the exact peer negotiates that version.

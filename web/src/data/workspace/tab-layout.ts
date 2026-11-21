@@ -29,6 +29,9 @@ export interface TabLayout {
   hidden: readonly SessionId[];
 }
 
+/** The same viewport can show a split workspace and its placement controls. */
+export const WORKSPACE_SPLIT_QUERY = "(width >= 1100px)";
+
 export type CloseScope = "before" | "after" | "others";
 
 const KEY_PREFIX = "vessel.workspace-tabs.v1.";

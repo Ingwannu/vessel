@@ -167,6 +167,19 @@ export function linkedFileOf(
     : { path: tab.path, lineStart: line };
 }
 
+/** `lines` without `path`'s line; the same map when it has none. */
+export function withoutLine<Line>(
+  lines: ReadonlyMap<string, Line>,
+  path: string,
+): ReadonlyMap<string, Line> {
+  if (!lines.has(path)) {
+    return lines;
+  }
+  const next = new Map(lines);
+  next.delete(path);
+  return next;
+}
+
 /** A forge page to open. */
 export interface ForgeLink {
   forge: ForgeId;
@@ -199,6 +212,12 @@ export function forgePage(
 ): ForgeLink | null {
   const trimmed = branch?.trim() ?? "";
   if (trimmed === "" || trimmed === "HEAD") {
+    return null;
+  }
+  // The node's rules refuse these already; a newer node's are not this
+  // page's to trust (Paseo's `isValidRepoPath`, `forge-url.ts:61-67`).
+  const segments = origin.path.split("/");
+  if (segments.some((segment) => segment === "" || segment === "..")) {
     return null;
   }
   const forge = forgeById(id);
