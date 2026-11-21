@@ -7,7 +7,8 @@ use vessel_app_kit::{
     ui::{Div, IntoElement as _, ParentElement as _, SharedString, Styled as _, div, px},
 };
 use vessel_app_view::schedules::{
-    editor::{cadence::description, io::Form},
+    editor::io::Form,
+    locale,
     presentation::heartbeat_target_label,
 };
 use vessel_proto::automation::ScheduleInfo;
@@ -22,7 +23,7 @@ pub(super) fn body(
     let words = shell.words.schedules();
     let target = heartbeat_target_label(info, form.connection(), &shell.fleet, shell.words)
         .map_or_else(|_| words.display_unavailable().into(), SharedString::from);
-    let cadence = description(&info.definition.cadence, shell.words)
+    let cadence = locale::cadence(&info.definition.cadence, shell.words)
         .unwrap_or_else(|_| words.display_unavailable().to_owned());
     div()
         .flex()
