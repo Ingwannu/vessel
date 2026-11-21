@@ -219,7 +219,7 @@ schedules-run-now = Run now
 # Destructive action and confirmation title for an ordinary schedule.
 schedules-delete = Delete schedule
 
-# Destructive action and confirmation title for an agent’s self-owned recurring prompt.
+# Destructive action and confirmation title for an existing-session schedule.
 schedules-delete-heartbeat = Delete heartbeat
 
 # Fallback target or cadence label for a value from a newer protocol.
@@ -483,3 +483,10 @@ schedules-form-preview-line = { $description } · Next run { DATETIME($at) }
 
 # The retained elapsed cadence on an older node.
 schedules-form-elapsed-without-preview = { $cadence } · Preview is unavailable on this machine
+
+# Read-only heartbeat sheet and the row that opens it.
+schedules-heartbeat-title = Heartbeat
+schedules-heartbeat-open-row = View heartbeat { $title }
+schedules-heartbeat-target = Target
+schedules-heartbeat-close = Close
+schedules-heartbeat-older = Updating heartbeat cadence requires a newer node.

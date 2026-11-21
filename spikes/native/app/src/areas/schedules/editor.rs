@@ -127,6 +127,15 @@ pub(super) fn editable(shell: &Shell, intent: &Intent) -> bool {
             .is_some_and(|row| Draft::can_open(row.schedule))
 }
 
+pub(super) fn openable(shell: &Shell, intent: &Intent) -> bool {
+    let page = &shell.areas.schedules.data.page;
+    editable(shell, intent)
+        || intent.is_current(page)
+            && page
+                .row(intent.key())
+                .is_some_and(|row| vessel_app_view::schedules::is_heartbeat(row.schedule))
+}
+
 pub(crate) fn refuse(request: Request, why: Rejected) -> Event {
     let failure = match why {
         Rejected::Full => Failure::Busy,
@@ -145,10 +154,14 @@ impl Shell {
     ) {
         let editor = &mut self.areas.schedules.editor;
         editor.close(window, cx);
-        let inputs = Inputs::new(self.words, &draft, window, cx);
+        let heartbeat = draft.heartbeat().is_some();
+        editor.inputs = (!heartbeat).then(|| Inputs::new(self.words, &draft, window, cx));
         editor.model = Some(Form::new(connection, draft));
-        editor.inputs = Some(inputs);
         editor.dialog.focus(window, cx);
+        cx.notify();
+        if heartbeat {
+            return;
+        }
         self.schedule_form_issue(Ask::Targets);
         let options = self
             .areas
@@ -164,7 +177,6 @@ impl Shell {
         if let Some(options) = options {
             self.schedule_form_issue(Ask::Options(options));
         }
-        cx.notify();
     }
 
     pub(super) fn schedule_create_open(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
@@ -200,7 +212,7 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) {
         if self.route != Route::Schedules
-            || !editable(self, intent)
+            || !openable(self, intent)
             || self.areas.schedules.editor.model.is_some()
         {
             return;
@@ -208,7 +220,9 @@ impl Shell {
         let Some(row) = self.areas.schedules.data.page.row(intent.key()) else {
             return;
         };
-        let Some(draft) = Draft::open(row.schedule, None) else {
+        let Some(draft) = Draft::open_heartbeat(row.schedule)
+            .or_else(|| Draft::open(row.schedule, None))
+        else {
             return;
         };
         let Some(connection) = row.connection.cloned() else {

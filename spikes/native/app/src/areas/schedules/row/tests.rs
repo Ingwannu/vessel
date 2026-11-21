@@ -33,7 +33,7 @@ impl Render for Probe {
     }
 }
 
-fn listed(shell: &mut Shell) {
+fn listed(shell: &mut Shell, heartbeat: bool) {
     let at = chrono::DateTime::UNIX_EPOCH;
     let context = ConnectionEpochs::default()
         .admit(BookKey::from_book("laptop"), NodeId::random())
@@ -61,16 +61,22 @@ fn listed(shell: &mut Shell) {
                 expr: "0 * * * *".parse().unwrap(),
                 zone: "UTC".parse().unwrap(),
             },
-            target: ScheduleTarget::NewSession {
-                spec: Box::new(SessionSpec::new(
-                    "claude-code".parse::<vessel_proto::HarnessRef>().unwrap(),
-                    SessionMode::Structured {
-                        model: None,
-                        resume: None,
-                        options: Vec::new(),
-                    },
-                )),
-                after: AfterRun::Archive,
+            target: if heartbeat {
+                ScheduleTarget::Session {
+                    session: vessel_proto::SessionId::random(),
+                }
+            } else {
+                ScheduleTarget::NewSession {
+                    spec: Box::new(SessionSpec::new(
+                        "claude-code".parse::<vessel_proto::HarnessRef>().unwrap(),
+                        SessionMode::Structured {
+                            model: None,
+                            resume: None,
+                            options: Vec::new(),
+                        },
+                    )),
+                    after: AfterRun::Archive,
+                }
             },
             prompt: "Check the build report".parse().unwrap(),
             catch_up: CatchUp::Once,
@@ -120,7 +126,7 @@ fn the_row_menu_is_a_clickable_button_with_its_expansion_state(cx: &mut TestAppC
     let (probe, cx) = cx.add_window_view(|window, cx| Probe {
         shell: cx.new(|cx| {
             let mut shell = Shell::without_io(window, cx);
-            listed(&mut shell);
+            listed(&mut shell, false);
             shell
         }),
     });
@@ -150,4 +156,39 @@ fn the_row_menu_is_a_clickable_button_with_its_expansion_state(cx: &mut TestAppC
     });
     let open = trigger(cx, label);
     assert!(open.contains(r#""expanded": true"#), "{open}");
+}
+
+
+#[gpui::test]
+fn a_heartbeat_row_opens_read_only_detail_and_keeps_delete(cx: &mut TestAppContext) {
+    use crate::shell::language_tests::{init, named_button};
+    use vessel_app_view::schedules::Action;
+
+    init(cx);
+    let (probe, cx) = cx.add_window_view(|window, cx| Probe {
+        shell: cx.new(|cx| {
+            let mut shell = Shell::without_io(window, cx);
+            listed(&mut shell, true);
+            shell
+        }),
+    });
+    cx.simulate_resize(size(px(1280.0), px(900.0)));
+    let handle = cx.update(|window, _| window.window_handle());
+    assert!(cx.simulate_accessibility_activation(handle));
+    probe.update_in(cx, |probe, window, cx| {
+        probe.shell.update(cx, |shell, cx| {
+            let row = &shell.areas.schedules.data.rows[0];
+            let intent = row.intent.clone().unwrap();
+            assert!(super::super::editor::openable(shell, &intent));
+            assert_eq!(
+                row.menu.iter().map(|entry| entry.action).collect::<Vec<_>>(),
+                [Action::Delete]
+            );
+            shell.schedule_edit_open(&intent, window, cx);
+        });
+    });
+    cx.update(|window, _| window.refresh());
+    assert!(named_button(cx, "Close"));
+    assert!(!named_button(cx, "Save changes"));
+    assert!(!named_button(cx, "Cadence (Every hour)"));
 }
