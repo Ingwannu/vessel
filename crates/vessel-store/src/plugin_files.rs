@@ -1,5 +1,7 @@
 //! The plugin host's files in the data directory (ADR 0115): the list of
-//! installations and the plugins' own settings.
+//! installations and the plugins' settings documents, which the node
+//! writes for its helpers (ADR 0115, "Settings": a helper never writes its
+//! own settings files).
 //!
 //! [Decision Log]
 //! - Purpose: Paseo keeps installations in its `config.json` under
@@ -14,7 +16,7 @@
 
 use std::path::PathBuf;
 
-use vessel_proto::plugins::PluginId;
+use vessel_proto::plugins::{PluginId, SettingsId};
 
 use crate::DataDir;
 use crate::error::StoreError;
@@ -29,6 +31,10 @@ const PLUGIN_SETTINGS_DIR: &str = "plugin-settings";
 /// An installations file larger than this is not read (a person's list of
 /// plugins is a few hundred bytes a row).
 const MAX_INSTALLATIONS_BYTES: u64 = 1024 * 1024;
+/// A settings document larger than this is not read: its values fit the
+/// helper payload budget (`MAX_HELPER_PAYLOAD_BYTES`, 1 MiB), and the
+/// envelope adds a few bytes.
+const MAX_SETTINGS_FILE_BYTES: u64 = 1024 * 1024 + 4096;
 
 impl DataDir {
     /// The plugin host's folder (`plugins/`).
@@ -49,27 +55,53 @@ impl DataDir {
         self.root().join(PLUGIN_SETTINGS_DIR).join(plugin.as_str())
     }
 
+    /// One settings document's file (`plugin-settings/<id>/<settings>.json`).
+    #[must_use]
+    pub fn plugin_settings_path(&self, plugin: &PluginId, settings: &SettingsId) -> PathBuf {
+        self.plugin_settings_dir(plugin)
+            .join(format!("{}.json", settings.as_str()))
+    }
+
+    /// A settings document's bytes; `None` when it was never saved.
+    /// Blocking.
+    ///
+    /// # Errors
+    /// It cannot be read, or is larger than its bound.
+    pub fn read_plugin_settings(
+        &self,
+        plugin: &PluginId,
+        settings: &SettingsId,
+    ) -> Result<Option<Vec<u8>>, StoreError> {
+        bounded_read(
+            &self.plugin_settings_path(plugin, settings),
+            MAX_SETTINGS_FILE_BYTES,
+        )
+    }
+
+    /// Replace a settings document with `contents`, owner-only (0700
+    /// folders, 0600 file on Unix), atomically. Blocking.
+    ///
+    /// # Errors
+    /// The folder or the file cannot be written.
+    pub fn write_plugin_settings(
+        &self,
+        plugin: &PluginId,
+        settings: &SettingsId,
+        contents: &[u8],
+    ) -> Result<(), StoreError> {
+        let dir = self.plugin_settings_dir(plugin);
+        files::create_private_dir(&dir).map_err(StoreError::io(&dir))?;
+        let path = self.plugin_settings_path(plugin, settings);
+        files::replace(&path, contents).map_err(StoreError::io(&path))
+    }
+
     /// The installations file's bytes; `None` when there is none yet.
     /// Blocking.
     ///
     /// # Errors
     /// It cannot be read, or is larger than [`MAX_INSTALLATIONS_BYTES`].
     pub fn read_plugin_installations(&self) -> Result<Option<Vec<u8>>, StoreError> {
-        let path = self.plugin_installations_path();
-        let metadata = match std::fs::metadata(&path) {
-            Ok(metadata) => metadata,
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
-            Err(error) => return Err(StoreError::io(&path)(error)),
-        };
-        if metadata.len() > MAX_INSTALLATIONS_BYTES {
-            return Err(StoreError::io(&path)(std::io::Error::new(
-                std::io::ErrorKind::InvalidData,
-                format!("larger than {MAX_INSTALLATIONS_BYTES} bytes"),
-            )));
-        }
-        std::fs::read(&path)
-            .map(Some)
-            .map_err(StoreError::io(&path))
+        bounded_read(&self.plugin_installations_path(), MAX_INSTALLATIONS_BYTES)
     }
 
     /// Replace the installations file with `contents`, owner-only (0700
@@ -117,6 +149,22 @@ impl DataDir {
     }
 }
 
+/// `path`'s bytes when it exists and is at most `limit` long. Blocking.
+fn bounded_read(path: &std::path::Path, limit: u64) -> Result<Option<Vec<u8>>, StoreError> {
+    let metadata = match std::fs::metadata(path) {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(error) => return Err(StoreError::io(path)(error)),
+    };
+    if metadata.len() > limit {
+        return Err(StoreError::io(path)(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            format!("larger than {limit} bytes"),
+        )));
+    }
+    std::fs::read(path).map(Some).map_err(StoreError::io(path))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -144,6 +192,31 @@ mod tests {
             .unwrap();
         assert!(aside.exists());
         assert_eq!(data.read_plugin_installations().unwrap(), None);
+    }
+
+    #[test]
+    fn a_settings_document_round_trips_owner_only_and_goes_with_its_folder() {
+        let root = tempfile::tempdir().unwrap();
+        let data = DataDir::new(root.path());
+        let plugin: PluginId = "notes".parse().unwrap();
+        let settings: SettingsId = "display".parse().unwrap();
+        assert_eq!(data.read_plugin_settings(&plugin, &settings).unwrap(), None);
+        data.write_plugin_settings(&plugin, &settings, b"{\"version\":1,\"values\":{}}")
+            .unwrap();
+        assert_eq!(
+            data.read_plugin_settings(&plugin, &settings).unwrap(),
+            Some(b"{\"version\":1,\"values\":{}}".to_vec())
+        );
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt as _;
+            let file = std::fs::metadata(data.plugin_settings_path(&plugin, &settings)).unwrap();
+            assert_eq!(file.permissions().mode() & 0o777, 0o600);
+            let dir = std::fs::metadata(data.plugin_settings_dir(&plugin)).unwrap();
+            assert_eq!(dir.permissions().mode() & 0o777, 0o700);
+        }
+        data.remove_plugin_settings(&plugin).unwrap();
+        assert_eq!(data.read_plugin_settings(&plugin, &settings).unwrap(), None);
     }
 
     #[test]

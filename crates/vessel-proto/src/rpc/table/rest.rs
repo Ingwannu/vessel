@@ -256,6 +256,12 @@ macro_rules! method_table_rest {
             GetPluginCatalog / plugin_catalog / "plugin.catalog" [Read, (pending $crate::plugins::PLUGIN_CATALOG_PROTOCOL), unary]: $crate::plugins::GetPluginCatalog => $crate::plugins::PluginCatalog;
             /// Call a method a running installation declared, as Paseo's plugin RPC (ADR 0115).
             InvokePlugin / invoke_plugin / "plugin.invoke" [Admin, (pending $crate::plugins::PLUGIN_CATALOG_PROTOCOL), unary]: $crate::plugins::InvokePlugin => $crate::plugins::PluginOutput;
+            /// One settings document of a running installation, as Paseo's `settings.<id>.read` (ADR 0115, "Settings").
+            ReadPluginSettings / read_plugin_settings / "plugin.settings.read" [Admin, (pending $crate::plugins::PLUGIN_SETTINGS_PROTOCOL), unary]: $crate::plugins::ReadPluginSettings => $crate::plugins::PluginSettingsRead;
+            /// Save a complete settings document at the revision read, as Paseo's `settings.<id>.write` (ADR 0115, "Settings").
+            WritePluginSettings / write_plugin_settings / "plugin.settings.write" [Admin, (pending $crate::plugins::PLUGIN_SETTINGS_PROTOCOL), unary]: $crate::plugins::WritePluginSettings => $crate::plugins::PluginSettingsWrite;
+            /// Replace a settings document with its defaults, as Paseo's `settings.<id>.reset` (ADR 0115, "Settings").
+            ResetPluginSettings / reset_plugin_settings / "plugin.settings.reset" [Admin, (pending $crate::plugins::PLUGIN_SETTINGS_PROTOCOL), unary]: $crate::plugins::ResetPluginSettings => $crate::plugins::PluginSettingsWrite;
         }
     };
 }

@@ -29,7 +29,7 @@ impl Fixture {
         }
     }
 
-    fn data(&self) -> DataDir {
+    pub(super) fn data(&self) -> DataDir {
         DataDir::new(self.root.path().join("data"))
     }
 
@@ -322,6 +322,7 @@ fn helper_script(frames: u32, exit_now: bool) -> Vec<u8> {
         protocol: HelperProtocol::V1,
         client: ClientDocument::new(vec![], vec![], vec![]).unwrap(),
         hooks: HookSubscriptions::default(),
+        settings: vessel_proto::plugins::SettingsDeclarations::default(),
     };
     let body = serde_json::to_vec(&ready).unwrap();
     let mut frame = u32::try_from(body.len()).unwrap().to_be_bytes().to_vec();

@@ -18,7 +18,9 @@ export type WorkspaceTab =
   | { kind: "files" }
   | { kind: "changes" }
   | { kind: "diff" }
-  | { kind: "draft" };
+  | { kind: "draft" }
+  /** The anchor session's pull request (TRACKER 430, Paseo's pane). */
+  | { kind: "pull" };
 
 export interface TabLayout {
   tabs: readonly WorkspaceTab[];
@@ -62,6 +64,7 @@ export function tabKey(tab: WorkspaceTab): string {
     case "changes":
     case "diff":
     case "draft":
+    case "pull":
       return tab.kind;
   }
 }
@@ -219,6 +222,7 @@ function readTab(value: unknown): WorkspaceTab | null {
     case "changes":
     case "diff":
     case "draft":
+    case "pull":
       return { kind: value.kind };
     default:
       return null;
