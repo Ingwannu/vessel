@@ -18,12 +18,11 @@ impl DataDir {
         if database.try_exists().map_err(StoreError::io(&database))? {
             return Ok(());
         }
-        let mut saved = match self.read_settings() {
-            Ok(saved) => saved.unwrap_or_default(),
-            Err(_) => {
-                let _aside = self.set_aside_settings(Utc::now(), SetAside::Unreadable)?;
-                SetNodeSettings::default()
-            }
+        let mut saved = if let Ok(saved) = self.read_settings() {
+            saved.unwrap_or_default()
+        } else {
+            let _aside = self.set_aside_settings(Utc::now(), SetAside::Unreadable)?;
+            SetNodeSettings::default()
         };
         if saved.vessel_tools.is_some() {
             return Ok(());
