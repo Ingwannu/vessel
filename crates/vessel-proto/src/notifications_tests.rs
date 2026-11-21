@@ -196,5 +196,6 @@ fn passive_reads_are_narrow_person_operations_and_idle_age_is_versioned() {
 #[test]
 fn the_attention_protocol_is_assigned() {
     // Assigned at 47 (ADR 0089). Newer nodes keep serving it.
-    assert!(ATTENTION_NOTIFICATIONS_PROTOCOL.is_some_and(|version| version <= crate::PROTOCOL_VERSION));
+    let assigned = ATTENTION_NOTIFICATIONS_PROTOCOL;
+    assert!(assigned.is_some_and(|version| version <= crate::PROTOCOL_VERSION));
 }
