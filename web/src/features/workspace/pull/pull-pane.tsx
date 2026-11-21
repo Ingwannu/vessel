@@ -9,16 +9,25 @@
 //   native app's Pull request tab, without leaving for the forge.
 // - Constraint: the page's workspace tabs are switch-based and mounted
 //   only while selected (workspace.tsx); the pane re-reads on open.
-// - Choice: the anchor session's pull request; "Add to chat" writes into
-//   that session's draft and switches to its chat tab (`openChat`).
+// - Choice: the anchor session's pull request; "Add to chat" puts pills
+//   in that session's composer (data/context-tray.ts, TRACKER 833) and
+//   switches to its chat tab (`openChat`).
 // - Differences: no auto-open (the tab is offered in the launcher while
-//   the session has a pull request); Add to chat writes text, not a pill.
+//   the session has a pull request); Add to chat also shows the chat,
+//   since the page's pane is a tab, not a panel beside the chat
+//   (coordinator, P5b and 833).
 
 import "./pull-pane.css";
 
-import type { About } from "../../../data/workspace/pull/attach";
+import { contextOf } from "../../../data/context-tray";
+import {
+  type About,
+  type Attachment,
+  pillOf,
+} from "../../../data/workspace/pull/attach";
 import { brand } from "../../../data/workspace/pull/card-menu";
 import { phaseOf } from "../../../data/workspace/pull/facts";
+import type { PullReach } from "../../../data/workspace/pull/served";
 import {
   phaseWords,
   unavailableWords,
@@ -30,36 +39,50 @@ import type { NodeKey } from "../../../wire/bridge";
 import type { PullRequest, SessionInfo } from "../../../wire/proto";
 import { PullActivity } from "./pull-activity";
 import { PullChecks } from "./pull-checks";
-import { useAddToDraft, usePull } from "./use-pull";
+import { usePull } from "./use-pull";
 
 export function PullPane({
   node,
   session,
-  served,
+  reach,
   openChat,
 }: {
   node: NodeKey;
   session: SessionInfo;
-  /** The machine answers pr.timeline and pr.check (protocol 39). */
-  served: boolean;
+  /** Whether the machine answers pr.timeline and pr.check (protocol 39),
+   * is too old for them, or is not connected. */
+  reach: PullReach;
   openChat: () => void;
 }) {
-  if (!served) {
-    // A tab kept from before, on a machine that cannot answer: say so,
+  if (reach !== "served") {
+    // A tab kept from before, on a machine that cannot answer: say why,
     // and ask it nothing (the launcher offers no such tab).
-    return <PullTooOld language={navigator.language} />;
+    return <PullNotice reach={reach} language={navigator.language} />;
   }
   return <PullReads node={node} session={session} openChat={openChat} />;
 }
 
-/** The pane on a machine before protocol 39 (the node reviewer's R1). */
-export function PullTooOld({ language }: { language: string }) {
+/** The pane on a machine before protocol 39 (the node reviewer's R1), or
+ * on one not connected (TRACKER 833). */
+export function PullNotice({
+  reach,
+  language,
+}: {
+  reach: "old" | "offline";
+  language: string;
+}) {
   const words = pullWords(language);
   return (
     <div className="pull-pane pull-centred">
-      <EmptyState title={words.tooOldTitle} icon="info">
-        {words.tooOldDescription}
-      </EmptyState>
+      {reach === "old" ? (
+        <EmptyState title={words.tooOldTitle} icon="info">
+          {words.tooOldDescription}
+        </EmptyState>
+      ) : (
+        <EmptyState title={words.offlineTitle} icon="warn">
+          {words.offlineDescription}
+        </EmptyState>
+      )}
     </div>
   );
 }
@@ -75,10 +98,9 @@ function PullReads({
 }) {
   const words = pullWords(navigator.language);
   const reads = usePull(node, session.id);
-  const write = useAddToDraft(session.id);
-  const add = (texts: readonly string[]) => {
-    if (texts.length === 0) return;
-    write(texts);
+  const add = (attachments: readonly Attachment[]) => {
+    if (attachments.length === 0) return;
+    contextOf(session.id).add(attachments.map(pillOf));
     openChat();
   };
   const { view, timeline } = reads;
