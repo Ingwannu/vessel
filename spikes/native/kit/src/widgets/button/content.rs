@@ -8,6 +8,7 @@ use gpui::{Hsla, SharedString, svg};
 enum IconTone {
     Button,
     Muted,
+    Destructive,
 }
 /// A shared vector with the source's automatic or explicitly muted ink.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -30,6 +31,15 @@ impl ButtonIcon {
         Self {
             glyph,
             tone: IconTone::Muted,
+        }
+    }
+    /// Explicit destructive ink, as Paseo's ghost Remove whose icon takes
+    /// `destructiveColorMapping` (Settings › Terminals' rows).
+    #[must_use]
+    pub const fn destructive(glyph: Glyph) -> Self {
+        Self {
+            glyph,
+            tone: IconTone::Destructive,
         }
     }
 }
@@ -57,6 +67,7 @@ pub(super) fn icon_ink(
     match icon.tone {
         IconTone::Button => button_paint(kind, phase, tokens).text,
         IconTone::Muted => tokens.neutral.foreground_muted,
+        IconTone::Destructive => tokens.neutral.destructive,
     }
 }
 pub(super) fn icon_element(
@@ -79,6 +90,7 @@ pub(super) fn circle_icon(icon: ButtonIcon, automatic: Hsla, tokens: &Tokens) ->
     let ink = match icon.tone {
         IconTone::Button => automatic,
         IconTone::Muted => tokens.neutral.foreground_muted,
+        IconTone::Destructive => tokens.neutral.destructive,
     };
     draw_icon(icon, super::design::CIRCLE_ICON, ink, None)
 }

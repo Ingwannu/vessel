@@ -73,6 +73,8 @@ pub enum Event {
     TerminalClaims(crate::claims::TerminalAnswer),
     /// A machine's settings in force, after a read or a change.
     NodeSettings(node_settings::Answer),
+    /// A machine's terminal profiles in force, after a read or a save.
+    TerminalProfiles(crate::terminal_profiles::Answer),
     /// A diagnostics call answered, with its identity.
     Diagnostics(crate::diagnostics::Answer),
     /// A plugin call answered, with its identity.

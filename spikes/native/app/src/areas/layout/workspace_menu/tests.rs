@@ -131,3 +131,36 @@ fn a_title_longer_than_the_bar_shrinks_and_keeps_the_dots_inside(cx: &mut TestAp
     assert!(title.right() <= dots.left(), "{title:?} {dots:?}");
     assert!(dots.right() <= bar.right(), "{dots:?} {bar:?}");
 }
+
+/// The terminal profiles group follows the workspace actions on a compact
+/// window only, as Paseo's phone menu (its desktop menu has none).
+#[gpui::test]
+fn the_profile_group_is_in_the_compact_menu_only(cx: &mut TestAppContext) {
+    language_tests::init(cx);
+    let (probe, cx) = cx.add_window_view(fixture);
+    probe.update(cx, |probe, cx| {
+        probe.0.update(cx, |shell, _cx| {
+            let list = vessel_proto::terminal_profiles::Profiles::shipped().unwrap();
+            shell.terminal_profiles_read_as("laptop", list);
+        });
+    });
+    cx.simulate_resize(gpui::size(px(1280.0), px(800.0)));
+    cx.run_until_parked();
+    let dots = cx.debug_bounds("workspace-actions-button").unwrap();
+    cx.simulate_click(dots.center(), Modifiers::none());
+    cx.run_until_parked();
+    assert!(cx.debug_bounds("menu-row-1").is_some());
+    assert!(cx.debug_bounds("menu-heading-2").is_none());
+    cx.simulate_keystrokes("escape");
+    cx.simulate_resize(gpui::size(px(390.0), px(844.0)));
+    cx.run_until_parked();
+    probe.update_in(cx, |probe, window, cx| {
+        probe.0.update(cx, |shell, cx| {
+            shell.open_workspace_menu(gpui::point(px(20.0), px(20.0)), window, cx);
+        });
+    });
+    cx.run_until_parked();
+    assert!(cx.debug_bounds("menu-heading-2").is_some());
+    // Claude Code, Codex, OpenCode, Pi, then Edit profiles.
+    assert!(cx.debug_bounds("menu-row-7").is_some());
+}

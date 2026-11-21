@@ -1,5 +1,5 @@
 //! Item data and paint: a pending label and spinner are one typed state.
-use crate::{assets::Glyph, popup::Surfaces};
+use crate::{agent_mark::Artwork, assets::Glyph, popup::Surfaces};
 use gpui::{Hsla, SharedString};
 
 /// A menu row's semantic tone.
@@ -25,6 +25,13 @@ impl LeadingSize {
         match self {
             Self::Small => 14.0,
             Self::Regular => 16.0,
+        }
+    }
+    /// The same size for an agent's artwork.
+    pub(super) const fn mark(self) -> crate::agent_mark::Size {
+        match self {
+            Self::Small => crate::agent_mark::Size::Fourteen,
+            Self::Regular => crate::agent_mark::Size::Sixteen,
         }
     }
 }
@@ -76,6 +83,13 @@ pub struct MenuItem {
     pub starts_group: bool,
     /// A kit glyph inside the unchanged 16-point leading slot.
     pub leading: Option<Glyph>,
+    /// An agent's reviewed artwork in that slot, muted, at `leading_size`
+    /// (Paseo's `TerminalProfileIcon`: 14 in the New tab menu, 16 in the
+    /// compact header's); it takes the slot before `leading`.
+    pub mark: Option<Artwork>,
+    /// A group's label (Paseo's `MenuLabel`): its words alone, muted, never
+    /// highlighted or chosen.
+    pub heading: bool,
     /// Ordinary glyph size only; pending and success retain their own size.
     pub leading_size: LeadingSize,
     /// Typed feedback; pending/success stay non-selectable even when disabled is false.
@@ -108,6 +122,8 @@ impl MenuItem {
             disabled: false,
             starts_group: false,
             leading: None,
+            mark: None,
+            heading: false,
             leading_size: LeadingSize::Small,
             status: ItemStatus::Idle,
             dismissal: Dismissal::Close,
@@ -136,6 +152,25 @@ impl MenuItem {
     pub fn with_value(self, value: impl Into<SharedString>) -> Self {
         Self {
             value: Some(value.into()),
+            ..self
+        }
+    }
+    /// A group's label row; it takes no press and the arrows pass it.
+    #[must_use]
+    pub fn heading(label: impl Into<SharedString>) -> Self {
+        Self {
+            heading: true,
+            disabled: true,
+            ..Self::new(label)
+        }
+    }
+    /// An agent's artwork in the leading slot (in place of a glyph), at the
+    /// reference size of a glyph there.
+    #[must_use]
+    pub fn with_mark(self, mark: Artwork, leading_size: LeadingSize) -> Self {
+        Self {
+            mark: Some(mark),
+            leading_size,
             ..self
         }
     }
@@ -223,7 +258,10 @@ impl MenuItem {
         match &self.status {
             ItemStatus::Pending(_) => Leading::Spinner,
             ItemStatus::Success(_) => Leading::SuccessCheck,
-            ItemStatus::Idle => self.leading.map_or(Leading::None, Leading::Glyph),
+            ItemStatus::Idle => self.mark.map_or_else(
+                || self.leading.map_or(Leading::None, Leading::Glyph),
+                Leading::Mark,
+            ),
         }
     }
 }
@@ -231,6 +269,7 @@ impl MenuItem {
 pub(super) enum Leading {
     None,
     Glyph(Glyph),
+    Mark(Artwork),
     Spinner,
     SuccessCheck,
 }
