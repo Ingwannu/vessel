@@ -428,6 +428,11 @@ pub const PROTOCOLS: &[(&str, Option<crate::ProtocolVersion>, &str)] = &[
         crate::plugins::PLUGIN_SETTINGS_PROTOCOL,
         "`plugin.settings.read`, `.write` and `.reset` (ADR 0115, \"Settings\").",
     ),
+    (
+        "PLUGIN_SURFACES_PROTOCOL",
+        crate::plugins::PLUGIN_SURFACES_PROTOCOL,
+        "a catalog entry using `card`, the settings controls or `open_settings` (ADR 0115, \"Surfaces\").",
+    ),
 ];
 
 /// The constants of [`PROTOCOLS`], as the end of the declarations file.

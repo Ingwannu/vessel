@@ -17,6 +17,10 @@ pub enum ProtocolViolation {
     /// A bounded outbound queue cannot absorb necessary cancellation/control.
     #[error("plugin helper control queue is full")]
     ControlQueueFull,
+    /// Its client binds a settings document its `ready` did not declare
+    /// (ADR 0115, "Surfaces").
+    #[error("plugin helper's client binds an undeclared settings document")]
+    UndeclaredSettings,
 }
 
 /// Concrete host-side failures. A node handler maps their classes; it never

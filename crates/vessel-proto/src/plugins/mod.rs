@@ -33,7 +33,7 @@ pub use attachment::{
 pub use calls::{GetPluginCatalog, InvokeContext, InvokePlugin, PluginCatalog, PluginOutput};
 pub use identity::{
     Caption, ContentText, ContributionId, FileExtension, FileNamePattern, InvalidPluginValue,
-    PluginId, RpcName, SettingsId, ThemeName,
+    PluginId, RpcName, SettingsId, SettingsKey, ThemeName,
 };
 pub use json_error::PluginJsonError;
 pub use logs::{
@@ -71,10 +71,17 @@ pub const PLUGIN_CATALOG_PROTOCOL: Option<crate::ProtocolVersion> =
 pub const PLUGIN_SETTINGS_PROTOCOL: Option<crate::ProtocolVersion> =
     Some(crate::ProtocolVersion::new(43));
 
+/// The protocol whose catalog may hold the surfaces' new kinds (ADR 0115,
+/// "Surfaces"): `card`, the settings controls and `open_settings`. No method
+/// is added; `plugin.catalog` omits a document using them for an older
+/// caller. Drafted, assigned at merge.
+pub const PLUGIN_SURFACES_PROTOCOL: Option<crate::ProtocolVersion> =
+    Some(crate::ProtocolVersion::new(44));
+
 pub use declarations::{
     Action, Availability, Button, ButtonBehavior, ChoiceOption, CommandContext, Contribution,
-    ContributionContent, Control, ControlContent, MenuEntry, PanelContext, SidebarPlacement,
-    StatusTone, Surface, ToggleState,
+    ContributionContent, Control, ControlContent, InputMode, MenuEntry, PanelContext,
+    SidebarPlacement, StatusTone, Surface, ToggleState,
 };
 pub use document::{
     ClientDocument, DocumentError, MAX_ACTION_INPUT_BYTES, MAX_CONTRIBUTIONS, MAX_CONTROLS,

@@ -314,3 +314,99 @@ fn nested_menus_validate_references_and_keep_separator_identity() {
         Err(DocumentError::Duplicate)
     ));
 }
+
+/// A settings screen whose card binds two documents, and a command that
+/// opens it (ADR 0115, "Surfaces").
+const BOUND: &str = r#"{"methods":[],"themes":[],"contributions":[
+  {"id":"display","title":"Display","content":{"kind":"settings_screen","surface":{"controls":[
+    {"id":"card","content":{"kind":"card","surface":{"controls":[
+      {"id":"on","content":{"kind":"settings_switch","settings":"display","key":"showMetadata","label":"Show metadata","hint":"In the list"}},
+      {"id":"color","content":{"kind":"settings_select","settings":"display","key":"color","label":"Color","options":[{"id":"blue","title":"Blue"}]}},
+      {"id":"name","content":{"kind":"settings_input","settings":"names","key":"name","label":"Name","placeholder":"Anyone","mode":"secret"}}
+    ]}}}
+  ]}}},
+  {"id":"open","title":"Display settings","content":{"kind":"command","keywords":[],"context":"global","action":{"kind":"open_settings","screen":"display"}}}
+]}"#;
+
+fn declared(text: &str) -> SettingsDeclarations {
+    serde_json::from_str(text).expect("declarations")
+}
+
+#[test]
+fn settings_controls_bind_documents_and_need_the_surfaces_protocol() {
+    let document = ClientDocument::decode(BOUND.as_bytes()).expect("bound");
+    let bound: Vec<_> = document.bound_settings().map(SettingsId::as_str).collect();
+    assert_eq!(bound, ["display", "names"]);
+    assert_eq!(
+        Some(document.required_client()),
+        crate::plugins::PLUGIN_SURFACES_PROTOCOL
+    );
+    let plain = ClientDocument::new(vec![], vec![screen("home", vec![text("text")])], vec![])
+        .expect("plain");
+    assert_eq!(
+        Some(plain.required_client()),
+        crate::plugins::PLUGIN_CATALOG_PROTOCOL
+    );
+    assert_eq!(plain.bound_settings().count(), 0);
+    // What the check found is not sent, and is found again on decode.
+    let sent = serde_json::to_string(&document).expect("encode");
+    assert!(!sent.contains("bindings") && !sent.contains("required_client"));
+    assert_eq!(
+        serde_json::from_str::<ClientDocument>(&sent).expect("again"),
+        document
+    );
+
+    let both = declared(r#"[{"id":"display","version":2},{"id":"names","version":1}]"#);
+    assert!(document.check_settings(&both).is_ok());
+    let one = declared(r#"[{"id":"display","version":2}]"#);
+    assert!(matches!(
+        document.check_settings(&one),
+        Err(DocumentError::UndeclaredSettings)
+    ));
+    assert!(matches!(
+        document.check_settings(&SettingsDeclarations::default()),
+        Err(DocumentError::UndeclaredSettings)
+    ));
+    assert!(
+        plain
+            .check_settings(&SettingsDeclarations::default())
+            .is_ok()
+    );
+}
+
+#[test]
+fn open_settings_needs_a_settings_screen_and_a_select_needs_distinct_options() {
+    let refused = |text: &str| ClientDocument::decode(text.as_bytes()).expect_err("refused");
+    let plain_screen = BOUND.replace(r#""kind":"settings_screen""#, r#""kind":"screen""#);
+    assert!(matches!(
+        refused(&plain_screen),
+        DocumentError::MissingScreen
+    ));
+    let options = r#"[{"id":"blue","title":"Blue"}]"#;
+    assert!(matches!(
+        refused(&BOUND.replace(options, "[]")),
+        DocumentError::EmptyOptions
+    ));
+    let twice = r#"[{"id":"blue","title":"Blue"},{"id":"blue","title":"Also blue"}]"#;
+    assert!(matches!(
+        refused(&BOUND.replace(options, twice)),
+        DocumentError::Duplicate
+    ));
+    assert!(matches!(
+        refused(&BOUND.replace("showMetadata", "show.metadata")),
+        DocumentError::Decode(_)
+    ));
+}
+
+#[test]
+fn settings_keys_are_ascii_identifiers() {
+    use crate::plugins::SettingsKey;
+
+    for good in ["showMetadata", "_private", "a1", "A"] {
+        assert!(good.parse::<SettingsKey>().is_ok(), "{good}");
+    }
+    let long = "a".repeat(65);
+    for bad in ["", "1a", "a-b", "a.b", "a b", "é", long.as_str()] {
+        assert!(bad.parse::<SettingsKey>().is_err(), "{bad}");
+    }
+}

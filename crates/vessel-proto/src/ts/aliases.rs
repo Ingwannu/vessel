@@ -104,8 +104,9 @@
 //!   writes, plain.
 //! - Plugin settings (ADR 0115, "Settings"): `SettingsRevision` is the
 //!   node's opaque revision a client hands back unchanged, branded;
-//!   `SettingsId` is what a plugin's author names, plain; `SettingsMessage`
-//!   is a helper's words for a person, carried content.
+//!   `SettingsId` and a control's `SettingsKey` (ADR 0115, "Surfaces") are
+//!   what a plugin's author names, plain; `SettingsMessage` is a helper's
+//!   words for a person, carried content.
 
 /// What a primitive alias is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -283,6 +284,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("SessionTitle", Alias::Named),
     ("SessionUpdatedAt", Alias::Quantity),
     ("SettingsId", Alias::Named),
+    ("SettingsKey", Alias::Named),
     ("SettingsMessage", Alias::Content),
     ("SettingsRevision", Alias::Handle),
     ("Sha256Hex", Alias::Named),
