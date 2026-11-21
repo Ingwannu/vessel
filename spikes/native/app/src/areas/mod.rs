@@ -25,6 +25,7 @@ pub(crate) mod notify;
 pub(crate) mod pair;
 pub(crate) mod palette;
 pub(crate) mod plugin_items;
+pub(crate) mod plugin_screen;
 pub(crate) mod presence;
 pub(crate) mod pulls;
 pub(crate) mod session;
@@ -85,6 +86,8 @@ pub(crate) struct Areas {
     pub(crate) notify: notify::NotifyArea,
     /// Every machine's plugin catalog and its watcher (ADR 0115).
     pub(crate) plugin_catalogs: vessel_app_view::plugins::Catalogs,
+    /// The open plugin screen (ADR 0115, "Surfaces").
+    pub(crate) plugin_screen: plugin_screen::ScreenArea,
     /// This window's presence on every machine (`push.presence`).
     pub(crate) presence: presence::PresenceArea,
 }
@@ -142,6 +145,7 @@ impl Areas {
             terminal_tabs: terminal_tabs::TerminalTabs::new(cx),
             notify: notify::NotifyArea::new(window, cx),
             plugin_catalogs: vessel_app_view::plugins::Catalogs::default(),
+            plugin_screen: plugin_screen::ScreenArea::new(cx),
             presence: presence::PresenceArea::new(window, cx),
         };
         // Track P: the composers' drafts read back, and kept as typed.

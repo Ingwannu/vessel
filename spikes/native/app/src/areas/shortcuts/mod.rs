@@ -348,9 +348,12 @@ impl Shell {
                 .composer
                 .focus_handle(cx)
                 .is_focused(window),
-            Route::Board | Route::Sessions | Route::Archive | Route::Pair | Route::Settings => {
-                false
-            }
+            Route::Board
+            | Route::Sessions
+            | Route::Archive
+            | Route::Pair
+            | Route::Settings
+            | Route::Plugin => false,
         };
         context.focus = if self.areas.palette.is_open() {
             FocusScope::CommandCenter

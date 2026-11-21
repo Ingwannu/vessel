@@ -259,7 +259,7 @@ impl Shell {
             PaletteTarget::Theme(theme) => {
                 self.prefer(&PreferenceChange::Theme(theme), window, cx);
             }
-            PaletteTarget::Plugin { command, .. } => self.run_plugin_command(&command),
+            PaletteTarget::Plugin { command, .. } => self.run_plugin_command(&command, window, cx),
         }
     }
 }

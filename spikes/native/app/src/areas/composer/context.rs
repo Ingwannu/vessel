@@ -77,7 +77,8 @@ impl Shell {
             | crate::routes::Route::Board
             | crate::routes::Route::Archive
             | crate::routes::Route::Settings
-            | crate::routes::Route::Pair => None,
+            | crate::routes::Route::Pair
+            | crate::routes::Route::Plugin => None,
         }
     }
     /// Producers use one localized presentation for a rejected context intake.
