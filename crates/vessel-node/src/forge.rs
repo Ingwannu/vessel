@@ -47,8 +47,8 @@ use tokio_util::task::TaskTracker;
 use vessel_forge::{EnvTokens, Forge};
 use vessel_harness::Lookup;
 use vessel_proto::forge::{
-    ForgeStatus, PullRequestList, PullRequestView, RepoLimit, RepoQuery, RepositoryList,
-    SessionPullRequest,
+    ForgeHost, ForgeKind, ForgeStatus, PullRequestList, PullRequestView, RepoLimit, RepoQuery,
+    RepositoryList, SessionPullRequest,
 };
 use vessel_proto::{ErrorCode, ProjectId, SessionId, WireError};
 use vessel_session::SessionHandle;
@@ -204,6 +204,12 @@ impl Forges {
         self.hosts
             .status(self.watched.load(Ordering::Relaxed), limit)
             .await
+    }
+
+    /// What the node knows `host` to be, without waiting (ADR 0123 step
+    /// B): see `Hosts::kind_of`.
+    pub(crate) fn kind_of(&self, host: &ForgeHost) -> Option<ForgeKind> {
+        self.hosts.kind_of(host)
     }
 
     /// `forge.repos` (ADR 0088).

@@ -220,3 +220,42 @@ mod encodings {
         assert!(response.headers().get(VARY).is_none());
     }
 }
+
+mod routes {
+    use super::super::*;
+    use crate::paint::Paint;
+
+    #[test]
+    fn app_routes_with_dotted_names_are_pages_and_missing_files_are_not() {
+        for page in [
+            "/fleet/gpu.box",
+            "/sessions/gpu.box/3f2a",
+            "/fleet",
+            "/devices",
+            "/settings/appearance",
+            "/kit",
+        ] {
+            let response = serve(
+                &Method::GET,
+                &page.parse().unwrap(),
+                &HeaderMap::new(),
+                Paint::default(),
+            );
+            assert_eq!(response.status(), StatusCode::OK, "{page}");
+            assert_eq!(
+                response.headers().get(CACHE_CONTROL).unwrap(),
+                INDEX_CACHE,
+                "{page}"
+            );
+        }
+        for missing in ["/missing.js", "/assets/gone.css", "/fleetx/a.js"] {
+            let response = serve(
+                &Method::GET,
+                &missing.parse().unwrap(),
+                &HeaderMap::new(),
+                Paint::default(),
+            );
+            assert_eq!(response.status(), StatusCode::NOT_FOUND, "{missing}");
+        }
+    }
+}

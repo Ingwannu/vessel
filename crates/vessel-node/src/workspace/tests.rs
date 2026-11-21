@@ -16,7 +16,7 @@ use vessel_proto::workspace::{
 use vessel_proto::{Creator, NodeId, ProjectId, SessionId};
 use vessel_store::{DataDir, Store, StoreConfig};
 
-use super::{Occupant, Opening, TidyScope, WorkspaceError, Workspaces};
+use super::{Occupant, Opening, Origin, TidyScope, WorkspaceError, Workspaces};
 
 struct Fixture {
     temp: tempfile::TempDir,
@@ -876,6 +876,41 @@ async fn a_link_out_of_the_root_reads_and_writes_as_not_there() {
     );
 }
 
+/// ADR 0123 step B: a status names `origin`'s host and path, never its
+/// address, and only when asked to (a peer that is served it).
+#[tokio::test]
+async fn a_status_names_origin_s_host_and_path_and_never_its_address() {
+    let fixture = Fixture::new().await;
+    let project = fixture.project("app", None).await;
+    let root = WorkspaceRoot::Project {
+        project: project.id,
+    };
+    let read = |origin| fixture.workspaces.git_status(root, origin);
+    assert_eq!(read(Origin::Read).await.unwrap().origin, None);
+    let _added = fixture.git(
+        &project.root,
+        &[
+            "remote",
+            "add",
+            "origin",
+            "https://user:secret@GitHub.com/Owner/App.git",
+        ],
+    );
+    assert_eq!(read(Origin::Skip).await.unwrap().origin, None);
+    let status = read(Origin::Read).await.unwrap();
+    let origin = status.origin.clone().unwrap();
+    assert_eq!(
+        (origin.host.as_str(), origin.path.as_str(), origin.kind),
+        ("github.com", "Owner/App", None)
+    );
+    assert!(!serde_json::to_string(&status).unwrap().contains("secret"));
+    let _moved = fixture.git(
+        &project.root,
+        &["remote", "set-url", "origin", "/srv/repos/app.git"],
+    );
+    assert_eq!(read(Origin::Read).await.unwrap().origin, None);
+}
+
 #[tokio::test]
 async fn git_calls_answer_in_a_worktree_and_follow_its_branch() {
     let fixture = Fixture::new().await;
@@ -885,7 +920,11 @@ async fn git_calls_answer_in_a_worktree_and_follow_its_branch() {
         worktree: worktree.id,
     };
     std::fs::write(worktree.path.join("README.md"), "changed\n").unwrap();
-    let status = fixture.workspaces.git_status(root()).await.unwrap();
+    let status = fixture
+        .workspaces
+        .git_status(root(), Origin::Skip)
+        .await
+        .unwrap();
     assert_eq!(status.files.len(), 1);
     assert_eq!(
         status.base.as_ref().map(|base| base.name.as_str()),
@@ -939,7 +978,7 @@ async fn git_calls_answer_in_a_worktree_and_follow_its_branch() {
     let plain = fixture.workspaces.add_project(plain, None).await.unwrap();
     let error = fixture
         .workspaces
-        .git_status(WorkspaceRoot::Project { project: plain.id })
+        .git_status(WorkspaceRoot::Project { project: plain.id }, Origin::Skip)
         .await
         .unwrap_err();
     assert!(matches!(error, WorkspaceError::NotGit), "{error:?}");
@@ -997,13 +1036,21 @@ async fn a_worktree_redirected_or_replaced_is_not_worked_in() {
     let root = WorkspaceRoot::Worktree {
         worktree: worktree.id,
     };
-    let _clean = fixture.workspaces.git_status(root).await.unwrap();
+    let _clean = fixture
+        .workspaces
+        .git_status(root, Origin::Skip)
+        .await
+        .unwrap();
 
     let gitfile = worktree.path.join(".git");
     let original = std::fs::read_to_string(&gitfile).unwrap();
     std::fs::create_dir(worktree.path.join("fake")).unwrap();
     std::fs::write(&gitfile, "gitdir: ./fake\n").unwrap();
-    let refused = fixture.workspaces.git_status(root).await.unwrap_err();
+    let refused = fixture
+        .workspaces
+        .git_status(root, Origin::Skip)
+        .await
+        .unwrap_err();
     assert!(
         matches!(refused, WorkspaceError::Conflict(_)),
         "{refused:?}"
@@ -1036,7 +1083,7 @@ async fn a_worktree_redirected_or_replaced_is_not_worked_in() {
     };
     let refused = fixture
         .workspaces
-        .git_status(project_root)
+        .git_status(project_root, Origin::Skip)
         .await
         .unwrap_err();
     assert!(

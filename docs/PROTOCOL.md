@@ -68,6 +68,24 @@ no runtime to compile. The package that serves the method changes `staged`
 to `pending` in the commit that adds its handler; from then on the guard
 requires the handler, as for every assigned or pending row.
 
+## Version 42 (2026-11-21, milestone 12): where `origin` keeps a repository, on a git status (impl F, TRACKER 467 step B, ADR 0123 "Step B")
+
+Assigned 42 (`ORIGIN_LINK_PROTOCOL`, `PROTOCOL_VERSION` 42) at its node-line merge, the next after the plugin catalog's
+41. No method is added.
+
+- `GitStatus` (`git.status`, `git.stage`, `git.unstage`, `git.discard`) gains optional
+  `origin { host, path, kind? }`: where `origin` (`git remote get-url origin`) keeps the repository. `host` is
+  lower-cased, with its port only for an `http(s)` address on a port that is not the scheme's own; `path` is the
+  repository's `owner/name` (or nested groups), without `.git`. The address itself never leaves the node (it may hold a
+  token). Absent when there is no `origin` or its address is not one of Paseo's forms (`user@host:path`, or an
+  `https`, `http` or `ssh` URL).
+- `kind` is `github` for GitHub's own hosts and for a host the node holds a GitHub token for (from its environment or
+  `gh`); absent otherwise. A host `gh` was not asked about is asked off the read, so a later status says it. Clients
+  map the public hosts of other forges themselves (Paseo's `forge-manifest.ts`), for an "Open on <forge>" link.
+- A peer below the number is not served `origin`: the node does not read it for such a peer, and
+  `Reply::for_protocol` strips it from a status nested in a fleet envelope.
+- The minimum protocol remains 2. The store schema is unchanged.
+
 ## Version 41 (2026-11-20, milestone 12): a node's plugin catalog and plugin method calls (impl P, ADR 0115 "Catalog and invoke")
 
 Assigned 41 (`PLUGIN_CATALOG_PROTOCOL`, `PROTOCOL_VERSION` 41) at its node-line merge, the next after the workspace-folder

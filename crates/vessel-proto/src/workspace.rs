@@ -47,9 +47,10 @@ pub use files::{
 pub use git::{
     Branch, BranchList, Commit, CommitInfo, CommitOutcome, CommitPage, CommitStage, Discard,
     Distance, Fetch, FetchOutcome, FileState, GetStatus, GitRefusal, GitStatus, ListBranches,
-    ListStashes, PathSet, Pull, PullOutcome, Push, PushOutcome, ReadLog, RenameBranch,
-    RenameOutcome, RepositoryConfigReason, ShowFile, Stage, StashAction, StashChanges, StashEntry,
-    StashList, StashOutcome, StatusEntry, Switch, SwitchOutcome, Unstage, WorkspaceRoot,
+    ListStashes, ORIGIN_LINK_PROTOCOL, OriginRepo, PathSet, Pull, PullOutcome, Push, PushOutcome,
+    ReadLog, RenameBranch, RenameOutcome, RepositoryConfigReason, ShowFile, Stage, StashAction,
+    StashChanges, StashEntry, StashList, StashOutcome, StatusEntry, Switch, SwitchOutcome, Unstage,
+    WorkspaceRoot, serves_origin,
 };
 pub use panel::{
     CompareGit, CompareGitFile, GIT_PANEL, GitCompared, GitComparison, GitHunkOffset,

@@ -84,6 +84,9 @@ const rootRoute = createRootRoute({ component: Root });
    - Cost: opening one of those screens the first time waits for its
      chunk (one request; the measured sizes are in PERFORMANCE.md). */
 
+// The first segment of every route here, and `/kit` in main.tsx, is listed
+// in `APP_ROUTES` (crates/vessel-web/src/files.rs), so a reload of a deep
+// link is the page even when a node name holds a dot: keep the two in step.
 const routeTree = rootRoute.addChildren([
   createRoute({
     getParentRoute: () => rootRoute,

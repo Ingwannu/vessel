@@ -147,7 +147,7 @@ pub async fn serve<S: NodeSource>(
         .fallback(page::<S>)
         .with_state(ui)
         .layer(middleware::from_fn_with_state(allowed, guard));
-    let served = crate::transport::serve(
+    crate::transport::serve(
         listener,
         app,
         config.max_connections,
@@ -158,7 +158,6 @@ pub async fn serve<S: NodeSource>(
     .await;
     // The drafts' last saves are written before `vessel ui` exits.
     kept.finish().await;
-    served?;
     Ok(())
 }
 

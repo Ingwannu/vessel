@@ -8,6 +8,7 @@
 //! and again by `workspace`: clients name them `vessel_proto::workspace::`
 //! and never by these submodules.
 
+mod origin;
 mod outcomes;
 mod requests;
 mod state;
@@ -16,6 +17,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::id::{ProjectId, WorktreeId};
 
+pub use origin::{ORIGIN_LINK_PROTOCOL, OriginRepo, serves_origin};
 pub use outcomes::{
     CommitOutcome, FetchOutcome, GitRefusal, PullOutcome, PushOutcome, RenameOutcome,
     RepositoryConfigReason, StashOutcome, SwitchOutcome,
