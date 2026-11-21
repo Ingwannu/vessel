@@ -7,22 +7,24 @@
 //! - Existing implementation and constraints: the pane drew "Choose what to
 //!   open in this pane." and a New agent button. Agent and Terminal (a
 //!   shell, TRACKER 481) can start (`layout::launch`); the app knows no
-//!   plugin panels and no node terminal profiles; Settings › Terminals is
-//!   not drawn.
+//!   plugin panels.
 //! - Alternatives considered: more buttons under the line (not Paseo); the
 //!   "+" menu's rows in the pane (a menu's look, not the panel's).
 //! - Chosen approach: the view's catalog and `layout::launch` for the
-//!   built-ins, as the "+" menu; the shipped profiles (Paseo's list when it
-//!   has no configuration); one focus handle for every panel, owned by the
-//!   panel last pressed or opened, with a highlighted row.
+//!   built-ins, as the "+" menu; the workspace machine's own profiles
+//!   (`areas::terminal_profiles`, ADR 0117), each starting its program in a
+//!   new terminal, with Edit profiles opening Settings › Terminals for that
+//!   machine; one focus handle for every panel, owned by the panel last
+//!   pressed or opened, with a highlighted row.
 //! - Why: one launch table keeps the menu and the panel the same; one handle
 //!   is enough because one panel holds the keys at a time.
-//! - Pros, cons and impact: most rows and every profile row are disabled
-//!   until their panels land, drawn at half opacity with no hover and
-//!   skipped by the arrows (the coordinator, 2026-11-18); Edit profiles is
-//!   disabled the same way; no chords yet. Plan:
-//!   `docs/plans/wp-new-tab-panel.md`.
+//! - Pros, cons and impact: most built-in rows are disabled until their
+//!   panels land, drawn at half opacity with no hover and skipped by the
+//!   arrows (the coordinator, 2026-11-18); no chords yet. The profile group
+//!   is left out until the machine's list is read, and for a node below
+//!   protocol 45. Plan: `docs/plans/wp-new-tab-panel.md`.
 use super::launch;
+use crate::areas::terminal_profiles::menu::Choice;
 use crate::shell::Shell;
 use vessel_app_kit::agent_mark::{Size, Space};
 use vessel_app_kit::assets::Glyph;
@@ -38,7 +40,7 @@ use vessel_app_view::agent_mark::AgentMark;
 use vessel_app_view::layout::{
     Availability, Launch, LaunchPurpose, LayoutKey, PaneId, TabId, catalog,
 };
-use vessel_proto::terminal_profiles::Profiles;
+use vessel_proto::terminal_profiles::Id;
 
 /// Paseo's `LAUNCHER_MAX_WIDTH`.
 const RAIL_MAX: f32 = 380.0;
@@ -52,8 +54,8 @@ const EDIT_GLYPH: f32 = 12.0;
 const PRESSED: f32 = 0.85;
 /// The kit's disabled controls (the menu's disabled rows).
 const DISABLED: f32 = 0.5;
-/// The pencil at rest is Paseo's 50%; disabled, half of that.
-const EDIT_DISABLED: f32 = 0.25;
+/// The pencil at rest (Paseo's `opacity: 0.5`, full on hover).
+const EDIT_REST: f32 = 0.5;
 /// Paseo's `-(EDIT_PROFILES_HIT_SIZE - ICON_SIZE.xs) / 2`: the box grows
 /// round the glyph without growing the header.
 const EDIT_MARGIN: f32 = -4.0;
@@ -100,6 +102,30 @@ enum Icon {
     Mark(AgentMark),
 }
 
+/// What a row starts.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum Act {
+    /// A built-in tab.
+    Launch(Launch),
+    /// A terminal running one of the machine's profiles (ADR 0117).
+    Profile(Id),
+}
+
+impl Act {
+    fn run(
+        self,
+        shell: &mut Shell,
+        replaced: Option<TabId>,
+        window: &mut Window,
+        cx: &mut Context<'_, Shell>,
+    ) {
+        match self {
+            Self::Launch(chosen) => launch::run(shell, chosen, replaced, window, cx),
+            Self::Profile(id) => shell.terminal_tab_new_profile(id, replaced, window, cx),
+        }
+    }
+}
+
 struct Row {
     /// Its place over every row of every group.
     index: usize,
@@ -107,13 +133,12 @@ struct Row {
     label: SharedString,
     icon: Icon,
     /// What it starts; `None`: listed, disabled.
-    launch: Option<Launch>,
+    act: Option<Act>,
 }
 
 struct Group {
     label: Option<SharedString>,
-    /// Paseo's group accessory (Edit profiles), drawn disabled: its
-    /// accessible name.
+    /// Paseo's group accessory (Edit profiles): its accessible name.
     edit: Option<SharedString>,
     rows: Vec<Row>,
 }
@@ -139,7 +164,7 @@ fn groups(shell: &Shell, window: &Window) -> Vec<Group> {
         id: format!("{chosen:?}").to_lowercase().into(),
         label: launch::label(shell, chosen).to_owned().into(),
         icon: Icon::Glyph(launch::glyph(chosen)),
-        launch: (availability == Availability::Ready).then_some(chosen),
+        act: (availability == Availability::Ready).then_some(Act::Launch(chosen)),
     })
     .collect();
     let mut groups = vec![Group {
@@ -147,14 +172,12 @@ fn groups(shell: &Shell, window: &Window) -> Vec<Group> {
         edit: None,
         rows: tabs,
     }];
-    // The node's profiles do not reach the app yet; Paseo shows the
-    // shipped ones when it has no configuration. A profile runs its own
-    // program, which `terminal.create` cannot start yet (ADR 0117), so they
-    // stay disabled while Terminal starts a shell.
-    let profiles: Vec<Row> = Profiles::shipped()
-        .map(|shipped| {
-            shipped
-                .entries()
+    // The workspace machine's list in force (its kept list, else the
+    // shipped four), in its order, once read.
+    let profiles: Vec<Row> = shell
+        .terminal_profiles_shown()
+        .map(|list| {
+            list.entries()
                 .iter()
                 .map(|profile| Row {
                     index: next(),
@@ -162,7 +185,7 @@ fn groups(shell: &Shell, window: &Window) -> Vec<Group> {
                     label: profile.name().as_str().to_owned().into(),
                     icon: AgentMark::of_profile(profile)
                         .map_or(Icon::Glyph(Glyph::SquareTerminal), Icon::Mark),
-                    launch: None,
+                    act: Some(Act::Profile(profile.id().clone())),
                 })
                 .collect()
         })
@@ -178,11 +201,11 @@ fn groups(shell: &Shell, window: &Window) -> Vec<Group> {
 }
 
 /// The ready rows' places, in order.
-fn ready(groups: &[Group]) -> Vec<(usize, Launch)> {
+fn ready(groups: Vec<Group>) -> Vec<(usize, Act)> {
     groups
-        .iter()
-        .flat_map(|group| &group.rows)
-        .filter_map(|row| row.launch.map(|chosen| (row.index, chosen)))
+        .into_iter()
+        .flat_map(|group| group.rows)
+        .filter_map(|row| row.act.map(|act| (row.index, act)))
         .collect()
 }
 
@@ -272,8 +295,10 @@ fn group_view(
             )
             .when_some(edit, |header, name| {
                 // Its box keeps the row 20 tall (Paseo's negative margin). A
-                // named button, as Paseo's `EditProfilesButton`; disabled, so
-                // it offers no Click.
+                // named button, as Paseo's `EditProfilesButton`: the pencil
+                // at half opacity, the box on `surface2` under the pointer;
+                // it opens Settings › Terminals for the workspace's machine.
+                let surface2 = neutral.surface2;
                 header.child(
                     div()
                         .id("new-tab-edit-profiles")
@@ -282,15 +307,24 @@ fn group_view(
                         .debug_selector(|| "new-tab-edit-profiles".to_owned())
                         .size(px(EDIT_HIT))
                         .m(px(EDIT_MARGIN))
+                        .rounded(px(radius::MD))
                         .flex()
                         .items_center()
                         .justify_center()
-                        .opacity(EDIT_DISABLED)
-                        .child(glyph(
+                        .cursor_pointer()
+                        .hover(move |style| style.bg(surface2))
+                        .active(move |style| style.bg(surface2))
+                        .on_mouse_down(MouseButton::Left, |_event, _window, cx| {
+                            cx.stop_propagation();
+                        })
+                        .on_click(cx.listener(|shell, _event, window, cx| {
+                            shell.terminal_profiles_choose(Choice::Edit, None, window, cx);
+                        }))
+                        .child(div().opacity(EDIT_REST).child(glyph(
                             Glyph::Pencil,
                             EDIT_GLYPH,
                             neutral.foreground_extra_muted,
-                        )),
+                        ))),
                 )
             })
     });
@@ -363,7 +397,7 @@ fn row_view(
                 .text_color(neutral.foreground)
                 .child(row.label),
         );
-    let Some(chosen) = row.launch else {
+    let Some(act) = row.act else {
         return body.opacity(DISABLED).into_any_element();
     };
     let surface2 = neutral.surface2;
@@ -381,7 +415,7 @@ fn row_view(
             }),
         )
         .on_click(cx.listener(move |shell, _event, window, cx| {
-            launch::run(shell, chosen, replaced, window, cx);
+            act.clone().run(shell, replaced, window, cx);
         }))
         .into_any_element()
 }
@@ -396,7 +430,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
-        let first = ready(&groups(self, window))
+        let first = ready(groups(self, window))
             .first()
             .map_or(0, |(index, _)| *index);
         let keys = &mut self.areas.layout.new_tab;
@@ -409,7 +443,7 @@ impl Shell {
     /// Paseo's keys: Up and Down move over the ready rows and wrap, Enter
     /// starts the highlighted one. Whether the key was the panel's.
     fn new_tab_key(&mut self, key: &str, window: &mut Window, cx: &mut Context<'_, Self>) -> bool {
-        let rows = ready(&groups(self, window));
+        let rows = ready(groups(self, window));
         let at = rows
             .iter()
             .position(|(index, _)| *index == self.areas.layout.new_tab.row);
@@ -431,7 +465,7 @@ impl Shell {
                 true
             }
             "enter" => {
-                if let Some((_, chosen)) = at.and_then(|at| rows.get(at)) {
+                if let Some((_, act)) = at.and_then(|at| rows.into_iter().nth(at)) {
                     let replaced = self
                         .areas
                         .layout
@@ -439,7 +473,7 @@ impl Shell {
                         .owner
                         .as_ref()
                         .and_then(Owner::replaced);
-                    launch::run(self, *chosen, replaced, window, cx);
+                    act.run(self, replaced, window, cx);
                 }
                 true
             }

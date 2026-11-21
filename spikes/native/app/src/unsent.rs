@@ -119,6 +119,12 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
             ask,
         } => Event::Devices(ask.rejected(context, ticket, devices::rejected(why))),
         Command::NodeSettings(ask) => Event::NodeSettings(ask.refused(idle_problem(why))),
+        Command::TerminalProfiles(ask) => Event::TerminalProfiles(ask.refused(match why {
+            Rejected::Full => {
+                vessel_app_view::terminal_profiles::Problem::Refused(ErrorCode::Unavailable)
+            }
+            Rejected::Closed => vessel_app_view::terminal_profiles::Problem::Offline,
+        })),
         Command::Diagnostics(ask) => Event::Diagnostics(ask.refused(diagnostics_problem(why))),
         Command::Plugins(ask) => Event::Plugins(ask.refused(plugins_problem(why))),
         Command::PluginCatalog(ask) => Event::PluginCatalog(ask.refused(plugins_problem(why))),

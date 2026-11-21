@@ -89,6 +89,7 @@ fn page(section: Section) -> Option<Draw> {
         Section::Plugins => {
             Some(|shell, tokens, phone, _, cx| plugins::render(shell, tokens, phone, cx))
         }
+        Section::Terminals => Some(crate::areas::terminal_profiles::page::render),
         // Not drawn yet. Sidebar waits on S3's sidebar reading its items;
         // the rest have nothing behind them in Vessel yet.
         Section::Sidebar
@@ -100,7 +101,6 @@ fn page(section: Section) -> Option<Draw> {
         | Section::Metadata
         | Section::Voice
         | Section::Workspaces
-        | Section::Terminals
         | Section::Models => None,
     }
 }
