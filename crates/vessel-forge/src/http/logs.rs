@@ -18,7 +18,16 @@
 //!   (200): read as any answer, at most 4 MiB.
 //! - Must stay true: the signed address is never logged, kept or sent to
 //!   a client (errors are made without their URL).
+//! - Trust boundary (ADR 0088): the address comes from the configured
+//!   forge host, which is trusted; a `localhost` name or a literal address
+//!   in a special-purpose range (RFC 6890: loopback, private, link-local,
+//!   unique-local, shared, benchmarking, multicast, reserved and the
+//!   like, IPv4 carried in IPv6 judged as IPv4) is refused before any
+//!   request ([`public_host`]).
+//!   A name that only resolves to such an address is not caught here (a
+//!   stated gap; DNS-level filtering would ride ADR 0104's resolver).
 
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::time::Duration;
 
 use reqwest::StatusCode;
@@ -68,9 +77,9 @@ impl Http {
         };
         let url = reqwest::Url::parse(&location)
             .ok()
-            .filter(|url| url.scheme() == "https")
+            .filter(|url| url.scheme() == "https" && public_host(url))
             .ok_or(ForgeError::Unexpected {
-                what: "a job's log address (https only)",
+                what: "a job's log address (https, a public host)",
             })?;
         self.signed(url).await
     }
@@ -136,6 +145,87 @@ impl Http {
 /// A failed read, without the signed address in it.
 fn unreachable(error: reqwest::Error) -> ForgeError {
     ForgeError::Unreachable(error.without_url())
+}
+
+/// Whether `url`'s host may be asked for a log: not `localhost` (or a
+/// name under it) and not a literal address outside the public internet.
+fn public_host(url: &reqwest::Url) -> bool {
+    let Some(host) = url.host_str() else {
+        return false;
+    };
+    let bare = host.trim_start_matches('[').trim_end_matches(']');
+    match bare.parse::<IpAddr>() {
+        Ok(IpAddr::V4(address)) => public_v4(address),
+        Ok(IpAddr::V6(address)) => public_v6(address),
+        Err(_) => {
+            let name = bare.trim_end_matches('.').to_ascii_lowercase();
+            name != "localhost" && !name.ends_with(".localhost")
+        }
+    }
+}
+
+/// Not a special-purpose IPv4 range (RFC 6890): "this network" 0/8,
+/// private, shared 100.64/10, loopback, link local, IETF 192.0.0/24,
+/// benchmarking 198.18/15, multicast 224/4 and reserved 240/4 (with the
+/// broadcast address in it).
+fn public_v4(address: Ipv4Addr) -> bool {
+    let [first, second, third, _] = address.octets();
+    let this_network = first == 0;
+    let shared = first == 100 && (second & 0xc0) == 64;
+    let ietf = first == 192 && second == 0 && third == 0;
+    let benchmarking = first == 198 && (second & 0xfe) == 18;
+    let reserved = first >= 240;
+    !(this_network
+        || address.is_private()
+        || shared
+        || address.is_loopback()
+        || address.is_link_local()
+        || ietf
+        || benchmarking
+        || address.is_multicast()
+        || reserved)
+}
+
+/// Not loopback, unspecified, unique local `fc00::/7`, link local
+/// `fe80::/10` or multicast `ff00::/8`; an IPv4 address carried in an IPv6
+/// one (mapped `::ffff:a.b.c.d`, compatible `::a.b.c.d`, NAT64
+/// `64:ff9b::/96` and 6to4 `2002::/16`) is judged as that IPv4 address.
+fn public_v6(address: Ipv6Addr) -> bool {
+    if let Some(carried) = carried_v4(address) {
+        return public_v4(carried);
+    }
+    let [first, ..] = address.segments();
+    let unique_local = (first & 0xfe00) == 0xfc00;
+    let link_local = (first & 0xffc0) == 0xfe80;
+    !(address.is_loopback()
+        || address.is_unspecified()
+        || unique_local
+        || link_local
+        || address.is_multicast())
+}
+
+/// The IPv4 address an IPv6 literal carries, when it is one of the forms
+/// that carry one.
+fn carried_v4(address: Ipv6Addr) -> Option<Ipv4Addr> {
+    if let Some(mapped) = address.to_ipv4_mapped() {
+        return Some(mapped);
+    }
+    match address.segments() {
+        // ::a.b.c.d, but not :: or ::1 (judged as IPv6).
+        [0, 0, 0, 0, 0, 0, high, low] if high != 0 || low > 1 => Some(joined(high, low)),
+        // NAT64 64:ff9b::a.b.c.d, and 6to4 2002:aabb:ccdd::.
+        [0x64, 0xff9b, 0, 0, 0, 0, high, low] | [0x2002, high, low, ..] => {
+            Some(joined(high, low))
+        }
+        _ => None,
+    }
+}
+
+/// Two 16-bit halves as one IPv4 address.
+fn joined(high: u16, low: u16) -> Ipv4Addr {
+    let [a, b] = high.to_be_bytes();
+    let [c, d] = low.to_be_bytes();
+    Ipv4Addr::new(a, b, c, d)
 }
 
 /// The last [`TAIL`] bytes of `bytes`; `cut` when anything before them is
@@ -234,6 +324,53 @@ mod tests {
         assert!(whole.cut);
         for seen in [seen, seen_whole] {
             assert_eq!(*seen.lock().unwrap(), [false], "one request, no token");
+        }
+    }
+
+    #[test]
+    fn a_log_address_on_a_private_or_local_host_is_refused() {
+        let public = |address: &str| public_host(&address.parse().unwrap());
+        assert!(public(
+            "https://productionresultssa1.blob.core.windows.net/log"
+        ));
+        assert!(public("https://93.184.216.34/log"));
+        assert!(public("https://[2606:4700::1111]/log"));
+        // A public IPv4 address carried in NAT64 or 6to4 stays public.
+        assert!(public("https://[64:ff9b::5db8:d822]/log"));
+        assert!(public("https://[2002:5db8:d822::]/log"));
+        assert!(public("https://198.20.0.1/log"));
+        for refused in [
+            "https://localhost/log",
+            "https://LOCALHOST./log",
+            "https://api.localhost/log",
+            "https://127.0.0.1/log",
+            "https://10.1.2.3/log",
+            "https://172.16.0.1/log",
+            "https://192.168.1.1/log",
+            "https://169.254.169.254/latest/meta-data",
+            "https://100.64.0.1/log",
+            "https://0.0.0.0/log",
+            "https://[::1]/log",
+            "https://[fd00::1]/log",
+            "https://[fe80::1]/log",
+            "https://[::ffff:127.0.0.1]/log",
+            // The node reviewer's second list: special-purpose IPv4 and
+            // IPv6 literals that carry one.
+            "https://0.1.2.3/log",
+            "https://192.0.0.8/log",
+            "https://198.18.0.1/log",
+            "https://198.19.255.1/log",
+            "https://224.0.0.1/log",
+            "https://240.0.0.1/log",
+            "https://255.255.255.255/log",
+            "https://[::127.0.0.1]/log",
+            "https://[::10.0.0.1]/log",
+            "https://[64:ff9b::10.0.0.1]/log",
+            "https://[2002:a00:1::]/log",
+            "https://[2002:7f00:1::]/log",
+            "https://[ff02::1]/log",
+        ] {
+            assert!(!public(refused), "{refused}");
         }
     }
 
