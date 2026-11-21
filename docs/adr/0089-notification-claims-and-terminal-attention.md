@@ -506,8 +506,9 @@ on the desktop's dock and swaps its favicon among none, running and attention (`
 
 ## Turned on (2026-11-21, impl U; the number is given at the node-line merge)
 
-`ATTENTION_NOTIFICATIONS_PROTOCOL` is assigned: 45 in this packet, the next after 44, and the integrator gives the
-real number at merge (`PROTOCOL_VERSION` with it, docs/PROTOCOL.md "Version 45"). Everything below that was
+`ATTENTION_NOTIFICATIONS_PROTOCOL` is assigned: drafted 47 in this packet (after T2's P5a 45 and G's P6a 46), and
+the integrator sets the final number at merge, in merge order (`PROTOCOL_VERSION` with it, docs/PROTOCOL.md "Version
+47"). Everything below that was
 pending on it goes live together, and every test that read "while unassigned" now runs its assigned branch.
 
 What this packet adds for it, each with the coordinator's approval (2026-11-21):

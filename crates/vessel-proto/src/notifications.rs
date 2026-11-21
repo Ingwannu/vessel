@@ -31,10 +31,11 @@ pub const TERMINAL_ACTIVITY_SOCKET_ENV: &str = "VESSEL_TERMINAL_ACTIVITY_SOCKET"
 
 /// Assigned at its node-line merge (ADR 0089, "Turned on"): node admission,
 /// terminal producers, both clients' claims and older-peer refusal are in
-/// place together. 45 is this packet's number, the next after 44; the
-/// integrator gives the real one at merge (T2's P5a also drafted 45).
+/// place together. 47 is this packet's draft (T2's P5a drafted 45, G's P6a
+/// 46); the integrator sets the final number at the node-line merge, in
+/// merge order.
 pub const ATTENTION_NOTIFICATIONS_PROTOCOL: Option<ProtocolVersion> =
-    Some(ProtocolVersion::new(45));
+    Some(ProtocolVersion::new(47));
 
 /// A non-reused revision of explicit activity on one terminal.
 #[derive(
