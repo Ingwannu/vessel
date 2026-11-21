@@ -40,13 +40,32 @@ pub const WIDTH: f32 = 220.0;
 /// Where a trigger was last drawn, in the window.
 pub type Anchor = Rc<Cell<Option<Bounds<Pixels>>>>;
 
-/// The trigger: `label` (the value in effect) and a caret; where it is
+/// The visible value and the field name spoken by assistive technology.
+/// The caller supplies both so a value shared by several fields is unambiguous.
+#[derive(Debug)]
+pub struct Label {
+    value: SharedString,
+    accessible: SharedString,
+}
+
+impl Label {
+    /// Keep the visual value and the caller's localized accessible name together.
+    #[must_use]
+    pub fn new(value: impl Into<SharedString>, accessible: impl Into<SharedString>) -> Self {
+        Self {
+            value: value.into(),
+            accessible: accessible.into(),
+        }
+    }
+}
+
+/// The trigger: the value in effect and a caret; where it is
 /// drawn goes to `anchor`. `open`: its list is showing. `touch`: sized for
 /// a finger. The screen handles its click (open the list).
 #[must_use]
 pub fn trigger(
     id: impl Into<ElementId>,
-    label: impl Into<SharedString>,
+    label: Label,
     anchor: &Anchor,
     open: bool,
     enabled: bool,
@@ -56,6 +75,9 @@ pub fn trigger(
     let neutral = tokens.neutral;
     div()
         .id(id)
+        .role(gpui::Role::Button)
+        .aria_label(label.accessible)
+        .aria_expanded(open)
         .relative()
         .flex()
         .flex_row()
@@ -82,7 +104,7 @@ pub fn trigger(
                 .overflow_hidden()
                 .whitespace_nowrap()
                 .text_ellipsis()
-                .child(label.into()),
+                .child(label.value),
         )
         .child(glyph(Glyph::ChevronDown, 14.0, neutral.foreground_muted))
 }

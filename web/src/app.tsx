@@ -129,6 +129,14 @@ const routeTree = rootRoute.addChildren([
   }),
   createRoute({
     getParentRoute: () => rootRoute,
+    path: "/schedules",
+    component: lazyRouteComponent(
+      () => import("./routes/schedules"),
+      "SchedulesPage",
+    ),
+  }),
+  createRoute({
+    getParentRoute: () => rootRoute,
     path: "/sessions/$node/$id",
     component: lazyRouteComponent(
       () => import("./routes/session"),

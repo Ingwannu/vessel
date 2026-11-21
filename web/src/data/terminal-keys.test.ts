@@ -50,6 +50,12 @@ describe("the keys' bytes, as native's keys.rs", () => {
     expect(ctrl("?")).toBe("\x7f");
   });
 
+  it("upper-cases only ASCII for Control, and Shift gives one character (P4w note 2)", () => {
+    expect(encodeKey({ char: "ß" }, set({ ctrl: true }), false)).toBe("ß");
+    expect(encodeKey({ char: "ß" }, set({ shift: true }), false)).toBe("S");
+    expect(encodeKey({ char: "é" }, set({ shift: true }), false)).toBe("É");
+  });
+
   it("prefixes Alt and shifts characters", () => {
     expect(encodeKey({ char: "x" }, set({ alt: true }), false)).toBe("\x1bx");
     expect(encodeKey({ char: "x" }, set({ shift: true }), false)).toBe("X");

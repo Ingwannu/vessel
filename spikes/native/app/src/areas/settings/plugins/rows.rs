@@ -360,7 +360,8 @@ fn trigger(
         tokens,
     )
     .role(gpui::Role::Button)
-    .aria_label(label);
+    .aria_label(label)
+    .aria_expanded(open);
     if !ready {
         return element.into_any_element();
     }

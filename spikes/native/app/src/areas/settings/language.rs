@@ -50,10 +50,13 @@ pub(crate) fn row(
 ) -> AnyElement {
     let words = shell.words.meta();
     let state = &shell.areas.settings.language;
-    let value = shell.prefs.settings.language;
+    let value = shell.prefs.settings.language.label(shell.words);
     let trigger = select::trigger(
         "settings-language",
-        SharedString::new_static(value.label(shell.words)),
+        select::Label::new(
+            SharedString::new_static(value),
+            shell.words.select_field_name(words.language(), value),
+        ),
         &state.anchor,
         state.list.is_open(),
         true,

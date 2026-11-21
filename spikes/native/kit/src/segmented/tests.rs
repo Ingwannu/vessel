@@ -1,5 +1,6 @@
 //! Literal reference geometry plus actual scene paints, without OS/pixel claims.
 use super::*;
+use crate::a11y_snapshot::{activate, nodes};
 use crate::{Scheme, SchemeChoice};
 use gpui::{
     Context, Hsla, Modifiers, MouseButton, Render, TestAppContext, VisualTestContext, Window, point,
@@ -145,6 +146,67 @@ fn painted(cx: &mut VisualTestContext, colour: Hsla) -> bool {
             .any(|quad| quad.background == gpui::solid_background(colour))
     })
 }
+
+struct Controls {
+    open: bool,
+    anchor: crate::select::Anchor,
+}
+
+impl Render for Controls {
+    fn render(&mut self, _: &mut Window, _: &mut Context<'_, Self>) -> impl IntoElement {
+        let tokens = Tokens::of(Scheme::Dark);
+        div()
+            .size_full()
+            .child(crate::select::trigger(
+                "machine",
+                crate::select::Label::new("Build machine", "Filter: Build machine"),
+                &self.anchor,
+                self.open,
+                true,
+                false,
+                &tokens,
+            ))
+            .child(segment_at(
+                "active",
+                "Active",
+                !self.open,
+                true,
+                SegmentSize::Medium,
+                ControlSizing::Pointer,
+                &tokens,
+            ))
+            .child(crate::widgets::choice("daily", "Daily", self.open, &tokens))
+    }
+}
+
+#[gpui::test]
+fn controls_expose_their_names_and_current_state(cx: &mut TestAppContext) {
+    cx.update(|cx| crate::init(cx, SchemeChoice::Fixed(Scheme::Dark)).unwrap());
+    let (view, cx) = cx.add_window_view(|_, _| Controls {
+        open: false,
+        anchor: crate::select::Anchor::default(),
+    });
+    cx.run_until_parked();
+    activate(cx);
+    for open in [false, true] {
+        view.update(cx, |controls, cx| {
+            controls.open = open;
+            cx.notify();
+        });
+        cx.run_until_parked();
+        let buttons = cx.update(|window, _| nodes(window, "Button").unwrap());
+        let named = |label| {
+            buttons
+                .iter()
+                .find(|button| button.label.as_deref() == Some(label))
+                .unwrap()
+        };
+        assert_eq!(named("Filter: Build machine").expanded, Some(open));
+        assert_eq!(named("Active").selected, Some(!open));
+        assert_eq!(named("Daily").selected, Some(open));
+    }
+}
+
 #[gpui::test]
 fn actual_source_hover_and_press_change_scene_fill_while_legacy_press_stays_unchanged(
     cx: &mut TestAppContext,

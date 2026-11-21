@@ -97,12 +97,11 @@ request, diff stat, host, copyable branch and folder, checks). The page
 long-polls `workspace.list` `changed_from` and merges `diff_stat` by
 id. It does not read the count from the registry snapshot.
 
-The native card is the 810 seam. 810's head is `31714d88e` on
-`backend/m12-session-hover-card`, not on a package base yet. That
-branch is not edited here. Once the lead adopts 810, the row is
-`HoverDetails.diff` after `pull`, filled from the served stat into
-`vessel_app_view::workspace::diff_rows::Counts { added, removed }`,
-hidden when the stat is null.
+The native hover card places the diff row after the pull request.
+It reuses the session row's workspace lookup and count renderer so both
+surfaces follow the same served revision, number format and status colors.
+The hover row has no dependency on the sidebar trailing preference and
+is absent when the server has no stat for that workspace.
 
 Sidebar trailing "diff", the composer Changes pill, and the archive
 warning are not part of 819.
