@@ -91,3 +91,21 @@ impl PromptQueue {
         })
     }
 }
+
+/// A protocol awaiting its number.
+pub(crate) struct Pending;
+
+/// `Some(n)` when `content` holds a `context` or `review` block of
+/// protocol n (ADR 0124), `None` when it holds none; `Pending` while that
+/// protocol awaits its number.
+pub(crate) fn context_since(content: &[ContentBlock]) -> Result<Option<u32>, Pending> {
+    if content
+        .iter()
+        .any(|block| matches!(block, ContentBlock::Context(_) | ContentBlock::Review(_)))
+    {
+        return PROMPT_CONTEXT_PROTOCOL
+            .map(|since| Some(since.get()))
+            .ok_or(Pending);
+    }
+    Ok(None)
+}

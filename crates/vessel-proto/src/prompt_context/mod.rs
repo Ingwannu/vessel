@@ -39,7 +39,7 @@ mod render;
 #[cfg(test)]
 mod tests;
 
-pub(crate) use older::{block_for_protocol, content_protocol};
+pub(crate) use older::{block_for_protocol, content_protocol, context_since};
 pub use render::agent_text;
 
 /// The `context` and `review` prompt blocks (ADR 0124). Drafted as 46; the

@@ -2,6 +2,7 @@
 //! later makes the call need that later version.
 
 use crate::agent::ContentBlock;
+use crate::prompt_context::context_since;
 use crate::agents::HarnessRef;
 use crate::node::ProtocolVersion;
 use crate::session::{SessionInput, SessionMode};
@@ -490,24 +491,6 @@ fn target_since(target: &crate::automation::ScheduleTarget) -> Option<u32> {
         crate::automation::ScheduleTarget::Session { .. }
         | crate::automation::ScheduleTarget::Unknown => None,
     }
-}
-
-/// A protocol awaiting its number.
-struct Pending;
-
-/// `Some(n)` when `content` holds a `context` or `review` block of
-/// protocol n (ADR 0124), `None` when it holds none; `Pending` while that
-/// protocol awaits its number.
-fn context_since(content: &[ContentBlock]) -> Result<Option<u32>, Pending> {
-    if content
-        .iter()
-        .any(|block| matches!(block, ContentBlock::Context(_) | ContentBlock::Review(_)))
-    {
-        return crate::prompt_context::PROMPT_CONTEXT_PROTOCOL
-            .map(|since| Some(since.get()))
-            .ok_or(Pending);
-    }
-    Ok(None)
 }
 
 #[cfg(test)]
