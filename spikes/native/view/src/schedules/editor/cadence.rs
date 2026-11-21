@@ -1,15 +1,11 @@
-//! The node parses the same bounded rule types and computes the preview.
-//! Keeping the original elapsed rule lets edits away from and back to its
-//! interval retain its phase.
-
-use crate::localization::Translator;
+//! The editor writes cron presets or an explicit cron expression. A stored
+//! elapsed cadence remains a typed value until a person changes the rule.
+use crate::localization::{FormatError, Number, Translator};
 use vessel_proto::automation::{
-    Cadence, CronExpr, EverySeconds, InvalidAutomationText, InvalidCron, OutOfRange, TimeZoneName,
+    Cadence, CronExpr, InvalidAutomationText, InvalidCron, TimeZoneName,
 };
 
-use super::super::cadence::{IntervalParts, IntervalUnit};
-
-/// Wall-clock options, followed by the explicit elapsed and custom rules.
+/// The cron presets and the display identity of a custom expression.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Choice {
     /// Every wall-clock minute.
@@ -22,22 +18,18 @@ pub enum Choice {
     Weekdays,
     /// Mondays at 09:00.
     Mondays,
-    /// Exact elapsed interval.
-    Interval,
-    /// A custom five-field expression.
+    /// The visible expression does not match a preset.
     Custom,
 }
 
 impl Choice {
-    /// The standard preset order from Paseo, then elapsed and custom.
-    pub const ALL: [Self; 7] = [
+    /// Preset order from Paseo. Custom expressions are entered in the field.
+    pub const PRESETS: [Self; 5] = [
         Self::Minute,
         Self::Hour,
         Self::Daily,
         Self::Weekdays,
         Self::Mondays,
-        Self::Interval,
-        Self::Custom,
     ];
 
     const fn expression(self) -> Option<&'static str> {
@@ -47,8 +39,15 @@ impl Choice {
             Self::Daily => Some("0 9 * * *"),
             Self::Weekdays => Some("0 9 * * 1-5"),
             Self::Mondays => Some("0 9 * * 1"),
-            Self::Interval | Self::Custom => None,
+            Self::Custom => None,
         }
+    }
+
+    fn of(expression: &str) -> Self {
+        Self::PRESETS
+            .into_iter()
+            .find(|choice| choice.expression() == Some(expression.trim()))
+            .unwrap_or(Self::Custom)
     }
 
     /// The localized choice name.
@@ -61,43 +60,39 @@ impl Choice {
             Self::Daily => words.preset_daily(),
             Self::Weekdays => words.preset_weekdays(),
             Self::Mondays => words.preset_mondays(),
-            Self::Interval => words.form_interval(),
             Self::Custom => words.form_custom(),
         }
     }
 }
 
-/// Invalid input retains the original parse error at the boundary.
+/// Invalid input retains its original parse error.
 #[derive(Debug, thiserror::Error)]
 pub enum Issue {
-    /// An unknown IANA zone or no selected zone.
+    /// Missing or malformed IANA zone.
     #[error("invalid IANA zone: {0}")]
     Zone(#[source] InvalidAutomationText),
     /// The existing cron parser refused the expression.
     #[error("invalid cron expression: {0}")]
     Cron(#[source] InvalidCron),
-    /// An elapsed number is invalid.
-    #[error("invalid interval count: {0}")]
-    Count(#[source] std::num::ParseIntError),
-    /// Conversion to elapsed seconds overflowed.
-    #[error("interval exceeds the wire representation")]
-    Overflow,
-    /// The node's typed elapsed bounds refused the value.
-    #[error("invalid interval: {0}")]
-    Interval(#[source] OutOfRange),
 }
 
 impl Issue {
-    /// The view uses whole messages for invalid rules.
+    /// The editor replaces the preview with one localized error.
     #[must_use]
     pub fn label<'a>(&self, catalog: &'a Translator) -> &'a str {
         let words = catalog.schedules();
         match self {
             Self::Zone(_) => words.form_zone_invalid(),
             Self::Cron(_) => words.form_cron_invalid(),
-            Self::Count(_) | Self::Overflow | Self::Interval(_) => words.form_interval_invalid(),
         }
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ZoneSource {
+    Default,
+    Stored,
+    Manual,
 }
 
 /// Edit fields with a cached checked cadence for save and preview.
@@ -106,15 +101,12 @@ pub struct Draft {
     choice: Choice,
     expression: String,
     zone: String,
-    count: String,
-    unit: IntervalUnit,
-    opened: Option<Cadence>,
-    explicit_zone: bool,
+    zone_source: ZoneSource,
     checked: Result<Cadence, Issue>,
 }
 
 impl Draft {
-    /// A new schedule starts at the next wall-clock hour.
+    /// A new schedule starts with the hourly cron preset.
     #[must_use]
     pub fn create(zone: Option<&TimeZoneName>) -> Self {
         let expression = "0 * * * *".to_owned();
@@ -124,150 +116,105 @@ impl Draft {
             choice: Choice::Hour,
             expression,
             zone,
-            count: "1".to_owned(),
-            unit: IntervalUnit::Hours,
-            opened: None,
-            explicit_zone: false,
+            zone_source: ZoneSource::Default,
             checked,
         }
     }
 
-    /// Open the exact stored cadence, including its original elapsed anchor.
+    /// Open the exact stored rule. A legacy interval has no editable count
+    /// or unit, and its original anchor survives a save of unrelated fields.
     pub(super) fn open(cadence: &Cadence, zone: Option<&TimeZoneName>) -> Option<Self> {
         let mut draft = Self::create(zone);
         match cadence {
             Cadence::Cron { expr, zone } => {
                 expr.as_str().clone_into(&mut draft.expression);
                 draft.zone = zone.to_string();
-                draft.explicit_zone = true;
-                draft.choice = Choice::ALL
-                    .into_iter()
-                    .find(|choice| choice.expression() == Some(expr.as_str()))
-                    .unwrap_or(Choice::Custom);
+                draft.zone_source = ZoneSource::Stored;
+                draft.choice = Choice::of(expr.as_str());
             }
-            Cadence::Every { seconds, .. } => {
-                let parts = IntervalParts::of(*seconds);
-                draft.choice = Choice::Interval;
-                draft.count = parts.count().to_string();
-                draft.unit = parts.unit();
+            Cadence::Every { .. } => {
+                draft.expression.clear();
+                draft.choice = Choice::Custom;
             }
             Cadence::Unknown => return None,
         }
-        draft.opened = Some(cadence.clone());
         draft.checked = Ok(cadence.clone());
         Some(draft)
     }
 
-    /// Selected rule shape.
+    /// The current preset identity.
     #[must_use]
     pub const fn choice(&self) -> Choice {
         self.choice
     }
 
-    /// Advanced expression shown to the user.
+    /// The visible cron expression, blank for a retained elapsed rule.
     #[must_use]
     pub fn expression(&self) -> &str {
         &self.expression
     }
 
-    /// Cron zone field, possibly empty until the device or machine has a zone.
+    /// The rule's IANA zone, if available.
     #[must_use]
     pub fn zone(&self) -> &str {
         &self.zone
     }
 
-    /// Raw elapsed magnitude.
+    /// Show editable zone input only when a cron needs a manual choice.
     #[must_use]
-    pub fn count(&self) -> &str {
-        &self.count
+    pub fn needs_zone_field(&self) -> bool {
+        !self.is_elapsed() && (self.zone.is_empty() || self.zone_source == ZoneSource::Manual)
     }
 
-    /// Current elapsed unit.
+    /// Whether the wire cadence is still the stored elapsed record.
     #[must_use]
-    pub const fn unit(&self) -> IntervalUnit {
-        self.unit
+    pub const fn is_elapsed(&self) -> bool {
+        matches!(self.checked, Ok(Cadence::Every { .. }))
     }
 
-    /// Seconds remains available for legacy intervals that require it.
-    #[must_use]
-    pub fn units(&self) -> &'static [IntervalUnit] {
-        const STANDARD: &[IntervalUnit] = &[
-            IntervalUnit::Minutes,
-            IntervalUnit::Hours,
-            IntervalUnit::Days,
-        ];
-        if matches!(self.opened, Some(Cadence::Every { seconds, .. })
-            if IntervalParts::of(seconds).unit() == IntervalUnit::Seconds)
-        {
-            &IntervalUnit::DESCENDING
-        } else {
-            STANDARD
-        }
-    }
-
-    /// The preview and save edges consume the same bounded value.
+    /// The preview and save edges consume the same validated value.
     /// # Errors
-    /// Returns the last input validation issue.
+    /// Returns the last rule validation issue.
     pub fn checked(&self) -> Result<&Cadence, &Issue> {
         self.checked.as_ref()
     }
 
-    /// Change the preset without replacing the selected zone.
+    /// Choosing a cron preset deliberately replaces the existing rule.
     pub fn select(&mut self, choice: Choice) {
-        self.choice = choice;
         if let Some(expression) = choice.expression() {
-            expression.clone_into(&mut self.expression);
+            self.set_expression(expression.to_owned());
         }
-        self.validate();
     }
 
-    /// Commit text from the advanced expression field.
+    /// Assigning a cron expression is the other explicit replacement path.
     pub fn set_expression(&mut self, text: String) {
+        if self.is_elapsed() && text.trim().is_empty() {
+            return;
+        }
+        self.choice = Choice::of(&text);
         self.expression = text;
-        self.choice = Choice::ALL
-            .into_iter()
-            .find(|choice| choice.expression() == Some(self.expression.trim()))
-            .unwrap_or(Choice::Custom);
-        self.validate();
+        self.checked = cron(&self.expression, &self.zone);
     }
 
-    /// Commit text from the IANA zone field.
+    /// Set a manual IANA name when neither the device nor machine can supply it.
     pub fn set_zone(&mut self, text: String) {
         self.zone = text;
-        self.explicit_zone = true;
-        self.validate();
+        self.zone_source = ZoneSource::Manual;
+        self.checked = cron(&self.expression, &self.zone);
     }
 
-    /// Fill a zone from the device or machine before the user edits it.
+    /// Fill the device or machine's zone without changing an elapsed record.
     pub fn default_zone(&mut self, zone: Option<&TimeZoneName>) {
-        if !self.explicit_zone {
+        if self.zone_source == ZoneSource::Default {
             self.zone = zone.map_or_else(String::new, ToString::to_string);
-            self.validate();
+            if !self.is_elapsed() {
+                self.checked = cron(&self.expression, &self.zone);
+            }
         }
     }
 
     pub(super) fn host_changed(&mut self) {
         self.default_zone(None);
-    }
-
-    /// Commit text from the elapsed count field.
-    pub fn set_count(&mut self, text: String) {
-        self.count = text;
-        self.validate();
-    }
-
-    /// Choose a different elapsed unit for the current count.
-    pub fn set_unit(&mut self, unit: IntervalUnit) {
-        self.unit = unit;
-        self.validate();
-    }
-
-    fn validate(&mut self) {
-        self.checked = if self.choice == Choice::Interval {
-            interval(&self.count, self.unit, self.opened.as_ref())
-        } else {
-            cron(&self.expression, &self.zone)
-        };
     }
 }
 
@@ -277,21 +224,15 @@ fn cron(expression: &str, zone: &str) -> Result<Cadence, Issue> {
     Ok(Cadence::Cron { expr, zone })
 }
 
-fn interval(count: &str, unit: IntervalUnit, opened: Option<&Cadence>) -> Result<Cadence, Issue> {
-    let count = count.trim().parse::<u32>().map_err(Issue::Count)?;
-    let seconds = count.checked_mul(unit.seconds()).ok_or(Issue::Overflow)?;
-    let seconds = EverySeconds::try_from(seconds).map_err(Issue::Interval)?;
-    if let Some(
-        opened @ Cadence::Every {
-            seconds: previous, ..
-        },
-    ) = opened
-        && *previous == seconds
-    {
-        return Ok(opened.clone());
+/// Feedback for a rule, naming the raw count of a stored elapsed schedule.
+/// # Errors
+/// Locale formatting failed.
+pub fn description(rule: &Cadence, catalog: &Translator) -> Result<String, FormatError> {
+    if let Cadence::Every { seconds, .. } = rule {
+        catalog
+            .schedules()
+            .form_elapsed_seconds(Number::count(seconds.get()))
+    } else {
+        super::super::locale::cadence(rule, catalog)
     }
-    Ok(Cadence::Every {
-        seconds,
-        anchor: None,
-    })
 }

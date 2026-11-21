@@ -32,6 +32,7 @@ use vessel_proto::{
 };
 
 const PREVIEW_DELAY: Duration = Duration::from_millis(240);
+const PREVIEW_RUNS: u32 = 1;
 
 pub(super) struct Editor {
     model: Option<Form>,
@@ -42,7 +43,7 @@ pub(super) struct Editor {
     current_picker: Option<Field>,
     browsing: Option<GetHarnessOptions>,
     preview_task: Option<gpui::Task<()>>,
-    preview_labels: Vec<SharedString>,
+    preview_label: Option<SharedString>,
     tickets: Tickets,
     sync_inputs: bool,
     status: Status,
@@ -68,7 +69,7 @@ impl Editor {
             current_picker: None,
             browsing: None,
             preview_task: None,
-            preview_labels: Vec::new(),
+            preview_label: None,
             tickets: Tickets::default(),
             sync_inputs: false,
             status: Status::Editing,
@@ -86,7 +87,7 @@ impl Editor {
         self.current_picker = None;
         self.browsing = None;
         self.preview_task = None;
-        self.preview_labels.clear();
+        self.preview_label = None;
         self.model = None;
         self.inputs = None;
         self.dialog.dismissed(window, cx);
@@ -239,6 +240,7 @@ impl Shell {
             return;
         };
         form.invalidate_preview();
+        editor.preview_label = None;
         editor.preview_task = Some(cx.spawn(async move |shell, cx| {
             cx.background_executor().timer(PREVIEW_DELAY).await;
             let _closed = shell.update(cx, Shell::schedule_preview);
@@ -256,10 +258,13 @@ impl Shell {
         else {
             return;
         };
+        let Ok(count) = PreviewCount::try_from(PREVIEW_RUNS) else {
+            return;
+        };
         self.schedule_form_issue(Ask::Preview(PreviewSchedule {
             cadence,
             after: Some(chrono::Utc::now()),
-            count: PreviewCount::default(),
+            count,
         }));
         cx.notify();
     }
@@ -299,7 +304,7 @@ impl Shell {
                     preferences::restore(form, options, &self.prefs);
                 }
             } else if matches!(request.ask, Ask::Preview(_)) {
-                editor.preview_labels = preview_labels(form, self.words);
+                editor.preview_label = preview_label(form, self.words);
             } else {
                 if let Some(inputs) = &editor.inputs {
                     inputs.hold(
@@ -337,48 +342,27 @@ impl Shell {
     }
 }
 
-fn preview_labels(
+fn preview_label(
     form: &Form,
     catalog: &vessel_app_view::localization::Translator,
-) -> Vec<SharedString> {
-    use vessel_app_view::localization::Date;
+) -> Option<SharedString> {
+    use vessel_app_view::{localization::Date, schedules::editor::cadence::description};
     if form.draft.opened().is_some_and(|opened| {
-        matches!(
-            opened.state,
-            vessel_proto::automation::ScheduleState::Ended { .. }
-        )
+        matches!(opened.state, vessel_proto::automation::ScheduleState::Ended { .. })
     }) {
-        return Vec::new();
+        return None;
     }
-    let Some(Ok(preview)) = form.preview() else {
-        return Vec::new();
-    };
-    let device = form
-        .targets()
-        .and_then(|facts| facts.as_ref().ok())
+    let Ok(preview) = form.preview()? else { return None };
+    let at = preview.runs.first()?;
+    let device = form.targets().and_then(|facts| facts.as_ref().ok())
         .and_then(|facts| facts.device_zone.as_ref());
-    preview
-        .runs
-        .iter()
-        .filter_map(|at| {
-            let (local, zone) = device.map_or_else(
-                || (at.naive_utc(), "UTC".to_owned()),
-                |zone| {
-                    (
-                        at.with_timezone(&chrono::Local).naive_local(),
-                        zone.to_string(),
-                    )
-                },
-            );
-            catalog
-                .schedules()
-                .form_next_at(&Date::DateTime {
-                    date: local.date(),
-                    time: local.time(),
-                    zone,
-                })
-                .ok()
-                .map(Into::into)
+    let (local, zone) = device
+        .and_then(|zone| {
+            let offset = *at.with_timezone(&chrono::Local).offset();
+            Some((at.naive_utc().checked_add_offset(offset)?, zone.to_string()))
         })
-        .collect()
+        .unwrap_or_else(|| (at.naive_utc(), "UTC".to_owned()));
+    let rule = description(&preview.cadence, catalog).ok()?;
+    let at = Date::DateTime { date: local.date(), time: local.time(), zone };
+    catalog.schedules().form_preview_line(&at, &rule).ok().map(Into::into)
 }

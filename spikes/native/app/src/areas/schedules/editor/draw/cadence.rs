@@ -1,17 +1,11 @@
-use super::{
-    Shell, button, choose, field, hint,
-    pick::{self, Field},
-};
+use super::{Shell, choose, field, hint, pick::Field};
 use vessel_app_kit::{
-    ButtonKind, Tokens,
-    theme::spacing::{S2, S4},
-    ui::{
-        Context, Div, IntoElement as _, ParentElement as _, StatefulInteractiveElement as _,
-        Styled as _, div, px,
-    },
+    Tokens,
+    theme::spacing::S3,
+    ui::{Context, Div, ParentElement as _, Styled as _, div, px},
 };
 use vessel_app_view::schedules::{
-    editor::{cadence::Choice, io::Form},
+    editor::{cadence::description, io::Form},
     load::Failure,
     locale,
 };
@@ -26,121 +20,41 @@ pub(super) fn body(
     let words = shell.words.schedules();
     let editor = &shell.areas.schedules.editor;
     let draft = &form.draft.cadence;
-    let choice = draft.choice();
-    let error = draft.checked().err().map(|error| error.label(shell.words));
-    let mut out = div().flex().flex_col().gap(px(S4)).child(choose(
-        shell,
-        Field::Cadence,
-        choice.label(shell.words),
-        true,
-        tokens,
-        touch,
-        cx,
+    let display = if draft.is_elapsed() {
+        words.form_select_cadence()
+    } else {
+        draft.choice().label(shell.words)
+    };
+    let mut out = div().flex().flex_col().gap(px(S3)).child(choose(
+        shell, Field::Cadence, display, true, tokens, touch, cx,
     ));
     if let Some(inputs) = &editor.inputs {
-        if choice == Choice::Interval {
-            out = out.child(
-                div()
-                    .flex()
-                    .gap(px(S2))
-                    .child(div().flex_1().child(field(
-                        words.form_count(),
-                        inputs.elapsed.element(tokens, touch, cx),
-                        None,
-                        tokens,
-                    )))
-                    .child(div().flex_1().child(choose(
-                        shell,
-                        Field::Unit,
-                        pick::unit_label(shell, draft.unit()),
-                        true,
-                        tokens,
-                        touch,
-                        cx,
-                    ))),
-            );
-        } else {
-            out = out.child(field(
-                words.form_script(),
-                inputs.cron.element(tokens, touch, cx),
-                None,
-                tokens,
-            ));
+        out = out.child(inputs.cron.element(tokens, touch, cx));
+        if draft.needs_zone_field() && form.targets().is_some() {
             out = out.child(field(
                 words.form_zone(),
                 inputs.zone.element(tokens, touch, cx),
                 None,
                 tokens,
             ));
-            if let Some(Ok(facts)) = form.targets()
-                && let Some(zone) = &facts.machine_zone
-                && zone.as_str() != draft.zone()
-                && let Ok(note) = words.form_host_zone(zone.as_str())
-            {
-                out = out.child(hint(note, false, tokens));
-            }
         }
     }
-    if let Some(error) = error {
-        out.child(hint(error, true, tokens))
-    } else {
-        out.child(preview(shell, form, tokens, touch, cx))
-    }
+    out.children(feedback(shell, form, tokens))
 }
 
-fn preview(
-    shell: &Shell,
-    form: &Form,
-    tokens: &Tokens,
-    touch: bool,
-    cx: &mut Context<'_, Shell>,
-) -> Div {
+fn feedback(shell: &Shell, form: &Form, tokens: &Tokens) -> Option<Div> {
     let words = shell.words.schedules();
-    let editor = &shell.areas.schedules.editor;
-    let body = div().flex().flex_col().gap(px(S2));
+    let rule = match form.draft.cadence.checked() {
+        Ok(rule) => rule,
+        Err(issue) => return Some(hint(issue.label(shell.words), true, tokens)),
+    };
+    let preview = &shell.areas.schedules.editor.preview_label;
+    let describe = || description(rule, shell.words).ok().map(|label| hint(label, false, tokens));
     match form.preview() {
-        Some(Ok(_)) if editor.preview_labels.is_empty() => body,
-        Some(Ok(_)) => body
-            .child(hint(words.form_next_runs(), false, tokens))
-            .children(
-                form.targets()
-                    .is_some_and(|facts| {
-                        facts
-                            .as_ref()
-                            .is_ok_and(|facts| facts.device_zone.is_none())
-                    })
-                    .then(|| hint(words.form_viewer_display_utc(), false, tokens)),
-            )
-            .children(
-                editor
-                    .preview_labels
-                    .iter()
-                    .cloned()
-                    .map(|text| hint(text, false, tokens)),
-            ),
-        Some(Err(Failure::Older)) => {
-            body.child(hint(words.preview_unavailable_older(), false, tokens))
-        }
-        Some(Err(error)) => {
-            let text = if *error == Failure::Unexpected {
-                words.preview_mismatched()
-            } else {
-                locale::failure(error, shell.words)
-            };
-            body.child(hint(text, true, tokens)).child(
-                button(
-                    "schedule-form-retry-preview",
-                    words.retry(),
-                    ButtonKind::Ghost,
-                    true,
-                    touch,
-                    tokens,
-                )
-                .on_click(cx.listener(|shell, _, _, cx| shell.schedule_preview(cx)))
-                .into_any_element(),
-            )
-        }
-        None if form.previewing() => body.child(hint(words.form_previewing(), false, tokens)),
-        None => body,
+        Some(Ok(_)) => preview.as_ref().map(|label| hint(label.clone(), false, tokens)).or_else(describe),
+        Some(Err(Failure::Older)) => Some(hint(words.preview_unavailable_older(), false, tokens)),
+        Some(Err(Failure::Unexpected)) => Some(hint(words.preview_mismatched(), true, tokens)),
+        Some(Err(error)) => Some(hint(locale::failure(error, shell.words), true, tokens)),
+        None => describe(),
     }
 }

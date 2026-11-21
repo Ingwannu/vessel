@@ -22,7 +22,6 @@ pub(super) enum Field {
     Thinking,
     Mode,
     Cadence,
-    Unit,
 }
 #[derive(Default)]
 pub(super) struct Anchors {
@@ -32,7 +31,6 @@ pub(super) struct Anchors {
     thinking: Anchor,
     mode: Anchor,
     cadence: Anchor,
-    unit: Anchor,
 }
 
 impl Field {
@@ -44,7 +42,6 @@ impl Field {
             Self::Thinking => &anchors.thinking,
             Self::Mode => &anchors.mode,
             Self::Cadence => &anchors.cadence,
-            Self::Unit => &anchors.unit,
         }
     }
 
@@ -56,7 +53,6 @@ impl Field {
             Self::Thinking => "schedule-form-thinking",
             Self::Mode => "schedule-form-mode",
             Self::Cadence => "schedule-form-cadence",
-            Self::Unit => "schedule-form-unit",
         }
     }
 
@@ -69,7 +65,6 @@ impl Field {
             Self::Thinking => words.form_thinking(),
             Self::Mode => words.form_mode(),
             Self::Cadence => words.form_cadence(),
-            Self::Unit => words.form_unit(),
         }
     }
 
@@ -78,7 +73,7 @@ impl Field {
         match self {
             Self::Project => Some(words.form_search_projects()),
             Self::Model => Some(words.form_search_models()),
-            Self::Host | Self::Thinking | Self::Mode | Self::Cadence | Self::Unit => None,
+            Self::Host | Self::Thinking | Self::Mode | Self::Cadence => None,
         }
     }
 }
@@ -222,8 +217,7 @@ fn apply(shell: &mut Shell, change: Change, window: &mut Window, cx: &mut Contex
         | Change::Project(_)
         | Change::SelectModel { .. }
         | Change::Option(_)
-        | Change::Cadence(_)
-        | Change::Unit(_)) => {
+        | Change::Cadence(_)) => {
             let project = matches!(change, Change::Project(_));
             let cadence = apply_value(&mut form.draft, change);
             close_picker(editor, window, cx);
@@ -254,12 +248,8 @@ fn apply_value(draft: &mut Draft, change: Change) -> bool {
             draft.cadence.select(rule);
             return true;
         }
-        Change::Unit(unit) => {
-            draft.cadence.set_unit(unit);
-            return true;
-        }
     }
     false
 }
 
-pub(super) use choices::{control_for, model_label, project_label, unit_label};
+pub(super) use choices::{control_for, model_label, project_label};

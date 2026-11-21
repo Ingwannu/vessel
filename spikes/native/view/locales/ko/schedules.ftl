@@ -384,9 +384,6 @@ schedules-form-cadence = 실행 주기
 # Schedule editor: form-zone control/feedback, never a node diagnostic.
 schedules-form-zone = 시간대
 
-# Schedule editor: form-next-runs control/feedback, never a node diagnostic.
-schedules-form-next-runs = 다음 실행 시각
-
 # Schedule editor: form-project-placeholder control/feedback, never a node diagnostic.
 schedules-form-project-placeholder = 프로젝트 선택
 
@@ -398,15 +395,6 @@ schedules-form-zone-placeholder = 시간대 선택
 
 # Schedule editor: form-custom control/feedback, never a node diagnostic.
 schedules-form-custom = 직접 입력
-
-# Schedule editor: form-interval control/feedback, never a node diagnostic.
-schedules-form-interval = 시간 간격
-
-# One projected run; $at is the typed viewer-calendar date/time, with its explicit zone.
-schedules-form-next-at = { DATETIME($at) }
-
-# A rule zone has been explicitly selected but the display viewer zone is still unknown.
-schedules-form-viewer-display-utc = 현재 시간대를 확인할 수 없어 미리보기 시각을 UTC로 표시합니다.
 
 # Placeholder for searching project choices on the selected machine; short.
 schedules-form-search-projects = 프로젝트 검색...
@@ -449,9 +437,6 @@ schedules-form-zone-invalid = Asia/Seoul과 같은 IANA 시간대를 입력하�
 schedules-form-cron-invalid = 유효한 다섯 필드의 크론 식을 입력하세요.
 
 # Schedule form control or status.
-schedules-form-interval-invalid = 60초에서 366일 사이의 간격을 입력하세요.
-
-# Schedule form control or status.
 schedules-form-ownership = 이후 실행은 변경 사항을 저장한 사람의 권한을 사용합니다.
 
 # Schedule form control or status.
@@ -461,37 +446,22 @@ schedules-form-default-model = 기본 모델
 schedules-form-default-choice = 기본값
 
 # Schedule form control or status.
-schedules-form-previewing = 다음 실행 시간을 확인하는 중…
-
-# Schedule form control or status.
 schedules-form-saving = 저장 중…
 
 # Schedule form control or status.
-schedules-form-count = 간격 값
-
-# Schedule form control or status.
-schedules-form-unit = 단위
-
-# Schedule form control or status.
 schedules-form-script = 크론 식
-
-# Schedule form control or status.
-schedules-form-second = 초
-
-# Schedule form control or status.
-schedules-form-minute = 분
-
-# Schedule form control or status.
-schedules-form-hour = 시간
-
-# Schedule form control or status.
-schedules-form-day = 일
-
-# Schedule form control or status.
-schedules-form-host-zone = 머신 시간대: { $zone }
 
 # Schedule form control or status.
 schedules-form-no-machine = 일정을 만들려면 머신에 연결하세요.
 
 # Accessible name of the row that opens the editor.
 schedules-form-edit-row = 일정 수정 { $title }
+
+# Schedule rule or its first projected run.
+schedules-form-select-cadence = 실행 주기 선택
+
+# Schedule rule or its first projected run.
+schedules-form-elapsed-seconds = { NUMBER($seconds, useGrouping: "false") }초마다
+
+# Schedule rule or its first projected run.
+schedules-form-preview-line = { $description } · 다음 실행 { DATETIME($at) }

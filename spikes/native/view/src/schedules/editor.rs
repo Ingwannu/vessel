@@ -29,7 +29,7 @@ pub enum Save {
 pub struct Draft {
     /// Shared name, prompt and optional limit.
     pub fields: fields::Fields,
-    /// Editable wall-clock or exact elapsed cadence.
+    /// Editable cron or the exact stored elapsed cadence.
     pub cadence: cadence::Draft,
     opened: Option<Box<ScheduleInfo>>,
     spec: Option<Box<SessionSpec>>,
@@ -189,8 +189,8 @@ impl Draft {
             && self.fields.error().is_none()
     }
 
-    /// Build the request from a current, verified preview cadence or an explicit
-    /// older-node fallback. Any elapsed anchor comes from that cadence.
+    /// Build the request from the validated rule, using the opened elapsed
+    /// cadence verbatim when the person has left it alone.
     #[must_use]
     pub fn save(&self, cadence: &Cadence) -> Option<Save> {
         let mut spec = self.spec.clone()?;

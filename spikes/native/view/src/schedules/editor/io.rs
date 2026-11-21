@@ -257,12 +257,6 @@ impl Form {
         self.preview.result.as_ref()
     }
 
-    /// True while a current preview is in flight.
-    #[must_use]
-    pub const fn previewing(&self) -> bool {
-        self.preview.waiting.is_some()
-    }
-
     /// The typed terminal save result, including ambiguity.
     #[must_use]
     pub fn saved(&self) -> Option<&Result<Box<ScheduleInfo>, Failure>> {
@@ -294,8 +288,9 @@ impl Form {
         self.draft.ready() && self.cadence_for_save().is_some()
     }
 
-    /// Save reuses the verified preview's canonical interval anchor. Older
-    /// protocol nodes can save the typed rule directly.
+    /// A verified preview admits the original typed rule for save. A stored
+    /// elapsed cadence keeps its original anchor. Older nodes can save the
+    /// typed rule directly.
     #[must_use]
     pub fn save_request(&self) -> Option<Save> {
         self.draft.save(self.cadence_for_save()?)
@@ -310,7 +305,7 @@ impl Form {
         }
         let cadence = self.draft.cadence.checked().ok()?;
         match self.preview()? {
-            Ok(preview) if cadence_matches(cadence, &preview.cadence) => Some(&preview.cadence),
+            Ok(preview) if cadence_matches(cadence, &preview.cadence) => Some(cadence),
             Err(Failure::Older) => Some(cadence),
             Ok(_) | Err(_) => None,
         }

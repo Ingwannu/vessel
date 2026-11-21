@@ -396,9 +396,6 @@ schedules-form-cadence = Cadence
 # Schedule editor: form-zone control/feedback, never a node diagnostic.
 schedules-form-zone = Time zone
 
-# Schedule editor: form-next-runs control/feedback, never a node diagnostic.
-schedules-form-next-runs = Next runs
-
 # Schedule editor: form-project-placeholder control/feedback, never a node diagnostic.
 schedules-form-project-placeholder = Select project
 
@@ -410,15 +407,6 @@ schedules-form-zone-placeholder = Choose a time zone
 
 # Schedule editor: form-custom control/feedback, never a node diagnostic.
 schedules-form-custom = Custom
-
-# Schedule editor: form-interval control/feedback, never a node diagnostic.
-schedules-form-interval = Interval
-
-# One projected run; $at is the typed viewer-calendar date/time, with its explicit zone.
-schedules-form-next-at = { DATETIME($at) }
-
-# A rule zone has been explicitly selected but the display viewer zone is still unknown.
-schedules-form-viewer-display-utc = Your time zone is unavailable. Preview times are shown in UTC.
 
 # Placeholder for searching project choices on the selected machine; short.
 schedules-form-search-projects = Search projects...
@@ -461,9 +449,6 @@ schedules-form-zone-invalid = Enter an IANA time zone such as Asia/Seoul.
 schedules-form-cron-invalid = Enter a valid five-field cron expression.
 
 # Schedule form control or status.
-schedules-form-interval-invalid = Enter an elapsed interval from 60 seconds to 366 days.
-
-# Schedule form control or status.
 schedules-form-ownership = Future runs will act as the person who saves these changes.
 
 # Schedule form control or status.
@@ -473,37 +458,25 @@ schedules-form-default-model = Default model
 schedules-form-default-choice = Default
 
 # Schedule form control or status.
-schedules-form-previewing = Checking the next runs…
-
-# Schedule form control or status.
 schedules-form-saving = Saving…
 
 # Schedule form control or status.
-schedules-form-count = Interval count
-
-# Schedule form control or status.
-schedules-form-unit = Unit
-
-# Schedule form control or status.
 schedules-form-script = Cron expression
-
-# Schedule form control or status.
-schedules-form-second = Seconds
-
-# Schedule form control or status.
-schedules-form-minute = Minutes
-
-# Schedule form control or status.
-schedules-form-hour = Hours
-
-# Schedule form control or status.
-schedules-form-day = Days
-
-# Schedule form control or status.
-schedules-form-host-zone = Machine time zone: { $zone }
 
 # Schedule form control or status.
 schedules-form-no-machine = Connect to a machine to create a schedule.
 
 # Accessible name of the row that opens the editor.
 schedules-form-edit-row = Edit schedule { $title }
+
+# Schedule rule or its first projected run.
+schedules-form-select-cadence = Select cadence
+
+# Schedule rule or its first projected run.
+schedules-form-elapsed-seconds = { $seconds ->
+    [one] Every second
+   *[other] Every { NUMBER($seconds, useGrouping: "false") } seconds
+}
+
+# Schedule rule or its first projected run.
+schedules-form-preview-line = { $description } · Next run { DATETIME($at) }

@@ -13,8 +13,11 @@ fn edit_keeps_opened_revision_expiry_ownership_input_and_elapsed_phase() {
     info.definition.ends_at = Some("2026-12-01T00:00:00Z".parse().unwrap());
     let mut draft = Draft::open(&info, None).unwrap();
     draft.fields.set_name("Updated name".to_owned());
-    draft.cadence.select(super::cadence::Choice::Hour);
-    draft.cadence.select(super::cadence::Choice::Interval);
+    draft.cadence.default_zone(Some(&"Asia/Seoul".parse().unwrap()));
+    draft.cadence.set_expression(String::new());
+    assert!(draft.cadence.is_elapsed());
+    let locale = crate::localization::Translator::get(crate::localization::ENGLISH).unwrap();
+    assert_eq!(super::cadence::description(draft.cadence.checked().unwrap(), locale).unwrap(), "Every 90 seconds");
     let Some(Save::Update(save)) = draft.save(draft.cadence.checked().unwrap()) else {
         panic!("expected revision-bound replacement");
     };
@@ -70,11 +73,11 @@ fn a_valid_zone_and_exact_run_cap_are_required_for_a_new_schedule() {
 }
 
 #[test]
-fn an_older_forecast_cannot_settle_a_new_rule_or_supply_its_elapsed_anchor() {
+fn an_older_elapsed_forecast_cannot_settle_a_new_cron_rule() {
     use super::io::{Ask, Form, Targets, Value};
     use crate::{
         connection::{ConnectionEpochs, MachineKey},
-        schedules::{cadence::IntervalUnit, load::Tickets},
+        schedules::load::Tickets,
     };
     use chrono::{DateTime, TimeDelta};
     use vessel_proto::{
@@ -88,7 +91,7 @@ fn an_older_forecast_cannot_settle_a_new_rule_or_supply_its_elapsed_anchor() {
             vessel_proto::NodeId::random(),
         )
         .unwrap();
-    let mut form = Form::new(connection, Draft::create(None));
+    let mut form = Form::new(connection, Draft::open(&info(), None).unwrap());
     let mut tickets = Tickets::default();
     let targets = form.issue(&mut tickets, Ask::Targets).unwrap();
     assert!(form.accept(
@@ -104,15 +107,6 @@ fn an_older_forecast_cannot_settle_a_new_rule_or_supply_its_elapsed_anchor() {
         })))
     ));
     assert_eq!(form.draft.cadence.zone(), "Europe/London");
-    form.draft.fields.set_prompt("Check the report".to_owned());
-    form.draft
-        .select_model(HarnessKind::ClaudeCode.into(), None);
-    form.draft.set_place(SessionPlace::Project {
-        project: "00000000-0000-4000-8000-000000000001".parse().unwrap(),
-        dir: None,
-    });
-    form.draft.cadence.select(super::cadence::Choice::Interval);
-    form.draft.cadence.set_unit(IntervalUnit::Minutes);
     let after = DateTime::UNIX_EPOCH;
     let input = |cadence| {
         Ask::Preview(PreviewSchedule {
@@ -123,27 +117,33 @@ fn an_older_forecast_cannot_settle_a_new_rule_or_supply_its_elapsed_anchor() {
     };
     let old_rule = form.draft.cadence.checked().unwrap().clone();
     let old = form.issue(&mut tickets, input(old_rule)).unwrap();
-    form.draft.cadence.set_count("2".to_owned());
+    form.draft.cadence.select(super::cadence::Choice::Daily);
     form.invalidate_preview();
     let new_rule = form.draft.cadence.checked().unwrap().clone();
     let current = form.issue(&mut tickets, input(new_rule.clone())).unwrap();
-    let Cadence::Every { seconds, .. } = new_rule else {
-        panic!("expected elapsed cadence");
-    };
-    let canonical = Cadence::Every {
-        seconds,
-        anchor: Some(after),
-    };
     let forecast = SchedulePreview {
         after,
-        cadence: canonical.clone(),
-        runs: vec![after + TimeDelta::seconds(i64::from(seconds.get()))],
+        cadence: new_rule.clone(),
+        runs: vec![after + TimeDelta::days(1)],
     };
     assert!(!form.accept(&old, Ok(Value::Preview(Box::new(forecast.clone())))));
     assert!(!form.can_save());
     assert!(form.accept(&current, Ok(Value::Preview(Box::new(forecast)))));
-    let Some(Save::Create(save)) = form.save_request() else {
-        panic!("expected confirmed-preview cadence");
+    let Some(Save::Update(save)) = form.save_request() else {
+        panic!("expected a new cron rule with a matching forecast");
     };
-    assert_eq!(save.definition.cadence, canonical);
+    assert_eq!(save.definition.cadence, new_rule);
+    assert!(matches!(save.definition.cadence, Cadence::Cron { .. }));
+}
+
+#[test]
+fn an_explicit_cron_expression_replaces_the_stored_elapsed_rule() {
+    let mut draft = Draft::open(&info(), Some(&"Asia/Seoul".parse().unwrap())).unwrap();
+    assert!(draft.cadence.is_elapsed());
+    draft.cadence.set_expression("17 8 * * *".to_owned());
+    let Cadence::Cron { expr, zone } = draft.cadence.checked().unwrap() else {
+        panic!("expected cron");
+    };
+    assert_eq!(expr.as_str(), "17 8 * * *");
+    assert_eq!(zone.as_str(), "Asia/Seoul");
 }

@@ -63,8 +63,12 @@ Reference lines:
 ## P2 · New-session schedule form
 
 P2 covers 584–585 with the form and cadence editor. Device IANA comes
-first, then the machine zone. Node preview and typed bounds govern the
-save. The form keeps stored expiry and all fields it does not edit.
+first, then the machine zone. Presets and direct expression input create
+cron rules. The editor displays an existing elapsed rule as text and
+keeps its interval and anchor until the person chooses a preset or
+enters cron. The node preview provides the first upcoming instant in the
+same feedback line as the description. Node preview and typed bounds
+govern save. The form keeps stored expiry and all fields it does not edit.
 Person saves disclose the node's ownership transfer. Run history,
 expiry controls and the active-empty docs link stay outside these
 packets. Per-run worktree isolation remains a parity gap (TRACKER 838).

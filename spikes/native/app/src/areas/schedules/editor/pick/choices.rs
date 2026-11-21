@@ -6,7 +6,6 @@ use vessel_app_view::{
     connection::ConnectionContext,
     controls_of,
     schedules::{
-        cadence::IntervalUnit,
         editor::{cadence, io::Form},
     },
     with_picks,
@@ -28,7 +27,6 @@ pub(super) enum Change {
     },
     Option(OptionChoice),
     Cadence(cadence::Choice),
-    Unit(IntervalUnit),
 }
 
 pub(super) struct Choice {
@@ -51,7 +49,7 @@ pub(super) fn empty(shell: &Shell, field: Field) -> &'static str {
         Field::Model => words.form_empty_models(),
         Field::Thinking => words.form_empty_thinking(),
         Field::Mode => words.form_empty_modes(),
-        Field::Host | Field::Cadence | Field::Unit => words.form_empty_choices(),
+        Field::Host | Field::Cadence => words.form_empty_choices(),
     }
 }
 
@@ -87,23 +85,11 @@ pub(super) fn items(shell: &Shell, form: &Form, field: Field) -> Vec<Choice> {
                     .collect::<Vec<_>>()
             })
             .collect(),
-        Field::Cadence => cadence::Choice::ALL
+        Field::Cadence => cadence::Choice::PRESETS
             .into_iter()
             .map(|choice| {
                 let mut row = Choice::new(choice.label(shell.words), Change::Cadence(choice));
                 row.row.checked = choice == form.draft.cadence.choice();
-                row
-            })
-            .collect(),
-        Field::Unit => form
-            .draft
-            .cadence
-            .units()
-            .iter()
-            .copied()
-            .map(|unit| {
-                let mut row = Choice::new(unit_label(shell, unit), Change::Unit(unit));
-                row.row.checked = unit == form.draft.cadence.unit();
                 row
             })
             .collect(),
@@ -249,7 +235,7 @@ pub(in crate::areas::schedules::editor) fn control_for(
     match field {
         Field::Thinking => catalog.effort,
         Field::Mode => catalog.permissions,
-        Field::Host | Field::Project | Field::Model | Field::Cadence | Field::Unit => None,
+        Field::Host | Field::Project | Field::Model | Field::Cadence => None,
     }
 }
 
@@ -316,17 +302,4 @@ pub(in crate::areas::schedules::editor) fn project_label(shell: &Shell, form: &F
         .schedules()
         .form_project_placeholder()
         .to_owned()
-}
-
-pub(in crate::areas::schedules::editor) fn unit_label(
-    shell: &Shell,
-    unit: IntervalUnit,
-) -> &'static str {
-    let words = shell.words.schedules();
-    match unit {
-        IntervalUnit::Seconds => words.form_second(),
-        IntervalUnit::Minutes => words.form_minute(),
-        IntervalUnit::Hours => words.form_hour(),
-        IntervalUnit::Days => words.form_day(),
-    }
 }

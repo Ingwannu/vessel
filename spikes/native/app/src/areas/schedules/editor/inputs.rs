@@ -12,7 +12,6 @@ pub(super) struct Inputs {
     pub(super) limit: TextField,
     pub(super) cron: TextField,
     pub(super) zone: TextField,
-    pub(super) elapsed: TextField,
 }
 
 impl Inputs {
@@ -49,7 +48,6 @@ impl Inputs {
             limit: line(words.form_unlimited(), words.form_limit(), window, cx),
             cron,
             zone: line(words.form_zone_placeholder(), words.form_zone(), window, cx),
-            elapsed: line("", words.form_count(), window, cx),
         };
         inputs.name.set_text(draft.fields.name(), window, cx);
         inputs.prompt.set_text(draft.fields.prompt(), window, cx);
@@ -62,7 +60,6 @@ impl Inputs {
         for (field, value) in [
             (&self.cron, draft.cadence.expression()),
             (&self.zone, draft.cadence.zone()),
-            (&self.elapsed, draft.cadence.count()),
         ] {
             if field.text(cx) != value {
                 field.set_text(value, window, cx);
@@ -82,7 +79,6 @@ impl Inputs {
             &self.limit,
             &self.cron,
             &self.zone,
-            &self.elapsed,
         ] {
             field.set_editability(editability, cx);
         }
@@ -101,9 +97,7 @@ impl Inputs {
         } else if id == self.zone.id() {
             draft.cadence.set_zone(text);
             return Some(true);
-        } else if id == self.elapsed.id() {
-            draft.cadence.set_count(text);
-            return Some(true);
+
         } else {
             return None;
         }
