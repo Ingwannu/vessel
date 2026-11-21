@@ -95,7 +95,7 @@ impl TerminalsConfig {
             var,
             vessel_proc::account_shell,
             on_path,
-            env::executable,
+            executable,
         );
         let mut removed = credentials_in(names);
         // The known names too: a variable the binary did not have is

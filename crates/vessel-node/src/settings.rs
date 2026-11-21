@@ -191,6 +191,8 @@ impl Settings {
         let metadata = saved.metadata.clone().unwrap_or_default();
         // Off unless a person turned plugins on (ADR 0115, Paseo's default).
         let plugins_enabled = saved.plugins_enabled.unwrap_or(false);
+        // As kept: absent is the shipped list, a launch's to fill in.
+        let terminal_profiles = saved.terminal_profiles.clone();
         // Off unless a person turned them on (ADR 0089, Paseo's default).
         let terminal_agent_hooks = saved.terminal_agent_hooks.unwrap_or(false);
         let saved = saved.drivers.unwrap_or_default();
@@ -214,7 +216,7 @@ impl Settings {
             metadata: Some(metadata),
             plugins_enabled,
             terminal_agent_hooks,
-            terminal_profiles: saved.terminal_profiles.clone(),
+            terminal_profiles,
         }
     }
 

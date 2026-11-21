@@ -23,8 +23,7 @@
 use std::path::Path;
 
 use vessel_proto::terminal_profiles::{ProfileLaunch, Prompt};
-use vessel_proto::title::SessionTitle;
-use vessel_proto::{ErrorCode, WireError};
+use vessel_proto::{ErrorCode, SessionTitle, WireError};
 
 use super::super::NodeService;
 use crate::terminals::{self, Shell, TerminalsError};

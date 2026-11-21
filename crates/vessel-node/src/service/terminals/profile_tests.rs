@@ -22,8 +22,8 @@ use vessel_proto::terminals::{
     CreateTerminal, KillTerminal, SendTerminal, TerminalInfo, TerminalKind, TerminalPlace,
 };
 use vessel_proto::{
-    ClientInfo, ErrorCode, EventSeq, Outcome, Reply, Request as _, SessionEvent, TerminalBytes,
-    TerminalInput, WireError,
+    ClientInfo, ErrorCode, EventSeq, Outcome, Reply, SessionEvent, TerminalBytes, TerminalInput,
+    WireError,
 };
 use vessel_rpc::{ClientConfig, Server, memory};
 use vessel_store::DataDir;
