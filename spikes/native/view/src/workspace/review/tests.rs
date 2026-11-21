@@ -186,7 +186,7 @@ mod snapshots {
             header: "@@ -40,11 +40,12 @@".to_owned(),
             section: Some("fn backoff".to_owned()),
         }];
-        for n in 0..6 {
+        for n in 0..6_u32 {
             rows.push(row(
                 n,
                 LineKind::Context,
@@ -197,7 +197,7 @@ mod snapshots {
         rows.push(row(6, LineKind::Added, None, Some(46)));
         rows.push(row(7, LineKind::Added, None, Some(47)));
         rows.push(row(8, LineKind::Removed, Some(46), None));
-        for n in 0..4 {
+        for n in 0..4_u32 {
             rows.push(row(
                 n.saturating_add(9),
                 LineKind::Context,

@@ -29,8 +29,8 @@ use std::sync::Arc;
 use vessel_app_kit::menu::{Content, MenuHandlers, MenuItem, MenuState, menu_with};
 use vessel_app_kit::theme::{radius, spacing};
 use vessel_app_kit::ui::{
-    AnyElement, ClickEvent, Context, Div, IntoElement as _, ParentElement as _, Pixels, Point,
-    Styled as _, Window, div, px,
+    AnyElement, ClickEvent, Context, Div, IntoElement, ParentElement as _, Pixels, Point,
+    StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{ButtonKind, ButtonState, Tokens, Type, TypeExt as _, breakpoint};
 use vessel_app_link::Command;
@@ -86,6 +86,11 @@ impl Feedback {
             failed: false,
         }
     }
+}
+
+/// A count as the words take it.
+fn count_of(count: usize) -> u32 {
+    u32::try_from(count).unwrap_or(u32::MAX)
 }
 
 /// Whether the card's place is `root`.
@@ -321,8 +326,8 @@ pub(in super::super) fn surface(
     let state = facts.state();
     let words = shell.words.review();
     let label = match &shell.review_feedback().sending {
-        Some(sending) => words.feedback_sending(Number::count(sending.count)),
-        None => words.feedback_send(Number::count(facts.sendable.unwrap_or(0))),
+        Some(sending) => words.feedback_sending(Number::count(count_of(sending.count))),
+        None => words.feedback_send(Number::count(count_of(facts.sendable.unwrap_or(0)))),
     }
     .unwrap_or_default();
     let button = vessel_app_kit::button_with_kind(

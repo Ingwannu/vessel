@@ -321,7 +321,9 @@ pub(super) fn tray(
                 ContextAttachment::Review(offer) => (
                     Glyph::MessageCode,
                     words
-                        .sent_comments(Number::count(offer.snapshot.review.comments.len()))
+                        .sent_comments(Number::count(
+                            u32::try_from(offer.snapshot.review.comments.len()).unwrap_or(u32::MAX),
+                        ))
                         .unwrap_or_default(),
                 ),
                 ContextAttachment::Snapshot { kind, .. } => match kind {
