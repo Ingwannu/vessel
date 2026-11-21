@@ -32,10 +32,13 @@ use vessel_proto::{EventRecord, EventSeq, TerminalId};
 /// What is asked about a machine's terminals.
 #[derive(Debug, Clone)]
 pub enum Request {
-    /// Open the machine's shell in `place` (`terminal.create`).
+    /// Open the machine's shell in `place` (`terminal.create`), or one of
+    /// its terminal profiles (ADR 0117).
     Create {
         /// Where: the workspace's place.
         place: TerminalPlace,
+        /// The profile to run instead of the shell, by id.
+        profile: Option<vessel_proto::terminal_profiles::Id>,
     },
     /// The place's terminals (`terminal.list`).
     List {
@@ -164,7 +167,7 @@ impl Ask {
     #[must_use]
     pub fn refused(self, failure: Failure) -> Option<Answer> {
         let reply = match self.request {
-            Request::Create { place } => Reply::Created {
+            Request::Create { place, .. } => Reply::Created {
                 place,
                 result: Err(failure),
             },

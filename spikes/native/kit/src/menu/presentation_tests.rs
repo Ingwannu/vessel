@@ -17,7 +17,8 @@ fn leading_size_is_explicit_without_changing_feedback_or_input() {
             .with_leading_at(Glyph::Upload, size)
             .with_dismissal(Dismissal::KeepOpen);
         assert_eq!(item.leading_size, size);
-        let mut vector = draw::ordinary_glyph(&item, Glyph::Upload, gpui::rgb(0x00ff_ffff).into());
+        let mut vector =
+            leading::ordinary_glyph(&item, Glyph::Upload, gpui::rgb(0x00ff_ffff).into());
         assert_eq!(vector.style().size.width, Some(px(size.points()).into()));
         assert_eq!(vector.style().size.height, Some(px(size.points()).into()));
         assert_eq!(item.leading(), Leading::Glyph(Glyph::Upload));

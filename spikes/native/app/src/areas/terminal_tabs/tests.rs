@@ -157,7 +157,7 @@ fn terminal_creates_a_shell_whose_tab_replaces_the_new_tab(cx: &mut TestAppConte
     });
     let asked = sent(&probe, cx);
     let place = TerminalPlace::Session { session };
-    assert!(matches!(asked.as_slice(), [Request::Create { place: at }] if *at == place));
+    assert!(matches!(asked.as_slice(), [Request::Create { place: at, .. }] if *at == place));
     let info = shell_info(session);
     let terminal = info.id;
     shell.update_in(cx, |shell, _window, cx| {
