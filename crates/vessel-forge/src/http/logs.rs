@@ -186,10 +186,10 @@ fn public_v4(address: Ipv4Addr) -> bool {
         || reserved)
 }
 
-/// Not loopback, unspecified, unique local fc00::/7, link local fe80::/10
-/// or multicast ff00::/8; an IPv4 address carried in an IPv6 one (mapped
-/// ::ffff:a.b.c.d, compatible ::a.b.c.d, NAT64 64:ff9b::/96 and 6to4
-/// 2002::/16) is judged as that IPv4 address.
+/// Not loopback, unspecified, unique local `fc00::/7`, link local
+/// `fe80::/10` or multicast `ff00::/8`; an IPv4 address carried in an IPv6
+/// one (mapped `::ffff:a.b.c.d`, compatible `::a.b.c.d`, NAT64
+/// `64:ff9b::/96` and 6to4 `2002::/16`) is judged as that IPv4 address.
 fn public_v6(address: Ipv6Addr) -> bool {
     if let Some(carried) = carried_v4(address) {
         return public_v4(carried);
@@ -213,8 +213,10 @@ fn carried_v4(address: Ipv6Addr) -> Option<Ipv4Addr> {
     match address.segments() {
         // ::a.b.c.d, but not :: or ::1 (judged as IPv6).
         [0, 0, 0, 0, 0, 0, high, low] if high != 0 || low > 1 => Some(joined(high, low)),
-        [0x64, 0xff9b, 0, 0, 0, 0, high, low] => Some(joined(high, low)),
-        [0x2002, high, low, ..] => Some(joined(high, low)),
+        // NAT64 64:ff9b::a.b.c.d, and 6to4 2002:aabb:ccdd::.
+        [0x64, 0xff9b, 0, 0, 0, 0, high, low] | [0x2002, high, low, ..] => {
+            Some(joined(high, low))
+        }
         _ => None,
     }
 }
