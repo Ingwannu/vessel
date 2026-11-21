@@ -107,6 +107,10 @@
 //!   `SettingsId` and a control's `SettingsKey` (ADR 0115, "Surfaces") are
 //!   what a plugin's author names, plain; `SettingsMessage` is a helper's
 //!   words for a person, carried content.
+//! - Terminal profiles (ADR 0117): a profile's id (made by the page or
+//!   typed with `--profile`), name, program, arguments and icon name are
+//!   what a person types or picks, plain; a launch's prompt is a message's
+//!   text, carried content.
 
 /// What a primitive alias is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -293,9 +297,15 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("SubscriptionId", Alias::Handle),
     ("SuggestionLimit", Alias::Quantity),
     ("SuggestionQuery", Alias::Named),
+    ("TerminalArgument", Alias::Named),
     ("TerminalAttentionRevision", Alias::Quantity),
     ("TerminalBytes", Alias::Content),
     ("TerminalId", Alias::Handle),
+    ("TerminalProfileIcon", Alias::Named),
+    ("TerminalProfileId", Alias::Named),
+    ("TerminalProfileName", Alias::Named),
+    ("TerminalProgram", Alias::Named),
+    ("TerminalPrompt", Alias::Content),
     ("ThemeName", Alias::Named),
     ("TicketMac", Alias::Secret),
     ("TimeZoneName", Alias::Named),

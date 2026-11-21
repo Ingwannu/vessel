@@ -68,6 +68,18 @@ no runtime to compile. The package that serves the method changes `staged`
 to `pending` in the commit that adds its handler; from then on the guard
 requires the handler, as for every assigned or pending row.
 
+## Version 45 (2026-11-21, milestone 12): terminal profiles (implementer T2, ADR 0117)
+
+Assigned 45 (`TERMINAL_PROFILES_PROTOCOL`, `PROTOCOL_VERSION` 45) at its node-line merge, the next after the plugin
+surfaces' 44.
+
+- `node.settings` gains `terminal_profiles` (Paseo's `terminalProfiles`): absent when never set, which clients show
+  as the shipped four (Claude Code, Codex, OpenCode, Pi); an empty list when a person removed them all. The list is
+  answered as kept; adoption of the prompt placeholder happens at launch.
+- `node.set_settings` takes `terminal_profiles` (`admin`), the whole list, replacing it.
+- `terminal.create` gains `profile {id, prompt?}`: see the terminal methods above. A prompt is at most 16 KiB.
+- Both fields are refused to, and the list hidden from, a peer below 45.
+
 ## Version 44 (2026-11-21, milestone 12): plugin surfaces' declaration kinds (impl P, ADR 0115 "Surfaces")
 
 Assigned 44 (`PLUGIN_SURFACES_PROTOCOL`, `PROTOCOL_VERSION` 44) at its node-line merge, the next after the settings'
@@ -1189,9 +1201,13 @@ plan's "Track C: contract" (with its review) say why each choice.
 - Methods (all in `vessel-web`'s list; all but `terminal.subscribe`
   forwardable; long polls wait at most 30 s in the caller's wait shares,
   and never when forwarded):
-  - `terminal.create { place, size?, title? }` (operate): the account's
-    shell in the session's folder, or in the project's (`dir` inside
-    it); `unsupported` on a node without one. `terminal.list { place? }`,
+  - `terminal.create { place, size?, title?, profile? }` (operate): the
+    account's shell in the session's folder, or in the project's (`dir`
+    inside it); `unsupported` on a node without one. With `profile { id,
+    prompt? }` (ADR 0117, `TERMINAL_PROFILES_PROTOCOL`) it runs that one
+    of the node's terminal profiles instead, without a shell, named after
+    it; `not_found` for an id the node does not have, `spawn_failed`
+    "`<program>`: command not found" when the program is not there. `terminal.list { place? }`,
     `terminal.get { terminal, changed_from? }`, `terminal.read { terminal,
     from, limit, wait? }` (at most 512 records and 1 MiB a page),
     `terminal.subscribe { terminal, from }` (read; answers

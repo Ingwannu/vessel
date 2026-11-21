@@ -33,6 +33,10 @@ pub(crate) struct OpenShell {
     /// What to call it.
     #[arg(long)]
     pub(crate) title: Option<String>,
+    /// Run this terminal profile of the node's (its id) instead of its
+    /// shell; its name is the title unless `--title` is given.
+    #[arg(long)]
+    pub(crate) profile: Option<String>,
     /// Open it and print its id, without attaching.
     #[arg(long)]
     pub(crate) detached: bool,

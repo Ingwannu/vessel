@@ -72,6 +72,7 @@ fn beside(session: SessionId) -> CreateTerminal {
         place: TerminalPlace::Session { session },
         size: None,
         title: None,
+        profile: None,
     }
 }
 
