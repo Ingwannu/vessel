@@ -62,27 +62,38 @@ impl NodeService {
         let resolved = profile.resolve(&prompt).map_err(invalid)?;
         let command = resolved.command().as_str();
         let config = &self.terminals.runner.config;
-        let Some(program) = terminals::find_program(
-            command,
-            folder,
-            config.search_path.as_deref(),
-            terminals::executable,
-        ) else {
+        let lookup = terminals::Lookup {
+            search: config.search_path.as_deref(),
+            extensions: config.path_extensions.as_deref(),
+            windows: cfg!(windows),
+        };
+        let Some(program) =
+            terminals::find_program(command, folder, lookup, terminals::executable)
+        else {
             // Paseo's `TerminalCommandNotFoundError` message.
             return Err(TerminalsError::Wire(WireError::new(
                 ErrorCode::SpawnFailed,
                 format!("{command}: command not found"),
             )));
         };
+        let args: Vec<String> = resolved
+            .args()
+            .iter()
+            .map(|arg| arg.as_str().to_owned())
+            .collect();
+        // cmd.exe would read a batch script's arguments again (`program`).
+        if lookup.windows
+            && terminals::batch_script(&program)
+            && !args.iter().all(|arg| terminals::plain_for_batch(arg))
+        {
+            return Err(TerminalsError::Unsupported(format!(
+                "{command} is a Windows batch script, which cmd.exe reads again; \
+                 Vessel passes it only plain arguments (letters, digits and -_./:=+@\\). \
+                 Name the program's .exe to give it a prompt"
+            )));
+        }
         Ok(Launch {
-            program: Shell {
-                program,
-                args: resolved
-                    .args()
-                    .iter()
-                    .map(|arg| arg.as_str().to_owned())
-                    .collect(),
-            },
+            program: Shell { program, args },
             title: profile.name().as_str().parse().ok(),
         })
     }

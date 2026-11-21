@@ -141,21 +141,10 @@ impl Shell {
     }
 }
 
-/// Whether `path` is a file this account may run: on Unix an execute bit
-/// (the kernel checks the rest at `exec`), on Windows a file.
+/// Whether `path` is a file this account may run (`vessel_proc::may_run`:
+/// the kernel's own check on Unix, as Paseo's `access(X_OK)`).
 pub(crate) fn executable(path: &Path) -> bool {
-    let Ok(metadata) = std::fs::metadata(path) else {
-        return false;
-    };
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt as _;
-        metadata.is_file() && metadata.permissions().mode() & 0o111 != 0
-    }
-    #[cfg(not(unix))]
-    {
-        metadata.is_file()
-    }
+    vessel_proc::may_run(path)
 }
 
 /// The variables every terminal's process gets on top of the node's.
@@ -171,38 +160,6 @@ pub(crate) fn scrubbed(mut spec: CommandSpec, removed: &[OsString]) -> CommandSp
         spec = spec.env(name, value);
     }
     spec
-}
-
-/// Where a terminal profile's program is (ADR 0117; Paseo's
-/// `assertTerminalCommandCanStart`, `server/src/terminal/terminal.ts`
-/// 706-747), found before anything starts so the person reads
-/// `<program>: command not found` rather than a terminal that ends at once:
-/// a program with a folder in it from `folder`, a bare name on `search`
-/// (the node's own `PATH`, which its terminals inherit), skipping empty
-/// entries. `None`: not there. Without a search path, or on Windows (whose
-/// `.cmd` and `.bat` lookup Paseo leaves to the system too), the name is
-/// taken as given.
-pub(crate) fn find_program(
-    program: &str,
-    folder: &Path,
-    search: Option<&OsStr>,
-    executable: impl Fn(&Path) -> bool,
-) -> Option<PathBuf> {
-    let path = Path::new(program);
-    if cfg!(windows) {
-        return Some(path.to_path_buf());
-    }
-    if path.is_absolute() || path.components().nth(1).is_some() {
-        let found = folder.join(path);
-        return executable(&found).then_some(found);
-    }
-    let Some(search) = search else {
-        return Some(path.to_path_buf());
-    };
-    std::env::split_paths(search)
-        .filter(|dir| !dir.as_os_str().is_empty())
-        .map(|dir| dir.join(path))
-        .find(|candidate| executable(candidate))
 }
 
 /// The shell's command in `folder`.
@@ -221,41 +178,6 @@ mod tests {
 
     fn names(list: &[&str]) -> Vec<OsString> {
         list.iter().map(OsString::from).collect()
-    }
-
-    #[test]
-    fn a_profiles_program_is_found_on_the_search_path_or_from_the_folder() {
-        if cfg!(windows) {
-            return;
-        }
-        let here = Path::new("/work/site");
-        let on = |found: &'static [&'static str]| {
-            move |path: &Path| found.iter().any(|f| path == Path::new(f))
-        };
-        let search = OsString::from("/opt/a::/usr/bin");
-        let found = on(&["/usr/bin/claude", "/work/site/bin/tool", "/opt/tools/x"]);
-        assert_eq!(
-            find_program("claude", here, Some(&search), found),
-            Some(PathBuf::from("/usr/bin/claude"))
-        );
-        assert_eq!(find_program("codex", here, Some(&search), found), None);
-        assert_eq!(
-            find_program("bin/tool", here, Some(&search), found),
-            Some(PathBuf::from("/work/site/bin/tool"))
-        );
-        assert_eq!(
-            find_program("/opt/tools/x", here, Some(&search), found),
-            Some(PathBuf::from("/opt/tools/x"))
-        );
-        assert_eq!(find_program("./missing", here, Some(&search), found), None);
-        // An empty entry is not the node's own folder.
-        let only_empty = OsString::from(":");
-        let local = on(&["claude"]);
-        assert_eq!(find_program("claude", here, Some(&only_empty), local), None);
-        assert_eq!(
-            find_program("claude", here, None, found),
-            Some(PathBuf::from("claude"))
-        );
     }
 
     #[test]

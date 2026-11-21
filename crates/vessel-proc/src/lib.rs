@@ -57,12 +57,14 @@ mod lifetime;
 pub mod listening;
 pub mod lock;
 mod process_id;
+mod runnable;
 pub mod self_process;
 mod session;
 mod signal;
 mod spec;
 
 pub use account::account_shell;
+pub use runnable::may_run;
 pub use checked::{CheckedWaitError, OwnedGroupExit};
 pub use child::{Child, Spawned, spawn};
 pub use diagnostics::CommandDiagnostics;

@@ -12,7 +12,7 @@ mod values;
 pub use adopt::base_name;
 pub use icon::{KNOWN_ICONS, ProfileIcon, guess};
 pub use launch::ProfileLaunch;
-pub use text::{Argument, Icon, Id, Name, Program, Prompt, TextKind};
+pub use text::{Argument, Icon, Id, Name, Program, Prompt, RESOLVED_ARGUMENT_BYTES, TextKind};
 pub use values::{Profile, Profiles, Resolved};
 
 /// The reference profile format's literal placeholder, replaced in every entry.

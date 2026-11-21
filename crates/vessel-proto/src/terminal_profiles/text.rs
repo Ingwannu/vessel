@@ -156,8 +156,8 @@ profile_text!(
     Prompt,
     Prompt,
     "TerminalPrompt",
-    64 * 1024,
-    "A bounded prompt to substitute as literal argv text."
+    16 * 1024,
+    "A bounded prompt to substitute as literal argv text: at most one argument's bytes."
 );
 profile_text!(
     Icon,
@@ -166,3 +166,18 @@ profile_text!(
     Id::MAX_BYTES,
     "An optional catalog icon identity, independent of the program."
 );
+
+/// The most bytes one argument may hold once the prompt is in it (ADR 0117):
+/// a template's bound and a prompt's, so an argument that holds the
+/// placeholder once (every shipped profile's) takes any prompt the wire
+/// accepts.
+pub const RESOLVED_ARGUMENT_BYTES: usize = Argument::MAX_BYTES + Prompt::MAX_BYTES;
+
+impl Argument {
+    /// A substituted argument, bounded by [`RESOLVED_ARGUMENT_BYTES`] rather
+    /// than a template's bound.
+    pub(super) fn resolved(value: String) -> Result<Self, ProfileError> {
+        TextKind::Argument.validate(&value, RESOLVED_ARGUMENT_BYTES)?;
+        Ok(Self(value))
+    }
+}
