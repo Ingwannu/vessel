@@ -229,7 +229,9 @@ export function ScriptsControl({
                 size="sm"
                 icon="exec"
                 end={<Icon name="chevron-down" size={14} />}
-              />
+              >
+                {null}
+              </Button>
             }
           >
             {content}
