@@ -35,6 +35,7 @@ fn make_state(
 ) -> State {
     State {
         usage_calls: crate::usage::Hub::default(),
+        schedule_calls: crate::schedules::Hub::default(),
         label: "test".to_owned(),
         commands,
         events,

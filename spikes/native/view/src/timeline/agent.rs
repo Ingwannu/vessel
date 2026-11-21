@@ -8,6 +8,7 @@ use super::entry::{
 };
 use super::fold::Timeline;
 use super::plan::{PlanActivity, all_pending, plan_activities};
+use super::sent_context::sent_context;
 
 impl Timeline {
     pub(super) fn agent(&mut self, record: &EventRecord, event: &AgentEvent) {
@@ -36,6 +37,7 @@ impl Timeline {
                         replayed: false,
                         turn: self.turns,
                         attachments,
+                        context: sent_context(content),
                     }),
                 );
             }
@@ -133,7 +135,14 @@ impl Timeline {
             }
             AgentEvent::Steered { content, .. } => {
                 let (text, attachments) = prompt_parts(content);
-                self.push(record, EntryKind::Steer { text, attachments });
+                self.push(
+                    record,
+                    EntryKind::Steer {
+                        text,
+                        attachments,
+                        context: sent_context(content),
+                    },
+                );
             }
             AgentEvent::QuestionAsked(question) => self.asked(record, question),
             AgentEvent::QuestionResolved { id, outcome, .. } => {

@@ -277,12 +277,21 @@ pub fn press(key: BarKey, sticky: &mut Sticky, cursor: CursorKeys) -> String {
 }
 
 /// A key pressed on the keyboard while modifiers are set: the key with
-/// them as well as those `held`; they clear. `None` when none is set.
+/// them as well as those `held`; they clear. A character outside printable
+/// ASCII goes as typed, as in [`typed`] (Paseo's `mapTerminalDataToKey`
+/// maps printable ASCII only; P4n app review note 1). `None` when none is
+/// set.
 pub fn pressed(key: Key, held: Mods, sticky: &mut Sticky, cursor: CursorKeys) -> Option<String> {
     if sticky.is_empty() {
         return None;
     }
-    Some(encode(key, held.with(sticky.take()), cursor))
+    let mods = held.with(sticky.take());
+    if let Key::Char(only) = key
+        && !matches!(only, ' '..='~')
+    {
+        return Some(only.to_string());
+    }
+    Some(encode(key, mods, cursor))
 }
 
 /// Text typed while modifiers are set (Paseo's

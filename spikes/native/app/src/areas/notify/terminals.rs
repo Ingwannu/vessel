@@ -151,6 +151,8 @@ impl Shell {
     /// session's own as a path is asked of the node, which keeps it
     /// canonical (`vessel_app_link::terminal_holder`); the session it names
     /// opens on the next frame. Nothing opens when no session holds it.
+    /// Each click first drops an earlier click's locate and find, so a late
+    /// find never opens over what this click opened (app review R1).
     pub(super) fn terminal_notice_clicked(
         &mut self,
         machine: &str,
@@ -159,6 +161,8 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        self.areas.notify.locating = None;
+        self.areas.notify.located = None;
         let Some(known) = self
             .fleet
             .machines

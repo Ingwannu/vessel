@@ -173,3 +173,18 @@ composer-file-submission-retry = Retry this message
 
 # Attachment delivery status or explicit retry of a request never sent.
 composer-file-submission-sending = Sending the retained attachment message…
+
+# A sent message's context pill, its second line (Paseo's sent text attachment).
+composer-sent-text = Text
+
+# A sent message's pill for earlier conversation carried into it.
+composer-sent-history = Previous conversation
+
+# A sent message's review pill, its first line.
+composer-sent-review = Review
+
+# A sent review's count of comments, its pill's second line. $count is a number.
+composer-sent-comments = { NUMBER($count) ->
+    [one] { $count } comment
+   *[other] { $count } comments
+    }

@@ -309,3 +309,46 @@ fn a_folder_terminal_no_session_names_as_a_path_is_located_by_the_node(cx: &mut 
         assert!(shows(shell, session));
     });
 }
+
+/// A click that finds its holder at once drops an earlier click's locate:
+/// the earlier find, arriving late, opens nothing over the session this
+/// click opened (app review R1).
+#[gpui::test]
+fn a_later_click_drops_an_earlier_clicks_find(cx: &mut TestAppContext) {
+    language_tests::init(cx);
+    let (link, mut sent) = Link::detached(8).unwrap();
+    let (shell, cx) = cx.add_window_view(move |window, cx| Shell::with_test_link(window, cx, link));
+    cx.run_until_parked();
+    while sent.try_recv().is_ok() {}
+    let (linked, held) = (SessionId::random(), SessionId::random());
+    let first = TerminalId::random();
+    shell.update_in(cx, |shell, window, cx| {
+        shell.fleet = Fleet {
+            machines: vec![lab(vec![
+                in_folder(linked, "/home/me/notes"),
+                in_folder(held, "/work/site"),
+            ])],
+            read_at: None,
+        };
+        let through_a_link = TerminalPlace::Folder {
+            path: PathBuf::from("/real/notes"),
+        };
+        shell.terminal_notice_clicked("lab", first, &through_a_link, window, cx);
+        let beside = TerminalPlace::Session { session: held };
+        shell.terminal_notice_clicked("lab", TerminalId::random(), &beside, window, cx);
+        assert!(
+            shows(shell, held),
+            "the second click opens its holder at once"
+        );
+        shell.terminal_located(Located {
+            machine: "lab".to_owned(),
+            terminal: first,
+            session: linked,
+        });
+        shell.settle_terminal_notice(window, cx);
+        assert!(
+            shows(shell, held),
+            "the first click's late find opens nothing"
+        );
+    });
+}

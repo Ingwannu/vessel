@@ -22,6 +22,8 @@ use vessel_proto::{AgentCommand, EventRecord, HarnessRef, SessionId, SessionOpti
 pub enum Event {
     /// Correlated usage facts or safe failures.
     Usage(crate::usage::Answer),
+    /// A schedule list or mutation result on its original admission.
+    Schedules(crate::schedules::Answer),
     /// Session address lookup, correlated to its requesting control.
     Sessions(crate::sessions::Answer),
     /// The matching lifecycle mutation result.

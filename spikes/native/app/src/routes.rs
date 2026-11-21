@@ -23,6 +23,8 @@ pub(crate) enum Route {
     Session,
     /// Adding a machine by pairing.
     Pair,
+    /// Scheduled work across the connected fleet.
+    Schedules,
     /// Settings: its sections listed in the sidebar's place, the chosen
     /// one beside them (`areas/settings`).
     Settings,
@@ -34,7 +36,11 @@ impl Route {
     pub(crate) const NAV: [Self; 4] = [Self::Draft, Self::Board, Self::Sessions, Self::Archive];
 
     /// Its name in the sidebar.
-    pub(crate) const fn label(self, t: &vessel_app_view::Text) -> &'static str {
+    pub(crate) fn label(
+        self,
+        t: &vessel_app_view::Text,
+        words: &'static vessel_app_view::localization::Translator,
+    ) -> &'static str {
         match self {
             Self::Draft => t.new_session,
             Self::Board => t.board,
@@ -42,6 +48,7 @@ impl Route {
             Self::Archive => t.archive,
             Self::Session => t.app,
             Self::Pair => t.add_machine,
+            Self::Schedules => words.sidebar().schedules(),
             Self::Settings => t.lang.settings().settings,
         }
     }
@@ -62,6 +69,7 @@ pub(crate) fn render(
         Route::Sessions => areas::sessions::render(shell, tokens, window, cx),
         Route::Session => areas::session::render(shell, tokens, window, cx).into_any_element(),
         Route::Pair => areas::pair::render(shell, tokens, window, cx).into_any_element(),
+        Route::Schedules => areas::schedules::render(shell, tokens, window, cx),
         Route::Settings => areas::settings::render(shell, tokens, window, cx).into_any_element(),
     }
 }
@@ -91,6 +99,7 @@ pub(crate) fn sidebar_inner(
         Route::Draft
         | Route::Board
         | Route::Sessions
+        | Route::Schedules
         | Route::Archive
         | Route::Session
         | Route::Pair => {
@@ -106,12 +115,14 @@ pub(crate) fn arrive(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) {
+    areas::schedules::leaving(route, shell, window, cx);
     areas::shortcuts::navigation_changed(shell);
     match route {
         Route::Draft => areas::draft::arrive(shell, window, cx),
         Route::Pair => areas::pair::arrive(shell, window, cx),
         Route::Archive => areas::archive::arrive(shell, window, cx),
         Route::Sessions => areas::sessions::arrive(shell, window, cx),
+        Route::Schedules => areas::schedules::arrive(shell, cx),
         Route::Board | Route::Session | Route::Settings => {}
     }
 }

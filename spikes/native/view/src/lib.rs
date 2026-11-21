@@ -56,6 +56,7 @@ pub mod prefs;
 pub mod presence;
 pub mod requests;
 pub mod rewind;
+pub mod schedules;
 pub mod search;
 pub mod session;
 pub mod session_lifecycle;

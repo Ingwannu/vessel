@@ -148,10 +148,14 @@ impl Shell {
                     cx.notify();
                 }
             }
-            Reply::Sent { terminal, .. } => {
+            Reply::Sent { terminal, result } => {
                 let key = key(terminal);
                 if let Some(pane) = self.areas.terminal_tabs.panes.get_mut(&key) {
-                    pane.sender.answered();
+                    if result.is_ok() {
+                        pane.sender.answered();
+                    } else {
+                        pane.sender.failed();
+                    }
                 }
                 self.terminal_tab_pump(&key);
             }

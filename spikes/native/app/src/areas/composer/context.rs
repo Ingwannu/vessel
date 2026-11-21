@@ -77,6 +77,7 @@ impl Shell {
             | crate::routes::Route::Board
             | crate::routes::Route::Archive
             | crate::routes::Route::Settings
+            | crate::routes::Route::Schedules
             | crate::routes::Route::Pair => None,
         }
     }

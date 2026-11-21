@@ -73,6 +73,7 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
     let why = unsent.why;
     let event = match *unsent.command {
         Command::Usage(ask) => usage_refused(ask, why),
+        Command::Schedules(request) => crate::areas::schedules::refuse(request, why),
         Command::SessionAccess(access) => access.refused(ActFailed {
             code: None,
             message: words.to_owned(),
@@ -142,16 +143,7 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
             machine,
             session,
             act,
-        } => Event::Acted(ActAnswer {
-            terminal: act.terminal_opening().cloned(),
-            machine,
-            session,
-            kind: act.kind(),
-            result: Err(ActFailed {
-                code: Some(ErrorCode::Unavailable),
-                message: said(),
-            }),
-        }),
+        } => act_unsent(machine, session, &act, said()),
         Command::Pair { .. } => Event::PairFailed(vessel_app_view::pairing::PairProblem::Unsent),
         Command::Workspace { machine, ask } => Event::Workspace {
             machine,
@@ -178,6 +170,27 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
 
 /// A search never sent: said under the Messages group as that machine's
 /// failure.
+/// An act that never left: answered as the machine's `unavailable`, with the
+/// app's sentence. Kept out of [`settle`] for its length (the match grows
+/// with every command).
+fn act_unsent(
+    machine: String,
+    session: SessionId,
+    act: &vessel_app_link::Act,
+    message: String,
+) -> Event {
+    Event::Acted(ActAnswer {
+        terminal: act.terminal_opening().cloned(),
+        machine,
+        session,
+        kind: act.kind(),
+        result: Err(ActFailed {
+            code: Some(ErrorCode::Unavailable),
+            message,
+        }),
+    })
+}
+
 fn search_refused(ask: vessel_app_link::search::Ask, message: String) -> Event {
     Event::Searched(vessel_app_link::search::Answer {
         machine: ask.machine,
