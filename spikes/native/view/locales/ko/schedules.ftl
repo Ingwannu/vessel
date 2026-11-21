@@ -159,6 +159,9 @@ schedules-search-empty = 일치하는 머신 없음
 # Short menu trigger tooltip; never the row status or feature title.
 schedules-more = 일정 작업
 
+# Accessible menu name for any schedule targeting an existing session.
+schedules-more-heartbeat = 하트비트 작업
+
 # Complete partial-host error line; the reason is already localized, never a transport diagnostic.
 schedules-host-error = { $host }: { $reason }
 

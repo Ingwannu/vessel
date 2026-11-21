@@ -6,7 +6,10 @@ wins and this file is corrected in the same commit.
 
 Current implementation and verification are tracked in
 [Native Schedules rollout](m12-sn-schedules.md). The resume point below
-records the earlier ADR proposal.
+records the earlier ADR proposal. The M12 amendment to ADR 0072
+supersedes its ownership-based Heartbeat label and row actions.
+Existing-session targets use the Heartbeat label and omit execution
+actions for every owner.
 
 ## Resume point
 

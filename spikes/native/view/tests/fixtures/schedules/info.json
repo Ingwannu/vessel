@@ -2,7 +2,7 @@
         "id":"00000000-0000-4000-8000-000000000001",
         "definition": {
             "cadence":{"kind":"every","seconds":90,"anchor":"2026-11-13T00:00:00Z"},
-            "target":{"kind":"session","session":"00000000-0000-4000-8000-000000000002"},
+            "target":{"kind":"new_session","spec":{"harness":"claude-code","mode":"structured"}},
             "prompt":"\n  빌드와 테스트 상태 확인\nLong second line"
         },
         "state":{"state":"active","next_due":"2026-11-14T09:00:00Z"},

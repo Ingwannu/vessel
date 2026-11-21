@@ -159,6 +159,9 @@ schedules-search-empty = No matching machines
 # Short menu trigger tooltip; never the row status or feature title.
 schedules-more = Schedule actions
 
+# Accessible menu name for any schedule targeting an existing session.
+schedules-more-heartbeat = Heartbeat actions
+
 # Complete partial-host error line; the reason is already localized, never a transport diagnostic.
 schedules-host-error = { $host }: { $reason }
 

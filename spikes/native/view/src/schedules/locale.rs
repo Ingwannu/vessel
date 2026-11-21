@@ -98,7 +98,7 @@ pub fn badge(status: super::Status, catalog: &Translator) -> &str {
     }
 }
 
-/// Action copy. Only self-owned schedules carry the heartbeat noun.
+/// Action copy. Existing-session targets carry the heartbeat noun.
 #[must_use]
 pub fn action_label(action: Action, heartbeat: bool, catalog: &Translator) -> &str {
     let words = catalog.schedules();

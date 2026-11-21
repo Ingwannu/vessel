@@ -52,6 +52,8 @@ pub struct PreparedRow {
     pub metadata: Arc<str>,
     /// One row-local refusal/failure explanation, if any.
     pub notice: Option<Notice>,
+    /// Accessible menu name for the target category.
+    pub menu_label: Arc<str>,
     /// Only wired actions, with pending identity retained across polls.
     pub menu: Vec<MenuEntry>,
 }
@@ -122,6 +124,11 @@ fn prepare(
         status: row.status(),
         metadata: meta.unwrap_or_default().into(),
         notice,
+        menu_label: if heartbeat {
+            catalog.schedules().more_heartbeat().into()
+        } else {
+            catalog.schedules().more().into()
+        },
         menu: row
             .menu_entries()
             .into_iter()

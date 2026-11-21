@@ -54,16 +54,11 @@ pub enum Action {
     Delete,
 }
 
-/// An agent-owned recurring prompt into its own session.
+/// Existing-session targets are heartbeats in the UI. The node tracks
+/// ownership separately for authorization and lifetime.
 #[must_use]
-pub fn is_heartbeat(info: &ScheduleInfo) -> bool {
-    match (&info.defined_by, &info.definition.target) {
-        (
-            vessel_proto::Creator::Agent { session: owner, .. },
-            ScheduleTarget::Session { session },
-        ) => owner == session,
-        _other => false,
-    }
+pub const fn is_heartbeat(info: &ScheduleInfo) -> bool {
+    matches!(&info.definition.target, ScheduleTarget::Session { .. })
 }
 
 /// The node's state, with its ended reason retained for a precise badge.

@@ -9,6 +9,9 @@ use std::sync::Arc;
 use vessel_app_kit::{self as kit, Tokens, Type, TypeExt as _, theme::spacing};
 use vessel_app_view::schedules::presentation::PreparedRow;
 
+#[cfg(test)]
+mod tests;
+
 pub(super) fn render(
     shell: &Shell,
     row: &PreparedRow,
@@ -109,10 +112,16 @@ fn trailing(
         .gap(px(spacing::S2))
         .flex_none()
         .child(badge);
+    let ui = &shell.areas.schedules.ui;
     if row.has_menu()
         && let Some(intent) = &row.intent
-        && let Some(control) = shell.areas.schedules.ui.anchors.get(&row.key)
+        && let Some(control) = ui.anchors.get(&row.key)
     {
+        let expanded = ui.menu.is_open()
+            && ui
+                .selected
+                .as_ref()
+                .is_some_and(|selected| selected.key() == &row.key);
         let intent = intent.clone();
         let anchor = std::rc::Rc::clone(&control.anchor);
         controls = controls.child(
@@ -122,7 +131,9 @@ fn trailing(
                 kit::menu::TriggerSizing::from_compact(touch),
                 tokens,
             )
-            .aria_label(shell.words.schedules().more())
+            .role(gpui::Role::Button)
+            .aria_label(SharedString::from(Arc::clone(&row.menu_label)))
+            .aria_expanded(expanded)
             .on_click(cx.listener(move |shell, _, window, cx| {
                 cx.stop_propagation();
                 shell.schedule_menu(&intent, &anchor, window, cx);
