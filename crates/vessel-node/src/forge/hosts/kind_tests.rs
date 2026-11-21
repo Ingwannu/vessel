@@ -38,8 +38,14 @@ async fn github_s_hosts_and_a_host_with_a_token_are_github() {
     let data = tempfile::tempdir().unwrap();
     let hosts = enterprise_node(data.path());
     assert_eq!(hosts.kind_of(&host("github.com")), Some(ForgeKind::Github));
-    assert_eq!(hosts.kind_of(&host("ssh.github.com")), Some(ForgeKind::Github));
-    assert_eq!(hosts.kind_of(&host("ghe.example.org")), Some(ForgeKind::Github));
+    assert_eq!(
+        hosts.kind_of(&host("ssh.github.com")),
+        Some(ForgeKind::Github)
+    );
+    assert_eq!(
+        hosts.kind_of(&host("ghe.example.org")),
+        Some(ForgeKind::Github)
+    );
     // Another forge's public host is never asked about.
     for other in OTHER_FORGE_HOSTS {
         assert_eq!(hosts.kind_of(&host(other)), None);
