@@ -157,20 +157,17 @@ function CardItem({
   control: PluginControl;
 }) {
   const content = control.content;
-  switch (content.kind) {
-    case "settings_switch":
-      return <SettingsSwitchRow scope={scope} control={content} />;
-    case "settings_select":
-      return <SettingsSelectRow scope={scope} control={content} />;
-    case "settings_input":
-      return <SettingsInputRow scope={scope} control={content} />;
-    default:
-      return (
-        <li className="row plugin-card-item">
-          <ControlView scope={scope} control={control} />
-        </li>
-      );
-  }
+  if (content.kind === "settings_switch")
+    return <SettingsSwitchRow scope={scope} control={content} />;
+  if (content.kind === "settings_select")
+    return <SettingsSelectRow scope={scope} control={content} />;
+  if (content.kind === "settings_input")
+    return <SettingsInputRow scope={scope} control={content} />;
+  return (
+    <li className="row plugin-card-item">
+      <ControlView scope={scope} control={control} />
+    </li>
+  );
 }
 
 /** Declared controls, in order. */
