@@ -360,7 +360,10 @@ pub(in super::super) fn surface(
         }
         .into_any_element(),
     ];
-    drawn.extend(super::feedback_draw::notice(shell, state.unavailable, tokens).map(IntoElement::into_any_element));
+    drawn.extend(
+        super::feedback_draw::notice(shell, state.unavailable, tokens)
+            .map(IntoElement::into_any_element),
+    );
     drawn.extend(chooser(shell, tokens, window, cx));
     drawn
 }

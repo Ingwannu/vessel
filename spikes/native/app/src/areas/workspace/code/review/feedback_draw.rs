@@ -27,7 +27,11 @@ const CLEARANCE_PHONE: f32 = 116.0;
 const CLEARANCE: f32 = 92.0;
 
 /// The notice over the button: why it is off, or that the send failed.
-pub(super) fn notice(shell: &Shell, unavailable: Option<Unavailable>, tokens: &Tokens) -> Option<Div> {
+pub(super) fn notice(
+    shell: &Shell,
+    unavailable: Option<Unavailable>,
+    tokens: &Tokens,
+) -> Option<Div> {
     let words = shell.words.review();
     let (text, colour) = if shell.review_feedback().failed {
         (words.feedback_failed(), tokens.neutral.destructive)
