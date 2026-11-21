@@ -207,5 +207,7 @@ fn parse_limit(text: &str) -> Result<Option<MaxRuns>, FieldError> {
         return Ok(None);
     }
     let value = text.parse::<u32>().map_err(FieldError::Number)?;
-    MaxRuns::try_from(value).map(Some).map_err(FieldError::Range)
+    MaxRuns::try_from(value)
+        .map(Some)
+        .map_err(FieldError::Range)
 }

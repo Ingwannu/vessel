@@ -191,8 +191,11 @@ impl Draft {
     /// Seconds remains available for legacy intervals that require it.
     #[must_use]
     pub fn units(&self) -> &'static [IntervalUnit] {
-        const STANDARD: &[IntervalUnit] =
-            &[IntervalUnit::Minutes, IntervalUnit::Hours, IntervalUnit::Days];
+        const STANDARD: &[IntervalUnit] = &[
+            IntervalUnit::Minutes,
+            IntervalUnit::Hours,
+            IntervalUnit::Days,
+        ];
         if matches!(self.opened, Some(Cadence::Every { seconds, .. })
             if IntervalParts::of(seconds).unit() == IntervalUnit::Seconds)
         {
@@ -274,10 +277,17 @@ fn interval(count: &str, unit: IntervalUnit, opened: Option<&Cadence>) -> Result
     let count = count.trim().parse::<u32>().map_err(Issue::Count)?;
     let seconds = count.checked_mul(unit.seconds()).ok_or(Issue::Overflow)?;
     let seconds = EverySeconds::try_from(seconds).map_err(Issue::Interval)?;
-    if let Some(opened @ Cadence::Every { seconds: previous, .. }) = opened
+    if let Some(
+        opened @ Cadence::Every {
+            seconds: previous, ..
+        },
+    ) = opened
         && *previous == seconds
     {
         return Ok(opened.clone());
     }
-    Ok(Cadence::Every { seconds, anchor: None })
+    Ok(Cadence::Every {
+        seconds,
+        anchor: None,
+    })
 }

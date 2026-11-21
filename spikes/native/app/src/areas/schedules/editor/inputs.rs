@@ -4,10 +4,7 @@ use vessel_app_kit::{
     field::FieldId,
     ui::{Context, Window},
 };
-use vessel_app_view::{
-    localization::Translator,
-    schedules::editor::Draft,
-};
+use vessel_app_view::{localization::Translator, schedules::editor::Draft};
 
 pub(super) struct Inputs {
     pub(super) name: TextField,
@@ -19,7 +16,12 @@ pub(super) struct Inputs {
 }
 
 impl Inputs {
-    pub(super) fn new(words: &Translator, draft: &Draft, window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
+    pub(super) fn new(
+        words: &Translator,
+        draft: &Draft,
+        window: &mut Window,
+        cx: &mut Context<'_, Shell>,
+    ) -> Self {
         let words = words.schedules();
         let name = line(words.form_optional(), words.form_name(), window, cx);
         let prompt = TextField::form_multiline_with_source_presentation(
@@ -33,7 +35,12 @@ impl Inputs {
         );
         prompt.set_accessible_label(words.form_prompt(), cx);
         let cron = TextField::with_source_text(
-            words.form_cron_placeholder(), submitted, changed, FormText::Code, window, cx,
+            words.form_cron_placeholder(),
+            submitted,
+            changed,
+            FormText::Code,
+            window,
+            cx,
         );
         cron.set_accessible_label(words.form_script(), cx);
         let inputs = Self {
@@ -86,13 +93,25 @@ impl Inputs {
     }
 }
 
-fn line(placeholder: &str, label: &str, window: &mut Window, cx: &mut Context<'_, Shell>) -> TextField {
+fn line(
+    placeholder: &str,
+    label: &str,
+    window: &mut Window,
+    cx: &mut Context<'_, Shell>,
+) -> TextField {
     let input = TextField::with_source(placeholder, submitted, changed, window, cx);
     input.set_accessible_label(label, cx);
     input
 }
 
-fn submitted(_shell: &mut Shell, _id: FieldId, _text: String, _window: &mut Window, _cx: &mut Context<'_, Shell>) {}
+fn submitted(
+    _shell: &mut Shell,
+    _id: FieldId,
+    _text: String,
+    _window: &mut Window,
+    _cx: &mut Context<'_, Shell>,
+) {
+}
 
 fn changed(shell: &mut Shell, id: FieldId, text: String, cx: &mut Context<'_, Shell>) {
     let editor = &mut shell.areas.schedules.editor;

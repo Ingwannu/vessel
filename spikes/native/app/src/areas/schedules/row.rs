@@ -48,15 +48,20 @@ pub(super) fn render(
     {
         let intent = intent.clone();
         let words = shell.words.schedules();
-        let label = words.form_edit_row(&row.title)
+        let label = words
+            .form_edit_row(&row.title)
             .unwrap_or_else(|_| words.form_edit_title().to_owned());
-        element.role(gpui::Role::Button).aria_label(label)
+        element
+            .role(gpui::Role::Button)
+            .aria_label(label)
             .cursor_pointer()
             .hover({
                 let wash = tokens.neutral.interaction_highlight;
                 move |style| style.bg(wash)
             })
-            .on_click(cx.listener(move |shell, _, window, cx| shell.schedule_edit_open(&intent, window, cx)))
+            .on_click(cx.listener(move |shell, _, window, cx| {
+                shell.schedule_edit_open(&intent, window, cx)
+            }))
     } else {
         element
     }

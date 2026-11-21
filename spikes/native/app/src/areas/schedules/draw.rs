@@ -81,7 +81,8 @@ pub(crate) fn render(
     if let Some(dialog) = super::overlays::deletion(shell, tokens, window, touch, cx) {
         root = root.child(dialog);
     }
-    root.children(super::editor::render(shell, tokens, window, touch, cx)).into_any_element()
+    root.children(super::editor::render(shell, tokens, window, touch, cx))
+        .into_any_element()
 }
 fn body(shell: &Shell, tokens: &Tokens, touch: bool, cx: &mut Context<'_, Shell>) -> AnyElement {
     let data = &shell.areas.schedules.data;

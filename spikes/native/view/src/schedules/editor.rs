@@ -7,11 +7,12 @@ pub mod io;
 mod preview;
 
 use vessel_proto::{
-    Creator, HarnessRef, ModelId, OptionChoice, SessionMode,
-    automation::{AfterRun, Cadence, CatchUp, CreateSchedule, EndReason, ScheduleDefinition,
-        ScheduleInfo, ScheduleState, ScheduleTarget, TimeZoneName, UpdateSchedule},
+    Creator, HarnessRef, ModelId, OptionChoice, SessionMode, SessionSpec,
+    automation::{
+        AfterRun, Cadence, CatchUp, CreateSchedule, EndReason, ScheduleDefinition, ScheduleInfo,
+        ScheduleState, ScheduleTarget, TimeZoneName, UpdateSchedule,
+    },
     workspace::SessionPlace,
-    SessionSpec,
 };
 
 /// The write a validated new-session form can send.
@@ -57,7 +58,14 @@ impl Draft {
             return false;
         };
         !matches!(info.defined_by, Creator::Agent { .. })
-            && !matches!(info.state, ScheduleState::Unknown | ScheduleState::Ended { reason: EndReason::Unknown, .. })
+            && !matches!(
+                info.state,
+                ScheduleState::Unknown
+                    | ScheduleState::Ended {
+                        reason: EndReason::Unknown,
+                        ..
+                    }
+            )
             && !matches!(info.definition.catch_up, CatchUp::Unknown)
             && !matches!(info.definition.cadence, Cadence::Unknown)
             && !matches!(after, AfterRun::Unknown)
@@ -126,7 +134,11 @@ impl Draft {
         let spec = self.spec.get_or_insert_with(|| {
             Box::new(SessionSpec::new(
                 harness.clone(),
-                SessionMode::Structured { model: None, resume: None, options: Vec::new() },
+                SessionMode::Structured {
+                    model: None,
+                    resume: None,
+                    options: Vec::new(),
+                },
             ))
         });
         if spec.harness != harness {
@@ -186,9 +198,15 @@ impl Draft {
             cadence: cadence.clone(),
             target: ScheduleTarget::NewSession {
                 spec,
-                after: if self.archive { AfterRun::Archive } else { AfterRun::Keep },
+                after: if self.archive {
+                    AfterRun::Archive
+                } else {
+                    AfterRun::Keep
+                },
             },
-            catch_up: self.opened().map_or(CatchUp::Once, |opened| opened.definition.catch_up),
+            catch_up: self
+                .opened()
+                .map_or(CatchUp::Once, |opened| opened.definition.catch_up),
             ends_at: self.opened().and_then(|opened| opened.definition.ends_at),
         };
         Some(match self.opened() {
@@ -197,7 +215,10 @@ impl Draft {
                 revision: opened.revision,
                 definition,
             }),
-            None => Save::Create(CreateSchedule { definition, paused: false }),
+            None => Save::Create(CreateSchedule {
+                definition,
+                paused: false,
+            }),
         })
     }
 }

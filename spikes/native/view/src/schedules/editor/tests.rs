@@ -44,7 +44,9 @@ fn person_and_agent_heartbeats_cannot_make_a_definition_replacement() {
 fn a_valid_zone_and_exact_run_cap_are_required_for_a_new_schedule() {
     let mut draft = Draft::create(None);
     assert!(draft.cadence.checked().is_err());
-    draft.cadence.default_zone(Some(&"Asia/Seoul".parse().unwrap()));
+    draft
+        .cadence
+        .default_zone(Some(&"Asia/Seoul".parse().unwrap()));
     let Cadence::Cron { zone, .. } = draft.cadence.checked().unwrap() else {
         panic!("expected default hourly cron");
     };

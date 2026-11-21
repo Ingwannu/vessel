@@ -1,13 +1,15 @@
 //! One picker owns all select fields. The model picker drills into a provider
 //! without changing the stored model until a person chooses a value.
 mod choices;
-use choices::{Change, Choice};
 use super::{Editor, Shell};
+use choices::{Change, Choice};
 use std::rc::Rc;
 use vessel_app_kit::{
     self as kit, ComboHandlers, ComboHeader, Tokens,
-    ui::{AnyElement, Context, InteractiveElement as _, IntoElement as _, SharedString,
-        StatefulInteractiveElement as _, Styled as _, Window},
+    ui::{
+        AnyElement, Context, InteractiveElement as _, IntoElement as _, SharedString,
+        StatefulInteractiveElement as _, Styled as _, Window,
+    },
 };
 use vessel_app_view::schedules::editor::{Draft, io::Ask};
 
@@ -60,8 +62,13 @@ impl Field {
 }
 
 pub(super) fn control(
-    shell: &Shell, field: Field, value: impl Into<SharedString>, enabled: bool, tokens: &Tokens,
-    touch: bool, cx: &mut Context<'_, Shell>,
+    shell: &Shell,
+    field: Field,
+    value: impl Into<SharedString>,
+    enabled: bool,
+    tokens: &Tokens,
+    touch: bool,
+    cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let editor = &shell.areas.schedules.editor;
     let anchor = &editor.anchors[field as usize];
@@ -76,21 +83,30 @@ pub(super) fn control(
     if !enabled {
         return trigger.into_any_element();
     }
-    trigger.on_click(cx.listener(move |shell, _, window, cx| {
-        let search = field.search(shell);
-        let editor = &mut shell.areas.schedules.editor;
-        if !editor.available() {
-            return;
-        }
-        editor.current_picker = Some(field);
-        editor.browsing = None;
-        editor.picker.set_anchor(editor.anchors[field as usize].get());
-        editor.picker.open(search, window, cx);
-        cx.notify();
-    })).into_any_element()
+    trigger
+        .on_click(cx.listener(move |shell, _, window, cx| {
+            let search = field.search(shell);
+            let editor = &mut shell.areas.schedules.editor;
+            if !editor.available() {
+                return;
+            }
+            editor.current_picker = Some(field);
+            editor.browsing = None;
+            editor
+                .picker
+                .set_anchor(editor.anchors[field as usize].get());
+            editor.picker.open(search, window, cx);
+            cx.notify();
+        }))
+        .into_any_element()
 }
 
-pub(super) fn popup(shell: &Shell, tokens: &Tokens, window: &Window, cx: &mut Context<'_, Shell>) -> Option<AnyElement> {
+pub(super) fn popup(
+    shell: &Shell,
+    tokens: &Tokens,
+    window: &Window,
+    cx: &mut Context<'_, Shell>,
+) -> Option<AnyElement> {
     let editor = &shell.areas.schedules.editor;
     let field = editor.current_picker?;
     let form = editor.model.as_ref()?;
@@ -102,7 +118,10 @@ pub(super) fn popup(shell: &Shell, tokens: &Tokens, window: &Window, cx: &mut Co
         .into_iter()
         .filter(|choice| query.is_empty() || choice.row.label.to_lowercase().contains(&query))
         .collect::<Vec<_>>();
-    let rows = choices.iter().map(|choice| choice.row.clone()).collect::<Vec<_>>();
+    let rows = choices
+        .iter()
+        .map(|choice| choice.row.clone())
+        .collect::<Vec<_>>();
     let back = editor.browsing.is_some();
     let title = editor.browsing.as_ref().map_or_else(
         || field.label(shell).into(),
@@ -120,7 +139,8 @@ pub(super) fn popup(shell: &Shell, tokens: &Tokens, window: &Window, cx: &mut Co
         state: |shell: &mut Shell| &mut shell.areas.schedules.editor.picker,
         chose: Rc::new(move |shell, index, window, cx| {
             if let Some(Choice { row, change }) = choices.get(index)
-                && !row.disabled && shell.areas.schedules.editor.current_picker == Some(field)
+                && !row.disabled
+                && shell.areas.schedules.editor.current_picker == Some(field)
             {
                 apply(shell, change.clone(), window, cx);
             }
@@ -128,8 +148,15 @@ pub(super) fn popup(shell: &Shell, tokens: &Tokens, window: &Window, cx: &mut Co
         back: back.then(|| Rc::new(go_back) as kit::picker::Back<Shell>),
     };
     kit::combobox(
-        "schedule-form-picker", &editor.picker, &header, &rows, &handlers,
-        kit::select::WIDTH, tokens, window, cx,
+        "schedule-form-picker",
+        &editor.picker,
+        &header,
+        &rows,
+        &handlers,
+        kit::select::WIDTH,
+        tokens,
+        window,
+        cx,
     )
 }
 
@@ -146,7 +173,9 @@ fn apply(shell: &mut Shell, change: Change, window: &mut Window, cx: &mut Contex
     if !editor.available() {
         return;
     }
-    let Some(form) = editor.model.as_mut() else { return };
+    let Some(form) = editor.model.as_mut() else {
+        return;
+    };
     match change {
         Change::OpenProvider(provider) => {
             editor.restore_prefs = false;
@@ -155,7 +184,8 @@ fn apply(shell: &mut Shell, change: Change, window: &mut Window, cx: &mut Contex
             shell.schedule_form_issue(Ask::Options(provider));
         }
         Change::Host(connection) => {
-            if form.draft.opened().is_none() && form.connection() != &connection
+            if form.draft.opened().is_none()
+                && form.connection() != &connection
                 && let Some(form) = editor.model.take()
             {
                 let mut draft = form.draft;

@@ -21,7 +21,11 @@ impl Answer {
     /// A command rejected before a call can issue has a known outcome.
     #[must_use]
     pub const fn refused(request: Request, reason: Failure) -> Self {
-        Self { request, result: Err(reason), guard: None }
+        Self {
+            request,
+            result: Err(reason),
+            guard: None,
+        }
     }
 
     /// Recheck the admitted connection when a queued reply reaches the window.

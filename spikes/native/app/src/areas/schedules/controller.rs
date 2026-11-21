@@ -88,8 +88,8 @@ impl Shell {
         cx: &mut Context<'_, Self>,
     ) {
         let retired = self.areas.schedules.editor.retired(context);
-        let page_changed = self.areas.schedules.data.page.retired(context)
-            && self.schedules_changed(cx);
+        let page_changed =
+            self.areas.schedules.data.page.retired(context) && self.schedules_changed(cx);
         if retired || page_changed {
             cx.notify();
         }

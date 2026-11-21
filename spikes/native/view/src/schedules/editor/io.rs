@@ -88,7 +88,10 @@ struct Slot<T> {
 }
 impl<T> Slot<T> {
     fn empty() -> Self {
-        Self { waiting: None, result: None }
+        Self {
+            waiting: None,
+            result: None,
+        }
     }
     fn begin(&mut self, request: &Request) {
         self.waiting = Some(request.clone());
@@ -143,7 +146,11 @@ impl Form {
         if self.saving() || matches!(self.save.result, Some(Err(Failure::Unconfirmed))) {
             return None;
         }
-        let request = Request { connection: self.connection.clone(), ticket: tickets.issue()?, ask };
+        let request = Request {
+            connection: self.connection.clone(),
+            ticket: tickets.issue()?,
+            ask,
+        };
         match &request.ask {
             Ask::Targets => self.targets.begin(&request),
             Ask::Options(options) => {
@@ -168,22 +175,33 @@ impl Form {
                     return false;
                 }
                 if let Some(Ok(facts)) = &self.targets.result {
-                    self.draft.cadence.default_zone(facts.device_zone.as_ref().or(facts.machine_zone.as_ref()));
+                    self.draft
+                        .cadence
+                        .default_zone(facts.device_zone.as_ref().or(facts.machine_zone.as_ref()));
                 }
                 true
             }
-            Ask::Options(_) => self.options.settle(request, result.and_then(|value| match value {
-                Value::Options(options) => Ok(options),
-                _ => Err(Failure::Unexpected),
-            })),
-            Ask::Preview(input) => self.preview.settle(request, result.and_then(|value| match value {
-                Value::Preview(preview) if preview::valid_input(input, &preview) => Ok(preview),
-                _ => Err(Failure::Unexpected),
-            })),
-            Ask::Save(save) => self.save.settle(request, result.and_then(|value| match value {
-                Value::Saved(info) if valid_saved(save, &info) => Ok(info),
-                _ => Err(Failure::Unconfirmed),
-            })),
+            Ask::Options(_) => self.options.settle(
+                request,
+                result.and_then(|value| match value {
+                    Value::Options(options) => Ok(options),
+                    _ => Err(Failure::Unexpected),
+                }),
+            ),
+            Ask::Preview(input) => self.preview.settle(
+                request,
+                result.and_then(|value| match value {
+                    Value::Preview(preview) if preview::valid_input(input, &preview) => Ok(preview),
+                    _ => Err(Failure::Unexpected),
+                }),
+            ),
+            Ask::Save(save) => self.save.settle(
+                request,
+                result.and_then(|value| match value {
+                    Value::Saved(info) if valid_saved(save, &info) => Ok(info),
+                    _ => Err(Failure::Unconfirmed),
+                }),
+            ),
         }
     }
 
@@ -200,7 +218,10 @@ impl Form {
 
     /// Only the selected provider and profile may supply option choices.
     #[must_use]
-    pub fn options(&self, expected: &GetHarnessOptions) -> Option<&Result<Box<HarnessOptions>, Failure>> {
+    pub fn options(
+        &self,
+        expected: &GetHarnessOptions,
+    ) -> Option<&Result<Box<HarnessOptions>, Failure>> {
         if self.options_for.as_ref()? == expected {
             self.options.result.as_ref()
         } else {
@@ -249,14 +270,17 @@ impl Form {
     /// protocol nodes can save the typed rule directly.
     #[must_use]
     pub fn save_request(&self) -> Option<Save> {
-        if self.saving() || !self.can_operate()
+        if self.saving()
+            || !self.can_operate()
             || matches!(self.save.result, Some(Err(Failure::Unconfirmed)))
         {
             return None;
         }
         let cadence = self.draft.cadence.checked().ok()?;
         match self.preview()? {
-            Ok(preview) if cadence_matches(cadence, &preview.cadence) => self.draft.save(&preview.cadence),
+            Ok(preview) if cadence_matches(cadence, &preview.cadence) => {
+                self.draft.save(&preview.cadence)
+            }
             Err(Failure::Older) => self.draft.save(cadence),
             Ok(_) | Err(_) => None,
         }
@@ -272,7 +296,12 @@ fn cadence_matches(request: &Cadence, canonical: &Cadence) -> bool {
 
 fn valid_saved(request: &Save, info: &ScheduleInfo) -> bool {
     match request {
-        Save::Create(_) => matches!(info.definition.target, vessel_proto::automation::ScheduleTarget::NewSession { .. }),
-        Save::Update(update) => info.id == update.schedule && info.revision == update.revision.wrapping_add(1),
+        Save::Create(_) => matches!(
+            info.definition.target,
+            vessel_proto::automation::ScheduleTarget::NewSession { .. }
+        ),
+        Save::Update(update) => {
+            info.id == update.schedule && info.revision == update.revision.wrapping_add(1)
+        }
     }
 }
