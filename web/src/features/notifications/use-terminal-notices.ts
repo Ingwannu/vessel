@@ -34,6 +34,9 @@ import { playNotice } from "./sound";
  * did not move. */
 const QUIET_MS = 1_000;
 
+/** How long a machine whose list failed rests before it is followed again. */
+const RETRY_MS = 15_000;
+
 /** A session on `notice.node` whose workspace holds the terminal's place. */
 function holder(fleet: Fleet, notice: TerminalNotice): string | null {
   const sessions = fleet.store.get().sessions[notice.node] ?? [];
@@ -136,10 +139,18 @@ export function useTerminalNotices(): void {
         });
       }
     };
+    /** When each machine's follower last ended on a failed call. */
+    const failedAt = new Map<NodeKey, number>();
     const sync = () => {
       const statuses = fleet.store.get().statuses;
+      const now = Date.now();
       for (const [node, status] of entriesOf(statuses)) {
-        if (claimsOn(status) && !following.has(node)) {
+        const failed = failedAt.get(node);
+        // A machine that refuses or fails the list is asked again only after
+        // a pause, not at the store's tick rate (node review of claims row
+        // 3, note 1).
+        const resting = failed !== undefined && now - failed < RETRY_MS;
+        if (claimsOn(status) && !following.has(node) && !resting) {
           let stopped = false;
           const follower = {
             stop: () => {
@@ -147,11 +158,14 @@ export function useTerminalNotices(): void {
             },
           };
           following.set(node, follower);
-          // A follower that ended on a failed call leaves its place, so the
-          // next change of the machines starts a new one.
+          // A follower that ended on a failed call leaves its place, so a
+          // change of the machines after the pause starts a new one.
           void follow(fleet, node, () => stopped, claimed).finally(() => {
             if (following.get(node) === follower) {
               following.delete(node);
+              if (!stopped) {
+                failedAt.set(node, Date.now());
+              }
             }
           });
         }

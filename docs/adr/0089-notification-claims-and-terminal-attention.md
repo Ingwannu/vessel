@@ -549,6 +549,19 @@ What this packet adds for it, each with the coordinator's approval (2026-11-21):
      `features/notifications/notifies.ts`, `use-notices.ts`, `use-terminal-notices.ts`, `use-presence.ts`. The
      app's half is on the app line.
 
+## The page's follow-ups to the claims rows (2026-11-21, from their node reviews)
+
+- **Paseo's focus on other tabs.** Paseo sets the focused agent only while an agent's tab is active
+  (`workspace-screen.tsx:1436-1456`). With Files, Changes, Diff, a pull request or a draft in front, the page now
+  reports `elsewhere` rather than the route's session (`data/shown-terminal.ts` holds the active tab's kind,
+  written by `use-terminal-attention.ts`; `use-presence.ts` reads it). This changes push today in the same way
+  as the terminal tab's `elsewhere`: that session's push is no longer held back while the person looks at another
+  tab.
+- **A paused restart.** A terminal follower that ended on a failed list is started again only after 15 s
+  (`use-terminal-notices.ts`, `RETRY_MS`), not at the store's tick rate.
+- **`inbox.read` before the read-only stop.** A machine that refused `session.mark` still gets `inbox.read`
+  (the `Read` scope) once it admits this protocol (`use-read-marks.ts`).
+
 ## Owed before the feature constant is assigned
 
 The node review of TRACKER 815 (2026-11-20, the staging line merged onto the
