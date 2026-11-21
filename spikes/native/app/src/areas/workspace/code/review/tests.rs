@@ -229,7 +229,7 @@ fn the_list_keeps_room_under_send_feedback_while_comments_are_kept(cx: &mut Test
     let room =
         |cx: &mut gpui::VisualTestContext| cx.debug_bounds("review-room").unwrap().size.height;
     assert_eq!(room(cx), gpui::px(0.0));
-    let (_key, id) = shell.update_in(cx, |shell, window, cx| saved(shell, window, cx));
+    let (_key, id) = shell.update_in(cx, saved);
     redraw(&shell, cx);
     // The md button, its 16 and 44: Paseo's clearance on a pointer's width.
     assert_eq!(room(cx), gpui::px(92.0));
