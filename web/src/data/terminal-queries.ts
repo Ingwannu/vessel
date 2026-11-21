@@ -68,7 +68,11 @@ export const OPERATING_REPLY = "\x1b[0n";
 
 /** The answer to `CSI 6 n`, or with `privateForm` to `CSI ? 6 n`, for a cursor
  * at 0-based `row` and `col`. */
-export function cursorReply(row: number, col: number, privateForm: boolean): string {
+export function cursorReply(
+  row: number,
+  col: number,
+  privateForm: boolean,
+): string {
   const mark = privateForm ? "?" : "";
   return `\x1b[${mark}${String(row + 1)};${String(col + 1)}R`;
 }
@@ -86,9 +90,10 @@ export function colourReply(code: 10 | 11 | 12, colour: Rgb): string {
 /** A computed CSS colour (`rgb(r, g, b)` or `rgba(r, g, b, a)`), or `null`
  * for anything else. */
 export function rgbOf(css: string): Rgb | null {
-  const match = /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*(?:,[^)]*)?\)$/.exec(
-    css.trim(),
-  );
+  const match =
+    /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*(?:,[^)]*)?\)$/.exec(
+      css.trim(),
+    );
   if (match === null) {
     return null;
   }

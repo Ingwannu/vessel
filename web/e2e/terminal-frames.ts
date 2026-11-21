@@ -58,3 +58,9 @@ export function watchTyped(page: Page, method: Method): string[] {
   });
   return typed;
 }
+
+/** `text` with each ESC shown as `ESC`, so a test can match an answer's
+ * bytes without a control character in its pattern. */
+export function shown(text: string): string {
+  return text.replaceAll("\x1b", "ESC");
+}

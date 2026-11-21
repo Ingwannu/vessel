@@ -9,7 +9,7 @@ import { expect, type Page, test } from "@playwright/test";
 import { launchAt, launchUi, openUi } from "./open";
 import { loadEnv } from "./fleet";
 import { newSessionPage, startSession, timeline } from "./kit";
-import { watchTyped } from "./terminal-frames";
+import { shown, watchTyped } from "./terminal-frames";
 
 /** Whether a frame the page sent is a call of `session.send`. */
 function sendsInput(frame: unknown): boolean {
@@ -444,7 +444,7 @@ test("a live device query is answered once, by the view that has focus and has t
   // TRACKER 826, ADR 0073's duty. The fake harness prints its input line
   // back raw ("echo: …"), so the queries reach the terminal as live
   // output; the PTY's own echo of the line shows them as `^[`, no query.
-  const answer = /^\x1b\[\d+;\d+R\x1b\[\?62;4;22c$/;
+  const answer = /^ESC\[\d+;\d+RESC\[\?62;4;22c$/;
   const typed = watchTyped(page, "session.send");
   await open(page);
   await create(page, "laptop");
@@ -467,11 +467,11 @@ test("a live device query is answered once, by the view that has focus and has t
 
   let from = typed.length;
   sendFromCli(session, "\x1b[6n\x1b[c\r");
-  await expect.poll(() => typed.slice(from).join("")).toMatch(answer);
+  await expect.poll(() => shown(typed.slice(from).join(""))).toMatch(answer);
   // The PTY echoes the answer as typed text (`^[[?62;4;22c`), which both
   // views draw; the watcher answered nothing.
   await expect(watching).toContainText("[?62;4;22c");
-  expect(typed.slice(from).join("")).toMatch(answer);
+  expect(shown(typed.slice(from).join(""))).toMatch(answer);
   expect(watched).toEqual([]);
 
   // A third view opens after the queries: they are its history, never
@@ -489,7 +489,7 @@ test("a live device query is answered once, by the view that has focus and has t
   // Live again: the first view answers once more, the watcher still not.
   from = typed.length;
   sendFromCli(session, "\x1b[6n\x1b[c\r");
-  await expect.poll(() => typed.slice(from).join("")).toMatch(answer);
+  await expect.poll(() => shown(typed.slice(from).join(""))).toMatch(answer);
   expect(watched).toEqual([]);
   await watcher.close();
 });

@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import { openUi } from "./open";
 import { openPanelTab, panelTab, startInShop } from "./shop";
-import { watchTyped } from "./terminal-frames";
+import { shown, watchTyped } from "./terminal-frames";
 
 test("workspace files retain a dirty edit, reorder, and ask once on a bulk close", async ({
   page,
@@ -111,8 +111,8 @@ test("a shell this page opened answers a live cursor query after focus has left"
     .toBe(true);
   // The typed line, then exactly one answer, sent without focus.
   await expect
-    .poll(() => typed.join(""))
-    .toMatch(/echo asked\r\x1b\[\d+;\d+R$/);
+    .poll(() => shown(typed.join("")))
+    .toMatch(/echo asked\rESC\[\d+;\d+R$/);
 });
 
 test("a standalone terminal accepts input and closes through the compact switcher", async ({
