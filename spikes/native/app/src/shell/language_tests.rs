@@ -134,14 +134,12 @@ fn select_triggers_name_the_host_filter_and_settings_field(cx: &mut TestAppConte
 fn named_button(cx: &mut gpui::VisualTestContext, name: &str) -> bool {
     cx.run_until_parked();
     let tree = cx.update(|window, _| window.debug_a11y_tree_json().unwrap());
-    let snapshot: serde_json::Value = serde_json::from_str(&tree).unwrap();
-    snapshot["nodes"].as_object().unwrap().values().any(|node| {
-        let aria = &node["aria"];
-        aria["role"] == "Button"
-            && aria["label"]
-                .as_str()
-                .is_some_and(|label| label.replace(['\u{2068}', '\u{2069}'], "") == name)
-    })
+    let label = format!(r#""label": "{name}""#);
+    tree.replace(['\u{2068}', '\u{2069}'], "")
+        .split("\"aria\":")
+        .skip(1)
+        .filter_map(|node| node.split_once('}').map(|(aria, _)| aria))
+        .any(|aria| aria.contains(r#""role": "Button""#) && aria.contains(&label))
 }
 
 /// A command queue without a node/runtime task lets area tests supply typed replies.
