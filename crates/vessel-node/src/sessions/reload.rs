@@ -54,10 +54,8 @@ impl Sessions {
             Found::Live { handle, .. } => {
                 let (reload, tools) = plan(&handle).await?;
                 let runtime = Arc::clone(&self.runtime);
-                self.finish_replacement(id, tools, async move {
-                    runtime.reload(id, reload).await
-                })
-                .await
+                self.finish_replacement(id, tools, async move { runtime.reload(id, reload).await })
+                    .await
             }
             Found::Stored(_) => Err(ServiceError::Ended(id)),
         }

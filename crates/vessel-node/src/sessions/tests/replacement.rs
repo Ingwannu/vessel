@@ -15,7 +15,10 @@ async fn a_replacement_settles_its_credential_after_its_caller_drops() {
         .reserve(id, &Principal::Owner, true)
         .unwrap()
         .unwrap();
-    let auth = AgentAuth { session: id, secret };
+    let auth = AgentAuth {
+        session: id,
+        secret,
+    };
     let closing = CancellationToken::new();
     let (_principal, registration) = agents.admit(&auth, &closing).unwrap();
     let (disable, secret) = agents.begin_move(id, false).unwrap();
