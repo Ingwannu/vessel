@@ -243,11 +243,11 @@ impl<V> std::fmt::Debug for MenuHandlers<V> {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
 /// Twice the gap above a trigger for [`Placement::Above`] (the panel sits
 /// half of it above, then the shared 4 down).
 const ABOVE_GAP: f32 = 24.0;
 
+#[derive(Debug, Clone, Copy)]
 enum Placement {
     Pointer(Point<Pixels>),
     End(Bounds<Pixels>),
