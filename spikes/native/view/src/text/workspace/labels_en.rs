@@ -53,6 +53,7 @@ pub const EN: Labels = Labels {
     badge_removed: "removed",
     would_lose: "Removing it now would lose:",
     end_session_first: "End the session in it (or wait for setup) before removing it.",
+    close_terminals_line: "This will close {terminals} terminal(s). Any running process in a closed terminal will be stopped immediately.",
     snapshot_keeps: "A snapshot keeps every change and commit in a commit of the project's own; it can be made a branch again later.",
     snapshot_cannot: "A snapshot cannot keep all of this.",
     discard_and_remove: "Discard and remove",

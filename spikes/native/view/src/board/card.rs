@@ -38,7 +38,8 @@ pub struct CardDetail {
     pub runs_in: Option<RunsIn>,
     /// The worktree it runs in, when it runs in one: with `runs_in`'s
     /// project, the workspace a plugin action taken in it names (ADR 0115,
-    /// catalog and invoke).
+    /// catalog and invoke), and its terminals' workspace place from
+    /// protocol 40 (ADR 0121).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub worktree: Option<WorktreeId>,
     /// The profile it runs with now (protocol 5).

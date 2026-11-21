@@ -515,6 +515,7 @@ fn a_node_that_waits_is_asked_again_only_when_the_list_moved(cx: &mut TestAppCon
             .filter_map(|request| match request {
                 Request::List { changed_from, .. } => Some(*changed_from),
                 Request::Create { .. }
+                | Request::ListAll
                 | Request::Follow { .. }
                 | Request::Unfollow { .. }
                 | Request::Send { .. }
@@ -583,6 +584,7 @@ fn a_pane_claims_its_size_on_focus_and_updates_it_after(cx: &mut TestAppContext)
                 Request::Send { .. }
                 | Request::Create { .. }
                 | Request::List { .. }
+                | Request::ListAll
                 | Request::Follow { .. }
                 | Request::Unfollow { .. }
                 | Request::Close { .. } => None,
@@ -701,3 +703,4 @@ fn a_listed_tab_not_yet_opened_shows_its_title(cx: &mut TestAppContext) {
 }
 
 mod p3;
+mod places;

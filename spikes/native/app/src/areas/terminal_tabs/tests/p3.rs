@@ -307,3 +307,31 @@ fn a_scrollback_change_applies_to_an_open_tab(cx: &mut TestAppContext) {
         );
     });
 }
+
+/// P3 app review note 1: a paste refused past the pastes' bound is said,
+/// once for a run of refusals, and nothing of it is sent.
+#[gpui::test]
+fn a_paste_past_its_bound_is_said_once(cx: &mut TestAppContext) {
+    let (probe, cx) = open(cx);
+    let session = probe.read_with(cx, |probe, _| probe.2);
+    let shell = probe.read_with(cx, |probe, _| probe.0.clone());
+    let key = laptop(super::shell_info(session).id);
+    let said = |shell: &Shell| shell.areas.toasts.shown().map(|toast| toast.text.clone());
+    shell.update_in(cx, |shell, _window, cx| {
+        live(shell, &key, b"$ ", cx);
+        // A paste waits behind one in flight: fill the bound, then pass it.
+        shell.terminal_tab_send_paste(&key, "a".to_owned(), cx);
+        shell.terminal_tab_send_paste(
+            &key,
+            "p".repeat(vessel_app_view::terminal::MAX_PASTE_PENDING),
+            cx,
+        );
+        assert_eq!(said(shell), None);
+        shell.terminal_tab_send_paste(&key, "q".to_owned(), cx);
+        let refused = shell.words.terminal_tabs().paste_too_large().to_owned();
+        assert_eq!(said(shell), Some(refused));
+        shell.areas.toasts = vessel_app_view::toasts::Toasts::default();
+        shell.terminal_tab_send_paste(&key, "r".to_owned(), cx);
+        assert_eq!(said(shell), None, "said once for a run of refusals");
+    });
+}

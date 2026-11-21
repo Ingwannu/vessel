@@ -70,6 +70,7 @@ impl crate::State {
             }
             request @ (Request::Create { .. }
             | Request::List { .. }
+            | Request::ListAll
             | Request::Send { .. }
             | Request::Close { .. }
             | Request::Unfollow { .. }) => drop(tokio::spawn(async move {
@@ -118,6 +119,9 @@ async fn call(client: &NodeClient, request: Request) -> Reply {
                 waits,
             }
         }
+        Request::ListAll => Reply::ListedAll {
+            result: bounded(client.call(ListTerminals::default())).await,
+        },
         Request::Send { terminal, outgoing } => {
             let input = match outgoing {
                 Outgoing::Keys(text) => TerminalInput::Data {

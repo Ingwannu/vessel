@@ -18,5 +18,6 @@ terminal-tabs-find-position = { $current } / { $total }
 terminal-tabs-find-matches = 검색 결과
 terminal-tabs-input = 터미널 입력
 terminal-tabs-scrollback = 터미널 스크롤백
-terminal-tabs-scrollback-hint = 내장 터미널 버퍼에 보관되는 줄 수
+terminal-tabs-scrollback-hint = 내장 터미널 버퍼에 보관되는 줄 수입니다. 값이 크면 터미널마다 메모리를 더 씁니다.
 terminal-tabs-scrollback-label = 터미널 스크롤백 줄 수
+terminal-tabs-paste-too-large = 붙여넣기를 보내지 않았습니다. 이 터미널로 보낼 내용이 이미 32MiB를 넘었습니다.
