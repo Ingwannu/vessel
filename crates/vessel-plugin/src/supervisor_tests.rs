@@ -9,6 +9,7 @@ fn ready() -> HelperToNode {
         protocol: HelperProtocol::V1,
         client: ClientDocument::new(vec![], vec![], vec![]).expect("declarations"),
         hooks: HookSubscriptions::default(),
+        settings: vessel_proto::plugins::SettingsDeclarations::default(),
     }
 }
 

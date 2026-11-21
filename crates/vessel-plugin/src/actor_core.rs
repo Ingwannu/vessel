@@ -6,7 +6,7 @@ use tokio::sync::{OwnedSemaphorePermit, mpsc, oneshot};
 use tokio_util::sync::CancellationToken;
 use vessel_proto::plugins::{
     ClientDocument, HelperCall, HelperPayload, HelperToNode, HookSubscriptions, InvocationId,
-    NodeToHelper, PluginAddress, RuntimeGeneration,
+    NodeToHelper, PluginAddress, RuntimeGeneration, SettingsDeclarations,
 };
 
 use crate::runtime_error::{ProtocolViolation, RuntimeError};
@@ -31,6 +31,7 @@ pub(crate) struct Core {
     address: PluginAddress,
     client: Option<Arc<ClientDocument>>,
     hooks: HookSubscriptions,
+    settings: Arc<SettingsDeclarations>,
     high: u64,
     pending: BTreeMap<InvocationId, Pending>,
     writer: mpsc::Sender<NodeToHelper>,
@@ -47,6 +48,7 @@ impl Core {
             address,
             client: None,
             hooks: HookSubscriptions::default(),
+            settings: Arc::default(),
             high: 0,
             pending: BTreeMap::new(),
             writer,
@@ -115,6 +117,7 @@ impl Core {
         let registered = match &request.call {
             HelperCall::Invoke { method, .. } => client.methods().contains(method),
             HelperCall::Hook { name, .. } => self.hooks.contains(*name),
+            HelperCall::Settings { settings, .. } => self.settings.version_of(settings).is_some(),
         };
         if !registered {
             return Err(CallError::Unregistered);
@@ -128,12 +131,14 @@ impl Core {
                 protocol: _,
                 client,
                 hooks,
+                settings,
             } => {
                 if self.client.is_some() {
                     return Err(ProtocolViolation::Ordering.into());
                 }
                 self.client = Some(Arc::new(client));
                 self.hooks = hooks;
+                self.settings = Arc::new(settings);
                 self.publish();
             }
             HelperToNode::Result { request, output } => self.settle(request, Ok(output))?,
@@ -171,6 +176,7 @@ impl Core {
                 address: self.address.clone(),
                 client: Arc::clone(client),
                 hooks: self.hooks.clone(),
+                settings: Arc::clone(&self.settings),
             }));
         }
     }

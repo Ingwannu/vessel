@@ -109,6 +109,16 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         | Method::RemovePlugin => json!({"plugin":"sample"}),
         Method::InspectPlugin => json!({"path":"/fixture/plugin"}),
         Method::InstallPlugin => json!({"source":"/fixture/plugin","id":"sample"}),
+        Method::ReadPluginSettings => json!({"plugin":"sample","settings":"display"}),
+        Method::WritePluginSettings => json!({
+            "plugin": "sample",
+            "settings": "display",
+            "revision": "missing",
+            "values": {"size": 3},
+        }),
+        Method::ResetPluginSettings => {
+            json!({"plugin":"sample","settings":"display","revision":"missing"})
+        }
         Method::InvokePlugin => json!({
             "plugin": "sample",
             "generation": id,
