@@ -68,9 +68,9 @@ no runtime to compile. The package that serves the method changes `staged`
 to `pending` in the commit that adds its handler; from then on the guard
 requires the handler, as for every assigned or pending row.
 
-## Version 45 (draft, 2026-11-21, milestone 12): a prompt's context and review blocks (implementer G, ADR 0124)
+## Version 46 (draft, 2026-11-21, milestone 12): a prompt's context and review blocks (implementer G, ADR 0124)
 
-Drafted as 45 (`PROMPT_CONTEXT_PROTOCOL`, `PROTOCOL_VERSION` 45); the integrator assigns the number at the node-line
+Drafted as 46 (`PROMPT_CONTEXT_PROTOCOL`, `PROTOCOL_VERSION` 46); the integrator assigns the number at the node-line
 merge. No method is added; `ContentBlock` gains two blocks for what a client sends (a prompt, a steer, a queued
 prompt's edit):
 
@@ -86,9 +86,9 @@ prompt's edit):
 - The agent receives a `context`'s text, and a `review` as Paseo's review text under the heading "Vessel review
   attachment (<mode>)" (`prompt_context::agent_text`). The session's log, its timeline and its queue keep the typed
   blocks, so clients draw them as pills.
-- A peer below 45 reads each block as a `text` block of that same text: in `turn_started`, `user_message_chunk` and
+- A peer below 46 reads each block as a `text` block of that same text: in `turn_started`, `user_message_chunk` and
   `steered`, in the queue of `session.conversation` and of `queue_changed`. `Call::since` makes `session.prompt`,
-  `session.send`'s prompt and a queue `edit` holding one need 45, so a client sends `text` to an older node.
+  `session.send`'s prompt and a queue `edit` holding one need 46, so a client sends `text` to an older node.
 
 ## Version 44 (2026-11-21, milestone 12): plugin surfaces' declaration kinds (impl P, ADR 0115 "Surfaces")
 

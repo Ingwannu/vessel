@@ -1,7 +1,7 @@
 # ADR 0124: Inline review comments on the diff, and a prompt's context, as typed blocks
 
 Status: accepted (implementer G, 2026-11-21; the coordinator's ruling of the same day accepted items 1 to 4 as
-drafted and added item 5). The protocol is drafted as 45 (`PROMPT_CONTEXT_PROTOCOL`); the integrator assigns it at
+drafted and added item 5). The protocol is drafted as 46 (`PROMPT_CONTEXT_PROTOCOL`); the integrator assigns it at
 the node-line merge. Packets: P6a node (this wire), P6b native, P6c page.
 
 ## Context

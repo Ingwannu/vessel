@@ -807,7 +807,7 @@ In the crate table's order.
     and audio, a `file:` URI for a file, each read back on the blocking
     pool).
   - A prompt's `context` and `review` blocks (ADR 0124, drafted as
-    protocol 45; `vessel_proto::prompt_context`): each value checks its
+    protocol 46; `vessel_proto::prompt_context`): each value checks its
     own bounds as it decodes, and the same entry points check a block's
     whole bounds (`sessions/conversation.rs`, `prompt_context::check`,
     refused as an attachment error, `invalid_request`). The log and the

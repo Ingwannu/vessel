@@ -1,5 +1,5 @@
 //! Context and review a person attaches to a prompt (ADR 0124, drafted as
-//! protocol 45): a pull request's comment, review or check logs, a
+//! protocol 46): a pull request's comment, review or check logs, a
 //! workspace file and the like as one titled [`PromptContext`], and the
 //! comments of a diff review as one [`PromptReview`].
 //!
@@ -42,9 +42,9 @@ mod tests;
 pub(crate) use older::{block_for_protocol, content_protocol};
 pub use render::agent_text;
 
-/// The `context` and `review` prompt blocks (ADR 0124). Drafted as 45; the
+/// The `context` and `review` prompt blocks (ADR 0124). Drafted as 46; the
 /// integrator assigns the number at the node-line merge.
-pub const PROMPT_CONTEXT_PROTOCOL: Option<ProtocolVersion> = Some(ProtocolVersion::new(45));
+pub const PROMPT_CONTEXT_PROTOCOL: Option<ProtocolVersion> = Some(ProtocolVersion::new(46));
 
 /// The longest title or subtitle, in characters.
 pub const TITLE_CHARS: usize = 200;
