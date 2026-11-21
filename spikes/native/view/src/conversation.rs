@@ -335,7 +335,10 @@ fn text_of(content: &[ContentBlock]) -> String {
         match block {
             ContentBlock::Text { text: part, .. } => text.push_str(part),
             ContentBlock::ResourceLink { name, .. } => text.push_str(name),
-            ContentBlock::Opaque { .. } | ContentBlock::Attachment { .. } => {
+            ContentBlock::Opaque { .. }
+            | ContentBlock::Attachment { .. }
+            | ContentBlock::Context(_)
+            | ContentBlock::Review(_) => {
                 text.push_str("[attachment]");
             }
         }

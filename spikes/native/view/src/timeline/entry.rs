@@ -67,6 +67,8 @@ pub struct Prompt {
     pub turn: u32,
     /// The files it carried (protocol 10).
     pub attachments: Vec<AttachmentRef>,
+    /// The context and review it carried (ADR 0124).
+    pub context: Vec<super::SentContext>,
 }
 
 /// A tool call as it stands after its updates.
@@ -190,6 +192,8 @@ pub enum EntryKind {
         text: String,
         /// Its files.
         attachments: Vec<AttachmentRef>,
+        /// Its context and review (ADR 0124).
+        context: Vec<super::SentContext>,
     },
     /// A question the agent asked; the form itself docks over the
     /// composer.
@@ -354,6 +358,8 @@ pub fn block_text(block: &ContentBlock) -> String {
         ContentBlock::ResourceLink { uri, name, .. } => format!("[{name}]({uri})"),
         ContentBlock::Opaque { .. } => String::new(),
         ContentBlock::Attachment { attachment, .. } => format!("[{}]", attachment.name),
+        // Not the prompt's words: its sent pills (`SentContext`).
+        ContentBlock::Context(_) | ContentBlock::Review(_) => String::new(),
     }
 }
 
@@ -367,7 +373,9 @@ pub fn prompt_parts(content: &[ContentBlock]) -> (String, Vec<AttachmentRef>) {
             ContentBlock::Attachment { attachment, .. } => attachments.push(attachment.clone()),
             ContentBlock::Text { .. }
             | ContentBlock::ResourceLink { .. }
-            | ContentBlock::Opaque { .. } => text.push_str(&block_text(block)),
+            | ContentBlock::Opaque { .. }
+            | ContentBlock::Context(_)
+            | ContentBlock::Review(_) => text.push_str(&block_text(block)),
         }
     }
     (text, attachments)

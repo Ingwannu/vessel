@@ -230,7 +230,10 @@ app/src/
                    (offers.rs), a running session's controls (running.rs, modes.rs),
                    the `/` menu (slash.rs), drafts and recall (drafts.rs), files
                    attached and sent (attach.rs, files.rs), sent images' pictures
-                   in the conversation (sent.rs)
+                   and a sent prompt's context and review pills, which open
+                   nothing, as Paseo's (sent.rs; ADR 0124); a context pill goes
+                   as a `context` block to a node at protocol 46, as text before
+                   (view composer/context/wire.rs, link attachments/submit.rs)
     about.rs       About as Paseo's settings section: the version, the app's updates
                    (Paseo's words), automatic updates (a switch), the log file; and the
                    note shown once after an update

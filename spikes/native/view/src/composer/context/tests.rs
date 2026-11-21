@@ -182,3 +182,66 @@ fn history_accepts_recent_unicode_context_and_bounds_the_complete_submission() {
         .unwrap();
     assert_eq!(too_much.prepare(), Err(ContextProblem::Text));
 }
+
+#[test]
+fn a_pill_goes_as_a_context_block_to_a_node_that_speaks_it_and_as_text_otherwise() {
+    use vessel_proto::ContentBlock;
+    use vessel_proto::prompt_context::ContextKind as WireKind;
+
+    let check = snapshot(ContextKind::PullCheck, "check:106", "GitHub pull request check");
+    assert_eq!(
+        check.block(false),
+        ContentBlock::Text {
+            text: "GitHub pull request check".to_owned()
+        }
+    );
+    let ContentBlock::Context(sent) = check.block(true) else {
+        panic!("a context block");
+    };
+    assert_eq!(
+        (sent.kind, sent.title.as_str(), sent.text.as_str()),
+        (WireKind::PullCheck, "Context", "GitHub pull request check")
+    );
+    // A file is named by its name, its path under it.
+    let file = ContextAttachment::WorkspaceFile(WorkspaceFile {
+        scope: scope(),
+        path: "src/upload/retry.rs".parse::<RelPath>().unwrap(),
+        selection: Selection::Lines(LineRange::new(41, 48).unwrap()),
+    });
+    let ContentBlock::Context(sent) = file.block(true) else {
+        panic!("a context block");
+    };
+    assert_eq!(sent.kind, WireKind::WorkspaceFile);
+    assert_eq!(sent.title.as_str(), "retry.rs");
+    assert_eq!(
+        sent.subtitle.map(|place| place.as_str().to_owned()),
+        Some("src/upload/retry.rs · 41-48".to_owned())
+    );
+    assert_eq!(
+        sent.text.as_str(),
+        "Workspace file: src/upload/retry.rs\nLines: 41-48"
+    );
+    // An unsent review draft stays text until it is sent as a review.
+    assert!(matches!(
+        snapshot(ContextKind::Review, "review", "notes").block(true),
+        ContentBlock::Text { .. }
+    ));
+    // A long title is cut to the wire's bound; the agent's text is whole.
+    let long = ContextAttachment::Snapshot {
+        kind: ContextKind::PullComment,
+        payload: Payload {
+            id: ContextId::parse("comment").unwrap(),
+            title: ContextTitle::parse(&"t".repeat(300)).unwrap(),
+            text: ContextText::parse("body").unwrap(),
+            url: None,
+        },
+    };
+    let ContentBlock::Context(sent) = long.block(true) else {
+        panic!("a context block");
+    };
+    assert_eq!(
+        sent.title.as_str().chars().count(),
+        vessel_proto::prompt_context::TITLE_CHARS
+    );
+    assert!(sent.title.as_str().ends_with('…'));
+}

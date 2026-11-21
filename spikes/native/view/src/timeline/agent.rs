@@ -7,6 +7,7 @@ use super::entry::{
     EntryKey, EntryKind, Permission, Prompt, TextKind, ToolView, block_text, prompt_parts,
 };
 use super::fold::Timeline;
+use super::sent_context::sent_context;
 use super::plan::{PlanActivity, all_pending, plan_activities};
 
 impl Timeline {
@@ -36,6 +37,7 @@ impl Timeline {
                         replayed: false,
                         turn: self.turns,
                         attachments,
+                        context: sent_context(content),
                     }),
                 );
             }
@@ -133,7 +135,14 @@ impl Timeline {
             }
             AgentEvent::Steered { content, .. } => {
                 let (text, attachments) = prompt_parts(content);
-                self.push(record, EntryKind::Steer { text, attachments });
+                self.push(
+                    record,
+                    EntryKind::Steer {
+                        text,
+                        attachments,
+                        context: sent_context(content),
+                    },
+                );
             }
             AgentEvent::QuestionAsked(question) => self.asked(record, question),
             AgentEvent::QuestionResolved { id, outcome, .. } => {

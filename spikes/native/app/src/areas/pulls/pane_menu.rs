@@ -17,8 +17,12 @@
 //! - Differences: Copy puts the markdown source verbatim (Paseo's text
 //!   flavour) but no HTML flavour beside it; Copy is translated (Paseo's
 //!   says "Copy" in every language).
+//! - Kept to what is drawn (the app reviewer's P3 notes): the kebabs'
+//!   places are those of the last drawing ([`CardMenu::begin_draw`]), and
+//!   an open menu closes once its pane is no longer drawn (another tab,
+//!   another session), as Paseo's closes with its pane.
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -55,6 +59,11 @@ pub(crate) struct CardMenu {
     target: Option<Target>,
     /// Each kebab's bounds as last drawn, so the menu opens under it.
     places: RefCell<HashMap<String, Place>>,
+    /// The drawing before: a kebab drawn again keeps its place; the rest
+    /// go with the next drawing.
+    previous: RefCell<HashMap<String, Place>>,
+    /// The pane was drawn since the shell last looked.
+    drawn: Cell<bool>,
 }
 
 /// What a kebab's menu is for.
@@ -77,7 +86,16 @@ impl CardMenu {
             menu: MenuState::new(cx),
             target: None,
             places: RefCell::new(HashMap::new()),
+            previous: RefCell::new(HashMap::new()),
+            drawn: Cell::new(false),
         }
+    }
+
+    /// The pane is being drawn: the places of this drawing start afresh.
+    pub(super) fn begin_draw(&self) {
+        self.drawn.set(true);
+        let drawn = std::mem::take(&mut *self.places.borrow_mut());
+        *self.previous.borrow_mut() = drawn;
     }
 
     /// Whether the menu is open for `key` (its kebab stays shown).
@@ -86,12 +104,38 @@ impl CardMenu {
     }
 
     fn place(&self, key: &str) -> Place {
+        let kept = self.previous.borrow_mut().remove(key);
         Rc::clone(
             self.places
                 .borrow_mut()
                 .entry(key.to_owned())
-                .or_insert_with(|| Rc::new(std::cell::Cell::new(None))),
+                .or_insert_with(|| kept.unwrap_or_else(|| Rc::new(Cell::new(None)))),
         )
+    }
+}
+
+#[cfg(test)]
+impl CardMenu {
+    /// Open the menu as a kebab's press would, for the tests.
+    pub(super) fn open_for_tests(&mut self, window: &mut Window, cx: &mut App) {
+        self.target = Some(Target {
+            key: "IC_1".to_owned(),
+            acts: vec![CardAct::Copy],
+            item: "IC_1".to_owned(),
+            words: String::new(),
+            url: None,
+        });
+        self.menu.open(Point::default(), window, cx);
+    }
+
+    /// Whether the menu is open.
+    pub(super) const fn is_open(&self) -> bool {
+        self.menu.is_open()
+    }
+
+    /// How many kebabs' places are kept.
+    pub(super) fn kept(&self) -> usize {
+        self.places.borrow().len().saturating_add(self.previous.borrow().len())
     }
 }
 
@@ -223,6 +267,16 @@ impl Cards<'_> {
 }
 
 impl Shell {
+    /// Close the card menu when its pane was not drawn since the last
+    /// look; the pane marks itself drawn each time it is.
+    pub(crate) fn settle_pulls_menu(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        let card_menu = &mut self.areas.pulls.card_menu;
+        if !card_menu.drawn.replace(false) && card_menu.menu.is_open() {
+            card_menu.menu.close_and_restore(window, cx);
+            card_menu.target = None;
+        }
+    }
+
     /// Open the card menu for `target`, under its kebab once drawn.
     fn pulls_card_menu_open(
         &mut self,

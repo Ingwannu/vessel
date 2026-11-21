@@ -278,6 +278,9 @@ impl Glyph {
             Self::MessagePlus => line_glyph!(
                 r#"<path d="M4.5 6.75h15v10.5H9l-4.5 3v-13.5z"/><path d="M12 9.5v5M9.5 12h5"/>"#
             ),
+            Self::MessageCode => line_glyph!(
+                r#"<path d="M4.5 6.75h15v10.5H9l-4.5 3v-13.5z"/><path d="m10.25 9.75-2.25 2.25 2.25 2.25M13.75 9.75 16 12l-2.25 2.25"/>"#
+            ),
             Self::ExternalLink => line_glyph!(
                 r#"<path d="M15 3h6v6M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>"#
             ),

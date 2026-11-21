@@ -3,7 +3,6 @@
 use super::{Answer, SubmitFailure, WithFiles};
 use crate::{Event, State};
 use std::{sync::Arc, time::Duration};
-use vessel_proto::ContentBlock;
 
 /// The link cannot hold command dispatch forever for a missing reply.
 const DEADLINE: Duration = Duration::from_secs(30);
@@ -15,10 +14,12 @@ impl State {
                 .selected_connection(&prompt.connection)
                 .map_err(super::TargetProblem::Admission)?;
             let mut content = super::content(prompt.text.clone(), prompt.attachments.clone());
+            // Each pill as a `context` block to a node at ADR 0124's
+            // protocol, as text to an older one.
+            let speaks = vessel_proto::prompt_context::PROMPT_CONTEXT_PROTOCOL
+                .is_some_and(|since| client.protocol() >= since);
             if let Some(context) = &prompt.context {
-                content.extend(context.attachments().map(|attachment| ContentBlock::Text {
-                    text: attachment.text(),
-                }));
+                content.extend(context.attachments().map(|attachment| attachment.block(speaks)));
             }
             tokio::time::timeout(
                 DEADLINE,

@@ -435,6 +435,7 @@ impl Timeline {
                 replayed: true,
                 turn: self.turns,
                 attachments: Vec::new(),
+                context: Vec::new(),
             }),
             TextKind::Message => EntryKind::Message { text },
             TextKind::Thought => EntryKind::Thought { text },

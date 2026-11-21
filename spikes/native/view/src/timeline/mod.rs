@@ -51,6 +51,7 @@ mod question_step;
 mod rewind;
 mod rows;
 mod runs;
+mod sent_context;
 mod usage;
 mod window;
 
@@ -65,6 +66,7 @@ pub use entry::{
     first_reply, plan_progress, prompt_parts,
 };
 pub use failure::{FailureKind, TurnFailure, repeats_failure, turn_failure};
+pub use sent_context::{SentContext, sent_context};
 pub use find::{
     FindCache, Finder, MAX_QUERY, Match, SLICE, Stepped, find_all, fold, is_space, occurrences,
     query_of, readable_text, searchable, spans_of, start_at, step,

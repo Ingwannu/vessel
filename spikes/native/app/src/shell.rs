@@ -309,6 +309,7 @@ impl Shell {
         self.settle_import(window, cx);
         self.settle_session_lifecycle(window, cx);
         self.settle_labels(cx);
+        self.settle_pulls_menu(window, cx);
     }
 }
 

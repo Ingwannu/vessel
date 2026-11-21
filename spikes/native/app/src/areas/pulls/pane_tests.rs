@@ -368,3 +368,27 @@ fn an_approval_without_words_is_a_link_with_its_own_menu(cx: &mut TestAppContext
         .count();
     assert_eq!(kebabs, 2, "the comment's and the approval's (Open)");
 }
+
+#[gpui::test]
+fn the_card_menu_keeps_only_drawn_kebabs_and_closes_once_its_pane_is_not_drawn(
+    cx: &mut TestAppContext,
+) {
+    let (shell, cx) = setup(cx);
+    // The pane was drawn: its kebabs' places are kept, and an open menu
+    // stays open at the next look.
+    assert!(shell.read_with(cx, |shell, _| shell.areas.pulls.card_menu.kept()) > 0);
+    cx.update(|window, cx| {
+        shell.update(cx, |shell, cx| {
+            shell.areas.pulls.card_menu.open_for_tests(window, cx);
+            shell.settle_pulls_menu(window, cx);
+            assert!(shell.areas.pulls.card_menu.is_open());
+            // No drawing since: the menu closes.
+            shell.settle_pulls_menu(window, cx);
+            assert!(!shell.areas.pulls.card_menu.is_open());
+            // Two drawings without kebabs keep no place.
+            shell.areas.pulls.card_menu.begin_draw();
+            shell.areas.pulls.card_menu.begin_draw();
+            assert_eq!(shell.areas.pulls.card_menu.kept(), 0);
+        });
+    });
+}
