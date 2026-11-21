@@ -1,8 +1,6 @@
-// Removing a worktree that would lose work (Paseo's archive warning,
-// GOAT's snapshot before cleanup): the node first answers `kept` with
-// every reason that applies; this dialog says each, then offers to keep a
-// snapshot (a commit under the project's refs, restorable as a branch)
-// and remove, or to discard, saying first what discarding destroys.
+// The node's `kept` reply drives the removal warning. A snapshot gives
+// the person a recoverable branch before removal (Paseo's archive warning
+// and GOAT's snapshot before cleanup).
 //
 // Since protocol 40 the dialog can ask to end the worktree's terminals
 // after showing their count (ADR 0121).
@@ -17,7 +15,10 @@ import {
   speaksWorkspacePlaces,
 } from "../../data/workspace/terminal-place";
 import { workspaceTerminals } from "../../data/workspace/terminals";
-import { type KeptRemoval, removeWorktree } from "../../data/workspace/worktrees";
+import {
+  type KeptRemoval,
+  removeWorktree,
+} from "../../data/workspace/worktrees";
 import {
   closesTerminals,
   removalReasonWords,

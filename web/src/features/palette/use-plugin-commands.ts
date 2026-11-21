@@ -35,7 +35,9 @@ function command(item: Item, detail: string | null, run: () => void): Command {
   return {
     id: item.id,
     label: item.title,
-    ...(item.keywords.length === 0 ? {} : { keywords: item.keywords.join(" ") }),
+    ...(item.keywords.length === 0
+      ? {}
+      : { keywords: item.keywords.join(" ") }),
     ...(detail === null ? {} : { detail }),
     icon: "blocks",
     group: item.plugin,
@@ -52,7 +54,8 @@ export function usePluginCommands(): Command[] {
   const session = useFleetState((state) =>
     shown === null
       ? null
-      : (state.sessions[shown.node]?.find((row) => row.id === shown.id) ?? null),
+      : (state.sessions[shown.node]?.find((row) => row.id === shown.id) ??
+        null),
   );
   const agent = session?.id ?? null;
   const project = session?.workspace?.project ?? null;
@@ -61,7 +64,9 @@ export function usePluginCommands(): Command[] {
   const hereLabel = useFleetState((state) => {
     if (focus !== null) return null;
     const here = state.book?.find((entry) => entry.key === "_here");
-    return here === undefined ? null : nodeLabel(here, state.statuses[here.key]);
+    return here === undefined
+      ? null
+      : nodeLabel(here, state.statuses[here.key]);
   });
   const all = useStore(pluginCatalogs, (value) =>
     focus === null ? value : NO_CATALOGS,

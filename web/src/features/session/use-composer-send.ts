@@ -206,7 +206,9 @@ export function useComposerSend({
     }
     // A local command doesn't replace the queued entry or consume either
     // draft. An edit with attachments or context still updates the queue.
-    const hasAttachments = current.content.some((block) => block.type !== "text");
+    const hasAttachments = current.content.some(
+      (block) => block.type !== "text",
+    );
     if (slash.run(editing.text, hasAttachments)) {
       return;
     }
