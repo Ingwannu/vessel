@@ -241,9 +241,7 @@ impl TerminalSender {
             return;
         };
         let keep = queued.marker_tail();
-        self.pasted = self
-            .pasted
-            .saturating_sub(keep.saturating_sub(queued.at));
+        self.pasted = self.pasted.saturating_sub(keep.saturating_sub(queued.at));
         if keep >= queued.text.len() {
             let _dropped = self.items.pop_front();
         } else {
@@ -303,8 +301,8 @@ impl Queued {
     /// Where the unsent part of a bracketed paste's end marker starts (past
     /// what was sent); the text's end when it is not one.
     fn marker_tail(&self) -> usize {
-        let bracketed = self.text.starts_with(super::paste::START)
-            && self.text.ends_with(super::paste::END);
+        let bracketed =
+            self.text.starts_with(super::paste::START) && self.text.ends_with(super::paste::END);
         if !bracketed {
             return self.text.len();
         }
