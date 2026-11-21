@@ -172,6 +172,7 @@ export class MachineSchedules {
 function initialRead(connection: NodeStatus | undefined): Read {
   switch (connection?.state) {
     case "failed":
+    case "reconnecting":
       return { kind: "failed", reason: "Could not load schedules" };
     case "connected":
       return supportsSchedules(connection)
@@ -183,7 +184,6 @@ function initialRead(connection: NodeStatus | undefined): Read {
     case undefined:
     case "idle":
     case "connecting":
-    case "reconnecting":
       return { kind: "loading" };
   }
 }

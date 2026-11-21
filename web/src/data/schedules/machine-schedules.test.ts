@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { Bridge } from "../../bridge/client";
 import { fixtureId } from "../../testing/ids";
+import type { NodeStatus } from "../../wire/bridge";
 import type { ScheduleInfo, ScheduleList } from "../../wire/proto";
 import { Fleet } from "../fleet";
 import { bookNode, connectedAs } from "../fixtures/machines";
@@ -33,6 +34,35 @@ const schedule: ScheduleInfo = {
   revision: 0,
 };
 
+function connected(name: string): NodeStatus {
+  const status = connectedAs(name);
+  if (status.state !== "connected")
+    throw new Error("Expected a connected fixture");
+  return { ...status, protocol: 45 };
+}
+
+function deferred<T>() {
+  let complete: (value: T) => void = () => {
+    throw new Error("Deferred result not initialized");
+  };
+  let fail: (error: Error) => void = () => {
+    throw new Error("Deferred result not initialized");
+  };
+  const promise = new Promise<T>((resolve, reject) => {
+    complete = resolve;
+    fail = reject;
+  });
+  return {
+    promise,
+    resolve: (value: T) => {
+      complete(value);
+    },
+    reject: (error: Error) => {
+      fail(error);
+    },
+  };
+}
+
 function setup() {
   const bridge = new Bridge(
     { kind: "bootstrap", key: "a".repeat(64) },
@@ -44,7 +74,7 @@ function setup() {
     ...fleet.store.get(),
     link: { kind: "open", version: "0.1.0" } as const,
     book: [laptop],
-    statuses: { [laptop.key]: { ...connectedAs("laptop"), protocol: 45 } },
+    statuses: { [laptop.key]: connected("laptop") },
   };
   return { controller, state, call: vi.spyOn(bridge, "call") };
 }
@@ -52,7 +82,7 @@ function setup() {
 describe("machine schedules", () => {
   it("renders the successful machine while another is still waiting or fails", async () => {
     const { controller, state, call } = setup();
-    const waiting = Promise.withResolvers<ScheduleList>();
+    const waiting = deferred<ScheduleList>();
     call
       .mockResolvedValueOnce({ schedules: [schedule] })
       .mockReturnValueOnce(waiting.promise);
@@ -61,7 +91,7 @@ describe("machine schedules", () => {
       book: [laptop, studio],
       statuses: {
         ...state.statuses,
-        [studio.key]: { ...connectedAs("studio"), protocol: 45 },
+        [studio.key]: connected("studio"),
       },
     });
     expect(aggregate(controller.store.get()).phase).toBe("loading");
@@ -79,7 +109,7 @@ describe("machine schedules", () => {
 
   it("ignores an old connection's reply once a new connection has answered", async () => {
     const { controller, state, call } = setup();
-    const old = Promise.withResolvers<ScheduleList>();
+    const old = deferred<ScheduleList>();
     call
       .mockReturnValueOnce(old.promise)
       .mockResolvedValueOnce({ schedules: [] });
@@ -101,7 +131,7 @@ describe("machine schedules", () => {
 
   it("removes only the refused deletion's overlay and restores the row", async () => {
     const { controller, state, call } = setup();
-    const refusal = Promise.withResolvers<never>();
+    const refusal = deferred<never>();
     call
       .mockResolvedValueOnce({ schedules: [schedule] })
       .mockReturnValueOnce(refusal.promise)
