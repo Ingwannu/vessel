@@ -93,6 +93,18 @@ enum Item {
     },
 }
 
+/// What send is in flight.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+enum InFlight {
+    /// None: the next may go.
+    #[default]
+    Nothing,
+    /// A send whose failure drops nothing more.
+    Send,
+    /// A part of a paste with more to go: its failure drops the rest.
+    PastePart,
+}
+
 /// The sender's queue.
 #[derive(Debug, Default)]
 pub struct TerminalSender {
@@ -101,9 +113,7 @@ pub struct TerminalSender {
     chars: usize,
     /// Bytes of pastes queued.
     pasted: usize,
-    busy: bool,
-    /// The send in flight is a part of a paste with more to go.
-    paste_continues: bool,
+    in_flight: InFlight,
     closed: bool,
     overflowing: bool,
 }
@@ -177,7 +187,7 @@ impl TerminalSender {
     /// The next send, when none is in flight: it is then in flight until
     /// `answered`. Keys longer than one send's bound go a part at a time.
     pub fn take(&mut self) -> Option<Outgoing> {
-        if self.busy || self.closed {
+        if self.in_flight != InFlight::Nothing || self.closed {
             return None;
         }
         let outgoing = match self.items.front_mut()? {
@@ -201,24 +211,27 @@ impl TerminalSender {
             Some(Item::Typed(queued) | Item::Pasted(queued)) => queued.is_spent(),
             Some(Item::Resize { .. }) | None => true,
         };
-        self.paste_continues = !spent && matches!(self.items.front(), Some(Item::Pasted(_)));
+        let part = !spent && matches!(self.items.front(), Some(Item::Pasted(_)));
         if spent {
             let _sent = self.items.pop_front();
         }
-        self.busy = true;
+        self.in_flight = if part {
+            InFlight::PastePart
+        } else {
+            InFlight::Send
+        };
         Some(outgoing)
     }
 
     /// The send in flight was taken. The next one may go.
     pub const fn answered(&mut self) {
-        self.busy = false;
+        self.in_flight = InFlight::Nothing;
     }
 
     /// The send in flight was refused or lost: it is not repeated, and the
     /// rest of a paste it was a part of is dropped. The next one may go.
     pub fn failed(&mut self) {
-        self.busy = false;
-        if std::mem::take(&mut self.paste_continues)
+        if std::mem::take(&mut self.in_flight) == InFlight::PastePart
             && let Some(Item::Pasted(queued)) = self.items.front()
         {
             let rest = queued.text.len().saturating_sub(queued.at);
@@ -238,7 +251,7 @@ impl TerminalSender {
     /// Whether a send is in flight.
     #[must_use]
     pub const fn busy(&self) -> bool {
-        self.busy
+        !matches!(self.in_flight, InFlight::Nothing)
     }
 }
 

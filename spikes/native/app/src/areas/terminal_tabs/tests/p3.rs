@@ -364,10 +364,14 @@ fn a_move_with_the_button_up_ends_a_press_that_missed_its_release(cx: &mut TestA
         pane.selected = Some(Selected::on(Selection::new(at, SelectBy::Cells), grid));
         pane.selecting = true;
         shell.terminal_tab_pointer_moved(&key, &moved(Some(gpui::MouseButton::Left)), cx);
-        assert!(shell.areas.terminal_tabs.panes.get(&key).unwrap().selecting);
+        let panes = &shell.areas.terminal_tabs.panes;
+        assert!(panes.get(&key).is_some_and(|pane| pane.selecting));
         shell.terminal_tab_pointer_moved(&key, &moved(None), cx);
-        let pane = shell.areas.terminal_tabs.panes.get(&key).unwrap();
-        assert!(!pane.selecting, "the press ended");
-        assert!(pane.selected.is_none(), "a click selects nothing");
+        let pane = shell.areas.terminal_tabs.panes.get(&key);
+        assert!(pane.is_some_and(|pane| !pane.selecting), "the press ended");
+        assert!(
+            pane.is_some_and(|pane| pane.selected.is_none()),
+            "a click selects nothing"
+        );
     });
 }
