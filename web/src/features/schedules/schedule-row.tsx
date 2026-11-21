@@ -1,5 +1,6 @@
 import { useFleet, useFleetState } from "../../context";
 import { useNow } from "../../data/clock";
+import { editable } from "../../data/schedules/form";
 import {
   isHeartbeat,
   rowActions,
@@ -56,10 +57,12 @@ export function ScheduleListRow({
   row,
   machine,
   act,
+  open,
 }: {
   row: ScheduleRow;
   machine: string | null;
   act: (action: ScheduleAction) => void;
+  open: () => void;
 }) {
   const fleet = useFleet();
   const now = useNow();
@@ -86,10 +89,23 @@ export function ScheduleListRow({
         : stateLabel(row.info.state);
   const facts = scheduleMeta(row.info, machine, now, row.pending);
   const actions = rowActions(row.info);
+  const canEdit = editable(row.info);
+  const noun = heartbeat ? "heartbeat" : "schedule";
+  const openLabel = `${canEdit ? "Edit" : "View"} ${noun} ${title}`;
   return (
     <Row
       mark={providerMark(target.harness)}
-      title={title}
+      title={
+        <button
+          type="button"
+          className="row-link"
+          aria-label={openLabel}
+          disabled={row.pending !== undefined}
+          onClick={open}
+        >
+          {title}
+        </button>
+      }
       detail={{
         description: (
           <>
@@ -117,6 +133,13 @@ export function ScheduleListRow({
           width="actions"
           trigger={<IconButton label={`Actions for ${title}`} icon="more" />}
         >
+          <MenuItem
+            icon={canEdit ? "edit" : "read"}
+            disabled={row.pending !== undefined}
+            onSelect={open}
+          >
+            {canEdit ? "Edit" : "View"} {noun}
+          </MenuItem>
           {actions
             .filter((action) => action !== "delete")
             .map((action) => (
@@ -133,7 +156,7 @@ export function ScheduleListRow({
                   : ACTIONS[action].label}
               </MenuItem>
             ))}
-          {actions.length > 1 ? <MenuSeparator /> : null}
+          <MenuSeparator />
           <MenuItem
             icon="trash"
             tone="danger"
