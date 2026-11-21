@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { Bridge } from "../bridge/client";
 import { fixtureId } from "../testing/ids";
+import type { PluginSettingsRead } from "../wire/proto";
 import { Fleet } from "./fleet";
 import {
   boolAt,
@@ -163,10 +164,10 @@ describe("the page's reads and saves of one document (node review R1, R2)", () =
     const page = fleet();
     const doc = { ...at, settings: "ordered" };
     const call = vi.spyOn(page.bridge, "call");
-    let answerRead: (value: unknown) => void = () => undefined;
+    let answerRead: (value: PluginSettingsRead) => void = () => undefined;
     call.mockImplementationOnce(
       () =>
-        new Promise((resolve) => {
+        new Promise<PluginSettingsRead>((resolve) => {
           answerRead = resolve;
         }),
     );
