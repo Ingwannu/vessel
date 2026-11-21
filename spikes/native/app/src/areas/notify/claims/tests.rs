@@ -28,6 +28,9 @@ fn told(title: &str) -> Announce {
 #[gpui::test]
 fn only_what_the_machine_admitted_or_could_not_find_is_told(cx: &mut TestAppContext) {
     language_tests::init(cx);
+    // The test platform shows nothing without an app identity, as Windows
+    // does not (the notify tests' `opened`).
+    cx.update(|cx| cx.set_app_identity("Vessel.App.Test", "Vessel"));
     let (shell, cx) = cx.add_window_view(Shell::without_io);
     cx.deactivate_window();
     shell.update(cx, |shell, cx| {
@@ -51,6 +54,7 @@ fn only_what_the_machine_admitted_or_could_not_find_is_told(cx: &mut TestAppCont
             cx,
         );
     });
+    cx.run_until_parked();
     let bodies: Vec<String> = cx
         .shown_system_notifications()
         .iter()
