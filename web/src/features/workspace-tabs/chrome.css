@@ -179,7 +179,13 @@
   min-width: 0;
   min-height: 0;
   flex-direction: column;
-  background: var(--term-bg);
+  background: var(--tab-term-bg);
+}
+
+/* Its xterm host on the tab's own palette (TRACKER 837). */
+.workspace-terminal .xterm-host {
+  color: var(--tab-term-fg);
+  background: var(--tab-term-bg);
 }
 
 .workspace-terminal-state {
@@ -194,7 +200,7 @@
 
 .workspace-terminal-state.loading {
   background: rgb(0 0 0 / 16%);
-  color: var(--term-fg);
+  color: var(--tab-term-fg);
 }
 
 .workspace-launcher {
