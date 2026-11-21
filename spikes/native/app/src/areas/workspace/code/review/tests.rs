@@ -1,8 +1,8 @@
 //! Review comments on the Changes diff through the real code panel (ADR
 //! 0124, P6b-2a): the key follows the diff shown, the editor saves into
 //! the drafts document, edits in place, and a delete takes its open edit.
-use super::source_tests::{prepare, ready, root, setup};
-use super::*;
+use super::super::source_tests::{prepare, ready, root, setup};
+use super::super::{ScopeKind, WorkspaceRoot};
 use gpui::TestAppContext;
 use std::num::NonZeroU32;
 use vessel_app_view::workspace::review::{ReviewMode, ReviewSide, ReviewTarget};
@@ -30,7 +30,7 @@ fn a_comment_is_written_under_its_line_edited_in_place_and_deleted(cx: &mut Test
         // Blank: Comment saves nothing and the editor stays.
         shell.review_open(target(), None, 3, window, cx);
         shell.review_save(window, cx);
-        assert!(shell.areas.workspace.code.changes.review.is_some());
+        assert!(shell.areas.workspace.code.changes.review.editor.is_some());
         assert!(
             shell
                 .areas
@@ -41,10 +41,10 @@ fn a_comment_is_written_under_its_line_edited_in_place_and_deleted(cx: &mut Test
                 .is_empty()
         );
 
-        let editor = shell.areas.workspace.code.changes.review.as_ref().unwrap();
+        let editor = shell.areas.workspace.code.changes.review.editor.as_ref().unwrap();
         editor.field.set_text("Cap this.", window, cx);
         shell.review_save(window, cx);
-        assert!(shell.areas.workspace.code.changes.review.is_none());
+        assert!(shell.areas.workspace.code.changes.review.editor.is_none());
         let kept = shell
             .areas
             .composer
@@ -59,18 +59,18 @@ fn a_comment_is_written_under_its_line_edited_in_place_and_deleted(cx: &mut Test
 
         // Edit: the editor opens with the comment's words; Cancel keeps it.
         shell.review_open(target(), Some(id), 3, window, cx);
-        let editor = shell.areas.workspace.code.changes.review.as_ref().unwrap();
+        let editor = shell.areas.workspace.code.changes.review.editor.as_ref().unwrap();
         assert_eq!(editor.field.text(cx), "Cap this.");
         assert_eq!(editor.comment, Some(id));
         shell.review_cancel(cx);
-        assert!(shell.areas.workspace.code.changes.review.is_none());
+        assert!(shell.areas.workspace.code.changes.review.editor.is_none());
         assert_eq!(
             shell.areas.composer.drafts.reviews().comments(&key)[0].body,
             "Cap this."
         );
 
         shell.review_open(target(), Some(id), 3, window, cx);
-        let editor = shell.areas.workspace.code.changes.review.as_ref().unwrap();
+        let editor = shell.areas.workspace.code.changes.review.editor.as_ref().unwrap();
         editor.field.set_text("Cap this at 30 seconds.", window, cx);
         shell.review_save(window, cx);
         let kept = shell
@@ -103,7 +103,7 @@ fn a_comment_is_written_under_its_line_edited_in_place_and_deleted(cx: &mut Test
         // A delete takes the comment and its open edit.
         shell.review_open(target(), Some(id), 3, window, cx);
         shell.review_delete(id, 3, cx);
-        assert!(shell.areas.workspace.code.changes.review.is_none());
+        assert!(shell.areas.workspace.code.changes.review.editor.is_none());
         assert!(shell.areas.composer.drafts.reviews().is_empty());
         scene.close(shell.fixture_link()).unwrap();
     });

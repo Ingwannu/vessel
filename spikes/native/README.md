@@ -186,9 +186,9 @@ Review comments on the Changes diff (ADR 0124) live in
 base, white space), its comment shape and its reducers, bounded (200
 comments a key, 64 keys, 1 MiB of bodies, the oldest out first) and kept in
 the drafts document beside the text drafts; a document from before them
-reads with none. `app/areas/workspace/code/review.rs` holds the one open
-editor and the actions on the comments; `review_rows.rs` draws a line's
-"+", its thread (edit, delete, the editor) and, on a phone, the sheet.
+reads with none. `app/areas/workspace/code/review/` holds the one open
+editor and the actions on the comments; its `rows.rs` draws a line's "+",
+its thread (edit, delete, the editor) and, on a phone, the sheet.
 
 ## Durable session history and lifecycle
 

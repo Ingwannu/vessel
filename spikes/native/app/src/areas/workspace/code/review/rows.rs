@@ -25,7 +25,7 @@ use vessel_app_view::workspace::diff_rows::DiffRow;
 use vessel_app_view::workspace::review::{DraftComment, ReviewSide, can_save};
 use vessel_proto::workspace::RelPath;
 
-use super::review::{Editor, target_of};
+use super::{Editor, target_of};
 use crate::shell::Shell;
 
 /// geometry.ts: a comment's height, the editor's, the gap between blocks
@@ -53,7 +53,7 @@ fn thread_height(comments: usize, editor: bool) -> f32 {
 }
 
 /// Row `index`: diff line `line` of `path`, with its review.
-pub(super) fn line(
+pub(in super::super) fn line(
     shell: &Shell,
     index: usize,
     path: &RelPath,
@@ -62,7 +62,7 @@ pub(super) fn line(
     window: &Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
-    let drawn = super::change_rows::diff_row(line, tokens);
+    let drawn = super::super::change_rows::diff_row(line, tokens);
     let (Some(target), Some(key)) = (target_of(path, line), shell.review_key()) else {
         return drawn;
     };
@@ -111,6 +111,7 @@ pub(super) fn line(
         .code
         .changes
         .review
+        .editor
         .as_ref()
         .filter(|editor| !narrow && editor.key == key && editor.target == target);
     if comments.is_empty() && editor.is_none() {
@@ -320,7 +321,7 @@ fn editor_block(
 
 /// On a phone, the editor as the kit's sheet: "Review comment", the file
 /// and the line under it, the field, Cancel and Save.
-pub(super) fn sheet(
+pub(in super::super) fn sheet(
     shell: &Shell,
     tokens: &Tokens,
     window: &Window,
@@ -330,7 +331,7 @@ pub(super) fn sheet(
         return None;
     }
     let changes = &shell.areas.workspace.code.changes;
-    let editor = changes.review.as_ref()?;
+    let editor = changes.review.editor.as_ref()?;
     if shell.review_key().as_ref() != Some(&editor.key) {
         return None;
     }
@@ -388,7 +389,7 @@ pub(super) fn sheet(
             )),
     );
     Some(dialog(
-        &changes.review_dialog,
+        &changes.review.dialog,
         content,
         tokens,
         window,

@@ -73,7 +73,7 @@ pub(super) fn row(
             line.map_or_else(
                 || div().into_any_element(),
                 |line| {
-                    super::review_rows::line(shell, index, &change.path, &line, tokens, window, cx)
+                    super::review::rows::line(shell, index, &change.path, &line, tokens, window, cx)
                 },
             )
         }

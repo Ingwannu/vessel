@@ -42,10 +42,6 @@ mod panels;
 mod panels_view;
 mod pull_tab;
 mod review;
-mod review_rows;
-#[cfg(test)]
-#[cfg(not(target_arch = "wasm32"))]
-mod review_tests;
 mod search;
 mod shown_source;
 mod sort;
@@ -132,10 +128,8 @@ struct Changes {
     list: VirtualList,
     picker: ComboboxState,
     sources: shown_source::Sources,
-    /// The review comment being written (ADR 0124, `review.rs`).
-    review: Option<review::Editor>,
-    /// The phone's sheet for it.
-    review_dialog: vessel_app_kit::dialog::DialogState,
+    /// The review comment being written (ADR 0124, `review/`).
+    review: review::Review,
 }
 
 /// A file shown in the Files tab.
@@ -232,8 +226,7 @@ impl CodePanel {
                 list: VirtualList::new(false),
                 picker: ComboboxState::new(window, cx),
                 sources: shown_source::Sources::default(),
-                review: None,
-                review_dialog: vessel_app_kit::dialog::DialogState::new(cx),
+                review: review::Review::new(cx),
             },
             files: Files {
                 listings: HashMap::new(),

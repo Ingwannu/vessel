@@ -31,6 +31,28 @@ use vessel_proto::workspace::{LineKind, RelPath};
 
 use crate::shell::Shell;
 
+pub(super) mod rows;
+#[cfg(test)]
+#[cfg(not(target_arch = "wasm32"))]
+mod tests;
+
+/// The Changes list's review: the editor, and the phone's sheet it opens in.
+pub(super) struct Review {
+    /// The comment being written or edited.
+    pub(super) editor: Option<Editor>,
+    /// The phone's sheet.
+    pub(super) dialog: vessel_app_kit::dialog::DialogState,
+}
+
+impl Review {
+    pub(super) fn new(cx: &mut Context<'_, Shell>) -> Self {
+        Self {
+            editor: None,
+            dialog: vessel_app_kit::dialog::DialogState::new(cx),
+        }
+    }
+}
+
 /// The comment being written or edited.
 pub(super) struct Editor {
     /// The key it was opened under.
@@ -130,7 +152,7 @@ impl Shell {
             field.set_text(&body, window, cx);
         }
         field.focus(window, cx);
-        let before = self.areas.workspace.code.changes.review.replace(Editor {
+        let before = self.areas.workspace.code.changes.review.editor.replace(Editor {
             key,
             target,
             comment,
@@ -146,7 +168,7 @@ impl Shell {
     }
 
     fn review_typed(&mut self, _id: FieldId, text: String, cx: &mut Context<'_, Self>) {
-        if let Some(editor) = self.areas.workspace.code.changes.review.as_mut() {
+        if let Some(editor) = self.areas.workspace.code.changes.review.editor.as_mut() {
             editor.body = text;
             cx.notify();
         }
@@ -154,7 +176,7 @@ impl Shell {
 
     /// Close the editor without saving (Escape, Cancel, the sheet's scrim).
     pub(super) fn review_cancel(&mut self, cx: &mut Context<'_, Self>) {
-        if let Some(editor) = self.areas.workspace.code.changes.review.take() {
+        if let Some(editor) = self.areas.workspace.code.changes.review.editor.take() {
             self.review_measure(editor.row);
             cx.notify();
         }
@@ -163,7 +185,7 @@ impl Shell {
     /// Save the editor's words (Comment, Save, Mod+Enter); nothing while
     /// they cannot be saved.
     pub(super) fn review_save(&mut self, _window: &mut Window, cx: &mut Context<'_, Self>) {
-        let Some(editor) = self.areas.workspace.code.changes.review.as_ref() else {
+        let Some(editor) = self.areas.workspace.code.changes.review.editor.as_ref() else {
             return;
         };
         let body = editor.field.text(cx);
@@ -176,7 +198,7 @@ impl Shell {
         );
         match saved {
             Saved::Added(_) | Saved::Edited(_) => {
-                if let Some(editor) = self.areas.workspace.code.changes.review.take() {
+                if let Some(editor) = self.areas.workspace.code.changes.review.editor.take() {
                     self.review_measure(editor.row);
                 }
                 self.drafts_changed(cx);
@@ -197,10 +219,11 @@ impl Shell {
             .code
             .changes
             .review
+            .editor
             .as_ref()
             .is_some_and(|editor| editor.comment == Some(id))
         {
-            self.areas.workspace.code.changes.review = None;
+            self.areas.workspace.code.changes.review.editor = None;
         }
         if self.areas.composer.drafts.reviews_mut().delete(&key, id) {
             self.drafts_changed(cx);
