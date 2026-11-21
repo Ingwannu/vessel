@@ -5,7 +5,7 @@
 
 import "./files.css";
 
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 
 import {
   filePanelOf,
@@ -31,12 +31,15 @@ import {
   ReloadDialog,
 } from "./file-change-alert";
 import { FileConflict } from "./file-conflict";
-import { FileEditor } from "./file-editor";
 import { FileHead, useSide } from "./file-head";
 import { FileImage } from "./file-image";
 import { FileLines } from "./file-lines";
 import { FilePreview } from "./file-preview";
 import { useFile, versionKey, WRITE_LIMIT } from "./use-file";
+
+const FileEditor = lazy(async () => ({
+  default: (await import("./file-editor")).FileEditor,
+}));
 
 export function FileView({
   node,
@@ -230,15 +233,23 @@ export function FileView({
           onOpenFile={onOpenFile}
         />
       ) : draft !== null ? (
-        <FileEditor
-          path={path}
-          draft={draft}
-          saving={saving}
-          onChange={setDraft}
-          onSave={() => {
-            save(false);
-          }}
-        />
+        <Suspense
+          fallback={
+            <div className="file-editor">
+              <Skeleton />
+            </div>
+          }
+        >
+          <FileEditor
+            path={path}
+            draft={draft}
+            saving={saving}
+            onChange={setDraft}
+            onSave={() => {
+              save(false);
+            }}
+          />
+        </Suspense>
       ) : (
         <FileLines
           session={session}

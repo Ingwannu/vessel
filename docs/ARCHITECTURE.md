@@ -2032,6 +2032,11 @@ scrollback value as it changes. Workspace pane placement reuses tab keys and
 dirty-state ownership so an editor survives a move. For scope and Paseo
 parity see [Page client preferences](plans/page-client-preferences.md).
 
+The UI bridge also keeps the source editor's Vim choice. FileView activates
+the CodeMirror chunk when it enters Edit. The editor controls input and
+selection, while FileView and the owning node's revision check settle the
+write. See the [web editor decision](plans/web-editor.md).
+
 ## Page feedback and modal ownership
 
 The existing Base UI dialog, command palette and sheet own their key and

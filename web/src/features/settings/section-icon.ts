@@ -18,6 +18,8 @@ export function sectionIcon(section: SettingsSection): IconName {
       return "bell";
     case "terminal":
       return "square-terminal";
+    case "editor":
+      return "code-xml";
     case "files":
       return "files";
     case "agents":

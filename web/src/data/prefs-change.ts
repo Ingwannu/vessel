@@ -22,6 +22,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   },
   layout: { sidebar: "shown", inspector: "shown", explorer_sort: "name" },
   terminal: { scrollback: 10_000 },
+  editor: { vim_keybindings: false },
   open_location: {
     explorer_files: "main",
     diffs: "main",
@@ -103,6 +104,8 @@ export function applyChange(
       };
     case "terminal_scrollback":
       return { ...prefs, terminal: { scrollback: change.value } };
+    case "vim_keybindings":
+      return { ...prefs, editor: { vim_keybindings: change.value } };
     case "open_location":
       return {
         ...prefs,
