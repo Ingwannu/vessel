@@ -78,3 +78,9 @@
 .ico-circle-slash {
   --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23000' stroke-width='1' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6'/%3E%3Cpath d='m6 10 4-4'/%3E%3C/svg%3E");
 }
+
+/* Paseo's FileText (lucide), its context attachment pills' mark: the file
+   outline of .ico-file with lucide's three text lines. */
+.ico-file-text {
+  --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23000' stroke-width='1' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 16 16'%3E%3Cpath d='M9.5 1.5H4A1.5 1.5 0 0 0 2.5 3v10A1.5 1.5 0 0 0 4 14.5h8a1.5 1.5 0 0 0 1.5-1.5V5.5z'/%3E%3Cpath d='M9.5 1.5V4A1.5 1.5 0 0 0 11 5.5h2.5M6.5 6H5.5M10.5 8.5h-5M10.5 11h-5'/%3E%3C/svg%3E");
+}
