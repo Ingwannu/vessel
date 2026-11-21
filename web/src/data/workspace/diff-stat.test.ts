@@ -66,6 +66,8 @@ describe("the served diff stat (ADR 0120)", () => {
       host: "github.com",
       path: "team/app",
       number: 12,
+      state: "open" as const,
+      draft: false,
       checks: "passing",
       counts: null,
       url: null,
