@@ -44,9 +44,9 @@ Machines shows the switch as the first row of Agents for a connected host
 that reports the field. Its accessible name is “Inject Vessel tools”
 (`packages/app/src/i18n/resources/en.ts:2918–2923`). The control waits for the
 write response before changing position and reports a refusal in the card.
-Settings are read and saved on that machine. Subsequent agent controls
-follow Paseo's order within Agents. Providers keeps its existing list
-and link.
+Settings are read and saved on that machine. The order for the subsequent
+Agents controls follows Paseo: browser tools, Append system prompt,
+Restart recovery and idle cleanup. Providers keeps its existing list and link.
 
 The fixtures exercise explicit Off with fleet servers still present, credential
 transitions in either direction, rollback, the recorded fresh default, and the
