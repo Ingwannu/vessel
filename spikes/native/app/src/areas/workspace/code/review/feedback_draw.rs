@@ -88,6 +88,9 @@ pub(in super::super) fn spacer(shell: &Shell, window: &Window) -> AnyElement {
 pub(super) fn fab(label: String, enabled: bool, tokens: &Tokens) -> Stateful<Div> {
     div()
         .id("review-feedback")
+        // A press is the button's alone: on a phone it floats over the
+        // session's composer, whose controls lie under it.
+        .occlude()
         .h(px(FAB))
         .px(px(spacing::S4))
         .rounded_full()
