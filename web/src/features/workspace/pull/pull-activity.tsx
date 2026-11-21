@@ -9,10 +9,9 @@
 //   Copy, Open on GitHub) and "Add all to chat" for the lot.
 // - Choice: a card's header is the fold's button; the kebab is the kit's
 //   Menu (shown on hover with a fine pointer, always on touch); Add to
-//   chat writes Paseo's context text into the session's draft.
+//   chat puts Paseo's context pill in the session's composer.
 // - Bodies are the page's Markdown, compact, links only over https
 //   (Paseo's pane renders markdown; coordinator, P5b verdict).
-// - Differences: Add to chat writes text, not a pill (TRACKER 833).
 
 import { type ReactNode, useState } from "react";
 
@@ -20,6 +19,7 @@ import {
   activityAttachment,
   threadAttachment,
   type About,
+  type Attachment,
 } from "../../../data/workspace/pull/attach";
 import {
   copied,
@@ -52,7 +52,7 @@ export interface ActivityProps {
   /** The forge's name for "Open on …". */
   forge: string;
   about: About | null;
-  add: (texts: readonly string[]) => void;
+  add: (attachments: readonly Attachment[]) => void;
 }
 
 export function PullActivity(props: ActivityProps) {
@@ -87,24 +87,22 @@ export function PullActivity(props: ActivityProps) {
   );
 }
 
-function attachAll(about: About, listed: readonly Entry[]): string[] {
+function attachAll(about: About, listed: readonly Entry[]): Attachment[] {
   return listed
     .flatMap((entry) => {
       switch (entry.kind) {
         case "single":
-          return [activityAttachment(about, entry.item)?.text ?? null];
+          return [activityAttachment(about, entry.item)];
         case "thread":
-          return [threadAttachment(about, entry.thread)?.text ?? null];
+          return [threadAttachment(about, entry.thread)];
         case "review":
           return [
-            activityAttachment(about, entry.review)?.text ?? null,
-            ...entry.threads.map(
-              (thread) => threadAttachment(about, thread)?.text ?? null,
-            ),
+            activityAttachment(about, entry.review),
+            ...entry.threads.map((thread) => threadAttachment(about, thread)),
           ];
       }
     })
-    .filter((text): text is string => text !== null);
+    .filter((made): made is Attachment => made !== null);
 }
 
 function EntryCard({ entry, ...props }: ActivityProps & { entry: Entry }) {
@@ -162,7 +160,7 @@ function ItemCard({
           onAdd={() => {
             const made =
               about === null ? null : activityAttachment(about, item);
-            if (made !== null) add([made.text]);
+            if (made !== null) add([made]);
           }}
         />
       </div>
@@ -211,7 +209,7 @@ function ThreadCard({ thread, ...props }: ActivityProps & { thread: Thread }) {
           onAdd={() => {
             const made =
               about === null ? null : threadAttachment(about, thread);
-            if (made !== null) add([made.text]);
+            if (made !== null) add([made]);
           }}
         />
       </div>
