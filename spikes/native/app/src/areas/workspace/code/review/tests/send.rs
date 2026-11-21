@@ -1,22 +1,25 @@
 //! "Send feedback" with one agent, and the composer's review pill, through
-//! the real code panel and link (P6b-2b): the button makes one
-//! `session.prompt` with the review block and Paseo's delivery; delivered,
-//! the sent comments go and a toast names the agent; failed, they stay
-//! and the notice says so as an alert. The pill's press, named as
-//! Paseo's, opens the workspace's Changes.
+//! the real code panel (P6b-2b): the button makes one prompt command with
+//! the review as its one context pill, the review's words and Paseo's
+//! delivery; delivered, the sent comments go and a toast names the agent;
+//! failed, they stay and the notice says so as an alert. The pill's press,
+//! named as Paseo's, opens the workspace's Changes.
+//!
+//! The prompt is taken on a detached link: the framed fixture serves a
+//! node call only between commands, and a prompt command waits on its
+//! call. The link's own tests cover the call (`attachments/submit.rs`).
 use super::super::super::Tab;
 use super::*;
 use gpui::{Entity, Modifiers, VisualTestContext, px, size};
-use vessel_app_link::{Event, testing::Scenario};
+use vessel_app_link::attachments::{Answer, Files, SubmitFailure, WithFiles};
+use vessel_app_link::{Command, Link, testing::Scenario};
 use vessel_app_view::board::CardDetail;
 use vessel_app_view::composer::context::ContextAttachment;
 use vessel_app_view::composer::drafts::DraftKey;
 use vessel_app_view::toasts::ToastTone;
 use vessel_app_view::{Attention, Card, Lane, Phrase};
-use vessel_proto::conversation::PromptSession;
 use vessel_proto::{
-    Call, ContentBlock, Delivered, Delivery, ErrorCode, HarnessKind, HarnessRef, Outcome,
-    ProjectId, Reply, SessionId, WireError,
+    ContentBlock, Delivered, Delivery, HarnessKind, HarnessRef, ProjectId, SessionId,
 };
 
 /// The open session as a live card of the diff's project.
@@ -82,40 +85,35 @@ fn pill_offered(shell: &Shell, session: SessionId) -> bool {
         })
 }
 
-/// A press on "Send feedback": the `session.prompt` it makes.
-fn press_send(
-    shell: &Entity<Shell>,
-    cx: &mut VisualTestContext,
-    scene: &mut Scenario,
-) -> PromptSession {
+/// A press on "Send feedback", the shell's commands taken on a detached
+/// link meanwhile: the prompts it made.
+fn press_send(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> Vec<Arc<WithFiles>> {
+    let (probe, mut commands) = Link::detached(64).unwrap();
+    let fixture = shell.update(cx, |shell, _| shell.swap_test_link(Some(probe)));
     let button = shell
         .update(cx, |shell, _| shell.review_feedback().place.get())
         .unwrap();
     cx.simulate_click(button.center(), Modifiers::none());
     cx.run_until_parked();
-    let call = shell.update(cx, |shell, _| scene.request(shell.fixture_link()).unwrap());
-    let Call::PromptSession(ask) = call else {
-        panic!("expected session.prompt");
-    };
-    ask
+    let _probe = shell.update(cx, |shell, _| shell.swap_test_link(fixture));
+    let mut prompts = Vec::new();
+    while let Ok(command) = commands.try_recv() {
+        if let Command::Files(Files::Prompt(prompt)) = command {
+            prompts.push(prompt);
+        }
+    }
+    prompts
 }
 
-/// The node's answer, as the link gives it to the shell.
+/// The link's answer to `prompt`, as it gives it to the shell.
 fn answer(
     shell: &Entity<Shell>,
     cx: &mut VisualTestContext,
-    scene: &mut Scenario,
-    outcome: Outcome,
+    prompt: Arc<WithFiles>,
+    result: Result<Delivered, SubmitFailure>,
 ) {
     shell.update(cx, |shell, cx| {
-        scene.reply(shell.fixture_link(), outcome).unwrap();
-        for _ in 0..32 {
-            if let Event::Files(answer) = scene.event(shell.fixture_link()).unwrap() {
-                shell.composer_answered(answer, cx);
-                return;
-            }
-        }
-        panic!("expected the send's answer");
+        shell.composer_answered(Answer::Submitted { prompt, result }, cx);
     });
     redraw(shell, cx);
 }
@@ -126,34 +124,29 @@ fn feedback_to_the_one_agent_sends_one_review_and_clears_it_once_delivered(
 ) {
     let (shell, cx, mut scene, session, key) = one_recipient(cx);
     assert!(shell.update(cx, |shell, _| pill_offered(shell, session)));
-    let ask = press_send(&shell, cx, &mut scene);
-    assert_eq!(ask.session, session);
+    let mut prompts = press_send(&shell, cx);
+    assert_eq!(prompts.len(), 1);
+    let prompt = prompts.remove(0);
+    assert_eq!(prompt.session, session);
     // No turn runs: Paseo's send starts one (the node starts a queued
     // prompt at once when idle).
-    assert_eq!(ask.delivery, Delivery::Queue);
+    assert_eq!(prompt.delivery, Delivery::Queue);
+    assert_eq!(prompt.text, "Please address this code review.");
+    // One pill, the review, sent as its block to a node at protocol 46.
+    let pills: Vec<&ContextAttachment> =
+        prompt.context.as_ref().unwrap().attachments().collect();
     assert!(matches!(
-        ask.content.as_slice(),
-        [ContentBlock::Text { text }, ContentBlock::Review(review)]
-            if text == "Please address this code review." && review.comments.len() == 1
+        pills.as_slice(),
+        [pill @ ContextAttachment::Review(_)]
+            if matches!(pill.block(true), ContentBlock::Review(review) if review.comments.len() == 1)
     ));
-    answer(
-        &shell,
-        cx,
-        &mut scene,
-        Outcome::Ok(Reply::PromptSession(Delivered::Started)),
-    );
+    answer(&shell, cx, prompt, Ok(Delivered::Started));
     shell.update(cx, |shell, _| {
         assert!(kept(shell, &key).is_empty());
         assert!(!pill_offered(shell, session));
         let toast = shell.areas.toasts.shown().unwrap();
         assert_eq!(toast.tone, ToastTone::Ok);
         assert_eq!(toast.text, "Feedback sent to Fix the cart");
-        let calls = scene.transcript(shell.fixture_link()).unwrap();
-        let prompts = calls
-            .iter()
-            .filter(|call| matches!(call, Call::PromptSession(_)))
-            .count();
-        assert_eq!(prompts, 1);
     });
     assert_eq!(cx.debug_bounds("review-room").unwrap().size.height, px(0.0));
     shell.update(cx, |shell, _| scene.close(shell.fixture_link()).unwrap());
@@ -162,13 +155,9 @@ fn feedback_to_the_one_agent_sends_one_review_and_clears_it_once_delivered(
 #[gpui::test]
 fn a_failed_feedback_keeps_the_comments_and_says_so_as_an_alert(cx: &mut TestAppContext) {
     let (shell, cx, mut scene, _session, key) = one_recipient(cx);
-    let _ask = press_send(&shell, cx, &mut scene);
-    answer(
-        &shell,
-        cx,
-        &mut scene,
-        Outcome::Err(WireError::new(ErrorCode::Unavailable, "the agent is gone")),
-    );
+    let mut prompts = press_send(&shell, cx);
+    assert_eq!(prompts.len(), 1);
+    answer(&shell, cx, prompts.remove(0), Err(SubmitFailure::NotSent));
     shell.update(cx, |shell, _| {
         assert_eq!(kept(shell, &key).len(), 1);
         assert!(shell.review_feedback().failed);
