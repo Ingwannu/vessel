@@ -135,6 +135,7 @@ describe("paletteEntries", () => {
       .map((entry) => entry.label);
     expect(places).toEqual([
       "Board",
+      "Schedules",
       "Settings: General",
       "Settings: Appearance",
       "Settings: Shortcuts",
@@ -151,6 +152,17 @@ describe("paletteEntries", () => {
       "Settings: Diagnostics",
       "Settings: About",
     ]);
+  });
+
+  it("routes to schedules using the same localized label as the sidebar", () => {
+    const entry = paletteEntries(state(), null, "ko-KR").find(
+      (candidate) => candidate.id === "schedules",
+    );
+    expect(entry).toMatchObject({
+      label: "일정",
+      target: { kind: "route", to: "/schedules" },
+    });
+    expect(entry?.keywords).toContain("recurring");
   });
 
   it("switches the theme three ways", () => {
