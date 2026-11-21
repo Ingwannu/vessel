@@ -25,6 +25,7 @@ import type {
   QueueEntryId,
   RuntimeGeneration,
   SessionId,
+  SettingsRevision,
   TerminalId,
   ToolCallId,
   TransferId,
@@ -60,6 +61,7 @@ interface Handles {
   QueueEntryId: QueueEntryId;
   RuntimeGeneration: RuntimeGeneration;
   SessionId: SessionId;
+  SettingsRevision: SettingsRevision;
   TerminalId: TerminalId;
   ToolCallId: ToolCallId;
   TransferId: TransferId;

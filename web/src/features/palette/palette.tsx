@@ -35,6 +35,7 @@ import {
   pluginCommands,
 } from "../../data/plugin-catalog";
 import { problemWords } from "../../data/plugins";
+import { declarationOrder, surfaceCommands } from "../../data/plugin-surfaces";
 import { useStore } from "../../data/store";
 import { chooseTheme } from "../../data/theme";
 import {
@@ -45,6 +46,7 @@ import {
   Kbd,
 } from "../../ui/kit";
 import { toast } from "../../ui/toasts";
+import { useOpenSurface } from "../plugins/use-open-surface";
 import { sectionIcon } from "../settings/section-icon";
 import { useShortcut } from "../shortcuts/handlers";
 import { useShortcutWords } from "../shortcuts/use-keys";
@@ -113,26 +115,42 @@ function Palette() {
   const pathname = useRouterState({
     select: (router) => router.location.pathname,
   });
-  const plugins = useMemo(
-    () =>
-      pluginCommands(catalogs, placeOf(pathname, state)).map(
-        (command): Command => ({
-          id: command.id,
-          label: command.title,
-          ...(command.keywords.length === 0
-            ? {}
-            : { keywords: command.keywords.join(" ") }),
-          icon: "blocks",
-          group: command.plugin,
-          run: () => {
-            void invokePlugin(fleet, command.call).then((outcome) => {
-              if (!outcome.ok) toast(problemWords(outcome), "error");
-            });
-          },
-        }),
-      ),
-    [catalogs, pathname, state, fleet],
-  );
+  const openSurface = useOpenSurface();
+  const plugins = useMemo(() => {
+    const place = placeOf(pathname, state);
+    const order = declarationOrder(catalogs);
+    const opening = surfaceCommands(catalogs, place).map(
+      (command): Command => ({
+        id: command.id,
+        label: command.title,
+        ...(command.keywords.length === 0
+          ? {}
+          : { keywords: command.keywords.join(" ") }),
+        icon: "blocks",
+        group: command.plugin,
+        run: () => {
+          openSurface(command.target);
+        },
+      }),
+    );
+    const running = pluginCommands(catalogs, place).map((command): Command => ({
+      id: command.id,
+      label: command.title,
+      ...(command.keywords.length === 0
+        ? {}
+        : { keywords: command.keywords.join(" ") }),
+      icon: "blocks",
+      group: command.plugin,
+      run: () => {
+        void invokePlugin(fleet, command.call).then((outcome) => {
+          if (!outcome.ok) toast(problemWords(outcome), "error");
+        });
+      },
+    }));
+    return [...running, ...opening].sort(
+      (a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0),
+    );
+  }, [catalogs, pathname, state, fleet, openSurface]);
   const commands = useMemo(
     () =>
       paletteEntries(state, selectedNode(state, undefined)).map(

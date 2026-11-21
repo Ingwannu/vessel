@@ -43,8 +43,9 @@ fn a_profile_launch_and_a_profiles_change_need_their_protocol() {
 
 #[test]
 fn the_profiles_are_the_newest_protocol() {
-    // Only the newest protocol asserts equality with `PROTOCOL_VERSION`.
-    assert_eq!(TERMINAL_PROFILES_PROTOCOL, Some(crate::PROTOCOL_VERSION));
+    // At most the newest: a prompt's context blocks (ADR 0124) are drafted
+    // after them, and only the newest asserts equality.
+    assert!(TERMINAL_PROFILES_PROTOCOL <= Some(crate::PROTOCOL_VERSION));
 }
 
 #[test]

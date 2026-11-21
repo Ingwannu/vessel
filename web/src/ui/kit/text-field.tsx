@@ -7,8 +7,10 @@
 //   focus ring (`:focus-within`); the input inside has no border, no
 //   outline and no fill of its own (styles/kit-fields.css).
 // - Choice: Base UI's Input, so a Field's label, hint and error reach it.
-//   `type` is text or url only: a `search` input draws the browser's own
-//   clear button, which this design does not have.
+//   `type` is text, url or password only: a `search` input draws the
+//   browser's own clear button, which this design does not have.
+//   `password` masks a plugin's secret setting (Paseo's `secureTextEntry`,
+//   ADR 0115 "Surfaces").
 // - Values: agent-orchestrator's settings input (a 4% fill inside an 8%
 //   hairline, radius 8) at its control heights, 32 and 28.
 
@@ -32,7 +34,7 @@ export interface TextFieldProps {
    * nothing. */
   look?: "field" | "popup";
   /** `url` brings the right keyboard on a phone; nothing else differs. */
-  type?: "text" | "url";
+  type?: "text" | "url" | "password";
   /** A leading icon, inside the shell. */
   icon?: IconName;
   /** Something at the end, inside the shell: a shortcut, a clear button. */
@@ -100,7 +102,8 @@ export function TextField({
         readOnly={readOnly}
         autoFocus={autoFocus}
         spellCheck={spellCheck}
-        autoComplete="off"
+        // A secret is never offered to the browser's saved logins.
+        autoComplete={type === "password" ? "new-password" : "off"}
         onKeyDown={onKeyDown}
         onBlur={onBlur}
         role={role}

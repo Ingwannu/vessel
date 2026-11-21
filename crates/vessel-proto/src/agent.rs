@@ -15,6 +15,7 @@ use crate::conversation::{AgentAbilities, AttachmentRef, Question, QuestionOutco
 use crate::id::{
     AgentMessageId, HarnessSessionId, PermissionId, PermissionOptionId, QuestionId, ToolCallId,
 };
+use crate::prompt_context::{PromptContext, PromptReview};
 use crate::raw::RawJson;
 
 /// Where a fork or a rewind can start (protocol 14, ADR 0052): the end of a
@@ -170,6 +171,13 @@ pub enum ContentBlock {
         /// Which, and what it is.
         attachment: AttachmentRef,
     },
+    /// Context a person attached (ADR 0124): a pull request's comment, a
+    /// check's logs, a workspace file. Only in what a client sends; the
+    /// agent reads its text, a timeline draws it as a pill.
+    Context(PromptContext),
+    /// A diff review a person sends (ADR 0124): the agent reads Paseo's
+    /// review text, a timeline draws it as a pill.
+    Review(PromptReview),
 }
 
 /// What kind of work a tool call does. Lets clients pick an icon and a

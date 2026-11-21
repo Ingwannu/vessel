@@ -16,7 +16,8 @@
 //! - The text of a prompt: its text blocks joined with nothing between
 //!   them, on both sides. Links, attachments and other blocks have no text
 //!   here: an image the history keeps is not the attachment Vessel sent,
-//!   but the words beside it are the same.
+//!   but the words beside it are the same. A context or review block is
+//!   the text the agent was given for it (ADR 0124).
 //! - Only agent events take part. A record the node adds between two
 //!   chunks of one message (a usage report, an options change) does not
 //!   split it, as it does not in the agent's history.
@@ -29,6 +30,9 @@
 //!   runs; so no record is missed or counted twice, whatever arrives
 //!   while the node reads the store.
 
+use std::borrow::Cow;
+
+use vessel_proto::prompt_context::agent_text;
 use vessel_proto::{AgentEvent, ContentBlock, SessionEvent};
 
 /// A log's user prompts, folded record by record.
@@ -111,9 +115,9 @@ impl UserPrompts {
                 let chunk = block(content);
                 self.weigh(chunk.len());
                 if let Some(open) = &mut self.open {
-                    open.push_str(chunk);
+                    open.push_str(&chunk);
                 } else {
-                    self.open = Some(chunk.to_owned());
+                    self.open = Some(chunk.into_owned());
                 }
             }
             AgentEvent::TurnEnded { .. } | AgentEvent::TurnFailed { .. } => {
@@ -204,13 +208,17 @@ pub(super) fn text(content: &[ContentBlock]) -> String {
     content.iter().map(block).collect()
 }
 
-/// A block's text; empty for any block that is not text.
-pub(super) fn block(content: &ContentBlock) -> &str {
+/// A block's text, a context's or review's as the agent read it; empty
+/// for any other block.
+pub(super) fn block(content: &ContentBlock) -> Cow<'_, str> {
     match content {
-        ContentBlock::Text { text } => text,
+        ContentBlock::Text { text } => Cow::Borrowed(text),
+        ContentBlock::Context(_) | ContentBlock::Review(_) => {
+            Cow::Owned(agent_text(content).unwrap_or_default())
+        }
         ContentBlock::ResourceLink { .. }
         | ContentBlock::Opaque { .. }
-        | ContentBlock::Attachment { .. } => "",
+        | ContentBlock::Attachment { .. } => Cow::Borrowed(""),
     }
 }
 
@@ -224,9 +232,9 @@ pub(super) fn messages(replay: &[AgentEvent]) -> Vec<(usize, String)> {
         if let AgentEvent::UserMessageChunk { content } = event {
             let chunk = block(content);
             if open && let Some((_, text)) = found.last_mut() {
-                text.push_str(chunk);
+                text.push_str(&chunk);
             } else {
-                found.push((at, chunk.to_owned()));
+                found.push((at, chunk.into_owned()));
             }
             open = true;
         } else if !matches!(event, AgentEvent::HarnessLog { .. }) {
