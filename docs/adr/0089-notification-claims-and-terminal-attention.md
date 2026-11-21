@@ -461,6 +461,18 @@ The page does what the app does (ADR 0114 "Terminal notices"), behind this featu
   the exact clear, `holds` for each place kind, the tab request taken once) and `data/presence.test.ts` (a
   shown terminal is `terminal` focus only to a machine that admits claims).
 
+## The page's inbox read (2026-11-21, the claims follow-up's fourth row, page part)
+
+On a machine that admits this feature's constant, the page marks the session shown read with `inbox.read`
+(`{session, through}`) instead of `session.mark read` (`features/session/use-read-marks.ts`, `data/claims.ts`'s
+`readInbox` and `admitsClaims`). When a read is due is unchanged (ADR 0026).
+
+- `inbox.read` takes the `Read` scope, so a device given only `read` marks too.
+- It answers an Ack, and the session's list shows the mark.
+- Below the constant, and always while it is unassigned, the read mark stays as it is. The person's own "Mark as
+  read" stays `session.mark`.
+- The app does the same (ADR 0114 "Inbox read").
+
 ## The page's badge and favicon (2026-11-21, the claims follow-up's fifth row, page part)
 
 Not behind this feature's constant: this changes the page today. Paseo shows how many workspaces want the person

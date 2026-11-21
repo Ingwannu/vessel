@@ -26,13 +26,15 @@ import { ATTENTION_NOTIFICATIONS_PROTOCOL as ASSIGNED_ATTENTION_PROTOCOL } from 
 import type {
   InboxEntry,
   InboxItem,
+  EventSeq,
   InboxPage,
   NotificationClaim,
   NotificationSource,
+  SessionId,
 } from "../wire/proto";
 import type { Fleet } from "./fleet";
 import type { Notice, NoticeKind } from "./notices";
-import { attempt } from "./outcome";
+import { attempt, type Outcome } from "./outcome";
 
 /** vessel-proto's `ATTENTION_NOTIFICATIONS_PROTOCOL`, from the generated
  * `wire/proto` (`ts.rs` PROTOCOLS): `null` until the node line assigns it,
@@ -42,13 +44,19 @@ import { attempt } from "./outcome";
 export const ATTENTION_NOTIFICATIONS_PROTOCOL: number | null =
   ASSIGNED_ATTENTION_PROTOCOL;
 
-/** Whether `status` is a connected machine that admits claims. */
-export function claimsOn(status: NodeStatus | undefined): boolean {
+/** Whether a machine at `protocol` admits ADR 0089's protocol: never
+ * while it is unassigned. */
+export function admitsClaims(protocol: number | null): boolean {
   return (
     ATTENTION_NOTIFICATIONS_PROTOCOL !== null &&
-    status?.state === "connected" &&
-    status.protocol >= ATTENTION_NOTIFICATIONS_PROTOCOL
+    protocol !== null &&
+    protocol >= ATTENTION_NOTIFICATIONS_PROTOCOL
   );
+}
+
+/** Whether `status` is a connected machine that admits claims. */
+export function claimsOn(status: NodeStatus | undefined): boolean {
+  return status?.state === "connected" && admitsClaims(status.protocol);
 }
 
 /** Whether an inbox item is what `kind` told of: a request for "needs
@@ -120,6 +128,20 @@ export function claimCalls(fleet: Fleet, node: NodeKey): ClaimCalls {
       return claimed.ok ? claimed.value : null;
     },
   };
+}
+
+/** Mark `session` read through `through` in the inbox (`inbox.read`,
+ * claims row 4), in place of `session.mark read` on a machine that admits
+ * ADR 0089's protocol. */
+export function readInbox(
+  fleet: Fleet,
+  node: NodeKey,
+  session: SessionId,
+  through: EventSeq,
+): Promise<Outcome<unknown>> {
+  return attempt(() =>
+    fleet.bridge.call(node, "inbox.read", { session, through }),
+  );
 }
 
 /** Ask a machine about its notices: one first page, then a claim per
