@@ -205,6 +205,9 @@ pub enum Command {
     /// Search one machine's messages (`session.search`); answered by
     /// [`Event::Searched`].
     Search(search::Ask),
+    /// Ask a machine before its notices are shown (ADR 0089
+    /// `notification.claim`): answered as [`crate::Event::Claims`].
+    Claims(crate::claims::Ask),
     /// A workspace's shell terminals (ADR 0031); answered by
     /// `Event::Terminals`.
     Terminals(crate::terminals::Ask),

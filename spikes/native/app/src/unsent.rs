@@ -148,14 +148,8 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
         },
         // The machine's page never asked: said under the Messages group as
         // that machine's failure, in the app's words.
-        Command::Search(ask) => Event::Searched(vessel_app_link::search::Answer {
-            machine: ask.machine,
-            ticket: ask.ticket,
-            result: Err(vessel_app_link::search::Refusal::Failed {
-                code: Some(ErrorCode::Unavailable),
-                message: said(),
-            }),
-        }),
+        Command::Search(ask) => search_refused(ask, said()),
+        Command::Claims(ask) => Event::Claims(ask.failed()),
         Command::Terminals(ask) => return settle_terminals(ask),
         Command::Prompt { session, text, .. } => return Settle::Prompt { session, text },
         Command::Files(command) => return settle_files(command, words),
@@ -168,6 +162,19 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
         | Command::SaveDrafts(_) => return Settle::Say,
     };
     Settle::Answer(Box::new(event))
+}
+
+/// A search never sent: said under the Messages group as that machine's
+/// failure.
+fn search_refused(ask: vessel_app_link::search::Ask, message: String) -> Event {
+    Event::Searched(vessel_app_link::search::Answer {
+        machine: ask.machine,
+        ticket: ask.ticket,
+        result: Err(vessel_app_link::search::Refusal::Failed {
+            code: Some(ErrorCode::Unavailable),
+            message,
+        }),
+    })
 }
 
 /// A terminal tab's request never sent settles as if its machine were not

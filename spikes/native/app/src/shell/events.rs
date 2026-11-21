@@ -31,6 +31,7 @@ impl Shell {
             }
             Event::Machines(answer) => self.machines_answer(answer, cx),
             Event::Sync(answer) => self.sync_answer(answer),
+            Event::Claims(answer) => self.notices_claimed(answer, cx),
             Event::NodeSettings(answer) => self.node_settings_answer(answer),
             Event::Diagnostics(answer) => self.diagnostics_answer(answer),
             Event::Plugins(answer) => return self.plugins_answer(answer, cx),

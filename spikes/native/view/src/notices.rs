@@ -21,6 +21,7 @@ use vessel_proto::SessionId;
 use crate::board::{Card, Fleet, Phrase};
 
 mod announce;
+pub mod claims;
 mod tone;
 
 pub use announce::{Announce, Seen, Unseen, announce};

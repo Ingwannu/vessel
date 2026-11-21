@@ -45,7 +45,9 @@ use gpui::{
 };
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_view::board::Fleet;
-use vessel_app_view::notices::{Notice, NoticeKind, Seen, Unseen, announce, notices, title_with};
+use vessel_app_view::notices::{
+    Announce, Notice, NoticeKind, Seen, Unseen, announce, notices, title_with,
+};
 use vessel_proto::SessionId;
 
 use crate::routes::Route;
@@ -188,6 +190,14 @@ impl Shell {
             shown,
         };
         let told = announce(found, seen, settings.alerts);
+        let now = self.ask_before_telling(told);
+        self.tell(&now, cx);
+    }
+
+    /// Show `told`'s system notifications and play one sound for them: the
+    /// needs-you tone when any needs the person, else the finished one.
+    pub(crate) fn tell(&mut self, told: &[Announce], cx: &mut Context<'_, Self>) {
+        let area = &mut self.areas.notify;
         let words = self.words.notifications();
         for one in told.iter().filter(|one| one.system) {
             let notice = &one.notice;
@@ -352,6 +362,8 @@ fn clicked(
         tracing::debug!("a notification's click found no window");
     }
 }
+
+mod claims;
 
 #[cfg(test)]
 mod tests;

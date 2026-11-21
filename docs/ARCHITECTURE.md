@@ -1666,6 +1666,10 @@ Clients report presence (`push.presence`, live since protocol 22): the page's
 (15 s heartbeats, immediate ones at most every 5 s, input and visibility), the
 app's `link::presence` and the page's `use-presence.ts` hand each connected machine
 its own report. ADR 0114, "Presence".
+Behind ADR 0089's constant, both clients claim a session notice before showing it
+(`view::notices::claims` with `link::claims`, and the page's `data/claims.ts`):
+one first inbox page per machine and change, then a claim per notice found on it.
+ADR 0114, "Claims".
 Passive read callers acquire the same transferable marking lease before a task
 is retained; accepted work owns it through durable and live publication. Local
 final authority/source checks share one borrowed-connection read transaction.

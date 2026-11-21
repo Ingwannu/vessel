@@ -244,3 +244,28 @@ policy is already Paseo's. Each difference is stated below.
   - both run the node's 180 s rule over the reports: a window that goes stale lets push resume, a hidden
     tab is present but never suppresses, and the latest input wins.
 
+## Claims (2026-11-21, the claims follow-up's second row)
+
+Both clients ask a machine before they show a session's notice: `notification.claim`, ADR 0089 "The
+clients' session claims". This replaces "two open clients may both notify" once ADR 0089's constant is
+assigned.
+
+- Until then, no machine admits claims, and every notice takes this ADR's path unchanged.
+- Where:
+  - the app: `view/src/notices/claims.rs` holds the rules; `link/src/claims.rs` asks
+    (`Command::Claims`/`Event::Claims`); `app/src/areas/notify/claims.rs` (`ask_before_telling`,
+    `notices_claimed`) tells only what passes;
+  - the page: `web/src/data/claims.ts`, wired in `use-notices.ts`.
+- What shows: `Admitted`, and a notice whose entry is not on the machine's first inbox page. That fallback
+  is the coordinator's rule, and ADR 0089 states the limit. Nothing else shows, and a claim is never
+  retried.
+- Sound: an asked notice's sound plays with its notification when the answer admits it. On the app, the
+  answer's notices share one sound, as a fleet change's do.
+- Tests:
+  - rules, both clients: `view/src/notices/claims/tests.rs` and `web/src/data/claims.test.ts`;
+  - the link through the real actor: one first page, one claim per notice found, which the client refuses
+    before the wire while unassigned;
+  - the app: only admitted and past-the-page notices are told, and every notice is told at once while
+    unassigned.
+- Owed at assignment: an end-to-end claim against a node, with two windows of which one is admitted.
+
