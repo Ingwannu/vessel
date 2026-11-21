@@ -1853,8 +1853,20 @@ offers the workspace tab "Pull request" (TRACKER 430, kind `pull` in
 `features/workspace/pull/` over `pr.get`, `pr.timeline` and, for a failed
 check's logs, `pr.check`; its rules (checks presentation and ring, threads under
 reviews, card menus, Paseo's Add to chat text) are `web/src/data/workspace/pull/`,
-ported from the native view's `workspace::pull`. Add to chat writes that text into
-the session's draft (the composer's context pills are TRACKER 833).
+ported from the native view's `workspace::pull`. A tab kept on a machine that cannot
+answer says why: too old (before protocol 39) or offline (not connected), and asks
+nothing (`data/workspace/pull/served.ts`).
+
+The composer's context pills (TRACKER 833) are Paseo's context attachments:
+`web/src/data/context-tray.ts` keeps one tray per session in the tab's memory (the
+last 16, as the file trays), a pull request's comment, review or check logs and a
+workspace file, a second add of the same kind and id replacing the first. The pull
+request pane's and the explorer's Add to chat add pills and show the session's chat;
+`features/compose/attachment-strip.tsx` draws them after the file chips; the send
+(`features/session/use-composer-send.ts`) adds one text block per pill after the
+words and the files, as the native app's composer does, and takes out the pills a
+prompt carried once the node has it. A reload forgets them (the bridge keeps a
+draft's text only, ADR 0028).
 
 ### Settings writer lifetime
 

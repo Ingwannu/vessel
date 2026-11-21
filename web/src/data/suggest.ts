@@ -113,14 +113,6 @@ export function applyFile(
   return replaceWord(text, trigger, fileMention(path));
 }
 
-/** `draft` with file `path` named after what is in it (the Explorer's Add
- * to chat), a space either side so it stays a word of its own. */
-export function withMention(draft: string, path: string): string {
-  const mention = `${fileMention(path)} `;
-  if (draft.trim() === "") return mention;
-  return /\s$/.test(draft) ? `${draft}${mention}` : `${draft} ${mention}`;
-}
-
 /** A found file's path split for drawing: the folder (dimmed) and the
  * name, with the characters the search matched marked. */
 export interface PathParts {

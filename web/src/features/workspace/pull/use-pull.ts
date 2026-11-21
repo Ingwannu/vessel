@@ -85,21 +85,3 @@ export function usePull(node: NodeKey, session: SessionId): PullReads {
   );
   return { view, timeline, refreshing, readAt, refresh, report };
 }
-
-/** Append `text` to the session's draft, a blank line from what is there
- * (the page's Add to chat writes into the draft; TRACKER 833 brings the
- * context pills). */
-export function useAddToDraft(
-  session: SessionId,
-): (texts: readonly string[]) => void {
-  const fleet = useFleet();
-  return useCallback(
-    (texts: readonly string[]) => {
-      const draft = { kind: "session" as const, session };
-      const before = fleet.drafts.text(draft).replace(/\s+$/u, "");
-      const added = texts.join("\n\n");
-      fleet.drafts.type(draft, before === "" ? added : `${before}\n\n${added}`);
-    },
-    [fleet, session],
-  );
-}

@@ -241,7 +241,7 @@ export const Composer = memo(function Composer({
         : {})}
       strip={
         editing === null ? (
-          <AttachmentStrip tray={tray} />
+          <AttachmentStrip tray={tray} context={sender.context} />
         ) : (
           <EditingStrip
             onCancel={() => {
