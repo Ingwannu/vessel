@@ -151,3 +151,18 @@ plugins-problem-unsupported = That machine runs an older Vessel; update it to us
 
 # Why a call failed, when the node gave a code but no words. $code is the wire code, such as "forbidden".
 plugins-problem-refused = The machine refused it ({ $code }).
+
+# A plugin screen whose machine is not connected (Paseo's "Plugin host is offline.", with "host" read as "machine"). No values.
+plugins-screen-offline = Plugin machine is offline.
+
+# A plugin screen that no running plugin declares (Paseo's words). No values.
+plugins-screen-unavailable = This plugin surface is unavailable.
+
+# The button that closes a plugin screen (Paseo's "Close plugin"). No values.
+plugins-screen-close = Close plugin
+
+# The tooltip on that button (Paseo's "Close"); the button's name stays "Close plugin". No values.
+plugins-screen-close-tip = Close
+
+# The line at the top of a plugin screen on a device without admin. $machine is the machine's name.
+plugins-screen-read-only = Changing this needs admin access to { $machine }.

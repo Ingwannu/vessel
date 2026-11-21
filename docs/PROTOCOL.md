@@ -68,6 +68,19 @@ no runtime to compile. The package that serves the method changes `staged`
 to `pending` in the commit that adds its handler; from then on the guard
 requires the handler, as for every assigned or pending row.
 
+## Version 47 (2026-11-21, milestone 12): notification claims and terminal attention (impl U, ADR 0089)
+
+Assigned 47 (`ATTENTION_NOTIFICATIONS_PROTOCOL`, `PROTOCOL_VERSION` 47) at its node-line merge, the next after the
+prompt context's 46. What was pending on the constant goes live:
+
+- Methods: `notification.claim`, `terminal.attention_clear`, `terminal.activity`, `inbox.attention`, `inbox.read`.
+- Fields: `TerminalInfo.attention`; `push.presence`'s `terminal` focus, `idle_age` and `notifies` (absent reads
+  true; only a notifying window is elected a claim's local recipient); `NodeSettings.terminal_agent_hooks`.
+- Clients: both claim a session's or a terminal's notice before showing it, follow each machine's terminal list
+  for attention, report a shown terminal as `terminal` focus, clear a viewed terminal's attention by its exact
+  revision, and mark a read session with `inbox.read`.
+- Older peers: each of the above is refused before the wire, or left out of a projection, below 47.
+
 ## Version 46 (2026-11-21, milestone 12): a prompt's context and review blocks (implementer G, ADR 0124)
 
 Assigned 46 (`PROMPT_CONTEXT_PROTOCOL`, `PROTOCOL_VERSION` 46) at its node-line merge, the next after the terminal

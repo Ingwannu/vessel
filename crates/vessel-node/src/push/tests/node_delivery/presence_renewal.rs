@@ -19,6 +19,7 @@ async fn presence_is_answered_when_its_lease_renewal_fails() {
                 device
                     .report_push_presence(ReportPushPresence {
                         idle_age: None,
+                        notifies: true,
                         focus: PushFocus::Background,
                         activity,
                     })

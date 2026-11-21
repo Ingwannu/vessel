@@ -111,3 +111,39 @@ fn activity_cannot_restart_an_ended_process() {
         Err(super::AttentionError::Ended)
     );
 }
+#[test]
+fn a_standalone_ctrl_c_or_esc_interrupts_working_and_nothing_else() {
+    assert!(super::attention::interrupts(b"\x03"));
+    assert!(super::attention::interrupts(b"\x1b"));
+    assert!(!super::attention::interrupts(b"\x1b[A"), "an arrow key");
+    assert!(
+        !super::attention::interrupts(b"q\x03"),
+        "typed with other input"
+    );
+    let handle = terminal();
+    let working = handle
+        .report_activity(
+            TerminalAttentionRevision::default(),
+            TerminalActivitySignal::Working,
+        )
+        .unwrap();
+    handle.interrupt_activity();
+    let interrupted = handle.info().attention.unwrap();
+    assert_eq!(
+        interrupted.activity,
+        vessel_proto::notifications::TerminalActivity::Unknown
+    );
+    assert_ne!(interrupted.revision, working.revision);
+    let again = handle
+        .report_activity(interrupted.revision, TerminalActivitySignal::Working)
+        .unwrap();
+    let finished = handle
+        .report_activity(again.revision, TerminalActivitySignal::Idle)
+        .unwrap();
+    handle.interrupt_activity();
+    assert_eq!(
+        handle.info().attention,
+        Some(finished),
+        "finished attention stays: only working is interrupted"
+    );
+}

@@ -21,8 +21,9 @@
 //!   take its place.
 //! - Invoke-bound items are offered only where the catalog says the caller
 //!   may invoke (`may_invoke`, coordinator ruling 2026-11-20). An
-//!   `open_screen` action waits for screens (P3b) and is left out until
-//!   then.
+//!   `open_screen` item is offered to every device that reads the catalog
+//!   (ADR 0115, "Surfaces"); `open_settings` waits for the settings
+//!   screens' packet.
 //! - Cost: one long poll per connected machine that serves the catalog
 //!   (the node answers within 25 s), and one read every 5 s while it fails.
 
@@ -39,7 +40,13 @@ use crate::devices::{MachineKey, Ticket, Tickets};
 
 use super::{Call, Problem, Reply, Request};
 
+mod surfaces;
 mod watch;
+
+pub use surfaces::{
+    ControlValue, FoundScreen, ScreenAddress, SidebarChoice, SidebarRow, action_needs_admin,
+    control_input, needs_admin, screen_call,
+};
 
 use watch::Watcher;
 pub use watch::{Answered, Pause, QUIET_AFTER, RETRY_AFTER};
@@ -156,8 +163,17 @@ pub struct PluginCommand {
     pub keywords: String,
     /// The plugin's id: the item's section, as Paseo's `sectionTitle`.
     pub plugin: PluginId,
-    /// What choosing it runs.
-    pub call: PluginCall,
+    /// What choosing it does.
+    pub run: PluginRun,
+}
+
+/// What a Command Center item does when chosen.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PluginRun {
+    /// Call a declared method.
+    Invoke(PluginCall),
+    /// Open one of the plugin's screens (ADR 0115, "Surfaces").
+    Open(ScreenAddress),
 }
 
 /// A slash command a plugin declared, kept with its machine's catalog so
@@ -290,15 +306,12 @@ impl Catalogs {
     pub fn commands(&self, place: &Place) -> Vec<PluginCommand> {
         let mut commands = Vec::new();
         for (machine, catalog) in self.in_order() {
-            if !catalog.may_invoke {
-                continue;
-            }
             for installation in catalog.catalog.installations() {
                 for item in installation.document().contributions() {
                     let ContributionContent::Command {
                         keywords,
                         context,
-                        action: Action::Invoke { method, input },
+                        action,
                     } = &item.content
                     else {
                         continue;
@@ -307,6 +320,23 @@ impl Catalogs {
                         continue;
                     };
                     let plugin = installation.address().plugin.clone();
+                    let run = match action {
+                        Action::Invoke { method, input } if catalog.may_invoke => {
+                            PluginRun::Invoke(call_of(
+                                machine,
+                                installation,
+                                method,
+                                input.clone(),
+                                context,
+                            ))
+                        }
+                        Action::OpenScreen { screen } => PluginRun::Open(ScreenAddress {
+                            machine: machine.clone(),
+                            plugin: plugin.clone(),
+                            screen: screen.clone(),
+                        }),
+                        Action::Invoke { .. } | Action::OpenSettings { .. } => continue,
+                    };
                     commands.push(PluginCommand {
                         id: format!("plugin:{}:{plugin}:{}", machine.as_str(), item.id),
                         title: item.title.as_str().to_owned(),
@@ -315,7 +345,7 @@ impl Catalogs {
                             .map(Caption::as_str)
                             .collect::<Vec<_>>()
                             .join(" "),
-                        call: call_of(machine, installation, method, input.clone(), context),
+                        run,
                         plugin,
                     });
                 }

@@ -150,3 +150,18 @@ plugins-problem-unsupported = 이 머신의 Vessel이 오래되었습니다. 사
 
 # 노드가 코드만 주고 설명을 주지 않았을 때. $code는 "forbidden" 같은 와이어 코드입니다.
 plugins-problem-refused = 머신이 거부했습니다({ $code }).
+
+# 플러그인 화면의 머신이 연결되어 있지 않을 때(Paseo의 "Plugin host is offline.").
+plugins-screen-offline = 플러그인 머신이 오프라인입니다.
+
+# 실행 중인 플러그인이 선언하지 않은 플러그인 화면.
+plugins-screen-unavailable = 이 플러그인 화면을 쓸 수 없습니다.
+
+# 플러그인 화면을 닫는 버튼(Paseo의 "Close plugin").
+plugins-screen-close = 플러그인 닫기
+
+# 그 버튼의 tooltip(Paseo의 "Close"). 버튼 이름은 "플러그인 닫기" 그대로입니다.
+plugins-screen-close-tip = 닫기
+
+# 관리자 권한이 없는 기기에서 플러그인 화면 위에 보이는 줄. $machine은 머신 이름입니다.
+plugins-screen-read-only = 바꾸려면 { $machine }의 관리자 권한이 필요합니다.

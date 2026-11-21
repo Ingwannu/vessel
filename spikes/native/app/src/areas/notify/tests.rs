@@ -39,6 +39,16 @@ fn card(id: SessionId, status: SessionStatus, blocked: bool) -> Card {
     Card::from_session("lab", &info)
 }
 
+/// The protocol "lab" speaks: the one before ADR 0089's, so these tests
+/// keep ADR 0114's local notifier. A machine that admits claims is asked
+/// first and tells only what it admits, which `claims/tests.rs` covers.
+fn local_protocol() -> vessel_proto::ProtocolVersion {
+    vessel_proto::notifications::ATTENTION_NOTIFICATIONS_PROTOCOL
+        .map_or(vessel_proto::PROTOCOL_VERSION, |claims| {
+            vessel_proto::ProtocolVersion::new(claims.get().saturating_sub(1))
+        })
+}
+
 fn fleet(cards: Vec<Card>) -> Fleet {
     Fleet {
         machines: vec![Machine {
@@ -48,7 +58,7 @@ fn fleet(cards: Vec<Card>) -> Fleet {
             reach: Reach::Online,
             sessions: cards,
             agents: Vec::new(),
-            protocol: Some(vessel_proto::PROTOCOL_VERSION),
+            protocol: Some(local_protocol()),
             version: None,
         }],
         read_at: None,
