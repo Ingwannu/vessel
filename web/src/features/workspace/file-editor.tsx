@@ -78,8 +78,8 @@ export function FileEditor({
           EditorView.updateListener.of((update) => {
             if (
               update.docChanged &&
-              !update.transactions.some((transaction) =>
-                transaction.annotation(replaceDraft),
+              !update.transactions.some(
+                (transaction) => transaction.annotation(replaceDraft) === true,
               )
             ) {
               changeDraft(update.state.sliceDoc());
@@ -135,7 +135,9 @@ export function FileEditor({
       statusLine.textContent = `Vim ${event.mode}`;
     };
     cm.on("vim-mode-change", showMode);
-    return () => cm.off("vim-mode-change", showMode);
+    return () => {
+      cm.off("vim-mode-change", showMode);
+    };
   }, [path, vimEnabled]);
 
   return (
