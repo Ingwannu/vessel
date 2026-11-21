@@ -30,6 +30,7 @@ impl Fixture {
             protocol: HelperProtocol::V1,
             client: document(&["echo"]),
             hooks: HookSubscriptions::default(),
+            settings: SettingsDeclarations::default(),
         })
         .expect("ready");
         Self {
@@ -278,7 +279,8 @@ fn second_ready_and_counter_exhaustion_are_closed_protocol_failures() {
         fixture.core.receive(HelperToNode::Ready {
             protocol: HelperProtocol::V1,
             client: document(&["echo"]),
-            hooks: HookSubscriptions::default()
+            hooks: HookSubscriptions::default(),
+            settings: SettingsDeclarations::default(),
         }),
         Err(RuntimeError::Protocol(ProtocolViolation::Ordering))
     ));

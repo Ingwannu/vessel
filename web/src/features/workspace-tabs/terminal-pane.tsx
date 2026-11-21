@@ -1,13 +1,18 @@
 // The standalone terminal pane uses the same xterm mount as agent PTYs
 // and follows terminal records through the bridge's resumable stream.
+// Which records are live, and so may have their queries answered, is the
+// terminal's `next_seq` read as the follow starts and again after every
+// gap (`data/terminal-live.ts`, TRACKER 826).
 
 import { useEffect, useRef, useState } from "react";
 
 import { useFleet } from "../../context";
 import { errorCode } from "../../data/outcome";
 import { decodeBytes } from "../../data/terminal";
+import { liveBoundary } from "../../data/terminal-live";
 import {
   followWorkspaceTerminal,
+  openedInThisTab,
   readWorkspaceTerminal,
   sendWorkspaceTerminal,
 } from "../../data/workspace/terminals";
@@ -15,7 +20,10 @@ import { Spinner } from "../../ui/kit";
 import { toast } from "../../ui/toasts";
 import type { NodeKey, StreamState } from "../../wire/bridge";
 import type { TerminalId } from "../../wire/proto";
-import { mountTerminal } from "../session/mount-terminal";
+import { KeyBar } from "../session/key-bar";
+import { mountTerminal, type TerminalKeyBar } from "../session/mount-terminal";
+import { useMedia } from "../shell/use-media";
+import { COMPACT } from "../../ui/breakpoints";
 import type { TabWords } from "./words";
 
 export function TerminalPane({
@@ -35,6 +43,9 @@ export function TerminalPane({
   const [registry, setRegistry] = useState<"waiting" | "ready" | "missing">(
     "waiting",
   );
+  // Paseo shows the key bar off its mobile app only when compact (P4).
+  const compact = useMedia(COMPACT);
+  const [keyBar, setKeyBar] = useState<TerminalKeyBar | null>(null);
   useEffect(() => {
     const element = host.current;
     if (element === null) {
@@ -46,18 +57,29 @@ export function TerminalPane({
       () => undefined,
       () => toast(words.dropped, "error"),
       "on-attach",
+      openedInThisTab(terminal) ? "opened" : "attached",
     );
+    setKeyBar(pane.keyBar);
+    const live = liveBoundary({
+      read: () => readWorkspaceTerminal(fleet, node, terminal),
+      onLink: (listener) => fleet.bridge.onLink(listener),
+    });
     const stop = followWorkspaceTerminal(fleet, node, terminal, {
-      record: ({ event }) => {
+      record: ({ seq, event }) => {
         if (event.type === "terminal") {
-          pane.write(decodeBytes(event.data));
+          pane.write(decodeBytes(event.data), live.written(seq));
           setRegistry("ready");
         }
       },
-      state: setStream,
+      state: (state) => {
+        live.stream(state);
+        setStream(state);
+      },
     });
     return () => {
+      live.stop();
       stop();
+      setKeyBar(null);
       pane.close();
     };
   }, [fleet, node, terminal, words.dropped]);
@@ -85,6 +107,7 @@ export function TerminalPane({
   return (
     <div className="workspace-terminal">
       <div className="xterm-host" ref={host} aria-label={words.terminal} />
+      {compact && keyBar !== null ? <KeyBar bar={keyBar} /> : null}
       {!connected ? (
         <div className="workspace-terminal-state">{words.disconnected}</div>
       ) : registry === "missing" || stream?.state === "failed" ? (

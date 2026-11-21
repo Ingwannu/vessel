@@ -9,6 +9,7 @@ mod duty;
 mod find;
 mod frame;
 pub mod grid;
+pub mod key_bar;
 mod keys;
 mod model;
 pub mod paint;

@@ -21,7 +21,7 @@ const MOD_F: &str = if cfg!(target_os = "macos") {
     "ctrl-f"
 };
 
-fn down(stroke: &'static str) -> KeyDownEvent {
+pub(super) fn down(stroke: &'static str) -> KeyDownEvent {
     KeyDownEvent {
         keystroke: Keystroke::parse(stroke).unwrap(),
         is_held: false,
@@ -29,7 +29,7 @@ fn down(stroke: &'static str) -> KeyDownEvent {
     }
 }
 
-fn laptop(terminal: vessel_proto::TerminalId) -> PaneKey {
+pub(super) fn laptop(terminal: vessel_proto::TerminalId) -> PaneKey {
     PaneKey {
         machine: "laptop".to_owned(),
         terminal,
@@ -37,7 +37,12 @@ fn laptop(terminal: vessel_proto::TerminalId) -> PaneKey {
 }
 
 /// A live pane 20 × 4 whose screen shows `bytes`.
-fn live(shell: &mut Shell, key: &PaneKey, bytes: &[u8], cx: &mut gpui::Context<'_, Shell>) {
+pub(super) fn live(
+    shell: &mut Shell,
+    key: &PaneKey,
+    bytes: &[u8],
+    cx: &mut gpui::Context<'_, Shell>,
+) {
     let mut pane = Pane::new(Origin::Opened, ScrollbackLines::default(), cx, key);
     pane.stage = Stage::Live;
     if let Some(model) = pane.model.as_mut() {
@@ -52,7 +57,7 @@ fn live(shell: &mut Shell, key: &PaneKey, bytes: &[u8], cx: &mut gpui::Context<'
 }
 
 /// Every send queued, answered one by one, as the keys they carry.
-fn drained(
+pub(super) fn drained(
     probe: &gpui::Entity<super::Probe>,
     shell: &gpui::Entity<Shell>,
     key: &PaneKey,

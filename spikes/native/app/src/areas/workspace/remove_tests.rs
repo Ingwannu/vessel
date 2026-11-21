@@ -13,7 +13,7 @@ use vessel_app_link::workspace::{Ask, WorktreeAsk};
 use vessel_app_view::board::{Attention, CardDetail, Phrase};
 use vessel_app_view::{Card, Machine, Reach};
 use vessel_proto::terminals::{TerminalInfo, TerminalKind, TerminalList, TerminalPlace};
-use vessel_proto::workspace::{IfLost, KeptReason, SetupState, WorktreeInfo};
+use vessel_proto::workspace::{IfLost, KeptReason, RemoveWorktree, SetupState, WorktreeInfo};
 use vessel_proto::{Creator, ProjectId, ProtocolVersion, SessionId, TerminalId, WorktreeId};
 
 use super::{Removing, closing_terminals};
@@ -187,27 +187,15 @@ fn terminals_alone_are_closed_with_the_removal_after_the_count_is_read_again(
         shell.removal_terminals_listed("laptop", Some(&three), cx);
     });
     let asked = sent(&probe, cx);
-    let removal = asked.iter().find_map(|command| {
-        if let Command::Workspace {
-            ask: Ask::Worktree(WorktreeAsk::Remove(remove)),
-            ..
-        } = command
-        {
-            Some(remove.clone())
-        } else {
-            None
-        }
-    });
-    let removal = removal.unwrap_or_else(|| panic!("{asked:?}"));
+    let removal = removal_in(&asked).unwrap_or_else(|| panic!("{asked:?}"));
     assert_eq!(removal.worktree, worktree.id);
     assert_eq!(removal.if_lost, IfLost::Snapshot);
     assert!(removal.end_terminals);
 }
 
-#[gpui::test]
-fn a_live_session_in_the_worktree_keeps_the_panel_as_before(cx: &mut TestAppContext) {
-    let worktree = worktree();
-    let in_it = Card {
+/// A live session on the laptop running in the worktree's `web` folder.
+fn session_in_worktree() -> Card {
+    Card {
         session: SessionId::random(),
         structured: true,
         live: true,
@@ -222,7 +210,28 @@ fn a_live_session_in_the_worktree_keeps_the_panel_as_before(cx: &mut TestAppCont
             cwd: Some("/work/app-wt/web".to_owned()),
             ..CardDetail::default()
         },
-    };
+    }
+}
+
+/// The worktree removal among `asked`, if one was asked.
+fn removal_in(asked: &[Command]) -> Option<RemoveWorktree> {
+    asked.iter().find_map(|command| {
+        if let Command::Workspace {
+            ask: Ask::Worktree(WorktreeAsk::Remove(remove)),
+            ..
+        } = command
+        {
+            Some(remove.clone())
+        } else {
+            None
+        }
+    })
+}
+
+#[gpui::test]
+fn a_live_session_in_the_worktree_keeps_the_panel_as_before(cx: &mut TestAppContext) {
+    let worktree = worktree();
+    let in_it = session_in_worktree();
     let (probe, cx) = open(cx, &worktree, vessel_proto::PROTOCOL_VERSION, vec![in_it]);
     let shell = probe.read_with(cx, |probe, _| probe.0.clone());
     shell.update_in(cx, |shell, _window, cx| {
@@ -265,4 +274,54 @@ fn below_40_nothing_is_counted(cx: &mut TestAppContext) {
         shell.removal_count_terminals("laptop");
     });
     assert!(sent(&probe, cx).is_empty(), "nothing is counted below 40");
+}
+
+/// An app review note on 0121n: the terminals ended between the count and
+/// the press, so nothing keeps the worktree, and the press finishes with
+/// the plain removal.
+#[gpui::test]
+fn a_recount_of_none_finishes_the_press_with_the_plain_removal(cx: &mut TestAppContext) {
+    let worktree = worktree();
+    let (probe, cx) = open(cx, &worktree, vessel_proto::PROTOCOL_VERSION, Vec::new());
+    let shell = probe.read_with(cx, |probe, _| probe.0.clone());
+    shell.update_in(cx, |shell, _window, cx| {
+        let one = list(vec![terminal("/work/app-wt", true)]);
+        shell.removal_terminals_listed("laptop", Some(&one), cx);
+        shell.remove_with(IfLost::Discard, cx);
+    });
+    drop(sent(&probe, cx));
+    shell.update_in(cx, |shell, _window, cx| {
+        let ended = list(vec![terminal("/work/app-wt", false)]);
+        shell.removal_terminals_listed("laptop", Some(&ended), cx);
+        assert_eq!(removing(shell).terminals, Some(0));
+        assert_eq!(removing(shell).busy, Some(IfLost::Discard));
+    });
+    let asked = sent(&probe, cx);
+    let removal = removal_in(&asked).unwrap_or_else(|| panic!("{asked:?}"));
+    assert_eq!(removal.worktree, worktree.id);
+    assert_eq!(removal.if_lost, IfLost::Discard);
+    assert!(!removal.end_terminals, "nothing is left to end");
+}
+
+/// The terminals ended, but a session now runs in the worktree: the node
+/// would keep it, so the press stops.
+#[gpui::test]
+fn a_recount_of_none_with_a_session_in_it_stops_the_press(cx: &mut TestAppContext) {
+    let worktree = worktree();
+    let (probe, cx) = open(cx, &worktree, vessel_proto::PROTOCOL_VERSION, Vec::new());
+    let shell = probe.read_with(cx, |probe, _| probe.0.clone());
+    shell.update_in(cx, |shell, _window, cx| {
+        let one = list(vec![terminal("/work/app-wt", true)]);
+        shell.removal_terminals_listed("laptop", Some(&one), cx);
+        shell.remove_with(IfLost::Snapshot, cx);
+        if let Some(laptop) = shell.fleet.machines.first_mut() {
+            laptop.sessions.push(session_in_worktree());
+        }
+    });
+    drop(sent(&probe, cx));
+    shell.update_in(cx, |shell, _window, cx| {
+        shell.removal_terminals_listed("laptop", Some(&list(Vec::new())), cx);
+        assert_eq!(removing(shell).busy, None);
+    });
+    assert!(removal_in(&sent(&probe, cx)).is_none());
 }
