@@ -44,6 +44,16 @@ listed in About, and recorded with integrity in `web/package-lock.json`.
 | `@codemirror/view` | 6.43.6 |
 | `@replit/codemirror-vim` | 6.3.0 |
 
+The production build measured these assets in kB, minified and gzipped.
+The baseline is node `d107c7553`. The editor chunk loads on Edit.
+
+| Asset | Baseline minified / gzip | With the editor minified / gzip |
+| --- | ---: | ---: |
+| Entry JS | 456.95 / 144.65 | 457.05 / 144.76 |
+| Workspace panel JS | 178.79 / 56.59 | 178.78 / 56.57 |
+| Lazy editor JS | — | 429.65 / 137.87 |
+| Shared CSS | 234.47 / 49.21 | 235.87 / 49.48 |
+
 The browser test drives the saved setting, verifies lazy loading, edits in
 Normal and Insert mode and saves a real CRLF fixture. The existing file and
 split-pane tests still exercise draft, conflict and dirty-state behavior.
