@@ -167,4 +167,5 @@ composer-file-submission-sending = 보관된 첨부 메시지를 보내는 중�
 composer-sent-text = 텍스트
 composer-sent-history = 이전 대화
 composer-sent-review = 리뷰
+composer-open-review = 리뷰 첨부 열기
 composer-sent-comments = 댓글 { NUMBER($count) }개

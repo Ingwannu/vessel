@@ -77,7 +77,7 @@ struct Sending {
 pub(in super::super) struct Feedback {
     menu: MenuState,
     /// The button's bounds, for the chooser above it.
-    place: Rc<Cell<Option<Bounds<Pixels>>>>,
+    pub(super) place: Rc<Cell<Option<Bounds<Pixels>>>>,
     choices: Vec<Recipient>,
     sending: Option<Sending>,
     pub(super) failed: bool,

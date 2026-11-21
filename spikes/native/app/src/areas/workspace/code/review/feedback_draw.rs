@@ -52,7 +52,13 @@ pub(super) fn notice(
             .flex()
             .justify_center()
             .child(
+                // Paseo's `accessibilityRole="alert"`: a screen reader says
+                // why the button is off, or that the send failed, when it
+                // appears.
                 div()
+                    .id("review-feedback-notice")
+                    .role(gpui::Role::Alert)
+                    .aria_label(vessel_app_kit::ui::SharedString::from(text.to_owned()))
                     .p(px(spacing::S2))
                     .rounded(px(radius::MD))
                     .bg(tokens.neutral.surface1)

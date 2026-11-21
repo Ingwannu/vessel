@@ -1,16 +1,24 @@
 //! Review comments on the Changes diff through the real code panel (ADR
 //! 0124, P6b-2a): the key follows the diff shown, the editor saves into
-//! the drafts document, edits in place, and a delete takes its open edit.
+//! the drafts document, edits in place, and a delete takes its open edit;
+//! the list keeps room under "Send feedback" (P6b-2b; the send itself in
+//! `send`).
 use super::super::source_tests::{prepare, ready, root, setup};
 use super::super::{ChangeRow, ScopeKind, WorkspaceRoot};
 use super::Editor;
 use crate::shell::Shell;
 use gpui::TestAppContext;
 use std::num::NonZeroU32;
+use std::sync::Arc;
 use vessel_app_kit::ui::{Context, Window};
+use vessel_app_view::workspace::changes::FileState;
+use vessel_app_view::workspace::diff_rows::{DiffBody, DiffKey, DiffRow};
 use vessel_app_view::workspace::review::{
     CommentId, DraftComment, ReviewKey, ReviewMode, ReviewSide, ReviewTarget,
 };
+use vessel_proto::workspace::LineKind;
+
+mod send;
 
 fn target() -> ReviewTarget {
     ReviewTarget {
@@ -109,6 +117,44 @@ fn a_comment_is_edited_in_place_and_a_delete_takes_its_open_edit(cx: &mut TestAp
     });
 }
 
+/// The fixture's `a.rs` read: a hunk, a context line (1) and an added
+/// line (new 2), listed again.
+fn read_rows(shell: &mut Shell) {
+    let line = |line: u32, kind, old, new, text: &str| DiffRow::Line {
+        key: DiffKey::Line { hunk: 0, line },
+        line: kind,
+        text: Arc::from(text),
+        cut: false,
+        old,
+        new,
+    };
+    let rows: Arc<[DiffRow]> = Arc::from(vec![
+        DiffRow::Hunk {
+            key: DiffKey::Hunk(0),
+            header: "@@ -1,1 +1,2 @@".to_owned(),
+            section: None,
+        },
+        line(0, LineKind::Context, Some(1), Some(1), "let a = 1;"),
+        line(1, LineKind::Added, None, Some(2), "let b = 2;"),
+    ]);
+    let changes = &mut shell.areas.workspace.code.changes;
+    drop(changes.states.insert(
+        "a.rs".parse().unwrap(),
+        FileState::Read(DiffBody::Rows { rows, more: None }),
+    ));
+    changes.relist();
+}
+
+/// Frames until the window has nothing left to draw: an update of the
+/// shell from a test draws nothing by itself.
+fn redraw(shell: &gpui::Entity<Shell>, cx: &mut gpui::VisualTestContext) {
+    shell.update(cx, |_, cx| cx.notify());
+    for _ in 0..3 {
+        cx.update(|window, cx| window.draw(cx).clear(cx));
+        cx.run_until_parked();
+    }
+}
+
 /// What the accessibility tree says of each control.
 fn arias(shell: &gpui::Entity<Shell>, cx: &mut gpui::VisualTestContext) -> Vec<String> {
     let handle = cx.update(|window, _| window.window_handle());
@@ -126,40 +172,13 @@ fn arias(shell: &gpui::Entity<Shell>, cx: &mut gpui::VisualTestContext) -> Vec<S
 
 #[gpui::test]
 fn the_add_button_opens_the_editor_from_an_assistive_click_with_no_hover(cx: &mut TestAppContext) {
-    use std::sync::Arc;
-    use vessel_app_view::workspace::changes::FileState;
-    use vessel_app_view::workspace::diff_rows::{DiffBody, DiffKey, DiffRow};
-    use vessel_proto::workspace::LineKind;
-
     let (shell, cx, mut scene) = setup(cx);
     cx.simulate_resize(gpui::size(gpui::px(1280.0), gpui::px(800.0)));
     shell.update_in(cx, |shell, _window, _cx| {
         let (session, project) = prepare(shell, &scene.context());
         root(&mut scene, shell, session, project);
         ready(&mut scene, shell);
-        let line = |line: u32, kind, old, new, text: &str| DiffRow::Line {
-            key: DiffKey::Line { hunk: 0, line },
-            line: kind,
-            text: Arc::from(text),
-            cut: false,
-            old,
-            new,
-        };
-        let rows: Arc<[DiffRow]> = Arc::from(vec![
-            DiffRow::Hunk {
-                key: DiffKey::Hunk(0),
-                header: "@@ -1,1 +1,2 @@".to_owned(),
-                section: None,
-            },
-            line(0, LineKind::Context, Some(1), Some(1), "let a = 1;"),
-            line(1, LineKind::Added, None, Some(2), "let b = 2;"),
-        ]);
-        let changes = &mut shell.areas.workspace.code.changes;
-        drop(changes.states.insert(
-            "a.rs".parse().unwrap(),
-            FileState::Read(DiffBody::Rows { rows, more: None }),
-        ));
-        changes.relist();
+        read_rows(shell);
     });
     cx.run_until_parked();
     let said = arias(&shell, cx);
@@ -206,14 +225,23 @@ fn the_list_keeps_room_under_send_feedback_while_comments_are_kept(cx: &mut Test
         // `relist` counts one row past the rows: the room's.
         assert_eq!(changes.list.rows(), changes.rows.len().saturating_add(1));
     });
-    cx.run_until_parked();
-    let room = |cx: &mut gpui::VisualTestContext| cx.debug_bounds("review-room").unwrap();
-    assert_eq!(room(cx).size.height, gpui::px(0.0));
-    shell.update_in(cx, |shell, window, cx| {
-        let _kept = saved(shell, window, cx);
-    });
-    cx.run_until_parked();
+    redraw(&shell, cx);
+    let room = |cx: &mut gpui::VisualTestContext| {
+        cx.debug_bounds("review-room").unwrap().size.height
+    };
+    assert_eq!(room(cx), gpui::px(0.0));
+    let (_key, id) = shell.update_in(cx, |shell, window, cx| saved(shell, window, cx));
+    redraw(&shell, cx);
     // The md button, its 16 and 44: Paseo's clearance on a pointer's width.
-    assert_eq!(room(cx).size.height, gpui::px(92.0));
+    assert_eq!(room(cx), gpui::px(92.0));
+    // A phone's width measures the row again: the floating button's 56,
+    // its 16 and 44.
+    cx.simulate_resize(gpui::size(gpui::px(390.0), gpui::px(800.0)));
+    redraw(&shell, cx);
+    assert_eq!(room(cx), gpui::px(116.0));
+    // The last comment deleted: no button, no room.
+    shell.update(cx, |shell, cx| shell.review_delete(id, 3, cx));
+    redraw(&shell, cx);
+    assert_eq!(room(cx), gpui::px(0.0));
     shell.update(cx, |shell, _| scene.close(shell.fixture_link()).unwrap());
 }
