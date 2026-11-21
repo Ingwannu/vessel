@@ -426,8 +426,11 @@ While the constant is unassigned, no machine admits claims, and a notice takes A
   before assignment, which is a wire change on the node line.
 - **What shows.**
   - `Admitted` and the fallback show.
-  - Every other outcome, a failed page or claim, and a lost reply show nothing. The inbox still holds
-    the entry.
+  - A first page that cannot be read takes the fallback for every notice it would have asked about
+    (2026-11-21, at assignment): it names no source, as an entry past the page does, and a transient
+    failure must not silence them.
+  - Every other outcome, a failed claim, and a lost reply show nothing. The inbox still holds the
+    entry.
   - A claim is never retried.
   - Failed sessions never reach a claim: the diff drops them (the "Local error attention" section).
 
