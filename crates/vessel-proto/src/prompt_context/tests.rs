@@ -189,6 +189,17 @@ fn an_older_peer_reads_the_blocks_as_the_text_the_agent_read() {
 }
 
 #[test]
+fn the_blocks_are_the_newest_protocol_and_add_no_method() {
+    assert_eq!(PROMPT_CONTEXT_PROTOCOL, Some(crate::PROTOCOL_VERSION));
+    assert!(
+        crate::Method::ALL
+            .iter()
+            .all(|method| method.since() != PROMPT_CONTEXT_PROTOCOL),
+        "the blocks change only what a prompt may hold"
+    );
+}
+
+#[test]
 fn a_prompt_holding_a_block_needs_its_protocol() {
     let call = |content: Vec<ContentBlock>| {
         Call::PromptSession(PromptSession {
