@@ -2,9 +2,9 @@
 //! later makes the call need that later version.
 
 use crate::agent::ContentBlock;
-use crate::prompt_context::context_since;
 use crate::agents::HarnessRef;
 use crate::node::ProtocolVersion;
+use crate::prompt_context::context_since;
 use crate::session::{SessionInput, SessionMode};
 use crate::terminal::TerminalInput;
 use crate::title::SessionTitle;
