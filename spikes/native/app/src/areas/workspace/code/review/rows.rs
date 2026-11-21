@@ -98,8 +98,13 @@ pub(in super::super) fn line(
         .on_click(cx.listener(move |shell, _event, window, cx| {
             shell.review_open(opened.clone(), None, index, window, cx);
         }))
+        .debug_selector(move || format!("review-add-{index}"))
+        // Unseen until the line is hovered, but painted: an assistive
+        // click lands on the button's centre with no hover first, and an
+        // `invisible` element registers no listeners (the review's R1).
         .when(!narrow, |add| {
-            add.invisible().group_hover(group.clone(), Styled::visible)
+            add.opacity(0.0)
+                .group_hover(group.clone(), |style| style.opacity(1.0))
         });
     let row = div()
         .relative()

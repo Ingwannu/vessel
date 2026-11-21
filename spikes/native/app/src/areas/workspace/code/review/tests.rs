@@ -2,7 +2,7 @@
 //! 0124, P6b-2a): the key follows the diff shown, the editor saves into
 //! the drafts document, edits in place, and a delete takes its open edit.
 use super::super::source_tests::{prepare, ready, root, setup};
-use super::super::{ScopeKind, WorkspaceRoot};
+use super::super::{ChangeRow, ScopeKind, WorkspaceRoot};
 use super::Editor;
 use crate::shell::Shell;
 use gpui::TestAppContext;
@@ -107,4 +107,95 @@ fn a_comment_is_edited_in_place_and_a_delete_takes_its_open_edit(cx: &mut TestAp
         assert!(shell.areas.composer.drafts.reviews().is_empty());
         scene.close(shell.fixture_link()).unwrap();
     });
+}
+
+/// What the accessibility tree says of each control.
+fn arias(shell: &gpui::Entity<Shell>, cx: &mut gpui::VisualTestContext) -> Vec<String> {
+    let handle = cx.update(|window, _| window.window_handle());
+    assert!(cx.simulate_accessibility_activation(handle));
+    cx.run_until_parked();
+    shell.update(cx, |_, cx| cx.notify());
+    cx.update(|window, _| window.refresh());
+    cx.run_until_parked();
+    let json = cx.update(|window, _| window.debug_a11y_tree_json().unwrap());
+    json.split("\"aria\":")
+        .skip(1)
+        .filter_map(|rest| rest.split_once('}').map(|(aria, _)| aria.to_owned()))
+        .collect()
+}
+
+#[gpui::test]
+fn the_add_button_opens_the_editor_from_an_assistive_click_with_no_hover(
+    cx: &mut TestAppContext,
+) {
+    use std::sync::Arc;
+    use vessel_app_view::workspace::changes::FileState;
+    use vessel_app_view::workspace::diff_rows::{DiffBody, DiffKey, DiffRow};
+    use vessel_proto::workspace::LineKind;
+
+    let (shell, cx, mut scene) = setup(cx);
+    cx.simulate_resize(gpui::size(gpui::px(1280.0), gpui::px(800.0)));
+    shell.update_in(cx, |shell, _window, _cx| {
+        let (session, project) = prepare(shell, &scene.context());
+        root(&mut scene, shell, session, project);
+        ready(&mut scene, shell);
+        let line = |line: u32, kind, old, new, text: &str| DiffRow::Line {
+            key: DiffKey::Line { hunk: 0, line },
+            line: kind,
+            text: Arc::from(text),
+            cut: false,
+            old,
+            new,
+        };
+        let rows: Arc<[DiffRow]> = Arc::from(vec![
+            DiffRow::Hunk {
+                key: DiffKey::Hunk(0),
+                header: "@@ -1,1 +1,2 @@".to_owned(),
+                section: None,
+            },
+            line(0, LineKind::Context, Some(1), Some(1), "let a = 1;"),
+            line(1, LineKind::Added, None, Some(2), "let b = 2;"),
+        ]);
+        let changes = &mut shell.areas.workspace.code.changes;
+        drop(changes.states.insert(
+            "a.rs".parse().unwrap(),
+            FileState::Read(DiffBody::Rows { rows, more: None }),
+        ));
+        changes.relist();
+    });
+    cx.run_until_parked();
+    let said = arias(&shell, cx);
+    let adds: Vec<&String> = said
+        .iter()
+        .filter(|aria| aria.contains(r#""label": "Add review comment""#))
+        .collect();
+    assert_eq!(adds.len(), 2, "one per reviewable line");
+    assert!(
+        adds.iter()
+            .all(|aria| aria.contains(r#""Button""#) && aria.contains(r#""Click""#))
+    );
+    // The added line's "+", pressed at its centre with no hover first (an
+    // assistive click is a down and an up there, nothing more).
+    let index = (0..16)
+        .find_map(|index| {
+            shell.update(cx, |shell, _| {
+                let rows = &shell.areas.workspace.code.changes.rows;
+                matches!(
+                    rows.get(index),
+                    Some(ChangeRow::Diff { row: 2, .. })
+                )
+                .then_some(index)
+            })
+        })
+        .unwrap();
+    let selector: &'static str = Box::leak(format!("review-add-{index}").into_boxed_str());
+    let add = cx.debug_bounds(selector).unwrap();
+    cx.simulate_click(add.center(), gpui::Modifiers::none());
+    cx.run_until_parked();
+    shell.update(cx, |shell, _| {
+        let editor = editor(shell).unwrap();
+        assert_eq!(editor.target, target());
+        assert_eq!(editor.comment, None);
+    });
+    shell.update(cx, |shell, _| scene.close(shell.fixture_link()).unwrap());
 }
