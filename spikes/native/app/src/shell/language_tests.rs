@@ -78,6 +78,72 @@ impl Shell {
     }
 }
 
+#[gpui::test]
+fn select_triggers_name_the_host_filter_and_settings_field(cx: &mut TestAppContext) {
+    init(cx);
+    let (shell, cx) = cx.add_window_view(|window, cx| {
+        let mut shell = Shell::without_io(window, cx);
+        shell.prefs.settings.language =
+            vessel_app_view::localization::LanguagePreference::from_tag("en");
+        shell.fleet.machines = ["laptop", "build-server"]
+            .map(|name| vessel_app_view::Machine {
+                connection_epoch: None,
+                node: None,
+                name: name.to_owned(),
+                reach: vessel_app_view::Reach::Online,
+                sessions: Vec::new(),
+                agents: Vec::new(),
+                protocol: None,
+                version: None,
+            })
+            .into();
+        shell
+    });
+    let handle = cx.update(|window, _| window.window_handle());
+    assert!(cx.simulate_accessibility_activation(handle));
+    for (lang, locale, filter, field) in [
+        (
+            vessel_app_view::Lang::En,
+            ENGLISH,
+            "Filter: All hosts",
+            "Language (English)",
+        ),
+        (
+            vessel_app_view::Lang::Ko,
+            Locale::from_tag("ko").unwrap(),
+            "필터: 모든 호스트",
+            "언어 (English)",
+        ),
+    ] {
+        shell.update(cx, |shell, cx| {
+            shell.words = Translator::get(locale).unwrap();
+            shell.t = lang.text();
+            shell.route = Route::Sessions;
+            cx.notify();
+        });
+        assert!(named_button(cx, filter));
+        shell.update(cx, |shell, cx| {
+            shell.route = Route::Settings;
+            shell.areas.settings.section = vessel_app_view::settings::Section::General;
+            cx.notify();
+        });
+        assert!(named_button(cx, field));
+    }
+}
+
+fn named_button(cx: &mut gpui::VisualTestContext, name: &str) -> bool {
+    cx.run_until_parked();
+    let tree = cx.update(|window, _| window.debug_a11y_tree_json().unwrap());
+    let snapshot: serde_json::Value = serde_json::from_str(&tree).unwrap();
+    snapshot["nodes"].as_object().unwrap().values().any(|node| {
+        let aria = &node["aria"];
+        aria["role"] == "Button"
+            && aria["label"]
+                .as_str()
+                .is_some_and(|label| label.replace(['\u{2068}', '\u{2069}'], "") == name)
+    })
+}
+
 /// A command queue without a node/runtime task lets area tests supply typed replies.
 pub(crate) fn with_commands(
     window: &mut Window,

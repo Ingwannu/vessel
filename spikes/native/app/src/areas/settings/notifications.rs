@@ -59,7 +59,7 @@ pub(crate) fn render(
             words.alerts(),
             Some(words.alerts_hint().into()),
             None,
-            Some(select_for(List::Alerts, shell, compact, tokens, cx)),
+            Some(select_for(List::Alerts, words.alerts(), shell, compact, tokens, cx)),
             true,
             compact,
             tokens,

@@ -24,6 +24,12 @@ Paseo v0.15.4 uses a named button for the select and machine triggers
 `packages/app/src/components/hosts/host-filter.tsx:82`). Segment buttons
 report selection (`components/ui/segmented-control.tsx:135–142`), and menu
 triggers report expansion (`components/ui/menu/menu-root.tsx:105–112`).
+The kit requires a separate localized accessible name for a select, since
+different fields can have the same selected value. Field controls use
+`Field (Value)` from `components/ui/select-field.tsx:298–300`; machine
+filters use `Filter: Host` from `components/hosts/host-filter.tsx:81–85`.
+Vessel applies the field form to Language and to its commit scope and pull
+base labels so each native selector names what it changes.
 
 The hover card places a muted diff icon and the workspace counts below the
 pull request and above the host (`components/workspace-hover-card.tsx:97–107`).

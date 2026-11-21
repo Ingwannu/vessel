@@ -159,7 +159,7 @@ impl Render for Controls {
             .size_full()
             .child(crate::select::trigger(
                 "machine",
-                "Build machine",
+                crate::select::Label::new("Build machine", "Filter: Build machine"),
                 &self.anchor,
                 self.open,
                 true,
@@ -201,7 +201,7 @@ fn controls_expose_their_names_and_current_state(cx: &mut TestAppContext) {
                 .find(|button| button.label.as_deref() == Some(label))
                 .unwrap()
         };
-        assert_eq!(named("Build machine").expanded, Some(open));
+        assert_eq!(named("Filter: Build machine").expanded, Some(open));
         assert_eq!(named("Active").selected, Some(!open));
         assert_eq!(named("Daily").selected, Some(open));
     }

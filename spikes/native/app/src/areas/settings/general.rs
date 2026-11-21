@@ -51,7 +51,7 @@ pub(crate) fn render(
                 SharedString::new_static(words.send_shortcut()),
                 None,
                 None,
-                Some(select_for(List::Send, shell, compact, tokens, cx)),
+                Some(select_for(List::Send, words.send_shortcut(), shell, compact, tokens, cx)),
                 true,
                 compact,
                 tokens,
@@ -64,7 +64,7 @@ pub(crate) fn render(
                     words.delivery_note(composer.delivery),
                 )),
                 None,
-                Some(select_for(List::Delivery, shell, compact, tokens, cx)),
+                Some(select_for(List::Delivery, words.default_send(), shell, compact, tokens, cx)),
                 !send_shown,
                 compact,
                 tokens,
@@ -130,6 +130,7 @@ pub(crate) fn render(
 /// The select for `list`, opening its list on a click.
 pub(crate) fn select_for(
     list: List,
+    field: &str,
     shell: &Shell,
     compact: bool,
     tokens: &Tokens,
@@ -141,9 +142,10 @@ pub(crate) fn select_for(
     } else {
         choices::label(list, shell).into()
     };
+    let name = shell.words.select_field_name(field, label.as_ref());
     select::trigger(
         gpui::ElementId::Name(format!("settings-select-{list:?}").into()),
-        label,
+        select::Label::new(label, name),
         state.anchors.of(list),
         state.showing() == Some(list),
         true,
