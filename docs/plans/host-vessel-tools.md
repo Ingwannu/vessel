@@ -1,9 +1,11 @@
 # Vessel tools in Machine settings
 
 M12 F-L21. The machine card follows Paseo 0.15.4
-`packages/app/src/screens/settings/paseo-tools-card.tsx:9–53` and the host
-Orchestration group in `packages/app/src/screens/settings/host-page.tsx`.
-The switch names Vessel and shows the selected machine's confirmed value.
+`packages/app/src/screens/settings/paseo-tools-card.tsx:9–53` and
+`HostAgentsPage` in `packages/app/src/screens/settings/host-page.tsx:281–308`.
+The host section is Agents and the installed provider list is Providers
+(`packages/app/src/i18n/resources/en.ts:2353–2365`). The switch names Vessel
+and shows the selected machine's confirmed value.
 
 ## Decision log
 
@@ -38,9 +40,13 @@ credential. A successful move to Off closes its old tool connections.
 
 ## Browser and verification
 
-Machines shows Orchestration for a connected host that reports the field.
-The control waits for the write response before changing position and reports
-a refusal in the card. Settings are read and saved on that machine.
+Machines shows the switch as the first row of Agents for a connected host
+that reports the field. Its accessible name is “Inject Vessel tools”
+(`packages/app/src/i18n/resources/en.ts:2918–2923`). The control waits for the
+write response before changing position and reports a refusal in the card.
+Settings are read and saved on that machine. Subsequent agent controls
+follow Paseo's order within Agents. Providers keeps its existing list
+and link.
 
 The fixtures exercise explicit Off with fleet servers still present, credential
 transitions in either direction, rollback, the recorded fresh default, and the

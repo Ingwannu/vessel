@@ -44,8 +44,8 @@ export function VesselToolsCard({ machine }: { machine: NodeKey }) {
   }
 
   return (
-    <SettingsSection title="Orchestration">
-      <RowList label="Orchestration">
+    <SettingsSection title="Agents">
+      <RowList label="Agent settings">
         <Row
           title="Enable Vessel tools"
           detail={{

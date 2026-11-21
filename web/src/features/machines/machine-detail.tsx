@@ -111,7 +111,7 @@ export function MachineDetail({ node }: { node: BookNode }) {
       ) : null}
       {harnesses === undefined ? null : (
         <SettingsSection
-          title="Agents"
+          title="Providers"
           action={
             <Link
               className="section-link"
@@ -123,7 +123,7 @@ export function MachineDetail({ node }: { node: BookNode }) {
             </Link>
           }
         >
-          <RowList label={`Agents on ${label}`}>
+          <RowList label={`Providers on ${label}`}>
             {agentsOn(harnesses, agents).map(
               ({ agent: kind, status: agent }) => {
                 const shown = agentHeadline(agent);
