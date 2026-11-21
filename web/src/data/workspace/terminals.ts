@@ -33,13 +33,20 @@ export function openedInThisTab(terminal: TerminalId): boolean {
   return openedHere.has(terminal);
 }
 
+/** Open a shell in `place`, or terminal profile `profile`'s program (ADR
+ * 0117; no prompt, so its placeholder arguments are left out). */
 export async function openWorkspaceTerminal(
   fleet: Fleet,
   node: NodeKey,
   place: TerminalPlace,
+  profile: string | null = null,
 ): Promise<Outcome<TerminalInfo>> {
   const result = await attempt(() =>
-    fleet.bridge.call(node, "terminal.create", { place }),
+    fleet.bridge.call(
+      node,
+      "terminal.create",
+      profile === null ? { place } : { place, profile: { id: profile } },
+    ),
   );
   if (result.ok) {
     openedHere.add(result.value.id);

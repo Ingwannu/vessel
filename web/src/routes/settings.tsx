@@ -23,6 +23,7 @@ import { NotificationsSection } from "../features/settings/notifications-section
 import { ShortcutsSection } from "../features/settings/shortcuts-section";
 import { UsageSection } from "../features/usage/usage-section";
 import { SyncSection } from "../features/settings/sync-section";
+import { TerminalsSection } from "../features/settings/terminals-section";
 
 export function SettingsPage(): ReactElement | null {
   const place = useSettingsPlace();
@@ -69,6 +70,8 @@ export function SettingsPage(): ReactElement | null {
       return <DevicesSection machine={place.machine} />;
     case "sync":
       return <SyncSection machine={place.machine} />;
+    case "terminals":
+      return <TerminalsSection machine={place.machine} />;
     case "plugins":
       return <PluginsSection machine={place.machine} />;
     case "diagnostics":
