@@ -309,3 +309,14 @@ screen exists; that registration is the screen's, the slot is not.
 What this decision does not verify: no screen is drawn here, no test
 runs against these types yet, and no capture exists. Those are the
 later slices in the plan.
+
+#### Native P3 heartbeat detail
+
+Every existing-session schedule opens a heartbeat sheet on its original
+admitted connection, with the stored session target and cadence. The
+target title reuses the row's session resolution, scoped to that exact
+connection. The separate view lets a paired device inspect heartbeat
+details independently of its Delete grant. An older node shows the stored
+cadence with a Close button. Its row menu retains authorized Delete, and
+the shared confirmation rechecks the original connection and revision.
+TRACKER 839 supplies a distinct cadence-only RPC without ownership transfer.

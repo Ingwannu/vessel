@@ -468,3 +468,14 @@ schedules-form-preview-line = { $description } · 다음 실행 { DATETIME($at) 
 
 # The retained elapsed cadence on an older node.
 schedules-form-elapsed-without-preview = { $cadence } · 이 머신에서는 미리보기를 사용할 수 없습니다
+
+# Heading of the sheet on which a person can inspect a heartbeat.
+schedules-heartbeat-title = 하트비트
+# Accessible name of a heartbeat row that opens detail. $title is the displayed schedule name.
+schedules-heartbeat-open-row = 하트비트 보기 { $title }
+# The fixed existing session to which the recurring prompt is sent.
+schedules-heartbeat-target = 대상
+# Dismiss the read-only heartbeat sheet.
+schedules-heartbeat-close = 닫기
+# Read-only reason when the node does not support changing heartbeat cadence.
+schedules-heartbeat-older = 하트비트 실행 주기를 변경하려면 새 버전의 노드가 필요합니다.

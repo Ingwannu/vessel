@@ -1,5 +1,7 @@
 //! Compose the sheet from the existing dialog, text, switch, and picker kit.
 mod cadence;
+mod heartbeat;
+mod schedule;
 use super::{
     Shell,
     pick::{self, Field},
@@ -9,7 +11,7 @@ use vessel_app_kit::{
     DialogSize, Tokens, Type, TypeExt as _,
     dialog::{CompactLayout, DesktopHeight, DialogLayout},
     sheet::snap::Percentage,
-    theme::spacing::{S2, S4},
+    theme::spacing::S2,
     ui::{
         AnyElement, Context, Div, IntoElement as _, ParentElement as _, SharedString,
         StatefulInteractiveElement as _, Styled as _, Window, div, px,
@@ -80,21 +82,19 @@ pub(in crate::areas::schedules) fn render(
     let form = editor.model.as_ref()?;
     let edit = form.draft.opened().is_some();
     let words = shell.words.schedules();
-    let body = div()
-        .flex()
-        .flex_col()
-        .gap(px(S4))
-        .children(text_fields(shell, form, tokens, touch, cx))
-        .children(targets(shell, form, tokens, touch, cx))
-        .child(archive(shell, form, tokens, touch, cx))
-        .child(cadence::body(shell, form, tokens, touch, cx))
-        .children(limit(shell, form, tokens, touch, cx))
-        .children(status(shell, form, tokens, touch, cx))
-        .children(edit.then(|| hint(words.form_ownership(), false, tokens)));
+    let heartbeat = form.draft.heartbeat();
+    let body = if let Some(info) = heartbeat {
+        heartbeat::body(shell, form, info, tokens, touch)
+            .children(status(shell, form, tokens, touch, cx))
+    } else {
+        schedule::body(shell, form, edit, tokens, touch, cx)
+    };
     let sheet = kit::dialog(
         &editor.dialog,
         DialogContent {
-            title: if edit {
+            title: if heartbeat.is_some() {
+                words.heartbeat_title()
+            } else if edit {
                 words.form_edit_title()
             } else {
                 words.form_new_title()
@@ -148,9 +148,14 @@ fn footer(
 ) -> Vec<AnyElement> {
     let words = shell.words.schedules();
     let idle = !form.saving();
+    let heartbeat = form.draft.heartbeat().is_some();
     let cancel = button(
         "schedule-form-cancel",
-        words.cancel(),
+        if heartbeat {
+            words.heartbeat_close()
+        } else {
+            words.cancel()
+        },
         ButtonKind::Secondary,
         idle,
         touch,
@@ -173,6 +178,9 @@ fn footer(
     } else {
         cancel
     };
+    if heartbeat {
+        return vec![cancel.into_any_element()];
+    }
     let text = if form.saving() {
         words.form_saving()
     } else if form.draft.opened().is_some() {
