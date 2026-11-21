@@ -159,3 +159,111 @@ fn the_document_keeps_its_shape_and_prunes_what_it_reads() {
     read.prune();
     assert!(read.is_empty());
 }
+
+mod snapshots {
+    use super::*;
+    use crate::workspace::diff_rows::{DiffKey, DiffRow};
+    use vessel_proto::prompt_context::{MAX_COMMENTS, ReviewLineKind};
+    use std::sync::Arc;
+    use vessel_proto::workspace::LineKind;
+
+    fn row(line: u32, kind: LineKind, old: Option<u32>, new: Option<u32>) -> DiffRow {
+        DiffRow::Line {
+            key: DiffKey::Line { hunk: 0, line },
+            line: kind,
+            text: Arc::from(format!("line {line}\r").as_str()),
+            cut: false,
+            old,
+            new,
+        }
+    }
+
+    /// One hunk: context 40-45, two added lines (new 46, 47), removed
+    /// old 46, context to old 50 / new 51.
+    fn rows() -> Vec<DiffRow> {
+        let mut rows = vec![DiffRow::Hunk {
+            key: DiffKey::Hunk(0),
+            header: "@@ -40,11 +40,12 @@".to_owned(),
+            section: Some("fn backoff".to_owned()),
+        }];
+        for n in 0..6 {
+            rows.push(row(n, LineKind::Context, Some(n.saturating_add(40)), Some(n.saturating_add(40))));
+        }
+        rows.push(row(6, LineKind::Added, None, Some(46)));
+        rows.push(row(7, LineKind::Added, None, Some(47)));
+        rows.push(row(8, LineKind::Removed, Some(46), None));
+        for n in 0..4 {
+            rows.push(row(
+                n.saturating_add(9),
+                LineKind::Context,
+                Some(n.saturating_add(47)),
+                Some(n.saturating_add(48)),
+            ));
+        }
+        rows
+    }
+
+    fn comment(side: ReviewSide, line: u32, body: &str) -> DraftComment {
+        DraftComment {
+            id: CommentId(u64::from(line)),
+            target: ReviewTarget {
+                path: "src/upload/retry.rs".parse().unwrap(),
+                side,
+                line: NonZeroU32::new(line).unwrap(),
+            },
+            body: body.to_owned(),
+            created_at: at(0),
+            updated_at: at(0),
+        }
+    }
+
+    #[test]
+    fn a_comment_carries_its_line_and_three_either_side_of_its_hunk() {
+        let rows = rows();
+        let review = key("laptop");
+        let comments = [
+            comment(ReviewSide::New, 47, "Cap this."),
+            comment(ReviewSide::Old, 46, "Why removed?"),
+        ];
+        let made = snapshot("/work/fleet-agent", &review, &comments, |_| Some(&rows)).unwrap();
+        assert_eq!(made.sent, comments.to_vec());
+        assert_eq!(made.review.root.as_str(), "/work/fleet-agent");
+        let first = &made.review.comments[0];
+        assert_eq!(first.hunk_header.as_str(), "@@ -40,11 +40,12 @@ fn backoff");
+        assert_eq!(first.target.new, NonZeroU32::new(47));
+        assert_eq!(first.target.content.as_str(), "line 7");
+        assert_eq!(first.lines.len(), 7);
+        assert_eq!(first.lines[0].new, NonZeroU32::new(44));
+        let second = &made.review.comments[1];
+        assert_eq!(second.target.old, NonZeroU32::new(46));
+        assert_eq!(second.target.kind, ReviewLineKind::Remove);
+        assert!(made.text().starts_with("Vessel review attachment (uncommitted)\n"));
+    }
+
+    #[test]
+    fn comments_off_the_diff_or_on_a_file_not_read_are_left_out() {
+        let rows = rows();
+        let review = key("laptop");
+        let gone = comment(ReviewSide::New, 90, "Line left the diff.");
+        assert_eq!(
+            snapshot("/work", &review, std::slice::from_ref(&gone), |_| Some(&rows)),
+            None
+        );
+        let kept = comment(ReviewSide::New, 46, "Kept.");
+        let made = snapshot("/work", &review, &[gone, kept.clone()], |_| Some(&rows)).unwrap();
+        assert_eq!(made.sent, vec![kept.clone()]);
+        assert_eq!(snapshot("/work", &review, &[kept], |_| None), None);
+    }
+
+    #[test]
+    fn a_review_holds_at_most_the_wires_count_of_comments() {
+        let rows = rows();
+        let review = key("laptop");
+        let many: Vec<DraftComment> = (0..MAX_COMMENTS.saturating_add(5))
+            .map(|_| comment(ReviewSide::New, 46, "Again."))
+            .collect();
+        let made = snapshot("/work", &review, &many, |_| Some(&rows)).unwrap();
+        assert_eq!(made.review.comments.len(), MAX_COMMENTS);
+        assert_eq!(made.sent.len(), MAX_COMMENTS);
+    }
+}

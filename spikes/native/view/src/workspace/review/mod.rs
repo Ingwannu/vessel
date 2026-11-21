@@ -31,6 +31,9 @@ use serde::{Deserialize, Serialize};
 pub use vessel_proto::prompt_context::{BODY_BYTES, ReviewMode, ReviewSide};
 use vessel_proto::workspace::{RelPath, WorkspaceRoot};
 
+mod snapshot;
+pub use snapshot::{Snapshot, snapshot};
+
 /// Which review a comment belongs to: the diff it was written on.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct ReviewKey {
