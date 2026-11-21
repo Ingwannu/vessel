@@ -3,11 +3,62 @@
    448px wide, its rows scrolling within 256px; a row 8 by 6 inside,
    radius 8, a 12px label and an 11px muted detail under it, a 10px badge
    at the right; the active row on the 7% wash with the key that inserts
-   it, a row under the pointer on the 4% one. */
+   it, a row under the pointer on the 4% one.
+
+   Over the list, 4px above it (Paseo's outerWrapper gap, spacing 1), the
+   active command's card (Paseo's detailCard, TRACKER 834): the same
+   popup surface, 12 inside, its name at 14/20 in the primary ink, then
+   its description (two lines at most) and its input (one line) at 12/16
+   in the secondary ink, 4 apart. The popup's radius stays the list's. */
+
+.suggestions-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  max-width: min(448px, 100%);
+  min-width: 0;
+}
+
+.suggestion-card.popup {
+  gap: 0;
+  min-width: 0;
+  max-width: none;
+  padding: 12px;
+}
+
+.suggestion-card-title {
+  margin: 0;
+  overflow: hidden;
+  color: var(--text-primary);
+  font: var(--t-control);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.suggestion-card-description {
+  display: -webkit-box;
+  margin: 4px 0 0;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font: var(--t-meta);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.suggestion-card-hint {
+  margin: 4px 0 0;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font: var(--t-meta);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .suggestions.popup {
   width: 100%;
-  max-width: min(448px, 100%);
+  max-width: none;
   min-width: 0;
   padding: 4px;
 }

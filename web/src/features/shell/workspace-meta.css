@@ -1,0 +1,114 @@
+/* The line under a workspace's name (workspace-meta.tsx, TRACKER 426):
+   Paseo's WorkspaceMetaRow. 12 on 16 in the muted colour, 6 between the
+   items, 3 between a glyph and its words, a dot in the quietest colour
+   between items. Only the machine and the labels give way when the line
+   runs out of room (the machine first, Paseo's host badge flexShrink). */
+
+.workspace-meta {
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  font: var(--t-meta);
+  color: var(--text-tertiary);
+}
+
+.workspace-meta-dot {
+  flex: none;
+  color: var(--text-disabled);
+}
+
+.workspace-meta-item {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+}
+
+.workspace-meta-host {
+  flex: 0 100 auto;
+}
+
+.workspace-meta-words {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.workspace-meta-labels {
+  display: flex;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+/* Labels leading the line hang left by the chip's inset (6). */
+.workspace-meta-leading {
+  margin-left: -6px;
+}
+
+/* The pull request: muted, its state glyph in the state's colour; on
+   hover the whole item brightens and the glyph becomes the outward
+   arrow, the same size, so the target does not move. */
+.workspace-meta-link {
+  color: inherit;
+  text-decoration: none;
+  border-radius: 4px;
+}
+
+.workspace-meta-link:hover {
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.workspace-meta-link:focus-visible {
+  outline: var(--focus);
+  outline-offset: 2px;
+}
+
+.workspace-meta-out {
+  display: none;
+}
+
+.workspace-meta-link:hover .workspace-meta-badge {
+  display: none;
+}
+
+.workspace-meta-link:hover .workspace-meta-out {
+  display: inline-flex;
+}
+
+.workspace-meta-badge {
+  display: inline-flex;
+}
+
+.workspace-meta-badge.tone-open {
+  color: var(--online);
+}
+
+.workspace-meta-badge.tone-merged {
+  color: var(--st-merged);
+}
+
+.workspace-meta-badge.tone-closed {
+  color: var(--danger);
+}
+
+/* The checks: the ring and the word in the outcome's colour (Paseo's
+   statusSuccess, statusDanger, statusWarning). */
+.workspace-meta-checks.tone-passed {
+  color: var(--online);
+}
+
+.workspace-meta-checks.tone-failed {
+  color: var(--danger);
+}
+
+.workspace-meta-checks.tone-running {
+  color: var(--warn);
+}
+
+.workspace-meta-checks .check-indicator {
+  flex: none;
+}

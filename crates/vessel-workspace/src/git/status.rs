@@ -63,6 +63,8 @@ impl Git {
             operation,
             files: parsed.files,
             more: parsed.more,
+            // The node adds it for a peer that reads it (ADR 0123 step B).
+            origin: None,
         })
     }
 

@@ -1433,7 +1433,13 @@ approval (§6.7):
   characters marked. Up and Down move, Enter or Tab inserts (`/review `,
   `@path`, a path with a space in quotes), Escape hides it until the
   word changes. A session with no project says "This session has no
-  project to search."
+  project to search." Over the list, 4px above it, the active command
+  that says what it does has Paseo's card (`detailCard`,
+  autocomplete.tsx 247-261; TRACKER 834): the same popup surface, 12
+  inside, its name at 14/20, its description in two lines at most and
+  the input it takes in one, both 12/16 in the secondary ink. It repeats
+  the active row, which the text already names, so assistive technology
+  does not read it.
 - **The context meter** (agent-orchestrator's, `context-ring.tsx`): a
   20px ring in a 28px box, the arc from the top, in the muted ink, the
   review colour from 70% and the danger colour from 90% full; its

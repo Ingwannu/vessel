@@ -57,7 +57,7 @@ use vessel_workspace::{Git, GitSetup};
 
 pub(crate) use diff_stat::{DiffStats, should_wait};
 pub(crate) use error::WorkspaceError;
-pub(crate) use git::IndexChange;
+pub(crate) use git::{IndexChange, Origin};
 pub(crate) use policy::refuse_agents;
 pub(crate) use projects::Occupant;
 pub(crate) use scripts::{DirError, ScriptRoot};
