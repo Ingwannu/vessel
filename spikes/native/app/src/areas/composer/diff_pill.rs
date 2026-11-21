@@ -4,7 +4,7 @@
 //! draws it in the rail above the card, not inside the card.
 
 use gpui::ClickEvent;
-use vessel_app_kit::theme::spacing;
+use vessel_app_kit::theme::{radius, spacing};
 use vessel_app_kit::ui::{
     AnyElement, Context, InteractiveElement as _, IntoElement as _, MouseButton,
     ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div, px,
@@ -59,6 +59,9 @@ fn counts(
     tokens: &Tokens,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
+    // Paseo's `DiffStat`: statusSuccess and statusDanger.
+    let status = tokens.status();
+    let neutral = tokens.neutral;
     div()
         .id("composer-diff-pill")
         .self_start()
@@ -70,23 +73,24 @@ fn counts(
         .min_h(px(spacing::S8))
         .px(px(spacing::S3))
         .py(px(spacing::S1))
-        .rounded(px(spacing::S1_5))
+        // Paseo's `composerPillStyles.body` and `bodyActive`.
+        .rounded(px(radius::XL2))
         .border_1()
-        .border_color(tokens.border_subtle)
-        .bg(tokens.btn_secondary_bg)
-        .hover(|style| style.bg(tokens.btn_secondary_bg_hover))
+        .border_color(neutral.border_accent)
+        .bg(neutral.surface1)
+        .hover(move |style| style.bg(neutral.surface2))
         .cursor_pointer()
         .type_(Type::Meta)
         .role(gpui::Role::Button)
         .aria_label(label)
         .child(
             div()
-                .text_color(tokens.st_ready)
+                .text_color(status.success.foreground)
                 .child(format!("+{}", format_diff_count(stat.additions))),
         )
         .child(
             div()
-                .text_color(tokens.danger)
+                .text_color(status.error.foreground)
                 .child(format!("\u{2212}{}", format_diff_count(stat.deletions))),
         )
         .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())

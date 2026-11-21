@@ -306,6 +306,10 @@ pub mod radius {
     /// Paseo's `borderRadius.md`: small icon actions and popup rows. The
     /// page's scale has no 6; controls drawn after Paseo's use this one.
     pub const MD: f32 = 6.0;
+    /// Paseo's `borderRadius["2xl"]`: the composer card's corner, and the
+    /// pills on the rail above it (`composer/pill-styles.ts`), whose 32
+    /// floor turns the corner into a capsule.
+    pub const XL2: f32 = 16.0;
 }
 
 /// Paseo's icon sizes (`ICON_SIZE` in its theme), in pixels.
