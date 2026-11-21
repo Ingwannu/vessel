@@ -6,6 +6,8 @@
 //! helper (coordinator ruling on P3b, Q4).
 #![cfg(unix)]
 
+use std::os::unix::fs::PermissionsExt as _;
+
 use futures_util::{SinkExt as _, StreamExt as _};
 use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::tungstenite::client::IntoClientRequest as _;
@@ -33,8 +35,6 @@ fn helper(fixture: &Fixture) {
         r#"{"id":"prefs","server":{"command":["./run.sh"]}}"#,
     )
     .unwrap();
-    use std::os::unix::fs::PermissionsExt as _;
-
     let script = format!(
         "#!/bin/sh\nexec '{}'\n",
         Fake::Plugin.path().unwrap().display()
