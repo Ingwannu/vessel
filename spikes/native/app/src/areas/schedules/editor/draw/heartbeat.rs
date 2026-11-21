@@ -24,16 +24,12 @@ pub(super) fn body(
     let words = shell.words.schedules();
     let target = heartbeat_target_label(info, form.connection(), &shell.fleet, shell.words)
         .map_or_else(|_| words.display_unavailable().into(), SharedString::from);
-    let detail = div()
-        .flex()
-        .flex_col()
-        .gap(px(S4))
-        .child(field(
-            words.heartbeat_target(),
-            readout(target, tokens, touch).into_any_element(),
-            None,
-            tokens,
-        ));
+    let detail = div().flex().flex_col().gap(px(S4)).child(field(
+        words.heartbeat_target(),
+        readout(target, tokens, touch).into_any_element(),
+        None,
+        tokens,
+    ));
     if form.heartbeat_editable() {
         detail.child(cadence::body(shell, form, tokens, touch, cx))
     } else {
@@ -43,7 +39,9 @@ pub(super) fn body(
 
 fn read_only(shell: &Shell, form: &Form, info: &ScheduleInfo, tokens: &Tokens, touch: bool) -> Div {
     let words = shell.words.schedules();
-    let version = shell.fleet.protocol_of(form.connection().machine().as_str());
+    let version = shell
+        .fleet
+        .protocol_of(form.connection().machine().as_str());
     let notice = if !heartbeat::supported(version) {
         words.heartbeat_older()
     } else if !heartbeat::editable(info) {

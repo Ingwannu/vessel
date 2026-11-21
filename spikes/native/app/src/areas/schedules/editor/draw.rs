@@ -3,11 +3,11 @@ mod cadence;
 mod heartbeat;
 mod schedule;
 mod status;
-use status::status;
 use super::{
     Shell,
     pick::{self, Field},
 };
+use status::status;
 use vessel_app_kit::{
     self as kit, ButtonContent, ButtonIcon, ButtonKind, ButtonState, ControlSizing, DialogContent,
     DialogSize, Tokens, Type, TypeExt as _,

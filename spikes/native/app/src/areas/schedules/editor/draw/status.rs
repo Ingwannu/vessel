@@ -2,7 +2,10 @@
 use super::{Shell, button, hint};
 use vessel_app_kit::{
     ButtonKind, Tokens,
-    ui::{AnyElement, Context, IntoElement as _, ParentElement as _, StatefulInteractiveElement as _, div},
+    ui::{
+        AnyElement, Context, IntoElement as _, ParentElement as _, StatefulInteractiveElement as _,
+        div,
+    },
 };
 use vessel_app_view::schedules::{
     editor::io::{Ask, Form},

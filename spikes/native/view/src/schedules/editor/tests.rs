@@ -166,7 +166,10 @@ fn heartbeat_save_requires_the_edit_offer_and_a_verified_changed_rule() {
     };
 
     let connection = ConnectionEpochs::default()
-        .admit(MachineKey::from_book("laptop"), vessel_proto::NodeId::random())
+        .admit(
+            MachineKey::from_book("laptop"),
+            vessel_proto::NodeId::random(),
+        )
         .unwrap();
     let mut opened = info();
     opened.definition.target = ScheduleTarget::Session {

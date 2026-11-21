@@ -158,8 +158,8 @@ impl Shell {
         let editor = &mut self.areas.schedules.editor;
         editor.close(window, cx);
         let heartbeat = draft.heartbeat().is_some();
-        editor.inputs = (!heartbeat || heartbeat_editable)
-            .then(|| Inputs::new(self.words, &draft, window, cx));
+        editor.inputs =
+            (!heartbeat || heartbeat_editable).then(|| Inputs::new(self.words, &draft, window, cx));
         editor.model = Some(Form::new(connection, draft, heartbeat_editable));
         editor.dialog.focus(window, cx);
         cx.notify();
@@ -393,7 +393,10 @@ fn preview_label(
             Some((at.naive_utc().checked_add_offset(offset)?, zone.to_string()))
         })
         .unwrap_or_else(|| (at.naive_utc(), "UTC".to_owned()));
-    let rule = form.draft.describe_cadence(&preview.cadence, catalog).ok()?;
+    let rule = form
+        .draft
+        .describe_cadence(&preview.cadence, catalog)
+        .ok()?;
     let at = Date::DateTime {
         date: local.date(),
         time: local.time(),

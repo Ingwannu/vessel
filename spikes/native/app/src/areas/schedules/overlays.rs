@@ -68,7 +68,10 @@ pub(super) fn menu(
         } else {
             words.form_edit_title()
         };
-        items.insert(0, MenuItem::new(label).with_leading(kit::assets::Glyph::Pencil));
+        items.insert(
+            0,
+            MenuItem::new(label).with_leading(kit::assets::Glyph::Pencil),
+        );
     }
     let actions: Vec<_> = row.menu.iter().map(|entry| entry.action).collect();
     let selected = Rc::clone(selected);

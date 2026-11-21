@@ -238,12 +238,13 @@ impl Draft {
     #[must_use]
     pub fn save(&self, cadence: &Cadence) -> Option<Save> {
         if let Some(opened) = self.heartbeat() {
-            return heartbeat::changed(opened, cadence)
-                .then(|| Save::Heartbeat(UpdateScheduleCadence {
+            return heartbeat::changed(opened, cadence).then(|| {
+                Save::Heartbeat(UpdateScheduleCadence {
                     schedule: opened.id,
                     revision: opened.revision,
                     cadence: cadence.clone(),
-                }));
+                })
+            });
         }
         let mut spec = self.spec.clone()?;
         if self.opened.is_none() && self.place.is_none() {

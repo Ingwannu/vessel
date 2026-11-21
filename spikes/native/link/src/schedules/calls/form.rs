@@ -41,7 +41,9 @@ impl State {
             let guard = selected.delivery_guard();
             let limit = match request.ask {
                 Ask::Save(_) => WRITE_DEADLINE,
-                Ask::Targets | Ask::HeartbeatFacts | Ask::Options(_) | Ask::Preview(_) => LIST_DEADLINE,
+                Ask::Targets | Ask::HeartbeatFacts | Ask::Options(_) | Ask::Preview(_) => {
+                    LIST_DEADLINE
+                }
             };
             let result = tokio::time::timeout(limit, execute(&selected, &request.ask))
                 .await

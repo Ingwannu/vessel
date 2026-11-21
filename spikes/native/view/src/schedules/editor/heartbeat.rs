@@ -1,7 +1,10 @@
 //! Compatibility and reply checks for a heartbeat's revision-bound cadence.
 use vessel_proto::{
     ProtocolVersion,
-    automation::{Cadence, CatchUp, EndReason, HEARTBEAT_CADENCE_PROTOCOL, ScheduleInfo, ScheduleState, UpdateScheduleCadence},
+    automation::{
+        Cadence, CatchUp, EndReason, HEARTBEAT_CADENCE_PROTOCOL, ScheduleInfo, ScheduleState,
+        UpdateScheduleCadence,
+    },
 };
 
 /// The feature has to be assigned and negotiated on the original peer.
@@ -22,7 +25,11 @@ pub fn editable(info: &ScheduleInfo) -> bool {
         && !matches!(info.definition.catch_up, CatchUp::Unknown)
         && !matches!(
             info.state,
-            ScheduleState::Unknown | ScheduleState::Ended { reason: EndReason::Unknown, .. }
+            ScheduleState::Unknown
+                | ScheduleState::Ended {
+                    reason: EndReason::Unknown,
+                    ..
+                }
         )
 }
 

@@ -4,11 +4,7 @@ use vessel_app_kit::{
     theme::spacing::S3,
     ui::{Context, Div, ParentElement as _, Styled as _, div, px},
 };
-use vessel_app_view::schedules::{
-    editor::io::Form,
-    load::Failure,
-    locale,
-};
+use vessel_app_view::schedules::{editor::io::Form, load::Failure, locale};
 
 pub(super) fn body(
     shell: &Shell,
@@ -56,7 +52,8 @@ fn feedback(shell: &Shell, form: &Form, tokens: &Tokens) -> Option<Div> {
     };
     let preview = &shell.areas.schedules.editor.preview_label;
     let describe = || {
-        form.draft.describe_cadence(rule, shell.words)
+        form.draft
+            .describe_cadence(rule, shell.words)
             .ok()
             .map(|label| hint(label, false, tokens))
     };

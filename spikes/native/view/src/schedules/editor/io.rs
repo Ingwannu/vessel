@@ -339,8 +339,8 @@ fn valid_saved(draft: &Draft, request: &Save, info: &ScheduleInfo) -> bool {
         Save::Update(update) => {
             info.id == update.schedule && info.revision == update.revision.wrapping_add(1)
         }
-        Save::Heartbeat(update) => draft.heartbeat().is_some_and(|opened| {
-            super::heartbeat::confirmed(opened, update, info)
-        }),
+        Save::Heartbeat(update) => draft
+            .heartbeat()
+            .is_some_and(|opened| super::heartbeat::confirmed(opened, update, info)),
     }
 }
