@@ -198,18 +198,18 @@ export function useComposerSend({
     const current = timeline.conversation.queue?.entries.find(
       (entry) => entry.id === editing.row.id,
     );
+    // Resolve a local command before recovering a vanished entry into the
+    // composer, where that recovery would replace the separate draft.
+    const hasAttachments =
+      current?.content.some((block) => block.type !== "text") ??
+      editing.row.attachments.length > 0;
+    if (slash.run(editing.text, hasAttachments)) {
+      return;
+    }
     if (current === undefined) {
       toast("That message was already sent or removed.", "default");
       draft.setText(editing.text);
       setEditing(null);
-      return;
-    }
-    // A local command doesn't replace the queued entry or consume either
-    // draft. An edit with attachments or context still updates the queue.
-    const hasAttachments = current.content.some(
-      (block) => block.type !== "text",
-    );
-    if (slash.run(editing.text, hasAttachments)) {
       return;
     }
     setSending(true);
