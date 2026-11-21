@@ -405,8 +405,8 @@ the same document, as `OpenScreen` opens a screen.
   - The app comes in two steps: first the screen route, the sidebar rows
     and the Command Center's opening items with every non-settings kind
     (2026-11-21); then its settings screens and their binding. Until then
-    an app screen draws no settings control and `open_settings` does
-    nothing there.
+    an app screen draws no settings control, and a button or menu item
+    that opens a settings screen is drawn disabled.
   - **App stated differences.** A `choice` is the kit's pill choices. A
     popover button unfolds its controls in place under it, since the app
     has no anchored popover for arbitrary content. A menu button lists its

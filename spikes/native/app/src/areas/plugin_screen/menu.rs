@@ -4,8 +4,8 @@
 //!
 //! [Decision Log]
 //! - The menu lists the button's entries in order. An entry's action is
-//!   taken as a button's would be. Without admin, an entry that calls a
-//!   method is disabled; opening a screen stays enabled.
+//!   taken as a button's would be (`controls::takes`): without admin, an
+//!   entry that calls a method is disabled; opening a screen stays enabled.
 //! - Stated difference: a nested menu or a popover inside a menu is not
 //!   offered (a popover has no anchor once the menu closes), as on the
 //!   page.
@@ -18,13 +18,12 @@ use vessel_app_kit::ui::{
     SharedString, Window, px,
 };
 use vessel_app_kit::{ButtonKind, ButtonState, Tokens, button_with_kind_at};
-use vessel_app_view::plugins::action_needs_admin;
 use vessel_proto::plugins::{
     Action, Availability, ButtonBehavior, ContributionId, Control, ControlContent, MenuEntry,
 };
 
 use super::control_id;
-use super::controls::Scope;
+use super::controls::{Scope, takes};
 use crate::shell::Shell;
 
 /// Paseo's menu width.
@@ -47,7 +46,7 @@ fn entries(items: &[MenuEntry], may_invoke: bool) -> Vec<(SharedString, Action, 
                 };
                 let enabled = match availability {
                     Availability::Hidden => return None,
-                    Availability::Enabled => may_invoke || !action_needs_admin(action),
+                    Availability::Enabled => takes(action, may_invoke),
                     Availability::Disabled => false,
                 };
                 Some((

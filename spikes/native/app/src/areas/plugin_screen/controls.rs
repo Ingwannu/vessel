@@ -284,6 +284,18 @@ const fn tone_color(tone: StatusTone, tokens: &Tokens) -> Hsla {
     }
 }
 
+/// Whether this device takes `action` now: without admin only opening a
+/// screen. Settings screens come with their own packet (N2); until then a
+/// button opening one is drawn disabled rather than doing nothing.
+pub(super) const fn takes(action: &Action, may_invoke: bool) -> bool {
+    match action {
+        Action::Invoke { .. } | Action::OpenScreen { .. } => {
+            may_invoke || !action_needs_admin(action)
+        }
+        Action::OpenSettings { .. } => false,
+    }
+}
+
 fn state_of(enabled: bool) -> ButtonState {
     if enabled {
         ButtonState::Enabled
@@ -313,7 +325,7 @@ fn button_element(
     let title = SharedString::from(button.title.as_str().to_owned());
     match &button.behavior {
         ButtonBehavior::Action { action } => {
-            let enabled = shown && (scope.may_invoke || !action_needs_admin(action));
+            let enabled = shown && takes(action, scope.may_invoke);
             let mut element = button_with_kind_at(
                 control_id("button", id),
                 title,
@@ -401,7 +413,7 @@ impl Shell {
                     self.open_plugin_screen(at, window, cx);
                 }
             }
-            // Settings screens are the next packet's (N2).
+            // Never enabled until settings screens come (N2, `takes`).
             Action::OpenSettings { .. } => {}
         }
         cx.notify();
