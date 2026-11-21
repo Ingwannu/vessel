@@ -243,16 +243,17 @@ export function mountTerminal(
     sendSize();
   });
   observer.observe(element);
+  const find = terminalSearch(terminal);
   return {
     keyBar,
-    find: terminalSearch(terminal),
+    find,
     write: (data: Uint8Array, written: Written) => {
       if (written === "live") {
-        terminal.write(data);
+        find.write(data);
         return;
       }
       historyParsing += 1;
-      terminal.write(data, () => {
+      find.write(data, () => {
         historyParsing -= 1;
       });
     },
@@ -267,6 +268,7 @@ export function mountTerminal(
       input.dispose();
       queries.dispose();
       sender.close();
+      find.clear();
       terminal.dispose();
     },
   };

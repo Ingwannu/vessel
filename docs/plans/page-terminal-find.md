@@ -20,10 +20,16 @@
   own shortcut binding. Enter and Shift+Enter navigate, Escape clears the
   bar and returns focus, and the bar moves to the bottom when it would
   overlap a match. The compact page offers a touch button in the pane.
+- Live output. Match borders use the current terminal palette's yellow
+  and blue, with Paseo's fallback colors. While Find has matches, a buffer
+  marker holds the inspected viewport through writes, including at the
+  bottom. It moves with scrollback trimming. Search, navigation or close
+  releases the old position so a new match can be revealed.
 - Verification. Use the web gate and real-xterm browser fixtures for
   the desktop shortcut, match and focus behavior, and the compact touch
-  path. The ordinary terminal input regression checks that search text
-  stays in the browser.
+  path. The streaming browser test checks that new output reaches Find
+  while the first match stays visible. The terminal input regression
+  checks that search text stays in the browser.
 
 ## Paseo 0.15.4 reference
 
@@ -32,7 +38,7 @@
 - `packages/app/src/pane-find/index.tsx:158–195,203–280` covers the input
   and navigation affordances. `pane-find/find-shortcut.ts:16–23` defines
   the platform shortcut.
-- `packages/app/src/terminal/runtime/terminal-emulator-runtime.ts:270–298,353–377,488–521`
+- `packages/app/src/terminal/runtime/terminal-emulator-runtime.ts:270–298,353–377,488–521,596–603`
   uses xterm's buffer, bounded highlights and placement near the match.
 - Native P3's behavior is in `spikes/native/app/src/areas/terminal_tabs/find.rs`
   and `find_bar.rs`.

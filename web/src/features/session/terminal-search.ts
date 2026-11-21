@@ -4,7 +4,7 @@ import {
   type ISearchResultChangeEvent,
   SearchAddon,
 } from "@xterm/addon-search";
-import type { Terminal } from "@xterm/xterm";
+import type { IMarker, Terminal } from "@xterm/xterm";
 import { Store } from "../../data/store";
 
 export const TERMINAL_MATCH_LIMIT = 20_000;
@@ -18,6 +18,7 @@ export interface TerminalSearch {
   measure: (width: number, height: number) => void;
   clear: () => void;
   search: (query: string, direction?: Direction) => void;
+  write: (data: Uint8Array, afterWrite?: () => void) => void;
 }
 
 export function terminalSearch(terminal: Terminal): TerminalSearch {
@@ -25,6 +26,23 @@ export function terminalSearch(terminal: Terminal): TerminalSearch {
   let addon: SearchAddon | null = null;
   let latest: ISearchResultChangeEvent = EMPTY;
   let widget: { width: number; height: number } | null = null;
+  let anchor: IMarker | undefined;
+  let pendingWrites = 0;
+
+  const releaseViewport = () => {
+    anchor?.dispose();
+    anchor = undefined;
+  };
+
+  terminal.onWriteParsed(() => {
+    // A search turns even the bottom into an inspected position. The
+    // marker follows the buffer if new output trims its scrollback.
+    if (anchor !== undefined && !anchor.isDisposed) {
+      terminal.scrollToLine(anchor.line);
+    }
+    // A parser turn may yield with another submitted write still queued.
+    if (pendingWrites === 0) releaseViewport();
+  });
 
   const publish = () => {
     const next = {
@@ -47,6 +65,7 @@ export function terminalSearch(terminal: Terminal): TerminalSearch {
   terminal.onResize(publish);
 
   const clear = () => {
+    releaseViewport();
     if (addon !== null) {
       // Disposal cancels the addon's refresh of the previous query on
       // live output. The terminal retains its ordinary text selection.
@@ -68,11 +87,27 @@ export function terminalSearch(terminal: Terminal): TerminalSearch {
       publish();
     },
     clear,
+    write(data, afterWrite) {
+      if (latest.resultCount > 0 && anchor === undefined) {
+        const { viewportY, baseY, cursorY } = terminal.buffer.active;
+        anchor = terminal.registerMarker(viewportY - baseY - cursorY);
+      }
+      if (anchor === undefined) {
+        terminal.write(data, afterWrite);
+        return;
+      }
+      pendingWrites += 1;
+      terminal.write(data, () => {
+        pendingWrites -= 1;
+        afterWrite?.();
+      });
+    },
     search(query: string, direction?: Direction) {
       if (query === "") {
         clear();
         return;
       }
+      releaseViewport();
       if (addon === null) {
         addon = new SearchAddon({ highlightLimit: TERMINAL_MATCH_LIMIT });
         terminal.loadAddon(addon);
@@ -81,13 +116,16 @@ export function terminalSearch(terminal: Terminal): TerminalSearch {
           publish();
         });
       }
+      const theme = terminal.options.theme;
+      const match = theme?.yellow ?? "#b58900";
+      const active = theme?.blue ?? "#268bd2";
       const options = {
         incremental: direction === undefined,
         decorations: {
-          matchBorder: "#b58900",
-          matchOverviewRuler: "#b58900",
-          activeMatchBorder: "#268bd2",
-          activeMatchColorOverviewRuler: "#268bd2",
+          matchBorder: match,
+          matchOverviewRuler: match,
+          activeMatchBorder: active,
+          activeMatchColorOverviewRuler: active,
         },
       };
       if (direction === "next") addon.findNext(query, options);
