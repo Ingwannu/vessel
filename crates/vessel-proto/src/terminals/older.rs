@@ -1,4 +1,5 @@
-//! Added activity is absent for every peer until the integrator assigns it.
+//! Added activity is absent for a peer below ADR 0089's protocol (none while
+//! it is unassigned).
 use super::TerminalInfo;
 use crate::ProtocolVersion;
 impl TerminalInfo {

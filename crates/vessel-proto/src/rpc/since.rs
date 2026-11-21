@@ -105,7 +105,7 @@ impl Call {
                     | crate::push::PushFocus::Elsewhere
                     | crate::push::PushFocus::Background => false,
                 };
-                if terminal || request.idle_age.is_some() {
+                if terminal || request.idle_age.is_some() || !request.notifies {
                     Some(crate::notifications::ATTENTION_NOTIFICATIONS_PROTOCOL?.get())
                 } else {
                     None

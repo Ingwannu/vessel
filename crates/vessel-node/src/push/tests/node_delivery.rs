@@ -270,6 +270,7 @@ async fn disconnected_read_device_receives_only_encrypted_generic_attention_from
             device
                 .report_push_presence(ReportPushPresence {
                     idle_age: None,
+                    notifies: true,
                     focus: PushFocus::Background,
                     activity: PushActivity::Unchanged,
                 })

@@ -431,7 +431,7 @@ pub const PROTOCOLS: &[(&str, Option<crate::ProtocolVersion>, &str)] = &[
     (
         "ATTENTION_NOTIFICATIONS_PROTOCOL",
         crate::notifications::ATTENTION_NOTIFICATIONS_PROTOCOL,
-        "`notification.claim`, terminal attention and `Terminal` presence focus (ADR 0089); `null` until assigned.",
+        "`notification.claim`, terminal attention, `Terminal` presence focus and a window's `notifies` (ADR 0089).",
     ),
     (
         "PLUGIN_SURFACES_PROTOCOL",

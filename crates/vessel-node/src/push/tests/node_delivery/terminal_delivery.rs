@@ -125,7 +125,7 @@ async fn terminal_attention_uses_the_same_encrypted_generic_delivery_after_assig
             );
         } else {
             let working = working.unwrap();
-            let _finished = fixture
+            let finished = fixture
                 .owner
                 .report_terminal_activity(ReportTerminalActivity {
                     terminal: terminal.id,
@@ -144,12 +144,48 @@ async fn terminal_attention_uses_the_same_encrypted_generic_delivery_after_assig
             )
             .unwrap();
             assert_eq!(decoded, crate::push::crypto::PAYLOAD);
+            finishes_again_inside_the_gap(&fixture.owner, &mut receiver, terminal.id, finished)
+                .await;
         }
         fixture.close().await;
         receiver.close().await;
     }))
     .await
     .unwrap();
+}
+
+/// The worker recorded the terminal as pushed in its burst, which opens the
+/// terminal's gap (`push/terminal/spacing.rs`): a turn that finishes again at
+/// once is not pushed again (ADR 0089, owed at assignment, beside the IPC
+/// route's test in `vessel-cli/tests/cli/terminals/hooks.rs`).
+async fn finishes_again_inside_the_gap(
+    owner: &NodeClient,
+    receiver: &mut Receiver,
+    terminal: vessel_proto::TerminalId,
+    finished: TerminalAttention,
+) {
+    let again = owner
+        .report_terminal_activity(ReportTerminalActivity {
+            terminal,
+            revision: Some(finished.revision),
+            signal: TerminalActivitySignal::Working,
+        })
+        .await
+        .unwrap();
+    let _finished_again = owner
+        .report_terminal_activity(ReportTerminalActivity {
+            terminal,
+            revision: Some(again.revision),
+            signal: TerminalActivitySignal::Idle,
+        })
+        .await
+        .unwrap();
+    assert!(
+        tokio::time::timeout(std::time::Duration::from_secs(2), receiver.inbox.recv())
+            .await
+            .is_err(),
+        "a second finish inside the terminal's gap is not pushed"
+    );
 }
 
 #[derive(Clone, Copy)]
@@ -218,6 +254,7 @@ async fn cancels_before_admission(stage: crate::push::PreparedStage, action: Dur
             .owner
             .report_push_presence(ReportPushPresence {
                 idle_age: None,
+                notifies: true,
                 focus: PushFocus::Terminal {
                     terminal: terminal.id,
                 },
