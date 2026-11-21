@@ -62,11 +62,13 @@ pub(super) fn menu(
         })
         .collect();
     if edit {
-        items.insert(
-            0,
-            MenuItem::new(shell.words.schedules().form_edit_title())
-                .with_leading(kit::assets::Glyph::Pencil),
-        );
+        let words = shell.words.schedules();
+        let label = if row.heartbeat {
+            words.heartbeat_edit_title()
+        } else {
+            words.form_edit_title()
+        };
+        items.insert(0, MenuItem::new(label).with_leading(kit::assets::Glyph::Pencil));
     }
     let actions: Vec<_> = row.menu.iter().map(|entry| entry.action).collect();
     let selected = Rc::clone(selected);

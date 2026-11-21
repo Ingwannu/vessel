@@ -21,7 +21,7 @@ use vessel_app_view::{
     schedules::{
         Action,
         editor::{
-            Draft,
+            Draft, heartbeat,
             io::{Ask, Form, Request},
         },
         load::{Failure, MachineKey, Tickets},
@@ -122,9 +122,11 @@ impl Editor {
 pub(super) fn editable(shell: &Shell, intent: &Intent) -> bool {
     let page = &shell.areas.schedules.data.page;
     intent.allows(page, Action::Delete)
-        && page
-            .row(intent.key())
-            .is_some_and(|row| Draft::can_open(row.schedule))
+        && page.row(intent.key()).is_some_and(|row| {
+            Draft::can_open(row.schedule)
+                || heartbeat::editable(row.schedule)
+                    && heartbeat::supported(shell.fleet.protocol_of(row.key.machine.as_str()))
+        })
 }
 
 pub(super) fn openable(shell: &Shell, intent: &Intent) -> bool {
@@ -149,17 +151,22 @@ impl Shell {
         &mut self,
         connection: ConnectionContext,
         draft: Draft,
+        heartbeat_editable: bool,
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
         let editor = &mut self.areas.schedules.editor;
         editor.close(window, cx);
         let heartbeat = draft.heartbeat().is_some();
-        editor.inputs = (!heartbeat).then(|| Inputs::new(self.words, &draft, window, cx));
-        editor.model = Some(Form::new(connection, draft));
+        editor.inputs = (!heartbeat || heartbeat_editable)
+            .then(|| Inputs::new(self.words, &draft, window, cx));
+        editor.model = Some(Form::new(connection, draft, heartbeat_editable));
         editor.dialog.focus(window, cx);
         cx.notify();
         if heartbeat {
+            if heartbeat_editable {
+                self.schedule_form_issue(Ask::HeartbeatFacts);
+            }
             return;
         }
         self.schedule_form_issue(Ask::Targets);
@@ -201,7 +208,7 @@ impl Shell {
             .find(|context| selected == Some(context.machine().as_str()))
             .or_else(|| online.into_iter().next());
         if let Some(connection) = connection {
-            self.schedule_form_open(connection, Draft::create(None), window, cx);
+            self.schedule_form_open(connection, Draft::create(None), false, window, cx);
         }
     }
 
@@ -228,9 +235,10 @@ impl Shell {
         let Some(connection) = row.connection.cloned() else {
             return;
         };
+        let heartbeat_editable = draft.heartbeat().is_some() && editable(self, intent);
         self.areas.schedules.ui.selected = None;
         self.areas.schedules.ui.menu.close_and_restore(window, cx);
-        self.schedule_form_open(connection, draft, window, cx);
+        self.schedule_form_open(connection, draft, heartbeat_editable, window, cx);
     }
 
     fn schedule_form_issue(&mut self, ask: Ask) {
@@ -312,7 +320,7 @@ impl Shell {
         if let Some(form) = &mut editor.model
             && form.accept(&request, result)
         {
-            if matches!(request.ask, Ask::Targets) {
+            if matches!(request.ask, Ask::Targets | Ask::HeartbeatFacts) {
                 editor.sync_inputs = true;
                 self.schedule_preview_after_edit(cx);
             } else if let Ask::Options(options) = &request.ask {
@@ -362,7 +370,7 @@ fn preview_label(
     form: &Form,
     catalog: &vessel_app_view::localization::Translator,
 ) -> Option<SharedString> {
-    use vessel_app_view::{localization::Date, schedules::editor::cadence::description};
+    use vessel_app_view::localization::Date;
     if form.draft.opened().is_some_and(|opened| {
         matches!(
             opened.state,
@@ -385,7 +393,7 @@ fn preview_label(
             Some((at.naive_utc().checked_add_offset(offset)?, zone.to_string()))
         })
         .unwrap_or_else(|| (at.naive_utc(), "UTC".to_owned()));
-    let rule = description(&preview.cadence, catalog).ok()?;
+    let rule = form.draft.describe_cadence(&preview.cadence, catalog).ok()?;
     let at = Date::DateTime {
         date: local.date(),
         time: local.time(),

@@ -112,3 +112,11 @@ and Cadence fields. A peer without cadence update support offers Close
 and retains its authorized Delete in the row menu. See Paseo
 `schedule-row.tsx:214–217,265–277,361–374`,
 `schedule-form-sheet.tsx:278–286,316–324,406,477–488,889–912` and ADR 0072.
+
+The TRACKER 839 activation uses `schedule.update_cadence` on peers whose
+negotiated version includes `HEARTBEAT_CADENCE_PROTOCOL`. The heartbeat
+sheet reuses the cron controls and the row's elapsed formatting. Its
+revision-bound save confirms the owner and complete stored definition
+apart from the proposed cadence. Older peers retain read-only detail
+and their existing Delete grant. See
+`schedule-form-sheet.tsx:316–331,406–435,477–488`.

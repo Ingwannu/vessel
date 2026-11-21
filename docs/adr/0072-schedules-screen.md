@@ -320,3 +320,17 @@ details independently of its Delete grant. An older node shows the stored
 cadence with a Close button. Its row menu retains authorized Delete, and
 the shared confirmation rechecks the original connection and revision.
 TRACKER 839 supplies a distinct cadence-only RPC without ownership transfer.
+
+#### Heartbeat cadence activation
+
+The native app offers **Edit heartbeat** when the exact paired connection
+speaks the assigned `HEARTBEAT_CADENCE_PROTOCOL` and can operate on the
+row. The heartbeat's target stays fixed, and the same preset, cron and
+one-line preview controls edit the cadence. The sheet reads only
+authority and time-zone facts for this existing session. A changed rule
+and a matching preview allow a typed `schedule.update_cadence` write at
+the opened revision. This method keeps the saved owner and target
+(ADR 0033). The form confirms the owner, definition and revision in the
+receipt before closing. A connection change or ambiguous receipt uses
+the existing refresh and unconfirmed-write path. Peers below the
+assigned protocol continue to show the read-only details.

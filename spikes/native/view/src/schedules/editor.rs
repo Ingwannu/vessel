@@ -3,6 +3,7 @@
 //! so a session's ongoing prompt cannot be reassigned through this editor.
 pub mod cadence;
 pub mod fields;
+pub mod heartbeat;
 pub mod io;
 mod preview;
 
@@ -10,18 +11,20 @@ use vessel_proto::{
     Creator, HarnessRef, ModelId, OptionChoice, SessionMode, SessionSpec,
     automation::{
         AfterRun, Cadence, CatchUp, CreateSchedule, EndReason, ScheduleDefinition, ScheduleInfo,
-        ScheduleState, ScheduleTarget, TimeZoneName, UpdateSchedule,
+        ScheduleState, ScheduleTarget, TimeZoneName, UpdateSchedule, UpdateScheduleCadence,
     },
     workspace::SessionPlace,
 };
 
-/// The write a validated new-session form can send.
+/// The write a validated schedule or heartbeat form can send.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Save {
     /// Insert a schedule on the selected machine.
     Create(CreateSchedule),
     /// Replace a definition at the revision the person opened.
     Update(UpdateSchedule),
+    /// Change cadence at the opened revision while keeping the heartbeat's owner.
+    Heartbeat(UpdateScheduleCadence),
 }
 
 /// Validated fields and original facts for a new-session schedule.
@@ -116,6 +119,22 @@ impl Draft {
         self.opened().filter(|info| super::is_heartbeat(info))
     }
 
+    /// Format a cadence for the opened editor. A heartbeat and its row
+    /// share the same elapsed representation.
+    /// # Errors
+    /// Locale formatting failed.
+    pub fn describe_cadence(
+        &self,
+        rule: &Cadence,
+        catalog: &crate::localization::Translator,
+    ) -> Result<String, crate::localization::FormatError> {
+        if self.heartbeat().is_some() {
+            super::locale::cadence(rule, catalog)
+        } else {
+            cadence::description(rule, catalog)
+        }
+    }
+
     /// The immutable original definition, for revision checks and disclosures.
     #[must_use]
     pub fn opened(&self) -> Option<&ScheduleInfo> {
@@ -203,6 +222,12 @@ impl Draft {
     /// The renderer can check readiness without cloning the draft.
     #[must_use]
     pub fn ready(&self) -> bool {
+        if let Some(opened) = self.heartbeat() {
+            return self
+                .cadence
+                .checked()
+                .is_ok_and(|rule| heartbeat::changed(opened, rule));
+        }
         self.spec.is_some()
             && (self.opened.is_some() || self.place.is_some())
             && self.fields.error().is_none()
@@ -212,6 +237,14 @@ impl Draft {
     /// cadence verbatim when the person has left it alone.
     #[must_use]
     pub fn save(&self, cadence: &Cadence) -> Option<Save> {
+        if let Some(opened) = self.heartbeat() {
+            return heartbeat::changed(opened, cadence)
+                .then(|| Save::Heartbeat(UpdateScheduleCadence {
+                    schedule: opened.id,
+                    revision: opened.revision,
+                    cadence: cadence.clone(),
+                }));
+        }
         let mut spec = self.spec.clone()?;
         if self.opened.is_none() && self.place.is_none() {
             return None;

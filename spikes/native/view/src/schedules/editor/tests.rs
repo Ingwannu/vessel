@@ -95,7 +95,7 @@ fn an_older_elapsed_forecast_cannot_settle_a_new_cron_rule() {
             vessel_proto::NodeId::random(),
         )
         .unwrap();
-    let mut form = Form::new(connection, Draft::open(&info(), None).unwrap());
+    let mut form = Form::new(connection, Draft::open(&info(), None).unwrap(), false);
     let mut tickets = Tickets::default();
     let targets = form.issue(&mut tickets, Ask::Targets).unwrap();
     assert!(form.accept(
@@ -150,4 +150,76 @@ fn an_explicit_cron_expression_replaces_the_stored_elapsed_rule() {
     };
     assert_eq!(expr.as_str(), "17 8 * * *");
     assert_eq!(zone.as_str(), "Asia/Seoul");
+}
+
+#[test]
+fn heartbeat_save_requires_the_edit_offer_and_a_verified_changed_rule() {
+    use super::io::{Ask, Form, Targets, Value};
+    use crate::{
+        connection::{ConnectionEpochs, MachineKey},
+        schedules::load::Tickets,
+    };
+    use chrono::{DateTime, TimeDelta};
+    use vessel_proto::{
+        Scope,
+        automation::{PreviewCount, PreviewSchedule, SchedulePreview},
+    };
+
+    let connection = ConnectionEpochs::default()
+        .admit(MachineKey::from_book("laptop"), vessel_proto::NodeId::random())
+        .unwrap();
+    let mut opened = info();
+    opened.definition.target = ScheduleTarget::Session {
+        session: vessel_proto::SessionId::random(),
+    };
+    let after = DateTime::UNIX_EPOCH;
+    for editable in [false, true] {
+        let mut form = Form::new(
+            connection.clone(),
+            Draft::open_heartbeat(&opened).unwrap(),
+            editable,
+        );
+        let mut tickets = Tickets::default();
+        let request = form.issue(&mut tickets, Ask::HeartbeatFacts).unwrap();
+        assert!(form.accept(
+            &request,
+            Ok(Value::Targets(Box::new(Targets {
+                projects: Vec::new(),
+                worktrees: Vec::new(),
+                harnesses: Vec::new(),
+                agents: Vec::new(),
+                scopes: Ok(vec![Scope::Operate]),
+                machine_zone: Some("Asia/Seoul".parse().unwrap()),
+                device_zone: None,
+            })))
+        ));
+        assert!(!form.can_save());
+        form.draft.cadence.select(super::cadence::Choice::Daily);
+        assert!(!form.can_save());
+        let rule = form.draft.cadence.checked().unwrap().clone();
+        let ask = Ask::Preview(PreviewSchedule {
+            cadence: rule.clone(),
+            after: Some(after),
+            count: PreviewCount::try_from(1).unwrap(),
+        });
+        let request = form.issue(&mut tickets, ask).unwrap();
+        assert!(form.accept(
+            &request,
+            Ok(Value::Preview(Box::new(SchedulePreview {
+                after,
+                cadence: rule.clone(),
+                runs: vec![after + TimeDelta::days(1)],
+            })))
+        ));
+        if editable {
+            let Some(Save::Heartbeat(write)) = form.save_request() else {
+                panic!("expected the cadence-only operation");
+            };
+            assert_eq!(write.schedule, opened.id);
+            assert_eq!(write.revision, opened.revision);
+            assert_eq!(write.cadence, rule);
+        } else {
+            assert!(form.save_request().is_none());
+        }
+    }
 }

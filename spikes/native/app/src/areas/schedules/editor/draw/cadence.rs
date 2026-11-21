@@ -5,7 +5,7 @@ use vessel_app_kit::{
     ui::{Context, Div, ParentElement as _, Styled as _, div, px},
 };
 use vessel_app_view::schedules::{
-    editor::{cadence::description, io::Form},
+    editor::io::Form,
     load::Failure,
     locale,
 };
@@ -56,7 +56,7 @@ fn feedback(shell: &Shell, form: &Form, tokens: &Tokens) -> Option<Div> {
     };
     let preview = &shell.areas.schedules.editor.preview_label;
     let describe = || {
-        description(rule, shell.words)
+        form.draft.describe_cadence(rule, shell.words)
             .ok()
             .map(|label| hint(label, false, tokens))
     };
@@ -66,7 +66,7 @@ fn feedback(shell: &Shell, form: &Form, tokens: &Tokens) -> Option<Div> {
             .map(|label| hint(label.clone(), false, tokens))
             .or_else(describe),
         Some(Err(Failure::Older)) if form.draft.cadence.is_elapsed() => {
-            let summary = description(rule, shell.words).ok()?;
+            let summary = form.draft.describe_cadence(rule, shell.words).ok()?;
             let text = words.form_elapsed_without_preview(&summary).ok()?;
             Some(hint(text, false, tokens))
         }
