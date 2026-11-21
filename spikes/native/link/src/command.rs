@@ -24,6 +24,8 @@ use vessel_proto::{
 pub enum Command {
     /// Usage reads and explicit account-limit actions.
     Usage(crate::usage::Ask),
+    /// One schedule list or explicit mutation.
+    Schedules(vessel_app_view::schedules::page::Request),
     /// Passive read/follow bound to an authenticated deep-link destination.
     SessionAccess(crate::sessions::Access),
     /// Resolve a session for a deep link or Copy link without starting it.

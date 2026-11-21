@@ -4,6 +4,10 @@ The screen is ADR 0072. This file is the reading notes, the reuse
 decision, and where the work stopped. If the two disagree, ADR 0072
 wins and this file is corrected in the same commit.
 
+Current implementation and verification are tracked in
+[Native Schedules rollout](m12-sn-schedules.md). The resume point below
+records the earlier ADR proposal.
+
 ## Resume point
 
 - **Done:** ADR 0072 and this plan. No code. No protocol change. No

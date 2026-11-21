@@ -1,0 +1,74 @@
+[
+  {
+    "id": "five-seconds",
+    "at": "2026-07-16T11:59:55Z",
+    "en": "just now",
+    "ko": "방금",
+    "en_fluent": "just now",
+    "ko_fluent": "방금"
+  },
+  {
+    "id": "thirty-seconds",
+    "at": "2026-07-16T11:59:30Z",
+    "en": "just now",
+    "ko": "방금",
+    "en_fluent": "just now",
+    "ko_fluent": "방금"
+  },
+  {
+    "id": "one-minute",
+    "at": "2026-07-16T11:59:00Z",
+    "en": "1m ago",
+    "ko": "1분 전",
+    "en_fluent": "\u20681\u2069m ago",
+    "ko_fluent": "\u20681\u2069분 전"
+  },
+  {
+    "id": "five-minutes",
+    "at": "2026-07-16T11:55:00Z",
+    "en": "5m ago",
+    "ko": "5분 전",
+    "en_fluent": "\u20685\u2069m ago",
+    "ko_fluent": "\u20685\u2069분 전"
+  },
+  {
+    "id": "two-hours",
+    "at": "2026-07-16T10:00:00Z",
+    "en": "2h ago",
+    "ko": "2시간 전",
+    "en_fluent": "\u20682\u2069h ago",
+    "ko_fluent": "\u20682\u2069시간 전"
+  },
+  {
+    "id": "three-days",
+    "at": "2026-07-13T12:00:00Z",
+    "en": "3d ago",
+    "ko": "3일 전",
+    "en_fluent": "\u20683\u2069d ago",
+    "ko_fluent": "\u20683\u2069일 전"
+  },
+  {
+    "id": "old-date",
+    "at": "2026-01-15T12:00:00Z",
+    "en": "Jan 15",
+    "ko": "1월 15일",
+    "en_fluent": "Jan \u206815\u2069",
+    "ko_fluent": "\u20681\u2069월 \u206815\u2069일"
+  },
+  {
+    "id": "exact-week",
+    "at": "2026-07-09T12:00:00Z",
+    "en": "Jul 9",
+    "ko": "7월 9일",
+    "en_fluent": "Jul \u20689\u2069",
+    "ko_fluent": "\u20687\u2069월 \u20689\u2069일"
+  },
+  {
+    "id": "future-is-now",
+    "at": "2026-07-16T12:01:00Z",
+    "en": "just now",
+    "ko": "방금",
+    "en_fluent": "just now",
+    "ko_fluent": "방금"
+  }
+]

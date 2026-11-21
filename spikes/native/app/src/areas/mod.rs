@@ -27,6 +27,7 @@ pub(crate) mod palette;
 pub(crate) mod plugin_items;
 pub(crate) mod presence;
 pub(crate) mod pulls;
+pub(crate) mod schedules;
 pub(crate) mod session;
 #[cfg(test)]
 pub(crate) mod session_lifecycle;
@@ -48,6 +49,7 @@ use crate::shell::Shell;
 /// Every area's state.
 pub(crate) struct Areas {
     pub(crate) usage: usage::State,
+    pub(crate) schedules: schedules::Area,
     pub(crate) import: import::ImportArea,
     pub(crate) about: about::AboutState,
     pub(crate) draft: draft::Draft,
@@ -115,6 +117,7 @@ impl Areas {
     ) -> Self {
         let mut areas = Self {
             usage: usage::State::new(window, cx),
+            schedules: schedules::Area::new(window, cx),
             import: import::ImportArea::new(window, cx),
             about: about::AboutState::new(cx),
             draft: draft::Draft::new(window, cx),

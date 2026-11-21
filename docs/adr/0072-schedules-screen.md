@@ -4,6 +4,24 @@ Status: proposed. No protocol change. The node's schedules stay
 protocol 11 and the read-only preview stays protocol 13, both as ADR
 0033. The plan is `docs/plans/app-schedules.md`.
 
+## M12 native adoption
+
+[Native Schedules rollout](../plans/m12-sn-schedules.md) records the
+source references, packet boundaries and verification. P1 implements the
+list and row actions using the existing protocol. The node owns status and
+capability, including Creator gone, unknown states and the list bound.
+Write feedback is explicit and cached rows cannot offer operations on a
+replaced admission. P2 uses typed bounds, preserves elapsed cadence and
+stored expiry, and previews on the node. A missing device IANA zone falls
+back to the machine's zone. Person-owned session schedules retain their
+normal operations and person saves disclose ownership transfer.
+
+Run history, the expiry editor and the active-empty documentation link
+are outside this rollout. Existing worktree selection leaves per-run
+isolation as a parity gap. Heartbeat cadence editing requires a later
+owner-preserving node operation. Older nodes continue to offer the
+read-only heartbeat and its permitted delete action.
+
 ## Purpose and intent
 
 Paseo has one Schedules screen: a list across hosts, a detail of runs,
@@ -33,7 +51,7 @@ What a screen may call, and no other schedule method, is the table in
 
 | Call | Scope | Reply |
 | --- | --- | --- |
-| `schedule.list` | read | `ScheduleList`, newest created first, at most 256 |
+| `schedule.list` | read | `ScheduleList`, newest created first |
 | `schedule.get` | read | `ScheduleInfo` |
 | `schedule.runs` | read | `RunList`, newest 50 (`RunList::MAX`) |
 | `schedule.preview` | read, protocol 13 | `SchedulePreview` |
@@ -157,7 +175,7 @@ protocol. "Same" means the screen does what that line does.
 
 | Control | Paseo | Call | Rule here |
 | --- | --- | --- | --- |
-| List | `schedule/list`, then newest `createdAt` first across hosts (`screens/schedules-screen.tsx` 152) | `schedule.list` on each connected node | Same order. Tie-break is node id, then schedule id. A node that fails does not hide the others (`schedules-screen.tsx` 337–343). A node that has not answered is not an empty list. A node whose handshake is older than 11 is "schedules are not on this machine", not an empty list. A reply of 256 says the node keeps at most that many. |
+| List | `schedule/list`, then newest `createdAt` first across hosts (`screens/schedules-screen.tsx` 152) | `schedule.list` on each connected node | Same order. Tie-break is node id, then schedule id. A node that fails does not hide the others (`schedules-screen.tsx` 337–343). A node that has not answered is not an empty list. A node whose handshake is older than 11 is "schedules are not on this machine", not an empty list. A machine with 256 person-owned schedules has reached its creation quota. Agent-owned schedules have a separate quota and are included in the same reply. |
 | Host filter | Shown when there is more than one host (same file, 164) | none | The nodes the app already shows, each `Direct` or `Forwarded`. One node: no filter. |
 | Active / Ended | Active is derived `active` or `paused`; Ended is expired, finished, target gone (`schedule-derivation.ts` 98–100; filter labels `schedules-screen.tsx` 48–51) | none | Runnable is `Active` or `Paused`. Ended is every `Ended` reason and `Unknown`. `Unknown` is not dropped. |
 | Badge | Active, Paused, Expired, Finished, Target gone (`schedule-row.tsx` 78–96) | the `ScheduleState` on the info | Active, Paused, Finished (`EndReason::MaxRuns`), Expired, Target gone, and also Creator gone and Unknown. The badge is the node's state. The screen does not decide expired or target-gone from the clock or from a missing session (Paseo does: `isExpired` at `schedule-derivation.ts` 49–55, `isAgentTargetGone` at 57–63, applied in `deriveState` at 81–96). |
