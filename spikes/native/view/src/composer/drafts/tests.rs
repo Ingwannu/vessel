@@ -143,7 +143,12 @@ fn review_comments_ride_in_the_same_document_and_an_older_one_reads_without_them
     let mut drafts = Drafts::default();
     let _kept = drafts.keep(session(), "kept", at(0));
     // None kept: the field is not written, as before.
-    assert!(serde_json::to_value(&drafts).unwrap().get("reviews").is_none());
+    assert!(
+        serde_json::to_value(&drafts)
+            .unwrap()
+            .get("reviews")
+            .is_none()
+    );
     let key = ReviewKey {
         machine: "laptop".to_owned(),
         root: vessel_proto::workspace::WorkspaceRoot::Project {

@@ -22,9 +22,7 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{ButtonKind, ButtonState, Tokens, Type, TypeExt as _, breakpoint, glyph};
 use vessel_app_view::workspace::diff_rows::DiffRow;
-use vessel_app_view::workspace::review::{
-    DraftComment, ReviewSide, can_save,
-};
+use vessel_app_view::workspace::review::{DraftComment, ReviewSide, can_save};
 use vessel_proto::workspace::RelPath;
 
 use super::review::{Editor, target_of};
@@ -139,7 +137,9 @@ fn thread(
     let editing = editor
         .and_then(|editor| editor.comment)
         .filter(|id| comments.iter().any(|comment| comment.id == *id));
-    let shown = comments.len().saturating_sub(usize::from(editing.is_some()));
+    let shown = comments
+        .len()
+        .saturating_sub(usize::from(editing.is_some()));
     let mut open = editor.map(|editor| editor_block(shell, editor, tokens, cx));
     let mut blocks: Vec<AnyElement> = Vec::with_capacity(comments.len().saturating_add(1));
     for comment in comments {
@@ -237,9 +237,11 @@ fn comment_block(
                         neutral.destructive,
                         words.comment_delete(),
                     )
-                    .on_click(cx.listener(move |shell, _event, _window, cx| {
-                        shell.review_delete(id, index, cx);
-                    })),
+                    .on_click(cx.listener(
+                        move |shell, _event, _window, cx| {
+                            shell.review_delete(id, index, cx);
+                        },
+                    )),
                 ),
         )
         .into_any_element()
@@ -276,7 +278,9 @@ fn editor_block(
         state,
         tokens,
     )
-    .aria_label(SharedString::from(words.comment_save_accessibility().to_owned()))
+    .aria_label(SharedString::from(
+        words.comment_save_accessibility().to_owned(),
+    ))
     .when(state == ButtonState::Enabled, |save| {
         save.on_click(cx.listener(|shell, _event, window, cx| shell.review_save(window, cx)))
     });
@@ -351,7 +355,9 @@ pub(super) fn sheet(
         state,
         tokens,
     )
-    .aria_label(SharedString::from(words.comment_save_accessibility().to_owned()))
+    .aria_label(SharedString::from(
+        words.comment_save_accessibility().to_owned(),
+    ))
     .when(state == ButtonState::Enabled, |save| {
         save.on_click(cx.listener(|shell, _event, window, cx| shell.review_save(window, cx)))
     });
@@ -382,7 +388,11 @@ pub(super) fn sheet(
         div()
             .type_(Type::Meta)
             .text_color(tokens.neutral.foreground_muted)
-            .child(format!("{} \u{b7} {sign}{}", target.path.as_str(), target.line)),
+            .child(format!(
+                "{} \u{b7} {sign}{}",
+                target.path.as_str(),
+                target.line
+            )),
     );
     Some(dialog(
         &changes.review_dialog,
