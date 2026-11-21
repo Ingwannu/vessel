@@ -32,7 +32,9 @@
 //!   applied); later items still go, in order. The rest of a paste whose
 //!   part failed is dropped, so a paste never lands with a hole in it
 //!   (P4w node review note 1): what got through is its start, and keys
-//!   typed after it still go.
+//!   typed after it still go. A bracketed paste's end marker is kept and
+//!   goes next, so the program leaves paste mode before those keys (app
+//!   review R1: else Enter would not run the line and ^C would be text).
 //! - Sizes (ADR 0116): each names a claim or an update. A size replacing a
 //!   queued claim keeps the claim, so a focus followed at once by a fit
 //!   still takes the terminal.
@@ -229,14 +231,23 @@ impl TerminalSender {
     }
 
     /// The send in flight was refused or lost: it is not repeated, and the
-    /// rest of a paste it was a part of is dropped. The next one may go.
+    /// rest of a paste it was a part of is dropped, all but the unsent
+    /// part of a bracketed paste's end marker. The next one may go.
     pub fn failed(&mut self) {
-        if std::mem::take(&mut self.in_flight) == InFlight::PastePart
-            && let Some(Item::Pasted(queued)) = self.items.front()
-        {
-            let rest = queued.text.len().saturating_sub(queued.at);
-            self.pasted = self.pasted.saturating_sub(rest);
+        if std::mem::take(&mut self.in_flight) != InFlight::PastePart {
+            return;
+        }
+        let Some(Item::Pasted(queued)) = self.items.front_mut() else {
+            return;
+        };
+        let keep = queued.marker_tail();
+        self.pasted = self
+            .pasted
+            .saturating_sub(keep.saturating_sub(queued.at));
+        if keep >= queued.text.len() {
             let _dropped = self.items.pop_front();
+        } else {
+            queued.at = keep;
         }
     }
 
@@ -287,5 +298,19 @@ impl Queued {
     /// Whether every part went out.
     const fn is_spent(&self) -> bool {
         self.at >= self.text.len()
+    }
+
+    /// Where the unsent part of a bracketed paste's end marker starts (past
+    /// what was sent); the text's end when it is not one.
+    fn marker_tail(&self) -> usize {
+        let bracketed = self.text.starts_with(super::paste::START)
+            && self.text.ends_with(super::paste::END);
+        if !bracketed {
+            return self.text.len();
+        }
+        self.text
+            .len()
+            .saturating_sub(super::paste::END.len())
+            .max(self.at)
     }
 }
