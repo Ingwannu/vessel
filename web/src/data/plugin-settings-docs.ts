@@ -78,14 +78,20 @@ export function docEntry(
   return all.get(docKey(at)) ?? LOADING;
 }
 
-function change(at: SettingsAddress, edit: (entry: DocEntry) => DocEntry) {
+function change(
+  at: SettingsAddress,
+  edit: (entry: DocEntry) => DocEntry,
+): void {
   settingsDocs.update((all) =>
     new Map(all).set(docKey(at), edit(docEntry(all, at))),
   );
 }
 
 /** Read `at` again; the last values stay until the answer. */
-export async function loadDoc(fleet: Fleet, at: SettingsAddress) {
+export async function loadDoc(
+  fleet: Fleet,
+  at: SettingsAddress,
+): Promise<void> {
   const read = await readSettings(fleet, at);
   change(at, (entry) => ({
     ...entry,
@@ -153,7 +159,10 @@ export async function resetDoc(
 }
 
 /** Clear the last save's words and read again (Paseo's `reload()`). */
-export async function reloadDoc(fleet: Fleet, at: SettingsAddress) {
+export async function reloadDoc(
+  fleet: Fleet,
+  at: SettingsAddress,
+): Promise<void> {
   change(at, (entry) => ({ ...entry, error: null }));
   await loadDoc(fleet, at);
 }
