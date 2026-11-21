@@ -125,9 +125,7 @@ fn arias(shell: &gpui::Entity<Shell>, cx: &mut gpui::VisualTestContext) -> Vec<S
 }
 
 #[gpui::test]
-fn the_add_button_opens_the_editor_from_an_assistive_click_with_no_hover(
-    cx: &mut TestAppContext,
-) {
+fn the_add_button_opens_the_editor_from_an_assistive_click_with_no_hover(cx: &mut TestAppContext) {
     use std::sync::Arc;
     use vessel_app_view::workspace::changes::FileState;
     use vessel_app_view::workspace::diff_rows::{DiffBody, DiffKey, DiffRow};
@@ -180,11 +178,7 @@ fn the_add_button_opens_the_editor_from_an_assistive_click_with_no_hover(
         .find_map(|index| {
             shell.update(cx, |shell, _| {
                 let rows = &shell.areas.workspace.code.changes.rows;
-                matches!(
-                    rows.get(index),
-                    Some(ChangeRow::Diff { row: 2, .. })
-                )
-                .then_some(index)
+                matches!(rows.get(index), Some(ChangeRow::Diff { row: 2, .. })).then_some(index)
             })
         })
         .unwrap();
