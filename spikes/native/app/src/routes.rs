@@ -28,6 +28,9 @@ pub(crate) enum Route {
     /// Settings: its sections listed in the sidebar's place, the chosen
     /// one beside them (`areas/settings`).
     Settings,
+    /// A plugin's screen (`areas/plugin_screen`, ADR 0115 "Surfaces"):
+    /// which one is that area's state.
+    Plugin,
 }
 
 impl Route {
@@ -46,7 +49,8 @@ impl Route {
             Self::Board => t.board,
             Self::Sessions => t.lang.sidebar().sessions,
             Self::Archive => t.archive,
-            Self::Session => t.app,
+            // A plugin screen names itself in its own header.
+            Self::Session | Self::Plugin => t.app,
             Self::Pair => t.add_machine,
             Self::Schedules => words.sidebar().schedules(),
             Self::Settings => t.lang.settings().settings,
@@ -71,6 +75,7 @@ pub(crate) fn render(
         Route::Pair => areas::pair::render(shell, tokens, window, cx).into_any_element(),
         Route::Schedules => areas::schedules::render(shell, tokens, window, cx),
         Route::Settings => areas::settings::render(shell, tokens, window, cx).into_any_element(),
+        Route::Plugin => areas::plugin_screen::render(shell, tokens, window, cx),
     }
 }
 
@@ -102,7 +107,8 @@ pub(crate) fn sidebar_inner(
         | Route::Schedules
         | Route::Archive
         | Route::Session
-        | Route::Pair => {
+        | Route::Pair
+        | Route::Plugin => {
             areas::sidebar::render(shell, tokens, false, window, cx).into_any_element()
         }
     }
@@ -123,6 +129,6 @@ pub(crate) fn arrive(
         Route::Archive => areas::archive::arrive(shell, window, cx),
         Route::Sessions => areas::sessions::arrive(shell, window, cx),
         Route::Schedules => areas::schedules::arrive(shell, cx),
-        Route::Board | Route::Session | Route::Settings => {}
+        Route::Board | Route::Session | Route::Settings | Route::Plugin => {}
     }
 }
