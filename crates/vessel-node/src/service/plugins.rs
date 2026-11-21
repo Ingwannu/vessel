@@ -146,7 +146,7 @@ impl NodeService {
         _: GetPluginCatalog,
     ) -> Result<PluginCatalog, WireError> {
         self.plugins
-            .catalog(administers(connection.principal()))
+            .catalog(administers(connection.principal()), connection.protocol())
             .await
             .map_err(|error| wire(&error))
     }

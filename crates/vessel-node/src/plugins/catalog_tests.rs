@@ -6,7 +6,7 @@ use vessel_proto::plugins::{
     HelperCall, InvokeContext, InvokePlugin, NodeToHelper, PluginGeneration, PluginStatus,
     RuntimeGeneration,
 };
-use vessel_proto::{ProjectId, RawJson, SessionId};
+use vessel_proto::{PROTOCOL_VERSION, ProjectId, RawJson, SessionId};
 
 use super::super::tests::{Fixture, client_only, id, until};
 use super::super::{CallFailure, PluginError};
@@ -49,11 +49,11 @@ async fn the_catalog_holds_running_installations_at_the_watched_generation() {
     );
     let _item = plugins.install("~/night", None, None).await.unwrap();
     // Plugins off: installed, not running, not in the catalog.
-    let off = plugins.catalog(true).await.unwrap();
+    let off = plugins.catalog(true, PROTOCOL_VERSION).await.unwrap();
     assert!(off.catalog.installations().is_empty());
     plugins.set_switch(true);
     until(&plugins, "night", PluginStatus::Running).await;
-    let on = plugins.catalog(true).await.unwrap();
+    let on = plugins.catalog(true, PROTOCOL_VERSION).await.unwrap();
     let [installation] = on.catalog.installations() else {
         panic!("one running installation: {:?}", on.catalog.installations());
     };
@@ -73,7 +73,7 @@ async fn the_catalog_holds_running_installations_at_the_watched_generation() {
     );
     plugins.set_switch(false);
     until(&plugins, "night", PluginStatus::Disabled).await;
-    let after = plugins.catalog(true).await.unwrap();
+    let after = plugins.catalog(true, PROTOCOL_VERSION).await.unwrap();
     assert!(after.catalog.installations().is_empty());
     fixture.finish().await;
 }
@@ -96,7 +96,32 @@ async fn a_client_file_that_leads_outside_the_directory_does_not_start() {
     let listed = plugins.list(true).await;
     let statuses: Vec<PluginStatus> = listed.plugins.iter().map(|item| item.status).collect();
     assert_eq!(statuses, [PluginStatus::Failed]);
-    let catalog = plugins.catalog(true).await.unwrap();
+    let catalog = plugins.catalog(true, PROTOCOL_VERSION).await.unwrap();
+    assert!(catalog.catalog.installations().is_empty());
+    fixture.finish().await;
+}
+
+#[tokio::test]
+async fn a_client_only_document_that_binds_settings_does_not_start() {
+    let fixture = Fixture::new();
+    let plugins = fixture.host(true).await;
+    // A switch bound to a document: only a helper declares documents
+    // (ADR 0115, "Surfaces").
+    let bound = r#"{"methods":[],"themes":[],"contributions":[{"id":"prefs","title":"Prefs","content":{"kind":"settings_screen","surface":{"controls":[{"id":"on","content":{"kind":"settings_switch","settings":"display","key":"on","label":"On"}}]}}}]}"#;
+    let _directory = fixture.plugin(
+        "night",
+        &client_only("night"),
+        &[("client.json", bound.as_bytes())],
+    );
+    let installed = plugins.install("~/night", None, None).await;
+    assert!(
+        matches!(installed, Err(PluginError::Failed { .. })),
+        "{installed:?}"
+    );
+    let listed = plugins.list(true).await;
+    let error = listed.plugins[0].error.as_deref().unwrap_or_default();
+    assert!(error.contains("binds settings"), "{error}");
+    let catalog = plugins.catalog(true, PROTOCOL_VERSION).await.unwrap();
     assert!(catalog.catalog.installations().is_empty());
     fixture.finish().await;
 }
@@ -133,7 +158,7 @@ async fn a_helper_answers_its_declared_method_and_refuses_an_undeclared_one() {
     let kept = answering_plugin(&fixture, "echo");
     let _item = plugins.install("~/echo", None, None).await.unwrap();
     until(&plugins, "echo", PluginStatus::Running).await;
-    let catalog = plugins.catalog(true).await.unwrap();
+    let catalog = plugins.catalog(true, PROTOCOL_VERSION).await.unwrap();
     let [installation] = catalog.catalog.installations() else {
         panic!("one running helper: {:?}", catalog.catalog.installations());
     };
@@ -207,7 +232,7 @@ async fn a_switched_off_helper_takes_no_call_before_its_stop() {
     let _kept = answering_plugin(&fixture, "echo");
     let _item = plugins.install("~/echo", None, None).await.unwrap();
     until(&plugins, "echo", PluginStatus::Running).await;
-    let catalog = plugins.catalog(true).await.unwrap();
+    let catalog = plugins.catalog(true, PROTOCOL_VERSION).await.unwrap();
     let [installation] = catalog.catalog.installations() else {
         panic!("one running helper: {:?}", catalog.catalog.installations());
     };
@@ -222,7 +247,7 @@ async fn a_switched_off_helper_takes_no_call_before_its_stop() {
         matches!(refused, Err(PluginError::NotRunning(_))),
         "{refused:?}"
     );
-    let off = plugins.catalog(true).await.unwrap();
+    let off = plugins.catalog(true, PROTOCOL_VERSION).await.unwrap();
     assert!(off.catalog.installations().is_empty());
     drop(held);
     until(&plugins, "echo", PluginStatus::Disabled).await;

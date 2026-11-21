@@ -36,7 +36,7 @@ impl fmt::Display for ProtocolVersion {
 
 /// The protocol this build speaks. Bump on any breaking change to a wire type
 /// and record the change in `docs/PROTOCOL.md`.
-pub const PROTOCOL_VERSION: ProtocolVersion = ProtocolVersion(43);
+pub const PROTOCOL_VERSION: ProtocolVersion = ProtocolVersion(44);
 
 /// The protocol version that speaks generated names (ADR 0062). The
 /// integrator assigns this after the CLI, web and native clients can read
@@ -52,9 +52,10 @@ pub const fn speaks_generated_names() -> bool {
     matches!(GENERATED_NAMES, Some(version) if version.get() <= PROTOCOL_VERSION.get())
 }
 
-/// The oldest protocol this build still accepts. Versions 3 to 43 only add
-/// methods, events (with stand-ins for older peers) and defaulted fields,
-/// so version 2 peers keep working.
+/// The oldest protocol this build still accepts. Versions 3 to 44 only add
+/// methods, events (with stand-ins for older peers), defaulted fields and
+/// plugin declaration kinds (withheld from older peers), so version 2 peers
+/// keep working.
 pub const MIN_PROTOCOL_VERSION: ProtocolVersion = ProtocolVersion(2);
 
 /// An inclusive range of protocol versions a peer can speak.
