@@ -197,7 +197,7 @@ impl<R: Runner, C: Clock> Actor<R, C> {
                 *definition
             }
             DefinitionChange::Cadence(cadence) => {
-                heartbeat_target(&info)?;
+                let _target = heartbeat_target(&info)?;
                 let mut definition = info.definition;
                 definition.cadence = cadence;
                 definition
