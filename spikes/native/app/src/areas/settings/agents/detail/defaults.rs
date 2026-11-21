@@ -69,9 +69,11 @@ pub(super) fn render(
             };
             any = true;
             let id = control.id.clone();
+            let value = control.current_name();
+            let name = shell.words.select_field_name(title, value);
             let picker = select::trigger(
                 format!("agent-default-{}", control.id),
-                control.current_name().to_owned(),
+                select::Label::new(value.to_owned(), name),
                 anchor,
                 state.default_id.as_ref() == Some(&id) && state.defaults.is_open(),
                 true,

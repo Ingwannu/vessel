@@ -38,7 +38,7 @@ pub(super) fn trigger(
     Some(
         select::trigger(
             "sessions-host",
-            label.to_owned(),
+            select::Label::new(label.to_owned(), shell.words.host_filter_name(label)),
             &area.filters.anchor,
             area.filters.list.is_open(),
             true,

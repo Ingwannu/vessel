@@ -661,6 +661,15 @@ its own and never uses the page's.
 | `--term-cursor` | `#EDEDED` | same | cursor |
 | `--term-selection` | `#EDEDED` at 24% | same | selection |
 
+These are the session page's framed terminal's. A workspace's terminal tabs
+are Paseo's terminal and take Paseo's terminal palette in each scheme
+(TRACKER 837), the values the native app draws: `--tab-term-*` in
+`tokens.css`. The background is Paseo's `surface0` (`#FFFFFF` light,
+`#181B1A` dark). The foreground and cursor are its foreground, and the
+cursor's glyph is drawn in the background (`cursorAccent`). The selection
+is black at 15% in light and white at 20% in dark. The sixteen ANSI
+colours are its `lightTerminalAnsi` and `darkTerminalAnsi`.
+
 ### 4.5 Radii
 
 | Token | px | Use |

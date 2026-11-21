@@ -180,8 +180,12 @@ fn render(
     let neutral = &tokens.neutral;
     let hover = neutral.surface2;
     let pressed = neutral.surface3;
+    let label = label.into();
     div()
         .id(id)
+        .role(gpui::Role::Button)
+        .aria_label(label.clone())
+        .aria_selected(chosen)
         .flex()
         .flex_row()
         .flex_none()
@@ -209,7 +213,7 @@ fn render(
                     |segment| segment.active(move |style| style.bg(pressed)),
                 )
         })
-        .child(label.into())
+        .child(label)
 }
 
 #[cfg(test)]

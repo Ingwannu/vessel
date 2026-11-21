@@ -151,15 +151,14 @@ export function useProjects(fleet: Fleet, node: NodeKey | null): ProjectsView {
   const view = useStore(projectStore, (all) =>
     node === null ? LOADING : (all[node] ?? LOADING),
   );
-  const known = useStore(projectStore, (all) =>
-    node === null ? true : all[node] !== undefined,
-  );
   useEffect(() => {
-    if (node !== null && !known) {
+    // Multiple rows can ask in the same effect flush. Check the live
+    // store so only the first starts this machine's read.
+    if (node !== null && projectStore.get()[node] === undefined) {
       put(node, LOADING);
       void loadProjects(fleet, node);
     }
-  }, [fleet, node, known]);
+  }, [fleet, node]);
   return view;
 }
 

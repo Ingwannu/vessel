@@ -38,8 +38,9 @@ import {
 } from "../../data/terminal-queries";
 import { openExternal } from "../../data/links";
 import { prefs } from "../../data/prefs";
-import { cssColor, onSchemeChange } from "../../data/theme";
+import { onSchemeChange } from "../../data/theme";
 import { TerminalSender } from "../../data/terminal-sender";
+import { type TerminalPalette, terminalTheme } from "./terminal-palette";
 import type { TerminalInput, TerminalSize } from "../../wire/proto";
 
 /** The mono stack (tokens.css `--font-mono`): Geist Mono, the real
@@ -47,18 +48,6 @@ import type { TerminalInput, TerminalSize } from "../../wire/proto";
  * rule). xterm.js measures its cell from it, so it is written out. */
 const TERMINAL_FONT =
   '"Geist Mono Variable", Consolas, "SF Mono", Menlo, "JetBrains Mono", "Cascadia Mono", "DejaVu Sans Mono", "Liberation Mono", "Noto Sans Mono", Pretendard, monospace';
-
-/** xterm's theme from the terminal's own tokens, resolved for the scheme
- * the page shows now; not the page's accent, which is black in the light
- * theme while the terminal is black in both. */
-function terminalTheme(): ITheme {
-  return {
-    background: cssColor("--term-bg"),
-    foreground: cssColor("--term-fg"),
-    cursor: cssColor("--term-cursor"),
-    selectionBackground: cssColor("--term-selection"),
-  };
-}
 
 /** The key bar's hold on a mounted terminal (P4): its sticky modifiers,
  * its keys, and the soft keyboard, which shows while the terminal holds
@@ -96,8 +85,9 @@ export function mountTerminal(
   onDropped: () => void,
   resize: "after-typing" | "on-attach" = "after-typing",
   origin: Origin = "attached",
+  palette: TerminalPalette = "framed",
 ): MountedTerminal {
-  const theme = terminalTheme();
+  const theme = terminalTheme(palette);
   const terminal = new Terminal({
     fontFamily: TERMINAL_FONT,
     // Appearance's code font, a pixel up, as the terminal token is.
@@ -118,10 +108,10 @@ export function mountTerminal(
     },
     theme,
   });
-  // The terminal's tokens differ a shade between the schemes.
+  // The palette follows the scheme (a tab's changes with it, TRACKER 837).
   let drawn = drawnOf(theme);
   const stopScheme = onSchemeChange(() => {
-    const next = terminalTheme();
+    const next = terminalTheme(palette);
     terminal.options.theme = next;
     drawn = drawnOf(next);
   });

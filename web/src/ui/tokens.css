@@ -126,6 +126,34 @@
   --term-cursor: #ededed;
   --term-selection: rgb(237 237 237 / 24%);
 
+  /* A workspace's terminal tabs (TRACKER 837) are Paseo's terminal, so they
+     take its palette in each scheme: theme.ts `lightTerminalAnsi` 244-259
+     and the light `terminal` 309-319, `darkTerminalAnsi` 373-388 and the
+     dark `terminal` 441-451 with its default tint. These are the values the
+     native app draws (kit `theme/terminal.rs`). The session page's framed
+     terminal keeps the tokens above, dark in both schemes. */
+  --tab-term-bg: light-dark(#ffffff, #181b1a);
+  --tab-term-fg: light-dark(#1a1a1e, #fafafa);
+  --tab-term-cursor: light-dark(#1a1a1e, #fafafa);
+  --tab-term-cursor-accent: light-dark(#ffffff, #181b1a);
+  --tab-term-selection: light-dark(rgb(0 0 0 / 15%), rgb(255 255 255 / 20%));
+  --tab-term-ansi-0: light-dark(#1a1a1e, #141716);
+  --tab-term-ansi-1: light-dark(#dc2626, #e07070);
+  --tab-term-ansi-2: light-dark(#16a34a, #5dba80);
+  --tab-term-ansi-3: light-dark(#ca8a04, #d4a44a);
+  --tab-term-ansi-4: light-dark(#2563eb, #6a9de0);
+  --tab-term-ansi-5: light-dark(#9333ea, #b07ad0);
+  --tab-term-ansi-6: light-dark(#0891b2, #4aabb8);
+  --tab-term-ansi-7: light-dark(#ffffff, #d4d4d8);
+  --tab-term-ansi-8: light-dark(#3f3f46, #434645);
+  --tab-term-ansi-9: light-dark(#ef4444, #e89090);
+  --tab-term-ansi-10: light-dark(#22c55e, #7ecf9a);
+  --tab-term-ansi-11: light-dark(#f59e0b, #e0be6e);
+  --tab-term-ansi-12: light-dark(#3b82f6, #8ab4e8);
+  --tab-term-ansi-13: light-dark(#a855f7, #c49ae0);
+  --tab-term-ansi-14: light-dark(#06b6d4, #6ec2cc);
+  --tab-term-ansi-15: light-dark(#fafafa, #f0f0f2);
+
   /* The type (ADR 0021): agent-orchestrator's faces, Geist and Geist
      Mono, bundled; then Pretendard for the scripts Geist lacks (Hangul
      first of all), ahead of any generic family, which is the owner's rule

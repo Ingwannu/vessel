@@ -58,6 +58,7 @@ export function TerminalPane({
       () => toast(words.dropped, "error"),
       "on-attach",
       openedInThisTab(terminal) ? "opened" : "attached",
+      "tab",
     );
     setKeyBar(pane.keyBar);
     const live = liveBoundary({

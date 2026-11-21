@@ -119,6 +119,24 @@ impl Date {
 // of message identifiers in the public API; callers cannot supply strings.
 include!(concat!(env!("OUT_DIR"), "/translations.rs"));
 
+impl Translator {
+    /// Announce the field and its current value together, as in a settings select.
+    #[must_use]
+    pub fn select_field_name(&self, field: &str, value: &str) -> String {
+        self.meta()
+            .select_field_name(field, value)
+            .unwrap_or_else(|_| field.to_owned())
+    }
+
+    /// Keep a machine filter distinct from a machine merely named in a row.
+    #[must_use]
+    pub fn host_filter_name(&self, host: &str) -> String {
+        self.meta()
+            .host_filter_name(host)
+            .unwrap_or_else(|_| host.to_owned())
+    }
+}
+
 #[cfg(test)]
 mod tests;
 

@@ -32,17 +32,19 @@ export interface MenuProps {
   align?: "start" | "center" | "end";
   /** `narrow` is a composer's agent menu (256px, agent-orchestrator's
    * `w-64`); `wide` holds a description under each row (320px). */
-  /** `compact`: 200, a card's kebab (Paseo's `DropdownMenuContent
-   * width={200}`). */
-  width?: "auto" | "compact" | "narrow" | "wide";
+  /** `compact`: 200, a card's kebab; `actions`: 220, the schedule's
+   * kebab and the standard context-menu width. */
+  width?: "auto" | "compact" | "actions" | "narrow" | "wide";
 }
 
-function widthClass(width: "auto" | "compact" | "narrow" | "wide"): string {
+function widthClass(width: NonNullable<MenuProps["width"]>): string {
   switch (width) {
     case "auto":
       return "popup menu-popup";
     case "compact":
       return "popup menu-popup compact";
+    case "actions":
+      return "popup menu-popup actions";
     case "narrow":
       return "popup menu-popup narrow";
     case "wide":
