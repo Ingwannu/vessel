@@ -37,7 +37,12 @@ pub(super) fn laptop(terminal: vessel_proto::TerminalId) -> PaneKey {
 }
 
 /// A live pane 20 × 4 whose screen shows `bytes`.
-pub(super) fn live(shell: &mut Shell, key: &PaneKey, bytes: &[u8], cx: &mut gpui::Context<'_, Shell>) {
+pub(super) fn live(
+    shell: &mut Shell,
+    key: &PaneKey,
+    bytes: &[u8],
+    cx: &mut gpui::Context<'_, Shell>,
+) {
     let mut pane = Pane::new(Origin::Opened, ScrollbackLines::default(), cx, key);
     pane.stage = Stage::Live;
     if let Some(model) = pane.model.as_mut() {

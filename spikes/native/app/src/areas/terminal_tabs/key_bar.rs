@@ -23,9 +23,8 @@ use gpui::FontWeight;
 use vessel_app_kit::theme::radius;
 use vessel_app_kit::theme::spacing::{S1, S2};
 use vessel_app_kit::ui::{
-    AnyElement, Context, ElementId, FluentBuilder as _, InteractiveElement as _,
-    IntoElement as _, ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window,
-    div, px,
+    AnyElement, Context, ElementId, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
+    ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, breakpoint};
 use vessel_app_view::terminal::key_bar::{self, Control, KEY_HEIGHT, MAX_WIDTH, Sticky};
@@ -173,10 +172,15 @@ impl Shell {
         text: &str,
         cx: &mut Context<'_, Self>,
     ) {
-        let resolved = self.areas.terminal_tabs.panes.get_mut(key).and_then(|pane| {
-            let cursor = pane.cursor_keys();
-            key_bar::typed(text, &mut pane.sticky, cursor)
-        });
+        let resolved = self
+            .areas
+            .terminal_tabs
+            .panes
+            .get_mut(key)
+            .and_then(|pane| {
+                let cursor = pane.cursor_keys();
+                key_bar::typed(text, &mut pane.sticky, cursor)
+            });
         match resolved {
             Some(sequence) => {
                 self.terminal_tab_type(key, &sequence, cx);

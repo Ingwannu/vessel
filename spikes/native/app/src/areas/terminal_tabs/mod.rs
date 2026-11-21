@@ -70,11 +70,11 @@ use gpui::{FocusHandle, Task};
 use vessel_app_kit::DialogState;
 use vessel_app_kit::ui::{App, Bounds, Context, Entity, Pixels, Window};
 use vessel_app_view::layout::{ClosePlan, LayoutKey};
+use vessel_app_view::terminal::grid::CursorKeys;
+use vessel_app_view::terminal::key_bar::Sticky;
 use vessel_app_view::terminal::{
     GridSize, Origin, ScrollbackLines, TerminalLog, TerminalModel, TerminalSender, Typed, Viewport,
 };
-use vessel_app_view::terminal::grid::CursorKeys;
-use vessel_app_view::terminal::key_bar::Sticky;
 use vessel_app_view::terminal_tabs::Trouble;
 use vessel_proto::terminals::{TerminalInfo, TerminalPlace};
 use vessel_proto::{EventSeq, TerminalId};

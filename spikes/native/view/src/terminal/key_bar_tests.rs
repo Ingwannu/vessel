@@ -32,12 +32,24 @@ fn a_set_modifier_goes_with_the_next_bar_key_then_clears() {
     let mut sticky = Sticky::default();
     sticky.toggle(Modifier::Ctrl);
     assert!(sticky.is_set(Modifier::Ctrl));
-    assert_eq!(press(BarKey::Up, &mut sticky, CursorKeys::Normal), "\x1b[1;5A");
+    assert_eq!(
+        press(BarKey::Up, &mut sticky, CursorKeys::Normal),
+        "\x1b[1;5A"
+    );
     assert!(sticky.is_empty());
-    assert_eq!(press(BarKey::Up, &mut sticky, CursorKeys::Application), "\x1bOA");
+    assert_eq!(
+        press(BarKey::Up, &mut sticky, CursorKeys::Application),
+        "\x1bOA"
+    );
     sticky.toggle(Modifier::Shift);
-    assert_eq!(press(BarKey::Tab, &mut sticky, CursorKeys::Normal), "\x1b[Z");
-    assert_eq!(press(BarKey::Escape, &mut sticky, CursorKeys::Normal), "\x1b");
+    assert_eq!(
+        press(BarKey::Tab, &mut sticky, CursorKeys::Normal),
+        "\x1b[Z"
+    );
+    assert_eq!(
+        press(BarKey::Escape, &mut sticky, CursorKeys::Normal),
+        "\x1b"
+    );
     assert_eq!(press(BarKey::Enter, &mut sticky, CursorKeys::Normal), "\r");
 }
 
@@ -52,30 +64,58 @@ fn toggling_twice_clears_it() {
 #[test]
 fn typed_text_takes_the_set_modifiers_as_paseo_maps_it() {
     let mut sticky = Sticky::default();
-    assert_eq!(typed("c", &mut sticky, CursorKeys::Normal), None, "none set");
+    assert_eq!(
+        typed("c", &mut sticky, CursorKeys::Normal),
+        None,
+        "none set"
+    );
     sticky.toggle(Modifier::Ctrl);
-    assert_eq!(typed("c", &mut sticky, CursorKeys::Normal).as_deref(), Some("\x03"));
+    assert_eq!(
+        typed("c", &mut sticky, CursorKeys::Normal).as_deref(),
+        Some("\x03")
+    );
     assert!(sticky.is_empty());
     sticky.toggle(Modifier::Alt);
-    assert_eq!(typed("x", &mut sticky, CursorKeys::Normal).as_deref(), Some("\x1bx"));
+    assert_eq!(
+        typed("x", &mut sticky, CursorKeys::Normal).as_deref(),
+        Some("\x1bx")
+    );
     sticky.toggle(Modifier::Ctrl);
-    assert_eq!(typed("\r", &mut sticky, CursorKeys::Normal).as_deref(), Some("\r"));
+    assert_eq!(
+        typed("\r", &mut sticky, CursorKeys::Normal).as_deref(),
+        Some("\r")
+    );
     // Not one mapped character: as typed, and the modifiers clear.
     sticky.toggle(Modifier::Ctrl);
-    assert_eq!(typed("ab", &mut sticky, CursorKeys::Normal).as_deref(), Some("ab"));
+    assert_eq!(
+        typed("ab", &mut sticky, CursorKeys::Normal).as_deref(),
+        Some("ab")
+    );
     assert!(sticky.is_empty());
     sticky.toggle(Modifier::Ctrl);
-    assert_eq!(typed("한", &mut sticky, CursorKeys::Normal).as_deref(), Some("한"));
+    assert_eq!(
+        typed("한", &mut sticky, CursorKeys::Normal).as_deref(),
+        Some("한")
+    );
     assert!(sticky.is_empty());
 }
 
 #[test]
 fn a_keyboard_key_takes_the_set_modifiers_with_those_held() {
     let mut sticky = Sticky::default();
-    assert_eq!(pressed(Key::Char('c'), Mods::NONE, &mut sticky, CursorKeys::Normal), None);
+    assert_eq!(
+        pressed(Key::Char('c'), Mods::NONE, &mut sticky, CursorKeys::Normal),
+        None
+    );
     sticky.toggle(Modifier::Ctrl);
     assert_eq!(
-        pressed(Key::Named(Named::Left), Mods::SHIFT, &mut sticky, CursorKeys::Normal).as_deref(),
+        pressed(
+            Key::Named(Named::Left),
+            Mods::SHIFT,
+            &mut sticky,
+            CursorKeys::Normal
+        )
+        .as_deref(),
         Some("\x1b[1;6D")
     );
     assert!(sticky.is_empty());
