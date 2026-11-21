@@ -2,6 +2,7 @@ import { useBlocker, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useFleetState } from "../../context";
+import { type LinkedFile, linkedFileOf } from "../../data/forge-links";
 import {
   projectAt,
   type ProjectsView,
@@ -65,6 +66,11 @@ interface WorkspaceState {
   terminals: readonly TerminalInfo[];
   openFile: (path: RelPath, line: number | null) => void;
   move: (source: string, target: string, side: "before" | "after") => void;
+  /** The session the bar names: the active agent tab's, else the anchor. */
+  heading: SessionInfo;
+  /** The file a forge link names (Paseo: the active tab's file, at the
+   * line it was opened at; TRACKER 467 step B). */
+  shownFile: LinkedFile | null;
 }
 
 export function useWorkspace(
@@ -249,6 +255,8 @@ export function useWorkspace(
   return {
     layout,
     active,
+    heading: active?.kind === "agent" ? (session(active.id) ?? anchor) : anchor,
+    shownFile: linkedFileOf(active, lines),
     protocol,
     visited,
     dirty,

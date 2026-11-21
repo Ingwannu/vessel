@@ -2,20 +2,17 @@
 //!
 //! [Decision Log]
 //! - Purpose: the home turns its instructions file and skills directory
-//!   (`fleet.toml`'s sources) into a manifest and a blob store members
-//!   fetch from.
+//!   (`fleet.toml`'s sources) into a manifest and a blob store members fetch from.
 //! - Skills: each directory under the skills source with a `SKILL.md` is a
 //!   skill, bundled as `skills/<name>/...` with `<name>` from its
 //!   frontmatter. Files at the top of the skills directory are not skills,
 //!   and dot directories there are a harness's own (Codex's `.system`).
 //!   A directory without a usable name, or with a name another directory
-//!   already took (the first in name order wins), is left out and
-//!   reported, never guessed at.
+//!   already took (the first in name order wins), is left out and reported, never guessed at.
 //! - Names are compared as macOS and Windows compare them (ignoring case
 //!   and Unicode normalisation, [`fold`]): two skills, or two entries of
 //!   one directory, that would be one file there are a problem, the first
-//!   in name order bundled. Names ending in `.vessel-incoming` are
-//!   refused: members write incoming versions under them.
+//!   in name order bundled. Names ending in `.vessel-incoming` are refused: members write incoming versions under them.
 //! - Dot entries inside a skill (`.env`, `.git/`, editor swap files) are
 //!   left out and reported: they are rarely meant for every machine and
 //!   easily hold a secret. At the top of the skills directory they are a
@@ -48,6 +45,10 @@ use crate::blobs::BlobStore;
 use crate::files;
 use crate::rel::fold;
 use crate::skill::{SkillName, SkillNameError, skill_name};
+
+mod entries;
+
+use entries::{bundle_path, read_error, sorted_entries};
 
 /// The largest file a bundle carries; larger ones are left out.
 pub const MAX_FILE: u64 = 16 * 1024 * 1024;
@@ -308,6 +309,13 @@ impl Builder<'_> {
         self.skip.iter().any(|glob| glob.matches(name))
     }
 
+    fn too_large(&mut self, path: &Path, size: u64) {
+        self.problems.push(SourceProblem::TooLarge {
+            path: path.to_path_buf(),
+            size,
+        });
+    }
+
     /// Bundle the file at `path` (following symlinks only if `follow`).
     fn add_file(
         &mut self,
@@ -322,13 +330,10 @@ impl Builder<'_> {
         }
         .map_err(|source| read_error(path, source))?;
         if metadata.len() > MAX_FILE {
-            self.problems.push(SourceProblem::TooLarge {
-                path: path.to_path_buf(),
-                size: metadata.len(),
-            });
+            self.too_large(path, metadata.len());
             return Ok(());
         }
-        let (hash, size) = self.blobs.insert_file(path).map_err(|source| {
+        let read = |source: io::Error| {
             if source.kind() == io::ErrorKind::NotFound
                 || source.kind() == io::ErrorKind::PermissionDenied
             {
@@ -336,7 +341,14 @@ impl Builder<'_> {
             } else {
                 BundleError::Store(source)
             }
-        })?;
+        };
+        let file = fs::File::open(path).map_err(|source| read_error(path, source))?;
+        // The size above is only a first look: the file may grow before it
+        // is copied, so the copy is bounded too.
+        let Some((hash, size)) = self.blobs.insert_limited(file, MAX_FILE).map_err(read)? else {
+            self.too_large(path, metadata.len().max(MAX_FILE.saturating_add(1)));
+            return Ok(());
+        };
         let _previous = self.files.insert(
             bundle,
             BundleFile {
@@ -465,30 +477,6 @@ impl Builder<'_> {
                 .push(SourceProblem::Symlink(path.to_path_buf()));
         }
         Ok(inside)
-    }
-}
-
-/// The entries of `dir` with UTF-8 names, by name.
-fn sorted_entries(dir: &Path) -> Result<Vec<(String, PathBuf)>, BundleError> {
-    let mut entries = Vec::new();
-    for entry in fs::read_dir(dir).map_err(|source| read_error(dir, source))? {
-        let entry = entry.map_err(|source| read_error(dir, source))?;
-        if let Ok(name) = entry.file_name().into_string() {
-            entries.push((name, entry.path()));
-        }
-    }
-    entries.sort();
-    Ok(entries)
-}
-
-fn bundle_path(text: &str) -> Option<BundlePath> {
-    text.parse().ok()
-}
-
-fn read_error(path: &Path, source: io::Error) -> BundleError {
-    BundleError::Read {
-        path: path.to_path_buf(),
-        source,
     }
 }
 

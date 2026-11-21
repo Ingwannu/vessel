@@ -27,6 +27,7 @@ pub(super) const DESCRIPTOR: Descriptor = Descriptor {
     layout: HarnessLayout {
         instructions: Some("GEMINI.md"),
         skills: None,
+        also_reads: None,
     },
     limits: None,
     login: None,

@@ -17,7 +17,7 @@
 //!   (remotes an agent controls could name any number); past that a host
 //!   is still answered, not listed.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::{Duration, Instant};
@@ -33,6 +33,11 @@ use super::ForgeSetup;
 
 /// How long who a token is stays known.
 const KEEP_LOGIN: Duration = Duration::from_secs(300);
+/// GitHub's own hosts (Paseo's `forge-manifest.ts` `cloudHosts`).
+const GITHUB_HOSTS: [&str; 2] = ["github.com", "ssh.github.com"];
+/// The most hosts `gh` is asked about at once off a status read: remotes
+/// an agent controls can name any number.
+const ASKING: usize = 4;
 /// A host that could not be reached is said to be retried this much later.
 const RETRY: TimeDelta = TimeDelta::seconds(60);
 
@@ -62,6 +67,8 @@ pub(crate) struct Hosts {
     custom: bool,
     credentials: Arc<Credentials>,
     known: Mutex<BTreeMap<ForgeHost, Host>>,
+    /// Hosts `gh` is being asked about off a status read.
+    asking: Arc<Mutex<BTreeSet<ForgeHost>>>,
 }
 
 impl Hosts {
@@ -95,7 +102,52 @@ impl Hosts {
             custom,
             credentials,
             known: Mutex::new(hosts),
+            asking: Arc::new(Mutex::new(BTreeSet::new())),
         }
+    }
+
+    /// What the node knows `host` to be, without waiting (ADR 0123 step B,
+    /// a status's `origin`): GitHub for GitHub's own hosts and for a host
+    /// it holds a token for, where Paseo's daemon asks `gh auth status
+    /// --hostname`; `None` otherwise. A host `gh` was not asked about yet
+    /// is asked off this read, so a later status knows. A test's in-memory
+    /// forge asks nothing.
+    pub(crate) fn kind_of(&self, host: &ForgeHost) -> Option<ForgeKind> {
+        if GITHUB_HOSTS.contains(&host.as_str()) {
+            return Some(ForgeKind::Github);
+        }
+        if self.custom {
+            return None;
+        }
+        match self.credentials.known(host) {
+            Some(true) => Some(ForgeKind::Github),
+            Some(false) => None,
+            None => {
+                self.ask_off_the_read(host);
+                None
+            }
+        }
+    }
+
+    /// Ask `gh` for `host`'s token in a task of its own (kept by the
+    /// credentials as every answer is), at most [`ASKING`] hosts at once.
+    fn ask_off_the_read(&self, host: &ForgeHost) {
+        {
+            let mut asking = self.asking.lock().unwrap_or_else(PoisonError::into_inner);
+            if asking.len() >= ASKING || !asking.insert(host.clone()) {
+                return;
+            }
+        }
+        let credentials = Arc::clone(&self.credentials);
+        let asking = Arc::clone(&self.asking);
+        let host = host.clone();
+        drop(tokio::spawn(async move {
+            let _found = credentials.token(&host).await;
+            let _done = asking
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner)
+                .remove(&host);
+        }));
     }
 
     /// The provider, when there is one.

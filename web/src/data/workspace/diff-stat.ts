@@ -11,7 +11,7 @@
 //   Later reads send the generation already shown. An empty list has no
 //   row to carry the generation, so the last one is kept.
 
-import type { DiffStat, PullSummary } from "../../wire/proto";
+import type { DiffStat, PullState, PullSummary } from "../../wire/proto";
 
 /** Whether a peer speaking `peer` is served the diff stat.
  *
@@ -107,6 +107,8 @@ export function pullOf(
     host: summary.repo.host,
     path: summary.repo.path,
     number: summary.number,
+    state: summary.state,
+    draft: summary.draft,
     checks: summary.checks,
     counts: countsOf(summary),
     url: summary.url === "" ? null : summary.url,
@@ -126,6 +128,9 @@ export interface SharedPull {
   host: string;
   path: string;
   number: number;
+  /** Where it is in its life (the sidebar's state glyph, TRACKER 426). */
+  state: PullState;
+  draft: boolean;
   checks: string;
   /** Null until a node sends protocol 39's tally. */
   counts: CheckCounts | null;

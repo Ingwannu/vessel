@@ -228,9 +228,10 @@ impl SessionRuntime {
             title_origin,
         } = options;
         let id = id.unwrap_or_else(SessionId::random);
-        if self.get(id).is_some() {
-            return Err(SessionError::DuplicateId(id));
-        }
+        // Held until this function returns: by then the session is in the
+        // map (`start`) or its creation failed. Two creations with one id
+        // cannot both pass the check.
+        let _reserved = self.reserve(id)?;
         let record = Record {
             id,
             created_by,
