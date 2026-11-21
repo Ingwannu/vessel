@@ -42,8 +42,6 @@ mod panels;
 mod panels_view;
 mod pull_tab;
 mod review;
-mod review;
-mod review_rows;
 mod review_rows;
 #[cfg(test)]
 #[cfg(not(target_arch = "wasm32"))]
