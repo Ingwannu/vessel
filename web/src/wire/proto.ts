@@ -14725,6 +14725,11 @@ export const ORIGIN_LINK_PROTOCOL = 42;
 export const PLUGIN_SETTINGS_PROTOCOL = 43;
 
 /**
+ * `notification.claim`, terminal attention and `Terminal` presence focus (ADR 0089); `null` until assigned.
+ */
+export const ATTENTION_NOTIFICATIONS_PROTOCOL = null;
+
+/**
  * a catalog entry using `card`, the settings controls or `open_settings` (ADR 0115, "Surfaces").
  */
 export const PLUGIN_SURFACES_PROTOCOL = 44;
