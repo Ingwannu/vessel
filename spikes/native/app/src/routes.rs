@@ -43,10 +43,10 @@ impl Route {
             Self::Board => t.board,
             Self::Sessions => t.lang.sidebar().sessions,
             Self::Archive => t.archive,
-            Self::Session => t.app,
+            // A plugin screen names itself in its own header.
+            Self::Session | Self::Plugin => t.app,
             Self::Pair => t.add_machine,
             Self::Settings => t.lang.settings().settings,
-            Self::Plugin => t.app,
         }
     }
 }

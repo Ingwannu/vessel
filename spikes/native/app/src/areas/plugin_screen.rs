@@ -186,7 +186,6 @@ pub(crate) fn render(
         Some((at, found)) => {
             let scope = controls::Scope {
                 at,
-                installation: found.installation,
                 may_invoke: found.may_invoke,
                 compact,
             };

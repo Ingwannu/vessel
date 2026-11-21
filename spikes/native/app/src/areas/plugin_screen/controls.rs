@@ -33,8 +33,8 @@ use vessel_app_view::plugins::{
 };
 use vessel_proto::RawJson;
 use vessel_proto::plugins::{
-    Action, Button, ButtonBehavior, ClientInstallation, ContributionId, Control, ControlContent,
-    RpcName, StatusTone, Surface,
+    Action, Button, ButtonBehavior, ContributionId, Control, ControlContent, RpcName, StatusTone,
+    Surface,
 };
 
 use super::{control_id, inputs};
@@ -45,8 +45,6 @@ use crate::shell::Shell;
 pub(super) struct Scope<'a> {
     /// The screen.
     pub(super) at: &'a ScreenAddress,
-    /// Its installation and run.
-    pub(super) installation: &'a ClientInstallation,
     /// Whether this device may call the plugin's methods.
     pub(super) may_invoke: bool,
     /// A phone's width.
@@ -401,7 +399,7 @@ impl Shell {
     ) {
         match action {
             Action::Invoke { method, input } => {
-                self.plugin_screen_call(method, input.clone(), None)
+                self.plugin_screen_call(method, input.clone(), None);
             }
             Action::OpenScreen { screen } => {
                 if let Some(open) = self.areas.plugin_screen.open.clone() {
