@@ -19,9 +19,9 @@ pub use values::{Profile, Profiles, Resolved};
 pub const PROMPT_SENTINEL: &str = "{{{prompt}}}";
 /// The node's terminal profiles (ADR 0117): `terminal_profiles` in
 /// `node.settings` and `node.set_settings`, and `terminal.create`'s
-/// `profile`. Protocol 45, drafted at the node integrator's word (2026-11-21)
-/// after 44 (plugin surfaces); a peer below it is refused the fields and is
-/// not shown them.
+/// `profile`. Protocol 45, assigned at its node-line merge, the next after
+/// 44 (plugin surfaces); a peer below it is refused the fields and is not
+/// shown them.
 pub const TERMINAL_PROFILES_PROTOCOL: Option<crate::ProtocolVersion> =
     Some(crate::ProtocolVersion::new(45));
 /// Maximum configured profiles, keeping settings and picker work bounded.

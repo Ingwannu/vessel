@@ -6,8 +6,8 @@ Status: accepted by the coordinator on 2026-11-21 with four rulings:
 - The native menu groups are part of the native packet.
 - The node resolves profiles by id.
 
-Implementer T2. Protocol 45 (`TERMINAL_PROFILES_PROTOCOL`): a placeholder until the node integrator gave 45 after 44
-(plugin surfaces), confirmed at its node-line merge.
+Implementer T2. Protocol 45 (`TERMINAL_PROFILES_PROTOCOL`): assigned 45 at its node-line merge, the next after the plugin
+surfaces' 44.
 Rows: catalogue G12, G58; TRACKER 490, 275, 336 (the profile part).
 This ADR takes terminal profiles out of ADR 0091. That ADR's value types (`vessel_proto::terminal_profiles`) were
 ported earlier and nothing used them.

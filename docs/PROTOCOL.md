@@ -70,8 +70,8 @@ requires the handler, as for every assigned or pending row.
 
 ## Version 45 (2026-11-21, milestone 12): terminal profiles (implementer T2, ADR 0117)
 
-Drafted 45 (`TERMINAL_PROFILES_PROTOCOL`, `PROTOCOL_VERSION` 45) at the node integrator's word, after 44; confirmed
-at its node-line merge.
+Assigned 45 (`TERMINAL_PROFILES_PROTOCOL`, `PROTOCOL_VERSION` 45) at its node-line merge, the next after the plugin
+surfaces' 44.
 
 - `node.settings` gains `terminal_profiles` (Paseo's `terminalProfiles`): absent when never set, which clients show
   as the shipped four (Claude Code, Codex, OpenCode, Pi); an empty list when a person removed them all. The list is

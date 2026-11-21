@@ -42,6 +42,12 @@ fn a_profile_launch_and_a_profiles_change_need_their_protocol() {
 }
 
 #[test]
+fn the_profiles_are_the_newest_protocol() {
+    // Only the newest protocol asserts equality with `PROTOCOL_VERSION`.
+    assert_eq!(TERMINAL_PROFILES_PROTOCOL, Some(crate::PROTOCOL_VERSION));
+}
+
+#[test]
 fn a_launch_without_a_prompt_has_none_on_the_wire() {
     let launch = ProfileLaunch {
         id: Id::parse("codex").unwrap(),
