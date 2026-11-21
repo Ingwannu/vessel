@@ -53,6 +53,15 @@ impl ContextAttachment {
     /// `text` block of [`Self::text`] otherwise.
     #[must_use]
     pub fn block(&self, speaks: bool) -> ContentBlock {
+        if let Self::Review(offer) = self {
+            return if speaks {
+                ContentBlock::Review(offer.snapshot.review.clone())
+            } else {
+                ContentBlock::Text {
+                    text: offer.snapshot.text(),
+                }
+            };
+        }
         let text = self.text();
         let typed = speaks.then(|| self.context(&text)).flatten();
         typed.map_or(ContentBlock::Text { text }, ContentBlock::Context)
@@ -78,6 +87,7 @@ impl ContextAttachment {
                     url: None,
                 })
             }
+            Self::Review(_) => None,
             Self::Snapshot { kind, payload } => Some(PromptContext {
                 kind: wire_kind(*kind)?,
                 title: title(payload.title.as_str())?,

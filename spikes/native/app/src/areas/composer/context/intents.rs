@@ -8,7 +8,11 @@ pub(super) fn callbacks(
     intent: ContextIntent,
 ) -> (Option<ScopedPillClick<Shell>>, ScopedPillClick<Shell>) {
     let opened = intent.clone();
-    let open = (!matches!(item, ContextAttachment::WorkspaceFile(_))).then(
+    let open = (!matches!(
+        item,
+        ContextAttachment::WorkspaceFile(_) | ContextAttachment::Review(_)
+    ))
+    .then(
         || -> ScopedPillClick<Shell> {
             std::rc::Rc::new(move |shell, _index, window, cx| {
                 shell.context_opened(target, &opened, window, cx);

@@ -23,3 +23,21 @@ review-save-accessibility = Save review comment
 review-sheet-save = Save
 # Under the editor when the comment is past its bound; the save button is off.
 review-too-long = A comment can hold at most 16 KiB.
+# The button over the Changes list; count is the comments the review holds.
+review-feedback-send = Send feedback ({ NUMBER($count) })
+# The button while the review is on its way.
+review-feedback-sending = Sending feedback ({ NUMBER($count) })
+# The chooser's title when several agents could take the review.
+review-feedback-choose = Choose an agent
+# The toast once the review was sent.
+review-feedback-sent = Feedback sent to { $recipient }
+# Why the button is off: no agent in this workspace.
+review-feedback-no-agents = Open an agent tab in this workspace to send feedback.
+# Why the button is off: the machine is not connected.
+review-feedback-disconnected = Connect to the host to send feedback.
+# Why the button is off: no comment's line is in the diff.
+review-feedback-no-context = Saved comments no longer match this diff.
+# The send failed.
+review-feedback-failed = Failed to send feedback. Try again.
+# The words sent to the agent with the review.
+review-feedback-prompt = Please address this code review.

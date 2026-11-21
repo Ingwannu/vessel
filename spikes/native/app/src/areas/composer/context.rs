@@ -11,6 +11,7 @@ use vessel_app_kit::ui::{
     div,
 };
 use vessel_app_kit::{Tokens, assets::Glyph};
+use vessel_app_view::localization::Number;
 use vessel_app_view::composer::{
     context::{ContextAttachment, ContextIntent, ContextKind, ContextProblem, ContextScope},
     drafts::DraftKey,
@@ -317,6 +318,12 @@ pub(super) fn tray(
                 ContextAttachment::WorkspaceFile(file) => {
                     (Glyph::FileText, file.path.as_str().to_owned())
                 }
+                ContextAttachment::Review(offer) => (
+                    Glyph::MessageCode,
+                    words
+                        .sent_comments(Number::count(offer.snapshot.review.comments.len()))
+                        .unwrap_or_default(),
+                ),
                 ContextAttachment::Snapshot { kind, .. } => match kind {
                     ContextKind::BrowserElement => {
                         (Glyph::Monitor, words.context_browser().to_owned())
@@ -342,7 +349,12 @@ pub(super) fn tray(
                 index,
                 &Body::Label {
                     icon,
-                    title: SharedString::from(item.title().to_owned()),
+                    title: SharedString::from(match item {
+                        ContextAttachment::Review(_) => words.sent_review().to_owned(),
+                        ContextAttachment::WorkspaceFile(_) | ContextAttachment::Snapshot { .. } => {
+                            item.title().to_owned()
+                        }
+                    }),
                     subtitle: subtitle.into(),
                 },
                 Standing::Quiet,

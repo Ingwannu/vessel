@@ -182,6 +182,13 @@ impl ContextTray {
         }
     }
 
+    /// The Changes diff no longer shows comments: its review pill goes,
+    /// suppressed or not (the next comment offers it again).
+    pub fn withdraw_reviews(&mut self) {
+        self.entries
+            .retain(|entry| !matches!(entry.attachment, ContextAttachment::Review(_)));
+    }
+
     /// Picker toggling removes a selected plugin/forge item or attaches it.
     ///
     /// # Errors
@@ -279,6 +286,8 @@ impl ContextTray {
 fn replaceable(attachment: &ContextAttachment) -> bool {
     match attachment {
         ContextAttachment::WorkspaceFile(_) => false,
+        // A newer snapshot of the same comments takes the old one's place.
+        ContextAttachment::Review(_) => true,
         ContextAttachment::Snapshot { kind, .. } => match kind {
             ContextKind::ChatHistory
             | ContextKind::PullComment
@@ -296,6 +305,7 @@ fn replaceable(attachment: &ContextAttachment) -> bool {
 fn source_owned(attachment: &ContextAttachment) -> bool {
     match attachment {
         ContextAttachment::WorkspaceFile(_) => false,
+        ContextAttachment::Review(_) => true,
         ContextAttachment::Snapshot { kind, .. } => match kind {
             ContextKind::BrowserElement
             | ContextKind::Review

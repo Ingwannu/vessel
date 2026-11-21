@@ -31,8 +31,20 @@ use serde::{Deserialize, Serialize};
 pub use vessel_proto::prompt_context::{BODY_BYTES, ReviewMode, ReviewSide};
 use vessel_proto::workspace::{RelPath, WorkspaceRoot};
 
+pub mod feedback;
 mod snapshot;
 pub use snapshot::{Snapshot, snapshot};
+
+/// The review a composer offers while the Changes diff shows comments
+/// (Paseo's workspace review attachment): its key, to clear it once sent,
+/// and what it holds.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Offer {
+    /// The comments' key.
+    pub key: ReviewKey,
+    /// The review.
+    pub snapshot: Snapshot,
+}
 
 /// Which review a comment belongs to: the diff it was written on.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
