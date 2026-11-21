@@ -20,6 +20,22 @@ impl TerminalHandle {
             attention::signal(current, signal, chrono::Utc::now())
         })
     }
+    /// A standalone Ctrl-C or Esc in the terminal's input interrupts its
+    /// current work (`attention::interrupts`): Working becomes unknown, and
+    /// any other state stays. Nothing happens when there is no attention or
+    /// it moved meanwhile.
+    pub fn interrupt_activity(&self) {
+        let Some(revision) = self
+            .0
+            .info
+            .borrow()
+            .attention
+            .map(|current| current.revision)
+        else {
+            return;
+        };
+        let _unchanged_or_stale = self.report_activity(revision, TerminalActivitySignal::Interrupt);
+    }
     /// Clear only the attention the person actually saw; never future work.
     /// # Errors
     /// A stale revision or revision exhaustion leaves current state unchanged.

@@ -152,6 +152,8 @@ enum GlyphSizing {
     Adaptive,
     /// The header island's large chrome: 16 at both sizings.
     Large,
+    /// A caller's own 18 at both sizings, which the large chrome keeps.
+    Eighteen,
 }
 /// One shared vector and its explicit source mapping. Workspace rail icons are
 /// fixed14; the source helper alone adapts to18 in the compact layout.
@@ -177,15 +179,30 @@ impl ToolbarIcon {
         self.sizing = GlyphSizing::Adaptive;
         self
     }
-    /// The header island's 16 (`ToolbarConfig::header_island`).
+    /// An 18 glyph in any chrome: Paseo's header buttons that pass their
+    /// icon `size={18}`, such as the plugin screen's close
+    /// (plugins/surface-screen.tsx:203, `HeaderToggleButton`).
+    #[must_use]
+    pub const fn eighteen(mut self) -> Self {
+        self.sizing = GlyphSizing::Eighteen;
+        self
+    }
+    /// The header island's 16 (`ToolbarConfig::header_island`); a caller's
+    /// own 18 stays.
     pub(super) const fn large(mut self) -> Self {
-        self.sizing = GlyphSizing::Large;
+        self.sizing = match self.sizing {
+            GlyphSizing::Eighteen => GlyphSizing::Eighteen,
+            GlyphSizing::Fixed | GlyphSizing::Adaptive | GlyphSizing::Large => GlyphSizing::Large,
+        };
         self
     }
     pub(super) const fn size(self, sizing: ControlSizing) -> Pixels {
         match (self.sizing, sizing) {
             (GlyphSizing::Large, ControlSizing::Pointer | ControlSizing::Touch) => LARGE_GLYPH,
-            (GlyphSizing::Adaptive, ControlSizing::Touch) => COMPACT_GLYPH,
+            (GlyphSizing::Adaptive, ControlSizing::Touch)
+            | (GlyphSizing::Eighteen, ControlSizing::Pointer | ControlSizing::Touch) => {
+                COMPACT_GLYPH
+            }
             (GlyphSizing::Fixed, ControlSizing::Pointer | ControlSizing::Touch)
             | (GlyphSizing::Adaptive, ControlSizing::Pointer) => FIXED_GLYPH,
         }

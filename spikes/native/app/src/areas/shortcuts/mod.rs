@@ -353,7 +353,8 @@ impl Shell {
             | Route::Schedules
             | Route::Archive
             | Route::Pair
-            | Route::Settings => false,
+            | Route::Settings
+            | Route::Plugin => false,
         };
         context.focus = if self.areas.palette.is_open() {
             FocusScope::CommandCenter

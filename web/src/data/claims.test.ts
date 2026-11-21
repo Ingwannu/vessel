@@ -160,13 +160,17 @@ describe("claims (ADR 0089), page side", () => {
     expect(claimed).toHaveLength(3);
   });
 
-  test("a first page that cannot be read tells nothing", async () => {
+  test("a first page that cannot be read falls back to telling every notice, claiming none", async () => {
+    let claims = 0;
     const calls: ClaimCalls = {
       firstPage: () => Promise.resolve(null),
-      claim: () => Promise.resolve("admitted"),
+      claim: () => {
+        claims += 1;
+        return Promise.resolve("admitted");
+      },
     };
-    expect(await askBeforeTelling(calls, [notice("one", "finished")])).toEqual(
-      [],
-    );
+    const notices = [notice("one", "finished"), notice("two", "needs-you")];
+    expect(await askBeforeTelling(calls, notices)).toEqual(notices);
+    expect(claims).toBe(0);
   });
 });

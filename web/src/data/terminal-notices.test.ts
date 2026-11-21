@@ -16,6 +16,7 @@ import type {
   TerminalInfo,
 } from "../wire/proto";
 import {
+  folderSessions,
   holds,
   readTerminals,
   terminalNoticeTitle,
@@ -157,6 +158,15 @@ describe("terminal notices, page side", () => {
       holds(session({ project }), { kind: "folder", path: "/work" }),
       "a rooted session's workspace is its root, not its folder",
     ).toBe(false);
+  });
+
+  test("a folder no session names as a path is asked of the node, once per folder", () => {
+    const project = fixtureId("ProjectId", "p1");
+    const S2 = fixtureId("SessionId", "s2");
+    const again = { ...session(null), id: S2 };
+    expect(
+      folderSessions([session({ project }), session(null), again]),
+    ).toEqual([{ session: S1, path: "/work" }]);
   });
 
   test("a click's tab request is taken once, by a workspace that lists the terminal", () => {
