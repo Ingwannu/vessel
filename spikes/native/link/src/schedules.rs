@@ -8,6 +8,7 @@ use vessel_app_view::schedules::{
 
 #[cfg(not(target_arch = "wasm32"))]
 mod calls;
+pub mod form;
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) use calls::Hub;
 

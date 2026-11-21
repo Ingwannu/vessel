@@ -82,7 +82,21 @@ pub(crate) struct NotifyArea {
     /// the holder it named, opened on the next frame (`notify/terminals.rs`).
     locating: Option<(String, TerminalId)>,
     located: Option<vessel_app_link::terminal_holder::Located>,
+    /// Whether this system can show a notification, read once: whether the
+    /// window notifies is asked at every render (`window_notifies`).
+    system: Readiness,
     _activation: Subscription,
+}
+
+#[cfg(test)]
+impl NotifyArea {
+    /// Whether this system can show a notification, as a test sets it.
+    pub(crate) const fn reaches_system(&mut self, reaches: bool) {
+        self.system = Readiness {
+            built: reaches,
+            bus: reaches,
+        };
+    }
 }
 
 impl std::fmt::Debug for NotifyArea {
@@ -136,6 +150,7 @@ impl NotifyArea {
             cleared: None,
             locating: None,
             located: None,
+            system: Readiness::of_this_system(),
             _activation: activation,
         }
     }
@@ -244,6 +259,16 @@ impl Shell {
         if let Some(kind) = sound {
             vessel_app_link::sound::play(kind);
         }
+    }
+
+    /// Whether this window tells notices as the system's notifications:
+    /// Settings' alerts include them and the system can show them. Only
+    /// such a window claims a notice and can be elected a claim's recipient
+    /// (ADR 0089, "Turned on", item 5; the page's `windowNotifies`). One
+    /// that only sounds, or tells nothing, says so in its presence, never
+    /// claims, and keeps ADR 0114's local path.
+    pub(crate) fn window_notifies(&self) -> bool {
+        self.prefs.settings.notifications.alerts.system() && reach(self.areas.notify.system).is_ok()
     }
 
     /// Settings' test: a notification and the needs-you sound, as the

@@ -60,14 +60,41 @@ Reference lines:
   node's elapsed cadence stays exact. The form for new-session targets
   and the heartbeat detail arrive with P2 and P3 respectively.
 
-## Follow-up packets
+## P2 · New-session schedule form
 
 P2 covers 584–585 with the form and cadence editor. Device IANA comes
-first, then the machine zone. Node preview and typed bounds govern the
-save. The form keeps stored expiry and all fields it does not edit.
+first, then the machine zone. Presets and direct expression input create
+cron rules. The editor displays an existing elapsed rule as text and
+keeps its interval and anchor until the person chooses a preset or
+enters cron. The node preview provides the first upcoming instant in the
+same feedback line as the description. Node preview and typed bounds
+govern save. The form keeps stored expiry and all fields it does not edit.
 Person saves disclose the node's ownership transfer. Run history,
 expiry controls and the active-empty docs link stay outside these
-packets. Per-run worktree isolation remains a parity gap.
+packets. Per-run worktree isolation remains a parity gap (TRACKER 838).
+
+The GPUI sheet uses the existing input, picker, switch and dialog. One
+provider/model field browses the node's advertised providers and models.
+The draft keeps the original spec and revision so an edit can replace
+only the values it owns. It sends preview and save through the same
+admission as the selected host. Separate request tickets allow a late
+catalogue or forecast to be ignored without cancelling another field.
+The shared schedule permit limits traffic, and an ambiguous save
+requires refreshing the list. A person-owned existing-session target
+still opens through the P3 heartbeat flow.
+
+Native Link has a direct edge to the already locked `iana-time-zone`
+package. The device lookup runs off the Link actor on a blocking worker,
+then the form uses `GetNode.timezone` as its fallback. No package was
+added to the lock and the dependency edge is native-only.
+
+The field order and combined model picker follow
+`packages/app/src/components/schedules/schedule-form-sheet.tsx:467–545`
+and `:688–809`. Standard cron presets and custom input follow
+`packages/app/src/components/schedules/cadence-editor.tsx:33–116` and
+`packages/app/src/schedules/schedule-cadence-options.ts:14–61`.
+
+## P3 · Heartbeat detail
 
 For 587, P3 adds the heartbeat detail and cadence-only edit. A node-line
 packet must supply the revision-checked, owner-preserving operation

@@ -53,6 +53,7 @@ impl State {
             Command::TerminalProfiles(ask) => self.terminal_profiles(ask).await,
             Command::Diagnostics(ask) => self.diagnostics(ask).await,
             Command::Schedules(request) => self.schedule(request).await,
+            Command::ScheduleForm(request) => self.schedule_form(request).await,
             Command::Plugins(ask) => self.plugins(ask, Event::Plugins).await,
             Command::PluginCatalog(ask) => self.plugins(ask, Event::PluginCatalog).await,
             Command::Devices {

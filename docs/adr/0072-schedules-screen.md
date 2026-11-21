@@ -16,6 +16,12 @@ stored expiry, and previews on the node. A missing device IANA zone falls
 back to the machine's zone. Person saves in the new-session editor
 disclose ownership transfer.
 
+P2 resolves the device's IANA zone in native Link using the already
+locked `iana-time-zone` package. The lookup runs on a blocking worker,
+outside the actor loop. The typed machine fallback comes from
+`GetNode.timezone`. The wasm Link has no direct dependency on the lookup.
+The form can accept an explicit zone when both sources are unavailable.
+
 The client follows Paseo's target-based Heartbeat label
 (`schedule-format.ts` 31–33). Every schedule targeting an existing
 session is a Heartbeat, regardless of who defined it. The row offers
@@ -118,7 +124,8 @@ fallback when the device zone does not parse.
 
 `view` already depends on `vessel-proto` and must not do I/O or draw.
 `link` already depends on `view`, `vessel-proto` and `vessel-client`.
-No new crate edge and no new dependency. The sidebar already has an
+Native Link uses the direct IANA lookup edge described in the M12
+amendment. The underlying package was already in the lock. The sidebar already has an
 empty slot for this screen (`app/src/areas/sidebar.rs`, `schedules`,
 returning `None`). Filling that slot is not this decision's code: the
 shell's owner draws the row. This track does not edit the sidebar.
@@ -197,9 +204,9 @@ protocol. "Same" means the screen does what that line does.
 | Prompt | Required for a new session (`schedule-form-model.ts` 548–549; placeholder `schedule-form-sheet.tsx` 513) | `PromptText` | Parsed with `PromptText`. Empty, over 16 KiB, or a forbidden control character is a typed error. |
 | Cadence presets | Every minute `* * * * *`, every hour `0 * * * *`, daily 9:00 `0 9 * * *`, weekdays 9:00 `0 9 * * 1-5`, Mondays 9:00 `0 9 * * 1` (`schedule-cadence-options.ts` 14–20) | `Cadence::Cron` | Those five are cron, as Paseo submits them. A new schedule opens on every hour (`0 * * * *`), which is what Paseo's default hour becomes after `normalizeScheduleFormCadence` (`schedule-cadence-options.ts` 38–51, default `schedule-form-model.ts` 143). |
 | Custom cron | A text field (`cadence-editor.tsx` 102–116) | `CronExpr` | Parsed with `CronExpr`, not a second grammar. Invalid is a typed error and blocks save. |
-| Every | CLI `--every`. The app form rewrites it to cron (`schedule-cadence-options.ts` 46–61) | `Cadence::Every` | The form has a separate elapsed interval, 60 seconds to 366 days (`EverySeconds`). It is not rewritten into cron. Opening an existing `every` does not convert it. The default for a *new* schedule is still the cron preset above, so a person who does not touch cadence gets Paseo's "every hour" wall clock, not an elapsed hour. |
-| Time zone | The device zone, stored on the cron (`cadence-editor.tsx` 45–49: `cronTimeZone = normalizedValue.timezone ?? deviceTimeZone`, and `device-timezone.ts` reads `Intl.DateTimeFormat().resolvedOptions().timeZone`). A missing zone becomes `UTC` (`schedule-format.ts` 133, `schedule-form-model.ts` 144 `DEFAULT_TIMEZONE`) | `TimeZoneName` on cron; `schedule.preview` can answer `UnknownZone` | A new cron starts as the device zone `app` parsed. An existing cron opens on its stored zone. When the device name does not parse, the field starts as `SchedulePeer`'s machine zone when that parses. When neither parses, the field is empty and cron cannot be saved until a zone is chosen. No UTC default. The zone's shape is checked locally; whether the database has it is the preview's or the save's refusal. When the device zone and the machine zone differ, the field shows the device zone, and the preview lists only the instants `schedule.preview` returned. Those instants are the node's. Both zone names are shown, so a daily 9:00 is 9:00 in the device zone. The form does not replace those instants with a sentence computed on the device. |
-| Preview | A sentence under the cron (`cadence-editor.tsx` 33–37, 88–94) | `schedule.preview`, count 5 (1 to 10) | Shown only from a preview reply: the instants and the cadence the reply returns. A later edit invalidates it. Save reuses that cadence, anchor included, only when it is the form's cadence plus the filled anchor. Otherwise `every` is saved with no anchor and the node fills it. Protocol older than 13: the call is not made; the form says this machine cannot preview; no instants are invented; save still works. Four previews already running comes back `unavailable` and is shown, not retried in a loop. |
+| Every | CLI `--every`. The app form rewrites it to cron (`schedule-cadence-options.ts` 46–61) | `Cadence::Every` | An existing interval opens as text with its exact elapsed value. Saving other fields keeps the interval and anchor. Selecting a preset or entering an expression replaces it with cron. New schedules use cron. |
+| Time zone | Device IANA zone on cron (`cadence-editor.tsx` 45–49). Paseo falls back to UTC (`schedule-format.ts` 133) | `TimeZoneName` on cron | New cron uses device IANA, then the machine's zone. Existing cron retains its stored zone. When neither source names a zone, the form asks for an explicit IANA name and holds Save. The forecast line names the display zone of the returned instant. |
+| Preview | One description or error under the cron (`cadence-editor.tsx` 33–37, 88–94) | `schedule.preview`, count 1 | The description and first upcoming node-projected instant share one feedback line. Editing the rule invalidates the previous reply. Saves retain stored elapsed cadence. Nodes older than protocol 13 disclose unavailable preview and can still save a valid rule. |
 | Max runs | Placeholder "Unlimited". `parseMaxRuns` turns 0, blank and garbage into `null` (`schedule-form-sheet.tsx` 68–71, 537–547) | `MaxRuns` or absent | Blank means absent (no cap). Anything else must parse as 1 to 1,000,000. A bad value is a typed error and does not mean unlimited. |
 | Expiry | Not on the app form. CLI `--expires-in` is a duration from the device clock; update takes an absolute `expiresAt` (`protocol` `UpdateScheduleInput`) | `ends_at` | An optional absolute UTC instant. No duration is added to the device clock. A value that does not parse is a typed error. A past instant is allowed: the node then ends the schedule by its own rule. |
 | Archive on finish | Switch, default on (`schedule-form-model.ts` 682; control `schedule-form-sheet.tsx` 801–809). App only, in the form | `AfterRun` on `ScheduleTarget::NewSession` | Default `Archive`. Off is `Keep`. Only for a new session a person owns, on a `Direct` peer. Changing it is `schedule.update` of the whole definition with that one field changed, at the revision the screen holds, and `defined_by` becomes the person who toggles it. The switch's copy says later runs act as them. Hidden when an agent owns the schedule, and hidden on a `Forwarded` peer: the call is not sent. `AfterRun::Unknown` is shown and the switch does not move. |

@@ -18,6 +18,7 @@ impl Shell {
             Event::CodeSource(answer) => self.code_source_answer(*answer),
             Event::Usage(answer) => self.usage_answer(answer, cx),
             Event::Schedules(answer) => return self.schedules_answer(answer, cx),
+            Event::ScheduleForm(answer) => return self.schedule_form_answer(answer, cx),
             Event::Sessions(answer) => self.sessions_navigation_answer(answer, cx),
             Event::SessionLifecycle(answer) => self.sessions_lifecycle_answer(answer, cx),
             Event::Creation(answer) => self.creation_answer(answer, cx),
@@ -35,7 +36,7 @@ impl Shell {
             Event::Sync(answer) => self.sync_answer(answer),
             Event::Claims(answer) => self.notices_claimed(answer, cx),
             Event::TerminalNotices { machine, notices } => {
-                self.terminal_notices_found(machine, notices);
+                self.terminal_notices_found(machine, notices, cx);
             }
             Event::TerminalClaims(answer) => self.terminal_notices_claimed(answer, cx),
             Event::NodeSettings(answer) => self.node_settings_answer(answer),

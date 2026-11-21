@@ -168,6 +168,9 @@ impl Link {
             Command::Schedules(request) => self.emit(Event::Schedules(
                 crate::schedules::Answer::refused(request, vessel_app_view::schedules::load::Failure::NoTransport),
             )),
+            Command::ScheduleForm(request) => self.emit(Event::ScheduleForm(
+                crate::schedules::form::Answer::refused(request, vessel_app_view::schedules::load::Failure::NoTransport),
+            )),
             Command::Plugins(ask) => self.emit(refuse::plugins(ask)),
             Command::PluginCatalog(ask) => self.emit(refuse::plugin_catalog(ask)),
             Command::Pair { .. } => self.emit(refuse::pair()),

@@ -299,3 +299,172 @@ schedules-sunday = 일요일
 
 # Search aliases for the Schedules destination in Command Center.
 schedules-search-keywords = 일정 일정 자동 실행 반복 schedules scheduled automation recurring
+
+# Cadence preset picker labels; not the saved row’s full cadence description.
+schedules-preset-minute = 매분
+
+# Hourly cadence preset picker label; not a saved cadence description.
+schedules-preset-hour = 매시간
+
+# Daily-at-nine cadence preset picker label; keep short.
+schedules-preset-daily = 매일 09:00
+
+# Monday-to-Friday-at-nine cadence preset picker label; keep short.
+schedules-preset-weekdays = 평일 09:00
+
+# Monday-at-nine cadence preset picker label; keep short.
+schedules-preset-mondays = 월요일 09:00
+
+# Whole field error; numeric maximum comes from the typed node bound.
+schedules-form-name-invalid = 제어 문자 없이 짧은 이름을 한 줄로 입력하세요.
+
+# Whole field error; numeric maximum comes from the typed node bound.
+schedules-form-prompt-invalid = 프롬프트를 { NUMBER($maximum, useGrouping: "false") } UTF-8 바이트 이내로 입력하세요. 제어 문자는 탭과 줄바꿈만 사용할 수 있습니다.
+
+# Whole field error; numeric maximum comes from the typed node bound.
+schedules-form-max-runs-invalid = 1부터 { NUMBER($maximum, useGrouping: "false") } 사이의 정수를 입력하거나, 실행 횟수를 제한하지 않으려면 비워 두세요.
+
+# Whole typed preview failure; never show wire message/Display.
+schedules-preview-mismatched = 머신에서 규칙과 다르거나 불완전한 미리보기를 받았습니다. 실행 시각을 표시할 수 없습니다.
+
+# A machine supports schedule create/update but predates the read-only preview call.
+schedules-preview-unavailable-older = 이 머신은 이 규칙을 미리 확인할 수 없습니다. 미리보기 없이 저장할 수 있습니다.
+
+# Schedule editor: form-new-title control/feedback, never a node diagnostic.
+schedules-form-new-title = 새 예약
+
+# Schedule editor: form-edit-title control/feedback, never a node diagnostic.
+schedules-form-edit-title = 예약 편집
+
+# Schedule editor: form-create control/feedback, never a node diagnostic.
+schedules-form-create = 예약 만들기
+
+# Schedule editor: form-save control/feedback, never a node diagnostic.
+schedules-form-save = 변경 사항 저장
+
+# Schedule editor: form-name control/feedback, never a node diagnostic.
+schedules-form-name = 이름
+
+# Schedule editor: form-prompt control/feedback, never a node diagnostic.
+schedules-form-prompt = 프롬프트
+
+# Schedule editor: form-host control/feedback, never a node diagnostic.
+schedules-form-host = 머신
+
+# Schedule editor: form-project control/feedback, never a node diagnostic.
+schedules-form-project = 프로젝트
+
+# Schedule editor: form-model control/feedback, never a node diagnostic.
+schedules-form-model = 모델
+
+# Schedule editor: form-thinking control/feedback, never a node diagnostic.
+schedules-form-thinking = 추론
+
+# Schedule editor: form-mode control/feedback, never a node diagnostic.
+schedules-form-mode = 모드
+
+# Schedule editor: form-archive control/feedback, never a node diagnostic.
+schedules-form-archive = 완료 후 보관
+
+# Schedule editor: form-limit control/feedback, never a node diagnostic.
+schedules-form-limit = 최대 실행 횟수
+
+# Schedule editor: form-optional control/feedback, never a node diagnostic.
+schedules-form-optional = 선택 사항
+
+# Schedule editor: form-prompt-placeholder control/feedback, never a node diagnostic.
+schedules-form-prompt-placeholder = 에이전트가 실행할 때마다 무엇을 해야 하나요?
+
+# Schedule editor: form-unlimited control/feedback, never a node diagnostic.
+schedules-form-unlimited = 제한 없음
+
+# Schedule editor: form-cadence control/feedback, never a node diagnostic.
+schedules-form-cadence = 실행 주기
+
+# Schedule editor: form-zone control/feedback, never a node diagnostic.
+schedules-form-zone = 시간대
+
+# Schedule editor: form-project-placeholder control/feedback, never a node diagnostic.
+schedules-form-project-placeholder = 프로젝트 선택
+
+# Schedule editor: form-model-placeholder control/feedback, never a node diagnostic.
+schedules-form-model-placeholder = 모델 선택
+
+# Schedule editor: form-zone-placeholder control/feedback, never a node diagnostic.
+schedules-form-zone-placeholder = 시간대 선택
+
+# Schedule editor: form-custom control/feedback, never a node diagnostic.
+schedules-form-custom = 직접 입력
+
+# Placeholder for searching project choices on the selected machine; short.
+schedules-form-search-projects = 프로젝트 검색...
+# Placeholder for filtering the current provider/model browser; short.
+schedules-form-search-models = 모델 검색...
+# Placeholder for filtering offered thinking-option choices; short.
+schedules-form-search-thinking = 추론 옵션 검색...
+# Placeholder for filtering offered session modes; short.
+schedules-form-search-modes = 모드 검색...
+# Placeholder for filtering IANA time-zone names; short.
+schedules-form-search-zones = 시간대 검색...
+# Project choice list has no matching offered project; not a transport diagnostic.
+schedules-form-empty-projects = 프로젝트를 찾을 수 없습니다
+# Model choice list has no offered model; provider read errors use separate feedback.
+schedules-form-empty-models = 모델을 찾을 수 없습니다
+# Thinking choice list has no matching offered option; short.
+schedules-form-empty-thinking = 추론 옵션을 찾을 수 없습니다
+# Session-mode choice list has no matching offered mode; short.
+schedules-form-empty-modes = 모드를 찾을 수 없습니다
+# Time-zone choice list has no matching IANA name; short.
+schedules-form-empty-zones = 시간대를 찾을 수 없습니다
+# Fallback empty filtered choice list; short, not a failed node read.
+schedules-form-empty-choices = 일치하는 옵션이 없습니다
+# Example five-field cron expression in the form; preserve digits, spaces and operators.
+schedules-form-cron-placeholder = 0 9 * * *
+
+# Source model-browser feedback; short loading/retry/no-matching-model labels.
+schedules-form-model-loading = 불러오는 중
+# Retry only the failed provider-model read; short button label, never repeats a write.
+schedules-form-model-retry = 다시 시도
+# Disabled retry button while that provider-model read is pending; short.
+schedules-form-model-retrying = 다시 시도 중...
+# Successful model catalog/search with no matching models; not a provider error.
+schedules-form-model-no-matches = 검색과 일치하는 모델이 없습니다
+
+# Schedule form control or status.
+schedules-form-zone-invalid = Asia/Seoul과 같은 IANA 시간대를 입력하세요.
+
+# Schedule form control or status.
+schedules-form-cron-invalid = 유효한 다섯 필드의 크론 식을 입력하세요.
+
+# Schedule form control or status.
+schedules-form-ownership = 이후 실행은 변경 사항을 저장한 사람의 권한을 사용합니다.
+
+# Schedule form control or status.
+schedules-form-default-model = 기본 모델
+
+# Schedule form control or status.
+schedules-form-default-choice = 기본값
+
+# Schedule form control or status.
+schedules-form-saving = 저장 중…
+
+# Schedule form control or status.
+schedules-form-script = 크론 식
+
+# Schedule form control or status.
+schedules-form-no-machine = 일정을 만들려면 머신에 연결하세요.
+
+# Accessible name of the row that opens the editor.
+schedules-form-edit-row = 일정 수정 { $title }
+
+# Schedule rule or its first projected run.
+schedules-form-select-cadence = 실행 주기 선택
+
+# Schedule rule or its first projected run.
+schedules-form-elapsed-seconds = { NUMBER($seconds, useGrouping: "false") }초마다
+
+# Schedule rule or its first projected run.
+schedules-form-preview-line = { $description } · 다음 실행 { DATETIME($at) }
+
+# The retained elapsed cadence on an older node.
+schedules-form-elapsed-without-preview = { $cadence } · 이 머신에서는 미리보기를 사용할 수 없습니다

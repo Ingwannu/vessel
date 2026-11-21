@@ -3,6 +3,8 @@
 mod controller;
 mod data;
 mod draw;
+mod editor;
+pub(crate) use editor::refuse as refuse_form;
 mod filters;
 mod overlays;
 mod row;
@@ -30,6 +32,7 @@ use vessel_app_view::schedules::{
 
 pub(crate) struct Area {
     data: data::Data,
+    editor: editor::Editor,
     ui: Ui,
     tick: Option<(RefreshTier, gpui::Task<()>)>,
 }
@@ -67,6 +70,7 @@ impl Area {
     pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
         Self {
             data: data::Data::default(),
+            editor: editor::Editor::new(window, cx),
             ui: Ui {
                 picker: ComboboxState::new(window, cx),
                 anchor: Anchor::default(),
