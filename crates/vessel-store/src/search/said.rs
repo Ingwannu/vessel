@@ -63,13 +63,16 @@ pub(super) fn said(event: &SessionEvent) -> Said<'_> {
 }
 
 /// The text a block adds to a message: a text block's text; nothing for a
-/// link, an attachment or a block the node does not read.
+/// link, an attachment, attached context or a review (what a person said,
+/// not what they attached, ADR 0124), or a block the node does not read.
 pub(super) fn text_of(block: &ContentBlock) -> Option<&str> {
     match block {
         ContentBlock::Text { text } => Some(text),
         ContentBlock::ResourceLink { .. }
         | ContentBlock::Opaque { .. }
-        | ContentBlock::Attachment { .. } => None,
+        | ContentBlock::Attachment { .. }
+        | ContentBlock::Context(_)
+        | ContentBlock::Review(_) => None,
     }
 }
 

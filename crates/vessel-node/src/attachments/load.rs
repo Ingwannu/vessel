@@ -76,7 +76,9 @@ pub(crate) async fn resolve(
             },
             other @ (ContentBlock::Text { .. }
             | ContentBlock::ResourceLink { .. }
-            | ContentBlock::Opaque { .. }) => other,
+            | ContentBlock::Opaque { .. }
+            | ContentBlock::Context(_)
+            | ContentBlock::Review(_)) => other,
         });
     }
     Ok(resolved)

@@ -374,6 +374,16 @@ the same document, as `OpenScreen` opens a screen.
   Settings screens are hidden there, as `plugin.settings.read` is Admin.
   Commands and slash commands stay hidden without `may_invoke`, as decided
   above.
+- **Sidebar rows across machines.** As in Paseo (sidebar-groups.ts:33-37,
+  97-110), a row that several connected machines declare is drawn once. It
+  opens the machine whose screen is open now, else the one last shown,
+  else the first in order. An away machine's rows are left out.
+- **Page markup differences (stated).**
+  - A popover inside a menu is not offered, because it has no anchor once
+    the menu closes; the same popover as a button works.
+  - Paseo's words read "host" as "machine" ("Plugin machine is offline.").
+  - A refusal replaces the row's hint, as Paseo's row `error` does, and is
+    announced as an alert.
 - **No screen params (stated difference).** Paseo's `openScreen({screenId,
   params})` passes strings to a component that fetches its own data. A
   Vessel surface is a static document; a helper changes what a screen shows
