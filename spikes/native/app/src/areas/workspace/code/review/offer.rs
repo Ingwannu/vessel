@@ -117,7 +117,7 @@ impl Shell {
                     return;
                 }
                 // A full tray keeps what the person chose; the review waits.
-                drop(tray.add(ContextAttachment::Review(Box::new(offer))));
+                let _full = tray.add(ContextAttachment::Review(Box::new(offer))).is_err();
             }
             None => {
                 if let Some(tray) = self.areas.composer.contexts.get_mut(target) {
