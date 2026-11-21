@@ -44,6 +44,10 @@ export type Action = { "kind": "open_screen",
 /**
  * Referenced declared screen id.
  */
+screen: ContributionId, } | { "kind": "open_settings", 
+/**
+ * Referenced declared settings screen id.
+ */
 screen: ContributionId, } | { "kind": "invoke", 
 /**
  * Plugin method, not an unrestricted node method.
@@ -2092,7 +2096,71 @@ label: Caption,
 /**
  * Core semantic tone.
  */
-tone: StatusTone, };
+tone: StatusTone, } | { "kind": "card", 
+/**
+ * Ordered children.
+ */
+surface: Surface, } | { "kind": "settings_switch", 
+/**
+ * A document the same helper declared in `ready`.
+ */
+settings: SettingsId, 
+/**
+ * The bound top-level property.
+ */
+key: SettingsKey, 
+/**
+ * Row label.
+ */
+label: Caption, 
+/**
+ * Muted help under the label.
+ */
+hint: Caption | null, } | { "kind": "settings_select", 
+/**
+ * A document the same helper declared in `ready`.
+ */
+settings: SettingsId, 
+/**
+ * The bound top-level property.
+ */
+key: SettingsKey, 
+/**
+ * Row label.
+ */
+label: Caption, 
+/**
+ * Muted help under the label.
+ */
+hint: Caption | null, 
+/**
+ * Unique values; an option's id is the saved string.
+ */
+options: Array<PluginChoiceOption>, } | { "kind": "settings_input", 
+/**
+ * A document the same helper declared in `ready`.
+ */
+settings: SettingsId, 
+/**
+ * The bound top-level property.
+ */
+key: SettingsKey, 
+/**
+ * Row label.
+ */
+label: Caption, 
+/**
+ * Muted help under the label.
+ */
+hint: Caption | null, 
+/**
+ * Shown while the field is empty.
+ */
+placeholder: Caption | null, 
+/**
+ * Whether the text is masked.
+ */
+mode: PluginInputMode, };
 
 /**
  * A session's conversation as it stands (`session.conversation`): what
@@ -7620,6 +7688,12 @@ export type PluginGeneration = number;
 export type PluginId = string;
 
 /**
+ * Paseo's `secureTextEntry`, as an explicit state.
+ * In TypeScript `PluginInputMode`, beside the composer's own input names.
+ */
+export type PluginInputMode = "plain" | "secret";
+
+/**
  * Reply to `plugin.inspect`: the manifest's identity.
  */
 export type PluginInspection = { 
@@ -11647,6 +11721,11 @@ disclosure_version: UsageDisclosureVersion, };
 export type SettingsId = string;
 
 /**
+ * One top-level property of a settings document that a control binds.
+ */
+export type SettingsKey = string;
+
+/**
  * Refusal text a person reads: at most [`MAX_SETTINGS_MESSAGE_BYTES`],
  * no control characters.
  */
@@ -14644,3 +14723,8 @@ export const ORIGIN_LINK_PROTOCOL = 42;
  * `plugin.settings.read`, `.write` and `.reset` (ADR 0115, "Settings").
  */
 export const PLUGIN_SETTINGS_PROTOCOL = 43;
+
+/**
+ * a catalog entry using `card`, the settings controls or `open_settings` (ADR 0115, "Surfaces").
+ */
+export const PLUGIN_SURFACES_PROTOCOL = 44;
