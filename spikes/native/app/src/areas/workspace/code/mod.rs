@@ -38,16 +38,16 @@ mod found;
 mod frame;
 mod image_view;
 mod line_syntax;
-mod review;
-mod review_rows;
-#[cfg(test)]
-#[cfg(not(target_arch = "wasm32"))]
-mod review_tests;
 mod panels;
 mod panels_view;
 mod pull_tab;
 mod review;
+mod review;
 mod review_rows;
+mod review_rows;
+#[cfg(test)]
+#[cfg(not(target_arch = "wasm32"))]
+mod review_tests;
 mod search;
 mod shown_source;
 mod sort;

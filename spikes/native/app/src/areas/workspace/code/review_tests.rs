@@ -31,13 +31,27 @@ fn a_comment_is_written_under_its_line_edited_in_place_and_deleted(cx: &mut Test
         shell.review_open(target(), None, 3, window, cx);
         shell.review_save(window, cx);
         assert!(shell.areas.workspace.code.changes.review.is_some());
-        assert!(shell.areas.composer.drafts.reviews().comments(&key).is_empty());
+        assert!(
+            shell
+                .areas
+                .composer
+                .drafts
+                .reviews()
+                .comments(&key)
+                .is_empty()
+        );
 
         let editor = shell.areas.workspace.code.changes.review.as_ref().unwrap();
         editor.field.set_text("Cap this.", window, cx);
         shell.review_save(window, cx);
         assert!(shell.areas.workspace.code.changes.review.is_none());
-        let kept = shell.areas.composer.drafts.reviews().comments(&key).to_vec();
+        let kept = shell
+            .areas
+            .composer
+            .drafts
+            .reviews()
+            .comments(&key)
+            .to_vec();
         assert_eq!(kept.len(), 1);
         assert_eq!(kept[0].body, "Cap this.");
         assert_eq!(kept[0].target, target());
@@ -50,20 +64,40 @@ fn a_comment_is_written_under_its_line_edited_in_place_and_deleted(cx: &mut Test
         assert_eq!(editor.comment, Some(id));
         shell.review_cancel(cx);
         assert!(shell.areas.workspace.code.changes.review.is_none());
-        assert_eq!(shell.areas.composer.drafts.reviews().comments(&key)[0].body, "Cap this.");
+        assert_eq!(
+            shell.areas.composer.drafts.reviews().comments(&key)[0].body,
+            "Cap this."
+        );
 
         shell.review_open(target(), Some(id), 3, window, cx);
         let editor = shell.areas.workspace.code.changes.review.as_ref().unwrap();
         editor.field.set_text("Cap this at 30 seconds.", window, cx);
         shell.review_save(window, cx);
-        let kept = shell.areas.composer.drafts.reviews().comments(&key).to_vec();
+        let kept = shell
+            .areas
+            .composer
+            .drafts
+            .reviews()
+            .comments(&key)
+            .to_vec();
         assert_eq!(kept.len(), 1);
-        assert_eq!((kept[0].id, kept[0].body.as_str()), (id, "Cap this at 30 seconds."));
+        assert_eq!(
+            (kept[0].id, kept[0].body.as_str()),
+            (id, "Cap this at 30 seconds.")
+        );
 
         // Another comparison has its own comments.
         shell.areas.workspace.code.changes.scope = ScopeKind::Staged;
         let staged = shell.review_key().unwrap();
-        assert!(shell.areas.composer.drafts.reviews().comments(&staged).is_empty());
+        assert!(
+            shell
+                .areas
+                .composer
+                .drafts
+                .reviews()
+                .comments(&staged)
+                .is_empty()
+        );
         shell.areas.workspace.code.changes.scope = ScopeKind::Uncommitted;
 
         // A delete takes the comment and its open edit.
