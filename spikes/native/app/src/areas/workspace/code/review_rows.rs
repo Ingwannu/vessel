@@ -80,9 +80,7 @@ pub(super) fn line(
         .justify_center()
         .cursor_pointer()
         .role(gpui::Role::Button)
-        .aria_label(SharedString::from(
-            shell.words.review().add().to_owned(),
-        ))
+        .aria_label(SharedString::from(shell.words.review().add().to_owned()))
         .child(glyph(Glyph::Plus, 16.0, neutral.accent_foreground))
         .on_click(cx.listener(move |shell, _event, window, cx| {
             shell.review_open(opened.clone(), None, index, window, cx);
@@ -278,9 +276,7 @@ fn editor_block(
         state,
         tokens,
     )
-    .aria_label(SharedString::from(
-        words.save_accessibility().to_owned(),
-    ))
+    .aria_label(SharedString::from(words.save_accessibility().to_owned()))
     .when(state == ButtonState::Enabled, |save| {
         save.on_click(cx.listener(|shell, _event, window, cx| shell.review_save(window, cx)))
     });
@@ -291,9 +287,7 @@ fn editor_block(
         ButtonState::Enabled,
         tokens,
     )
-    .aria_label(SharedString::from(
-        words.cancel_accessibility().to_owned(),
-    ))
+    .aria_label(SharedString::from(words.cancel_accessibility().to_owned()))
     .on_click(cx.listener(|shell, _event, _window, cx| shell.review_cancel(cx)));
     card(tokens)
         .min_h(px(EDITOR))
@@ -355,9 +349,7 @@ pub(super) fn sheet(
         state,
         tokens,
     )
-    .aria_label(SharedString::from(
-        words.save_accessibility().to_owned(),
-    ))
+    .aria_label(SharedString::from(words.save_accessibility().to_owned()))
     .when(state == ButtonState::Enabled, |save| {
         save.on_click(cx.listener(|shell, _event, window, cx| shell.review_save(window, cx)))
     });
@@ -368,9 +360,7 @@ pub(super) fn sheet(
         ButtonState::Enabled,
         tokens,
     )
-    .aria_label(SharedString::from(
-        words.cancel_accessibility().to_owned(),
-    ))
+    .aria_label(SharedString::from(words.cancel_accessibility().to_owned()))
     .on_click(cx.listener(|shell, _event, _window, cx| shell.review_cancel(cx)));
     let content = DialogContent {
         title: words.label().to_owned().into(),
