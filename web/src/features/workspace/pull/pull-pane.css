@@ -274,3 +274,20 @@
 .pull-md :last-child {
   margin-bottom: 0;
 }
+
+/* A pane state on its own (Paseo's pane-error.tsx 25-38): the whole pane,
+   centred both ways, 12 apart, 16 at the sides, muted words centred. The
+   kit's EmptyState keeps its mark and title (a stated difference). */
+.pull-centred {
+  justify-content: center;
+  align-items: center;
+  padding: 0 16px;
+}
+
+.pull-centred .empty {
+  align-items: center;
+  gap: 12px;
+  padding: 0;
+  text-align: center;
+  color: var(--text-tertiary);
+}

@@ -56,7 +56,7 @@ export function PullPane({
 export function PullTooOld({ language }: { language: string }) {
   const words = pullWords(language);
   return (
-    <div className="pull-pane">
+    <div className="pull-pane pull-centred">
       <EmptyState title={words.tooOldTitle} icon="info">
         {words.tooOldDescription}
       </EmptyState>
