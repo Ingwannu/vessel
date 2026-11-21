@@ -102,6 +102,7 @@ export const ICON_NAMES = [
   "git-merge",
   "git-pull-request-closed",
   "github",
+  "circle-slash",
 ] as const;
 
 export type IconName = (typeof ICON_NAMES)[number];

@@ -29,9 +29,13 @@ function documentUrlTransform(url: string, key: string): string {
 export function Markdown({
   children,
   files,
+  httpsOnly = false,
 }: {
   children: string;
   files?: MarkdownFiles;
+  /** Only `https:` addresses become links (a forge's comments, TRACKER
+   * 430: a reviewer's text is followed only over a secure link). */
+  httpsOnly?: boolean;
 }) {
   return (
     <ReactMarkdown
@@ -41,7 +45,9 @@ export function Markdown({
       }
       components={{
         a: ({ href, children: label }) =>
-          href !== undefined && isWebUrl(href) ? (
+          href !== undefined &&
+          isWebUrl(href) &&
+          (!httpsOnly || /^https:\/\//iu.test(href)) ? (
             <a href={href} target="_blank" rel="noopener noreferrer">
               {label}
             </a>
@@ -50,6 +56,22 @@ export function Markdown({
           ) : (
             <>{label}</>
           ),
+        // A forge's comment (httpsOnly): an image is not loaded (the page's
+        // policy blocks it); its words link to it over https.
+        ...(httpsOnly && files === undefined
+          ? {
+              img: ({ src, alt }) => {
+                const label = alt === undefined || alt === "" ? "image" : alt;
+                return typeof src === "string" && /^https:\/\//iu.test(src) ? (
+                  <a href={src} target="_blank" rel="noopener noreferrer">
+                    {label}
+                  </a>
+                ) : (
+                  <>{label}</>
+                );
+              },
+            }
+          : {}),
         ...(files === undefined
           ? {}
           : {

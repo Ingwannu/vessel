@@ -1837,7 +1837,14 @@ several, the pull request (state glyph and number, a link), its checks (the
 `kit/check-indicator.tsx` ring, a pie filled by quarters from the summary's
 tally) and the label chips; its rules are `web/src/data/workspace/meta-row.ts`,
 its markup `features/shell/workspace-meta.tsx`, and the row is a group named as
-Paseo's row (title, machine, "Pull request #N").
+Paseo's row (title, machine, "Pull request #N"). A session with a pull request
+offers the workspace tab "Pull request" (TRACKER 430, kind `pull` in
+`data/workspace/tab-layout.ts`): Paseo's pane in
+`features/workspace/pull/` over `pr.get`, `pr.timeline` and, for a failed
+check's logs, `pr.check`; its rules (checks presentation and ring, threads under
+reviews, card menus, Paseo's Add to chat text) are `web/src/data/workspace/pull/`,
+ported from the native view's `workspace::pull`. Add to chat writes that text into
+the session's draft (the composer's context pills are TRACKER 833).
 
 ### Settings writer lifetime
 
