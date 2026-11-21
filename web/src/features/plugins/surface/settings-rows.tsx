@@ -68,11 +68,11 @@ function useEntry(at: SettingsAddress): DocEntry {
 }
 
 /** The refusal to show on the row bound to `key`, if any. */
-function rowError(entry: DocEntry, key: string): string | undefined {
+function rowError(entry: DocEntry, key: string): string | null {
   const error = entry.error;
   return error !== null && !error.conflict && error.key === key
     ? error.words
-    : undefined;
+    : null;
 }
 
 /** One document's state, above its rows. */
@@ -257,7 +257,9 @@ export function SettingsInputRow({
       <TextField
         aria-label={control.label}
         value={shown}
-        placeholder={control.placeholder ?? undefined}
+        {...(control.placeholder === null
+          ? {}
+          : { placeholder: control.placeholder })}
         type={control.mode === "secret" ? "password" : "text"}
         disabled={!usable}
         onChange={(text) => {
