@@ -32,9 +32,9 @@ pub fn sent_context(content: &[ContentBlock]) -> Vec<SentContext> {
     content
         .iter()
         .filter_map(|block| match block {
-            ContentBlock::Context(context) => Some(SentContext::Context {
-                title: context.title.as_str().to_owned(),
-                history: context.kind == ContextKind::ChatHistory,
+            ContentBlock::Context(attached) => Some(SentContext::Context {
+                title: attached.title.as_str().to_owned(),
+                history: attached.kind == ContextKind::ChatHistory,
             }),
             ContentBlock::Review(review) => Some(SentContext::Review {
                 comments: review.comments.len(),
