@@ -137,8 +137,10 @@ impl Link {
             | Command::KeepCommands { .. }
             | Command::SaveDrafts(_)
             | Command::RetireConnection(_)
-            // The demo has no machine whose terminals ask for anyone.
-            | Command::ClearTerminalAttention { .. } => {}
+            // The demo has no machine whose terminals ask for anyone, and
+            // no inbox.
+            | Command::ClearTerminalAttention { .. }
+            | Command::ReadInbox(_) => {}
             Command::CodeSource(request) => self.emit(refuse::code_source(request)),
             Command::Usage(ask) => self.emit(refuse::usage(ask)),
             Command::SessionAccess(access) => self.emit(refuse::session_access(access)),

@@ -100,3 +100,16 @@ fn only_admitted_or_an_entry_past_the_first_page_shows() {
     }
     assert!(!shows(Asked::Failed));
 }
+
+#[test]
+fn a_read_is_marked_by_inbox_read_only_on_a_machine_that_admits_the_protocol() {
+    // While unassigned, every machine keeps the read mark, at any protocol.
+    let current = Some(vessel_proto::PROTOCOL_VERSION);
+    let expected = if ATTENTION_NOTIFICATIONS_PROTOCOL.is_some() {
+        ReadCall::Inbox
+    } else {
+        ReadCall::Mark
+    };
+    assert_eq!(read_call(current), expected);
+    assert_eq!(read_call(None), ReadCall::Mark, "an unknown protocol");
+}

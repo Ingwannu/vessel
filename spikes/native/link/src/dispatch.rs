@@ -44,6 +44,7 @@ impl State {
             Command::Sync { machine, ticket } => self.sync(&machine, ticket).await,
             Command::Claims(ask) => self.claims(ask).await,
             Command::TerminalClaims(ask) => self.terminal_claims(ask).await,
+            Command::ReadInbox(read) => self.read_inbox(&read),
             Command::ClearTerminalAttention { machine, clear } => {
                 self.clear_terminal_attention(&machine, clear);
             }
