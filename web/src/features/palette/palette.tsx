@@ -48,6 +48,8 @@ function iconOf(place: PalettePlace): IconName {
   switch (place) {
     case "board":
       return "board";
+    case "schedules":
+      return "calendar-clock";
     case "settings":
       return "settings";
     case "machine":
@@ -85,36 +87,38 @@ function Palette() {
   const plugins = usePluginCommands();
   const commands = useMemo(
     () =>
-      paletteEntries({ book, statuses, sessions }, selected).map(
-        (entry: PaletteEntry): Command => ({
-          id: entry.id,
-          label: entry.label,
-          ...(entry.detail === undefined ? {} : { detail: entry.detail }),
-          ...(entry.keywords === undefined ? {} : { keywords: entry.keywords }),
-          icon: iconOf(entry.place),
-          group: entry.group,
-          run: () => {
-            const target = entry.target;
-            switch (target.kind) {
-              case "route":
-                void navigate({ to: target.to });
-                return;
-              case "new-session":
-                openNewSession(target.node);
-                return;
-              case "add-machine":
-                openAddMachine();
-                return;
-              case "manage-labels":
-                labelManager.set(true);
-                return;
-              case "theme":
-                void chooseTheme(fleet, target.preference);
-                return;
-            }
-          },
-        }),
-      ),
+      paletteEntries(
+        { book, statuses, sessions },
+        selected,
+        navigator.language,
+      ).map((entry: PaletteEntry): Command => ({
+        id: entry.id,
+        label: entry.label,
+        ...(entry.detail === undefined ? {} : { detail: entry.detail }),
+        ...(entry.keywords === undefined ? {} : { keywords: entry.keywords }),
+        icon: iconOf(entry.place),
+        group: entry.group,
+        run: () => {
+          const target = entry.target;
+          switch (target.kind) {
+            case "route":
+              void navigate({ to: target.to });
+              return;
+            case "new-session":
+              openNewSession(target.node);
+              return;
+            case "add-machine":
+              openAddMachine();
+              return;
+            case "manage-labels":
+              labelManager.set(true);
+              return;
+            case "theme":
+              void chooseTheme(fleet, target.preference);
+              return;
+          }
+        },
+      })),
     [book, statuses, sessions, selected, navigate, fleet],
   );
   const all = useMemo(() => [...commands, ...plugins], [commands, plugins]);
