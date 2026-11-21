@@ -159,7 +159,6 @@ fn the_row_menu_is_a_clickable_button_with_its_expansion_state(cx: &mut TestAppC
     assert!(open.contains(r#""expanded": true"#), "{open}");
 }
 
-
 #[gpui::test]
 fn a_heartbeat_row_opens_read_only_detail_and_keeps_delete(cx: &mut TestAppContext) {
     use crate::shell::language_tests::{init, named_button};
@@ -182,7 +181,10 @@ fn a_heartbeat_row_opens_read_only_detail_and_keeps_delete(cx: &mut TestAppConte
             let intent = row.intent.clone().unwrap();
             assert!(super::super::editor::openable(shell, &intent));
             assert_eq!(
-                row.menu.iter().map(|entry| entry.action).collect::<Vec<_>>(),
+                row.menu
+                    .iter()
+                    .map(|entry| entry.action)
+                    .collect::<Vec<_>>(),
                 [Action::Delete]
             );
             shell.schedule_edit_open(&intent, window, cx);

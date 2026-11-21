@@ -220,8 +220,8 @@ impl Shell {
         let Some(row) = self.areas.schedules.data.page.row(intent.key()) else {
             return;
         };
-        let Some(draft) = Draft::open_heartbeat(row.schedule)
-            .or_else(|| Draft::open(row.schedule, None))
+        let Some(draft) =
+            Draft::open_heartbeat(row.schedule).or_else(|| Draft::open(row.schedule, None))
         else {
             return;
         };

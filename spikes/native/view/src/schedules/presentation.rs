@@ -185,7 +185,10 @@ fn chat_on<'a>(
     let ScheduleTarget::Session { session } = target else {
         return None;
     };
-    machine.sessions.iter().find(|card| card.session == *session)
+    machine
+        .sessions
+        .iter()
+        .find(|card| card.session == *session)
 }
 
 fn display_target(line: &Line<'_>, catalog: &Translator) -> Result<Arc<str>, FormatError> {
