@@ -17,6 +17,12 @@ impl Shell {
     /// Send a machine that admits claims its notices, one ask per machine,
     /// and give back the ones to tell now.
     pub(super) fn ask_before_telling(&self, told: Vec<Announce>) -> Vec<Announce> {
+        // A window that does not notify never claims, so it never takes a
+        // notice from one that does: it tells by ADR 0114's local path
+        // (ADR 0089, "Turned on", item 5).
+        if !self.window_notifies() {
+            return told;
+        }
         let mut now = Vec::with_capacity(told.len());
         let mut asks: Vec<Ask> = Vec::new();
         for one in told {

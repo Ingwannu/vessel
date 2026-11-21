@@ -95,22 +95,45 @@ fn only_an_admitted_terminal_notice_is_shown_with_its_title(cx: &mut TestAppCont
     );
 }
 
+/// Only a window that shows the system's notifications claims (ADR 0089,
+/// "Turned on", item 5): one with alerts off, one that only sounds, and one
+/// whose system cannot show a notification never take a notice from a
+/// window that can.
 #[gpui::test]
-fn a_window_that_tells_nothing_never_claims(cx: &mut TestAppContext) {
+fn a_window_that_does_not_notify_never_claims(cx: &mut TestAppContext) {
     language_tests::init(cx);
     let (link, mut sent) = Link::detached(8).unwrap();
     let (shell, cx) = cx.add_window_view(move |window, cx| Shell::with_test_link(window, cx, link));
     cx.run_until_parked();
     // What the shell asks as it opens is not this test's.
     while sent.try_recv().is_ok() {}
-    shell.update(cx, |shell, _cx| {
-        shell.prefs.settings.notifications.alerts = Alerts::Off;
-        shell.terminal_notices_found("lab".to_owned(), vec![notice(NoticeKind::Finished, "t")]);
-    });
-    assert!(sent.try_recv().is_err(), "alerts off: nothing is claimed");
-    shell.update(cx, |shell, _cx| {
+    for (alerts, reaches) in [
+        (Alerts::Off, true),
+        (Alerts::Sound, true),
+        (Alerts::System, false),
+    ] {
+        shell.update(cx, |shell, cx| {
+            shell.prefs.settings.notifications.alerts = alerts;
+            shell.areas.notify.reaches_system(reaches);
+            shell.terminal_notices_found(
+                "lab".to_owned(),
+                vec![notice(NoticeKind::Finished, "t")],
+                cx,
+            );
+        });
+        assert!(
+            sent.try_recv().is_err(),
+            "{alerts:?}, system reached {reaches}: nothing is claimed"
+        );
+    }
+    shell.update(cx, |shell, cx| {
         shell.prefs.settings.notifications.alerts = Alerts::System;
-        shell.terminal_notices_found("lab".to_owned(), vec![notice(NoticeKind::Finished, "t")]);
+        shell.areas.notify.reaches_system(true);
+        shell.terminal_notices_found(
+            "lab".to_owned(),
+            vec![notice(NoticeKind::Finished, "t")],
+            cx,
+        );
     });
     let Ok(Command::TerminalClaims(ask)) = sent.try_recv() else {
         panic!("expected the terminal claims");
