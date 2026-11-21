@@ -239,6 +239,18 @@ workspace-folder terminals' 40.
 - Plugin settings are the next section; screens, panels, sidebar items,
   header buttons and composer pills are P3b.
 
+The page scopes plugin palette actions to the open session's machine,
+as Paseo's registration does. On fleet routes the page shows each
+machine's instance with its label in one section per plugin. The action
+id still contains the machine so selection and dispatch agree.
+
+The page edits prompts in the server queue in place. A local slash
+command from a text-only edit invokes the plugin while leaving the queue
+entry, edit text and unsent composer draft in place. Paseo moves a queued
+prompt into the composer when editing it. Vessel's existing queue remove
+has no revision guard, so taking a prompt could drop a newer edit from
+another client.
+
 ### Settings (2026-11-20, P3s; coordinator ruling 2026-11-20)
 
 Paseo 0.15.4 keeps host-scoped settings documents per installation:

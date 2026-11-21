@@ -23,6 +23,7 @@ import {
   setupWord,
 } from "../../data/workspace/worktree-words";
 import {
+  type KeptRemoval,
   listSnapshots,
   listWorktrees,
   removeWorktree,
@@ -32,7 +33,6 @@ import { Alert, Button, Row, RowList } from "../../ui/kit";
 import { toast } from "../../ui/toasts";
 import type { NodeKey } from "../../wire/bridge";
 import type {
-  KeptReason,
   ProjectCommands,
   ProjectInfo,
   Snapshot,
@@ -71,7 +71,7 @@ export function ProjectDetail({
   const [failure, setFailure] = useState<ActionFailure | null>(null);
   const [removing, setRemoving] = useState<{
     worktree: WorktreeInfo;
-    reasons: readonly KeptReason[];
+    warning: KeptRemoval;
   } | null>(null);
   const load = useCallback(() => {
     void Promise.all([
@@ -109,7 +109,7 @@ export function ProjectDetail({
           message: outcome.problem.message,
         });
       } else if (outcome.value.outcome === "kept") {
-        setRemoving({ worktree, reasons: outcome.value.reasons });
+        setRemoving({ worktree, warning: outcome.value });
       } else {
         toast(`Removed ${worktree.branch ?? "the worktree"}`);
       }
@@ -263,7 +263,7 @@ export function ProjectDetail({
         <RemoveWorktreeDialog
           node={node}
           worktree={removing.worktree}
-          reasons={removing.reasons}
+          warning={removing.warning}
           onClose={() => {
             setRemoving(null);
           }}

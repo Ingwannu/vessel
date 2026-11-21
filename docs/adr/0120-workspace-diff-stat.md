@@ -109,3 +109,19 @@ warning are not part of 819.
 A list or get waits on one generation for every counted folder, so a
 change in one folder wakes a read of another. That is the cost of not
 inventing a second revision per workspace.
+
+## Removal warnings
+
+When a requested worktree removal would lose uncommitted changes, its
+kept reply can carry the same diff stat, compared with the worktree's
+saved base. The original ref still determines the on-base exception.
+A worktree started from a commit uses that commit for the comparison.
+The recount runs while the worktree claim is held and is advisory. A
+failed or empty count leaves the dirty reason intact. Tidying does not
+recount or persist warning counts. The optional reply field leaves older
+readers and replies compatible.
+
+The page follows Paseo's archive warning and shows the nonzero added and
+deleted sides after “Uncommitted changes.” A reply without counts uses
+the plain warning. An unpushed or otherwise unique commit is a separate
+reason because its risk remains even when every file is committed.
