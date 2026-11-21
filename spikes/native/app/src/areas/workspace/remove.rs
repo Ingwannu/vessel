@@ -13,8 +13,10 @@
 //! count, as the kit's small warning notice above the usual buttons. Those
 //! buttons then offer what the other reasons allow. A press reads the
 //! count again and removes with `end_terminals: true` only if it is
-//! unchanged. A changed count stops the press and the notice says the new
-//! one. With a live session in the worktree it is as before: the node
+//! unchanged. If none is left and no session runs in it, the terminals
+//! ended meanwhile: the press finishes with the plain removal. Any other
+//! count stops the press and the notice says the new one (an app review
+//! note on 0121n). With a live session in the worktree it is as before: the node
 //! keeps the worktree whatever is asked. The page does the same (TRACKER
 //! 829; the coordinator's ruling on 829 Q3: no button of its own).
 
@@ -149,7 +151,10 @@ impl Shell {
     }
 
     /// Every terminal answered: the panel's count, and a press waiting for
-    /// it goes on only when the count is unchanged.
+    /// it goes on when the count is unchanged (ending them), or when none
+    /// is left and no session runs in the worktree (the plain removal: the
+    /// terminals ended meanwhile, so nothing keeps it). Any other count
+    /// stops the press, and the notice says the new one.
     pub(crate) fn removal_terminals_listed(
         &mut self,
         machine: &str,
@@ -171,13 +176,25 @@ impl Shell {
         };
         let count = live_in_folder(list, &removing.worktree.path);
         removing.terminals = Some(count);
-        let go = seen.is_some_and(|seen| seen == count && count > 0);
-        if seen.is_some() && !go {
-            removing.busy = None;
-        }
-        let worktree = removing.worktree.id;
-        if go && let Some(if_lost) = removing.busy {
-            self.ask(machine, Ask::Worktree(remove_ask(worktree, if_lost, true)));
+        let pressed = seen.and(removing.busy);
+        let worktree = removing.worktree.clone();
+        let ask = match (seen, pressed) {
+            (Some(seen), Some(if_lost)) if seen == count && count > 0 => {
+                Some(remove_ask(worktree.id, if_lost, true))
+            }
+            (Some(_), Some(if_lost)) if count == 0 && !self.live_session_in(&worktree) => {
+                Some(remove_ask(worktree.id, if_lost, false))
+            }
+            _ => None,
+        };
+        match ask {
+            Some(ask) => self.ask(machine, Ask::Worktree(ask)),
+            None if seen.is_some() => {
+                if let Some(removing) = self.removing_mut() {
+                    removing.busy = None;
+                }
+            }
+            None => {}
         }
         cx.notify();
     }
