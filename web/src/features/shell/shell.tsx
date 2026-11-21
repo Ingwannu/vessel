@@ -18,6 +18,7 @@ import { Banner, Button, Sheet } from "../../ui/kit";
 import { Toasts } from "../../ui/toasts";
 import { useNotices } from "../notifications/use-notices";
 import { usePresence } from "../notifications/use-presence";
+import { useTerminalNotices } from "../notifications/use-terminal-notices";
 import { PaletteHost } from "../palette/palette";
 import { PluginCatalogSync } from "../plugins/catalog-sync";
 import { AddProjectFlowHost } from "../projects/add-project-flow";
@@ -46,6 +47,7 @@ export function Shell(): ReactElement {
   useShellShortcuts();
   useNotices();
   usePresence();
+  useTerminalNotices();
   useNewSessionEntry();
   return (
     <>
