@@ -12,7 +12,7 @@
 //! - Cost: one more file; no API, behaviour or dependency change.
 
 use super::{Command, Event, LinkError, Offer, State, drafts, nodes, pairing};
-use vessel_proto::{PermissionOutcome, SessionInput};
+use vessel_proto::{PermissionId, PermissionOptionId, PermissionOutcome, SessionInput};
 
 const CANCEL_TURN: SessionInput = SessionInput::CancelTurn { turn: None };
 
@@ -96,13 +96,7 @@ impl State {
                 session,
                 id,
                 option,
-            } => {
-                let input = SessionInput::AnswerPermission {
-                    id,
-                    outcome: PermissionOutcome::Selected { option },
-                };
-                self.input(&machine, session, input).await;
-            }
+            } => self.input(&machine, session, permission_input(id, option)).await,
             Command::Pair {
                 offer,
                 name,
@@ -131,6 +125,13 @@ impl State {
             Err(LinkError::BookFault(fault)) => self.emit(Event::BookUnreadable(fault)).await,
             Err(error) => self.emit(Event::PairFailed(pairing::problem(&error))).await,
         }
+    }
+}
+
+fn permission_input(id: PermissionId, option: PermissionOptionId) -> SessionInput {
+    SessionInput::AnswerPermission {
+        id,
+        outcome: PermissionOutcome::Selected { option },
     }
 }
 

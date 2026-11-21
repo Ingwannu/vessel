@@ -336,17 +336,8 @@ schedules-form-prompt-invalid = Enter a prompt of at most { NUMBER($maximum, use
 # Whole field error; numeric maximum comes from the typed node bound.
 schedules-form-max-runs-invalid = Enter a whole number from 1 to { NUMBER($maximum, useGrouping: "false") }, or leave it blank for unlimited runs.
 
-# Required structured chat target; a missing selection blocks saving.
-schedules-form-target-required = Choose an agent and a folder for this schedule.
-
 # Whole typed preview failure; never show wire message/Display.
 schedules-preview-mismatched = The machine returned a different or incomplete preview. No run times are shown.
-
-# Whole typed preview failure; never show wire message/Display.
-schedules-preview-unknown-zone = This machine does not know that time zone. Choose another zone or update the machine.
-
-# Save waits for the exact current node preview, except an explicit older-node refusal.
-schedules-form-preview-required = Preview the current rule before saving.
 
 # A machine supports schedule create/update but predates the read-only preview call.
 schedules-preview-unavailable-older = This machine cannot preview this rule. You can save it without a preview.
@@ -408,9 +399,6 @@ schedules-form-zone = Time zone
 # Schedule editor: form-next-runs control/feedback, never a node diagnostic.
 schedules-form-next-runs = Next runs
 
-# Schedule editor: form-host-placeholder control/feedback, never a node diagnostic.
-schedules-form-host-placeholder = Select host
-
 # Schedule editor: form-project-placeholder control/feedback, never a node diagnostic.
 schedules-form-project-placeholder = Select project
 
@@ -428,9 +416,6 @@ schedules-form-interval = Interval
 
 # One projected run; $at is the typed viewer-calendar date/time, with its explicit zone.
 schedules-form-next-at = { DATETIME($at) }
-
-# New-rule bootstrap when the viewer cannot report its own zone; never silently infer UTC.
-schedules-form-viewer-unknown = Your time zone is unavailable. Choose a time zone for this rule.
 
 # A rule zone has been explicitly selected but the display viewer zone is still unknown.
 schedules-form-viewer-display-utc = Your time zone is unavailable. Preview times are shown in UTC.
@@ -482,9 +467,6 @@ schedules-form-interval-invalid = Enter an elapsed interval from 60 seconds to 3
 schedules-form-ownership = Future runs will act as the person who saves these changes.
 
 # Schedule form control or status.
-schedules-form-unavailable-edit = This schedule cannot be edited on this machine.
-
-# Schedule form control or status.
 schedules-form-default-model = Default model
 
 # Schedule form control or status.
@@ -522,9 +504,6 @@ schedules-form-host-zone = Machine time zone: { $zone }
 
 # Schedule form control or status.
 schedules-form-no-machine = Connect to a machine to create a schedule.
-
-# Schedule form control or status.
-schedules-form-options = Select an option
 
 # Accessible name of the row that opens the editor.
 schedules-form-edit-row = Edit schedule { $title }

@@ -324,17 +324,8 @@ schedules-form-prompt-invalid = 프롬프트를 { NUMBER($maximum, useGrouping: 
 # Whole field error; numeric maximum comes from the typed node bound.
 schedules-form-max-runs-invalid = 1부터 { NUMBER($maximum, useGrouping: "false") } 사이의 정수를 입력하거나, 실행 횟수를 제한하지 않으려면 비워 두세요.
 
-# Required structured chat target; a missing selection blocks saving.
-schedules-form-target-required = 예약에 사용할 에이전트와 폴더를 선택하세요.
-
 # Whole typed preview failure; never show wire message/Display.
 schedules-preview-mismatched = 머신에서 규칙과 다르거나 불완전한 미리보기를 받았습니다. 실행 시각을 표시할 수 없습니다.
-
-# Whole typed preview failure; never show wire message/Display.
-schedules-preview-unknown-zone = 이 머신에서 해당 시간대를 지원하지 않습니다. 다른 시간대를 선택하거나 머신을 업데이트하세요.
-
-# Save waits for the exact current node preview, except an explicit older-node refusal.
-schedules-form-preview-required = 저장하기 전에 현재 규칙의 실행 시각을 미리 확인하세요.
 
 # A machine supports schedule create/update but predates the read-only preview call.
 schedules-preview-unavailable-older = 이 머신은 이 규칙을 미리 확인할 수 없습니다. 미리보기 없이 저장할 수 있습니다.
@@ -396,9 +387,6 @@ schedules-form-zone = 시간대
 # Schedule editor: form-next-runs control/feedback, never a node diagnostic.
 schedules-form-next-runs = 다음 실행 시각
 
-# Schedule editor: form-host-placeholder control/feedback, never a node diagnostic.
-schedules-form-host-placeholder = 머신 선택
-
 # Schedule editor: form-project-placeholder control/feedback, never a node diagnostic.
 schedules-form-project-placeholder = 프로젝트 선택
 
@@ -416,9 +404,6 @@ schedules-form-interval = 시간 간격
 
 # One projected run; $at is the typed viewer-calendar date/time, with its explicit zone.
 schedules-form-next-at = { DATETIME($at) }
-
-# New-rule bootstrap when the viewer cannot report its own zone; never silently infer UTC.
-schedules-form-viewer-unknown = 현재 시간대를 확인할 수 없습니다. 이 규칙에 사용할 시간대를 선택하세요.
 
 # A rule zone has been explicitly selected but the display viewer zone is still unknown.
 schedules-form-viewer-display-utc = 현재 시간대를 확인할 수 없어 미리보기 시각을 UTC로 표시합니다.
@@ -470,9 +455,6 @@ schedules-form-interval-invalid = 60초에서 366일 사이의 간격을 입력�
 schedules-form-ownership = 이후 실행은 변경 사항을 저장한 사람의 권한을 사용합니다.
 
 # Schedule form control or status.
-schedules-form-unavailable-edit = 이 머신에서 이 일정을 수정할 수 없습니다.
-
-# Schedule form control or status.
 schedules-form-default-model = 기본 모델
 
 # Schedule form control or status.
@@ -510,9 +492,6 @@ schedules-form-host-zone = 머신 시간대: { $zone }
 
 # Schedule form control or status.
 schedules-form-no-machine = 일정을 만들려면 머신에 연결하세요.
-
-# Schedule form control or status.
-schedules-form-options = 옵션 선택
 
 # Accessible name of the row that opens the editor.
 schedules-form-edit-row = 일정 수정 { $title }

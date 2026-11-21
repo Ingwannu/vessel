@@ -29,7 +29,6 @@ impl Answer {
     }
 
     /// Recheck the admitted connection when a queued reply reaches the window.
-    #[must_use]
     pub fn settle(self) -> (Request, Result<Value, Failure>) {
         let result = match self.guard {
             Some(guard) if guard.validate(&self.request.connection).is_err() => {
