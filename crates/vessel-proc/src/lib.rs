@@ -64,7 +64,6 @@ mod signal;
 mod spec;
 
 pub use account::account_shell;
-pub use runnable::may_run;
 pub use checked::{CheckedWaitError, OwnedGroupExit};
 pub use child::{Child, Spawned, spawn};
 pub use diagnostics::CommandDiagnostics;
@@ -73,6 +72,7 @@ pub use error::{InvalidGroup, SignalError, SpawnError, Stream, WaitError};
 pub use group::{ProcessGroup, REAP_GRACE};
 pub use lifetime::{ProcessLifetime, ProcessLifetimeGuard};
 pub use process_id::{InvalidProcessId, ProcessId};
+pub use runnable::may_run;
 pub use session::kill_session;
 pub use signal::Signal;
 pub use spec::{CommandSpec, EnvValue, Environment};

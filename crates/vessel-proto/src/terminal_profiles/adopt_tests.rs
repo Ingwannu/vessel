@@ -73,7 +73,11 @@ fn a_profile_with_the_placeholder_a_positional_or_another_program_is_kept() {
     // prompt form is appended.
     for (command, given, appended) in [
         ("codex", &["--profile", "work"][..], PROMPT_SENTINEL),
-        ("opencode", &["--model", "anthropic/claude"][..], "--prompt={{{prompt}}}"),
+        (
+            "opencode",
+            &["--model", "anthropic/claude"][..],
+            "--prompt={{{prompt}}}",
+        ),
         ("pi", &["--thinking", "high"][..], PROMPT_SENTINEL),
         ("claude", &["--model=opus"][..], PROMPT_SENTINEL),
     ] {
@@ -208,13 +212,19 @@ fn every_prompt_the_wire_takes_launches_a_profile_that_holds_the_placeholder_onc
         assert!(resolved.args()[0].as_str().ends_with(longest.as_str()));
     }
     let padded = "p".repeat(Argument::MAX_BYTES.saturating_sub(PROMPT_SENTINEL.len()));
-    let wide = kept("profile_w", "tool", &[&format!("{padded}{PROMPT_SENTINEL}")], None);
+    let wide = kept(
+        "profile_w",
+        "tool",
+        &[&format!("{padded}{PROMPT_SENTINEL}")],
+        None,
+    );
     assert_eq!(
         wide.resolve(&longest).unwrap().args()[0].as_str().len(),
         RESOLVED_ARGUMENT_BYTES
     );
     // Twice in one argument is past the bound: refused, naming it.
-    let shorter = "p".repeat(Argument::MAX_BYTES.saturating_sub(PROMPT_SENTINEL.len().saturating_mul(2)));
+    let shorter =
+        "p".repeat(Argument::MAX_BYTES.saturating_sub(PROMPT_SENTINEL.len().saturating_mul(2)));
     let twice = kept(
         "profile_t",
         "tool",
@@ -223,6 +233,9 @@ fn every_prompt_the_wire_takes_launches_a_profile_that_holds_the_placeholder_onc
     );
     assert!(matches!(
         twice.resolve(&longest),
-        Err(ProfileError::TooLong { kind: TextKind::Argument, max: RESOLVED_ARGUMENT_BYTES })
+        Err(ProfileError::TooLong {
+            kind: TextKind::Argument,
+            max: RESOLVED_ARGUMENT_BYTES
+        })
     ));
 }

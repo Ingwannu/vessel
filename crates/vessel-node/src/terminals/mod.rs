@@ -37,8 +37,8 @@ use vessel_session::terminals::Scrollback;
 
 pub use env::{KNOWN_CREDENTIALS, Shell, credentials_in};
 pub(crate) use env::{executable, scrubbed, shell_spec};
-pub(crate) use program::{Lookup, batch_script, find_program, plain_for_batch};
 pub(crate) use ports::Ports;
+pub(crate) use program::{Lookup, batch_script, find_program, plain_for_batch};
 pub(crate) use registry::Terminals;
 pub(crate) use registry::{Entry, Owner, Start, TerminalsError};
 pub(crate) use scripts::{CLOSE_WAIT, Plan};

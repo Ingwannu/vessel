@@ -67,8 +67,7 @@ impl NodeService {
             extensions: config.path_extensions.as_deref(),
             windows: cfg!(windows),
         };
-        let Some(program) =
-            terminals::find_program(command, folder, lookup, terminals::executable)
+        let Some(program) = terminals::find_program(command, folder, lookup, terminals::executable)
         else {
             // Paseo's `TerminalCommandNotFoundError` message.
             return Err(TerminalsError::Wire(WireError::new(

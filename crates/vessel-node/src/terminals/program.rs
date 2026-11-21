@@ -192,7 +192,15 @@ mod tests {
         for plain in ["--yolo", "--model=opus", "C:\\work\\x", "a.b/c:d+e@f"] {
             assert!(plain_for_batch(plain), "{plain}");
         }
-        for text in ["fix it", "\" & calc & \"", "%PATH%", "a^b", "line\nbreak", "", "한글"] {
+        for text in [
+            "fix it",
+            "\" & calc & \"",
+            "%PATH%",
+            "a^b",
+            "line\nbreak",
+            "",
+            "한글",
+        ] {
             assert!(!plain_for_batch(text), "{text:?}");
         }
     }

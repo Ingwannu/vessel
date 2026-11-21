@@ -32,7 +32,8 @@ mod tests {
     fn only_a_file_the_account_may_execute_runs() {
         // A folder of this test's own (the crate has no temporary-folder
         // dependency, and adding one would change the lock file).
-        let folder = std::env::temp_dir().join(format!("vessel-proc-may-run-{}", std::process::id()));
+        let folder =
+            std::env::temp_dir().join(format!("vessel-proc-may-run-{}", std::process::id()));
         std::fs::create_dir_all(&folder).unwrap();
         let file = folder.join("tool");
         std::fs::write(&file, b"#!/bin/sh\n").unwrap();
