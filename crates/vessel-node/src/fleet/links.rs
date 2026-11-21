@@ -65,7 +65,10 @@
 //!   while it lasts. The home connects to a member on first use and keeps
 //!   the connection while it stays open; a call that loses it fails as
 //!   `unavailable` (it may or may not have run, so it is not retried), and
-//!   the next one connects again.
+//!   the next one connects again. The member map is a `std` mutex, locked
+//!   only to find a slot. Each member has a tokio lock of its own, held
+//!   across that member's dial, so callers to one member share one
+//!   connection and callers to another never wait on it.
 
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -78,10 +81,8 @@ use chrono::{DateTime, Utc};
 use futures_util::FutureExt as _;
 use serde::{Deserialize, Serialize};
 use tokio_util::sync::CancellationToken;
-use vessel_client::secure::{RouteTimeouts, SecureConnector, WsDialer, pair_over};
-use vessel_client::{
-    CallError, Connector as _, DeviceCredential, NodeClient, Pinned, SecureTarget,
-};
+use vessel_client::secure::{RouteTimeouts, WsDialer, pair_over};
+use vessel_client::{CallError, NodeClient};
 use vessel_proto::{
     ClientInfo, DeviceId, ErrorCode, FleetNode, GrantHome, InviteDevice, NodeForgotten, NodeId,
     NodePublicKey, PROTOCOL_VERSION, PairingLink, ProtocolVersion, RouteUrl, Scope, WireError,
@@ -95,7 +96,11 @@ use crate::devices::{Devices, Routes};
 use crate::relays::Relays;
 
 mod callback;
+mod dial;
 mod error;
+
+/// The home's connection to one member, while it has one.
+type MemberSlot = Arc<tokio::sync::Mutex<Option<NodeClient>>>;
 
 use error::hop_error;
 
@@ -211,8 +216,10 @@ pub(crate) struct Links {
     ticketed: callback::Ticketed,
     /// A member's connection to its home, while the pull loop has one.
     home: Mutex<Option<NodeClient>>,
-    /// The home's open connections to its members.
-    members: tokio::sync::Mutex<HashMap<NodeId, NodeClient>>,
+    /// The home's connections to its members, one slot per member: the
+    /// map is locked only to find a slot, and a slot is held while its
+    /// member is dialled (`member_client`).
+    members: Mutex<HashMap<NodeId, MemberSlot>>,
     /// Held while a grant is checked and recorded (and while `reconcile`
     /// revokes), never across a network call: two grants cannot both pass
     /// the checks, and a revocation never races a grant being recorded.
@@ -478,7 +485,7 @@ impl Links {
             home_relays,
             ticketed: callback::Ticketed::default(),
             home: Mutex::new(None),
-            members: tokio::sync::Mutex::new(HashMap::new()),
+            members: Mutex::new(HashMap::new()),
             granting: tokio::sync::Mutex::new(()),
             accepting: Mutex::new(HashSet::new()),
             in_flight: AtomicBool::new(false),
@@ -953,7 +960,12 @@ impl Links {
         })
         .await?;
         let replaced = recorded?;
-        drop(self.members.lock().await.remove(&node));
+        drop(
+            self.members
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner)
+                .remove(&node),
+        );
         tracing::info!(member = %node, device = %member, replaced = ?replaced, "a member granted this home a credential");
         Ok(())
     }
@@ -998,7 +1010,12 @@ impl Links {
                     format!("this home has no binding for node {node}"),
                 )
             })?;
-        drop(self.members.lock().await.remove(&node));
+        drop(
+            self.members
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner)
+                .remove(&node),
+        );
         tracing::info!(%node, withdrawn, devices = ?forgot.devices, "forgot a fleet node's binding at its owner's request");
         Ok(NodeForgotten {
             key: forgot.key,
@@ -1099,65 +1116,14 @@ impl Links {
         let client = self.member_client(node).await?;
         let called = client.call(request).await;
         if matches!(called, Err(CallError::Disconnected)) {
-            drop(self.members.lock().await.remove(&node));
+            drop(
+                self.members
+                    .lock()
+                    .unwrap_or_else(PoisonError::into_inner)
+                    .remove(&node),
+            );
         }
         called.map_err(|error| hop_error(node, error))
-    }
-
-    async fn member_client(&self, node: NodeId) -> Result<NodeClient, WireError> {
-        let mut members = self.members.lock().await;
-        if let Some(client) = members.get(&node)
-            && client.closed().now_or_never().is_none()
-        {
-            return Ok(client.clone());
-        }
-        // By the member device bound to `node`: exactly one, as grants are
-        // checked when made. Two can only come from grants kept before
-        // that check; neither is trusted.
-        let mut bound = self
-            .grants()
-            .await
-            .into_iter()
-            .filter(|grant| grant.node == node);
-        let grant = match (bound.next(), bound.next()) {
-            (Some(grant), None) => grant,
-            (None, _) => {
-                return Err(WireError::new(
-                    ErrorCode::NotFound,
-                    format!(
-                        "node {node} is not a member of this fleet that granted the home \
-                         access (`vessel fleet nodes`)"
-                    ),
-                ));
-            }
-            (Some(first), Some(second)) => {
-                return Err(conflict(format!(
-                    "member devices {} and {} both claim node {node}; revoke the wrong one \
-                     (`vessel fleet members`)",
-                    first.member, second.member
-                )));
-            }
-        };
-        let (_json, credential_path) = self.grant_paths(grant.member);
-        let credential = blocking(move || {
-            DeviceCredential::read(&credential_path)
-                .map_err(|error| FileError::io(&credential_path, std::io::Error::other(error)))
-        })
-        .await?;
-        let target = SecureTarget {
-            key: grant.key,
-            relays: grant.relays.clone(),
-            direct: grant.direct.clone(),
-        };
-        let dialer = WsDialer::for_routes(target.routes()).map_err(|error| internal(&error))?;
-        let connector = SecureConnector::new(dialer, target, node, credential)
-            .map_err(|error| internal(&error))?;
-        let client = Pinned::new(connector, Some(node))
-            .connect(client_info())
-            .await
-            .map_err(|error| unavailable(format!("cannot reach node {node}: {error}")))?;
-        let _previous = members.insert(node, client.clone());
-        Ok(client)
     }
 
     /// `fleet.peers` on the home: the home itself, and every member that
@@ -1173,10 +1139,16 @@ impl Links {
         let open: Vec<NodeId> = self
             .members
             .lock()
-            .await
+            .unwrap_or_else(PoisonError::into_inner)
             .iter()
-            .filter(|(_node, client)| client.closed().now_or_never().is_none())
-            .map(|(node, _client)| *node)
+            .filter(|(_node, slot)| {
+                // A slot being dialled is not open yet.
+                slot.try_lock().is_ok_and(|held| {
+                    held.as_ref()
+                        .is_some_and(|client| client.closed().now_or_never().is_none())
+                })
+            })
+            .map(|(node, _slot)| *node)
             .collect();
         for grant in self.grants().await {
             nodes.push(FleetNode {
@@ -1199,7 +1171,8 @@ mod tests {
         /// Let real Forward and member-to-home Relay refusal arms use a raw fixture peer.
         #[cfg(test)]
         pub(crate) async fn connected_member_for_test(&self, client: NodeClient) {
-            drop(self.members.lock().await.insert(client.node().id, client));
+            let slot = self.member_slot(client.node().id);
+            *slot.lock().await = Some(client);
         }
     }
 

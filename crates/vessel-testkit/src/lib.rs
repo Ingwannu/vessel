@@ -17,9 +17,12 @@
 //! - `fake-tool`: an installer or service manager that only logs its calls
 //!   and answers "is it enabled" from that log (`vessel init` tests). See
 //!   `src/bin/fake_tool.rs`.
+//! - `fake-lsp`: a deterministic language server for saved files, needing
+//!   no real toolchain (milestone 6). See `src/bin/fake_lsp.rs`.
 //! - `fake-provider`: an OpenAI-compatible model provider on loopback for
 //!   the model routing smoke's `--fake` run (milestone 5). See
-//!   `src/bin/fake_provider.rs`.
+//!   `src/bin/fake_provider.rs`. The smoke script runs it, so it has no
+//!   [`Fake`] variant.
 //! - `fake-codex-app-server`: Codex over its app-server protocol (ADR
 //!   0057): threads, and turns whose first word picks a scenario (a
 //!   streamed reply, reasoning, a command, a plan, an approval asked, a

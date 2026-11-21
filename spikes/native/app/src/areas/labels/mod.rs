@@ -215,6 +215,7 @@ impl Shell {
         let state = &mut self.areas.labels;
         hosts::bind(state, &self.fleet);
         self.labels_follow(cx);
+        self.diff_stat_follow();
         self.settle_labels(cx);
         self.labels_picker_settle(cx);
     }

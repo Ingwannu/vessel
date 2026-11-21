@@ -1,12 +1,14 @@
 //! `vesseld`: one node per machine, serving its harness sessions over
-//! the protocol (versions 2 and 3).
+//! the protocol (versions `vessel_proto::MIN_PROTOCOL_VERSION` to
+//! `vessel_proto::PROTOCOL_VERSION`, `vessel_proto::ProtocolRange`).
 //!
 //! This crate assembles the others; it holds wiring and node policy, not
 //! mechanisms:
 //!
 //! ```text
 //!  client --ws /rpc (bearer token)-----------------> server ---+
-//!  ssh -> vesseld attach --local socket (token)----> ipc ------+--> vessel-rpc Server
+//!  ssh -> vesseld attach --local socket (token)----> ipc ------+
+//!  agent --local socket (agent credential)---------> ipc ------+--> vessel-rpc Server
 //!                                                                    | Handler
 //!                                                     service (routing only), lifecycle
 //!                                                                    |

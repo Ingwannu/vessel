@@ -3,11 +3,16 @@
 //! chosen one checked, and what choosing does.
 
 use crate::Lang;
-use crate::prefs::{Grouping, PreferenceChange, SessionSort, SidebarView};
+use crate::prefs::{Grouping, PreferenceChange, SessionSort, SidebarTrailing, SidebarView};
 use crate::sidebar::display::{DisplayAct, DisplayPage, OptionMark, RowKind};
 
 fn view(group: Grouping, sort: SessionSort, ended: bool) -> SidebarView {
-    SidebarView { group, sort, ended }
+    SidebarView {
+        group,
+        sort,
+        ended,
+        ..SidebarView::default()
+    }
 }
 
 #[test]
@@ -21,6 +26,12 @@ fn the_root_names_each_decision_with_its_value_and_ended_is_a_switch() {
             ("Grouping", RowKind::Opens { value: "Status" }),
             (
                 "Sort",
+                RowKind::Opens {
+                    value: "Last activity"
+                }
+            ),
+            (
+                "Show",
                 RowKind::Opens {
                     value: "Last activity"
                 }
@@ -80,6 +91,22 @@ fn a_page_checks_the_choice_in_effect_and_only_grouping_carries_marks() {
     );
     assert_eq!(DisplayPage::Grouping.title(words), Some(words.grouping));
     assert_eq!(DisplayPage::Sort.title(words), Some(words.sort));
+    let trailing = DisplayPage::Trailing.rows(now, words);
+    assert!(
+        trailing
+            .iter()
+            .all(|row| matches!(row.kind, RowKind::Choice { mark: None, .. }))
+    );
+    assert_eq!(
+        trailing
+            .iter()
+            .map(|row| (
+                row.label,
+                matches!(row.kind, RowKind::Choice { checked: true, .. })
+            ))
+            .collect::<Vec<_>>(),
+        vec![("Diff 통계", false), ("마지막 활동", true)]
+    );
 }
 
 #[test]
@@ -95,6 +122,10 @@ fn choosing_opens_a_page_flips_the_switch_or_sets_and_closes() {
     );
     assert_eq!(
         DisplayPage::Root.choose(2, now),
+        Some(DisplayAct::Open(DisplayPage::Trailing))
+    );
+    assert_eq!(
+        DisplayPage::Root.choose(3, now),
         Some(DisplayAct::Flip(PreferenceChange::SidebarEnded(true)))
     );
     assert_eq!(
@@ -115,6 +146,13 @@ fn choosing_opens_a_page_flips_the_switch_or_sets_and_closes() {
             SessionSort::Activity
         )))
     );
-    assert_eq!(DisplayPage::Root.choose(3, now), None);
+    assert_eq!(
+        DisplayPage::Trailing.choose(0, now),
+        Some(DisplayAct::Choose(PreferenceChange::SidebarTrailing(
+            SidebarTrailing::Diff
+        )))
+    );
+    assert_eq!(DisplayPage::Root.choose(4, now), None);
     assert_eq!(DisplayPage::Sort.choose(2, now), None);
+    assert_eq!(DisplayPage::Trailing.choose(2, now), None);
 }

@@ -57,6 +57,7 @@ pub(super) const DESCRIPTOR: Descriptor = Descriptor {
     layout: HarnessLayout {
         instructions: Some("AGENTS.md"),
         skills: Some("skills"),
+        also_reads: None,
     },
     limits: Some(vessel_proto::limits::LimitLoginStore::Codex),
     login: Some(&["login", "status"]),

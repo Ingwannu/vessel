@@ -2,8 +2,8 @@
 //!
 //! [Decision Log]
 //! - Purpose: install the exact release for this client on a remote,
-//!   from the private `Team-WICKED/vessel` repository, without the remote
-//!   needing GitHub access or a token.
+//!   from the `Team-WICKED/vessel` repository, without the remote needing
+//!   GitHub access or a token.
 //! - Constraint: Vessel builds no TLS stack (ADR 0005 amendment) and holds
 //!   no GitHub credentials; secrets must not pass through it.
 //! - Alternatives: an HTTP client with rustls inside `vessel` (a TLS stack,

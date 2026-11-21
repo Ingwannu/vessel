@@ -2,6 +2,10 @@
 //! bridge's own tests of the same document (`wire/prefs.rs`,
 //! `wire/prefs/keys.rs`, `wire/prefs/change.rs`): the same JSON, the
 //! same rules, plus the app-only language preference.
+//!
+//! `sidebar.trailing` is the field the page packet writes (`diff`,
+//! `timestamp`, or `none`). Absent, it reads as last activity. This
+//! fixture includes it so the two packets stack.
 
 use std::collections::BTreeMap;
 
@@ -13,13 +17,10 @@ use crate::prefs::{
     ActionId, AgentKind, Bindings, Choices, ContentWidth, ExplorerSort, Grouping, InvalidActionId,
     InvalidKeyBinding, Kept, KeyBinding, LaunchOnly, MAX_ACTIONS, MAX_MACHINES, MachineDefaults,
     Panel, PreferenceChange, Preferences, Refused, SendKey, ShortcutEdit, ShortcutTarget,
-    SidebarView, TerminalPreferences, Theme, TurnDelivery,
+    SidebarTrailing, SidebarView, TerminalPreferences, Theme, TurnDelivery,
 };
 
-/// The page/bridge defaults, byte for byte the bridge's `defaults_are_the_contracts`
-/// (crates/vessel-web/src/wire/prefs.rs): the usage section of ADR 0107, the
-/// page's Steer default of ADR 0108 and the sidebar's empty label filter.
-const DEFAULT: &str = r#"{"appearance":{"theme":"system","interface_size":14,"code_size":12,"content_width":"comfortable","conversation":"full"},"layout":{"sidebar":"shown","inspector":"shown","explorer_sort":"name"},"composer":{"send":"enter","delivery":"steer"},"shortcuts":{},"notifications":{"alerts":"off","title":true},"sidebar":{"group":"machine","sort":"created","ended":true,"labels":[],"usage":false},"usage":{"display":"used","host":null,"pins":null},"defaults":{}}"#;
+const DEFAULT: &str = r#"{"appearance":{"theme":"system","interface_size":14,"code_size":12,"content_width":"comfortable","conversation":"full"},"layout":{"sidebar":"shown","inspector":"shown","explorer_sort":"name"},"composer":{"send":"enter","delivery":"steer"},"shortcuts":{},"notifications":{"alerts":"off","title":true},"sidebar":{"group":"machine","sort":"created","ended":true,"labels":[],"usage":false,"trailing":"timestamp"},"usage":{"display":"used","host":null,"pins":null},"defaults":{}}"#;
 
 /// The usage section both documents share (ADR 0107).
 const USAGE: &str = r#""usage":{"display":"used","host":null,"pins":null}"#;
@@ -78,6 +79,20 @@ fn defaults_are_the_contracts() {
     };
     assert_eq!(page, values);
     assert_eq!(serde_json::from_str::<Preferences>("{}").unwrap(), values);
+}
+
+#[test]
+fn a_sidebar_without_trailing_is_last_activity() {
+    let prefs = serde_json::from_str::<Preferences>(
+        r#"{"sidebar":{"group":"machine","sort":"created","ended":true}}"#,
+    )
+    .unwrap();
+    assert_eq!(prefs.sidebar.trailing, SidebarTrailing::Timestamp);
+    assert_eq!(
+        serde_json::from_str::<PreferenceChange>(r#"{"set":"sidebar_trailing","value":"diff"}"#)
+            .unwrap(),
+        PreferenceChange::SidebarTrailing(SidebarTrailing::Diff)
+    );
 }
 
 /// The native default grouping is Project (TRACKER 682); a document that

@@ -122,14 +122,6 @@ const fn is_unary(method: Method) -> bool {
     !matches!(method.shape(), MethodShape::Stream)
 }
 
-/// `n` as a `NonZeroUsize` for constants.
-const fn at_least_one(n: usize) -> NonZeroUsize {
-    match NonZeroUsize::new(n) {
-        Some(n) => n,
-        None => NonZeroUsize::MIN,
-    }
-}
-
 /// Limits for a client connection.
 #[derive(Debug, Clone)]
 pub struct ClientConfig {
@@ -147,8 +139,8 @@ pub struct ClientConfig {
 impl Default for ClientConfig {
     fn default() -> Self {
         Self {
-            command_capacity: at_least_one(64),
-            subscription_capacity: at_least_one(1024),
+            command_capacity: crate::at_least_one(64),
+            subscription_capacity: crate::at_least_one(1024),
             handshake_timeout: Duration::from_secs(10),
         }
     }
