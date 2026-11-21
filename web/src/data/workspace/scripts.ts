@@ -124,7 +124,8 @@ export function scriptStatus(row: ScriptRow): string {
       return "Failed";
     case "exited":
       return "Exited";
-    default:
+    case "interrupted":
+    case undefined:
       return "Stopped";
   }
 }
