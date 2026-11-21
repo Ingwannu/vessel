@@ -11,7 +11,7 @@
 // A machine that refuses the call (older than protocol 22, or a device it
 // does not take presence from) is not asked again until it reconnects.
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 
 import { useFleet } from "../../context";
 import {
@@ -24,7 +24,12 @@ import {
   type ShownSession,
   shownOf,
 } from "../../data/presence";
+import { claimsOn } from "../../data/claims";
 import { entriesOf } from "../../data/records";
+import {
+  shownTerminal,
+  subscribeShownTerminal,
+} from "../../data/shown-terminal";
 import { shownSession, useWhere } from "../../data/where";
 import type { NodeKey } from "../../wire/bridge";
 
@@ -52,6 +57,7 @@ export function usePresence(): void {
     const made = createPresenceTracker({
       link: {
         nodes: serving,
+        terminals: (node) => claimsOn(fleet.store.get().statuses[node]),
         send(node, report) {
           void reportPresence(fleet, node, report).then((sent) => {
             if (!sent.ok && refusesPresence(sent.problem)) {
@@ -125,9 +131,16 @@ export function usePresence(): void {
 
   const node = shown?.node;
   const id = shown?.id;
+  const terminal = useSyncExternalStore(subscribeShownTerminal, shownTerminal);
+  const terminalId =
+    terminal !== null && terminal.node === node ? terminal.terminal : undefined;
   useEffect(() => {
     tracker.current?.setShown(
-      node === undefined || id === undefined ? null : { node, id },
+      node === undefined || id === undefined
+        ? null
+        : terminalId === undefined
+          ? { node, id }
+          : { node, id, terminal: terminalId },
     );
-  }, [node, id]);
+  }, [node, id, terminalId]);
 }
