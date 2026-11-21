@@ -25,12 +25,10 @@ fn chain(error: &PtyError) -> String {
 fn all_pty_error_variants_keep_safe_shapes_and_remove_private_details() {
     let spec = CommandSpec::new(SENTINEL).with_diagnostics(CommandDiagnostics::Redacted);
     for error in [
-        PtyError::Open {
-            message: SENTINEL.to_owned(),
-        },
+        PtyError::Open(io::Error::other(SENTINEL)),
         PtyError::Spawn {
             program: SENTINEL.to_owned(),
-            message: SENTINEL.to_owned(),
+            source: io::Error::other(SENTINEL),
         },
         PtyError::NoPid {
             program: SENTINEL.to_owned(),
@@ -39,9 +37,7 @@ fn all_pty_error_variants_keep_safe_shapes_and_remove_private_details() {
             program: SENTINEL.to_owned(),
             source: InvalidGroup { pid: 0 },
         },
-        PtyError::Attach {
-            message: SENTINEL.to_owned(),
-        },
+        PtyError::Attach(io::Error::other(SENTINEL)),
         PtyError::Thread(io::Error::other(SENTINEL)),
     ] {
         assert!(chain(&error).contains(SENTINEL));
@@ -51,7 +47,7 @@ fn all_pty_error_variants_keep_safe_shapes_and_remove_private_details() {
     let plain = CommandSpec::new("unchanged");
     let retained = PtyError::Spawn {
         program: SENTINEL.to_owned(),
-        message: SENTINEL.to_owned(),
+        source: io::Error::other(SENTINEL),
     }
     .with_diagnostics(&plain);
     assert!(chain(&retained).contains(SENTINEL));

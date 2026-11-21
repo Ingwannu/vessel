@@ -37,6 +37,7 @@ use crate::routes::Route;
 use crate::shell::Shell;
 
 mod actions;
+mod diff_stat;
 mod display;
 mod foot;
 mod hover_card;
@@ -47,6 +48,7 @@ mod row_menu;
 mod row_meta;
 mod session_row;
 mod statuses;
+mod trailing;
 
 pub(crate) use session_row::mark as status_mark;
 
@@ -115,10 +117,13 @@ pub(crate) struct SidebarState {
     cards: vessel_app_kit::HoverCards,
     /// Its right edge, dragged to resize it.
     pub(crate) edge: PanelEdge,
+    /// Each machine's served diff stats, for the row and the composer pill.
+    diff: diff_stat::DiffStats,
 }
 
 impl SidebarState {
     pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
+        trailing::activity_clock(cx);
         Self {
             layout: layout::Layout::new(cx),
             tips: Tooltips::new(),
@@ -129,6 +134,7 @@ impl SidebarState {
             projects: projects::ProjectsKept::default(),
             cards: vessel_app_kit::HoverCards::new(),
             edge: PanelEdge::new(),
+            diff: diff_stat::DiffStats::default(),
         }
     }
 

@@ -210,8 +210,9 @@ fn take(
     }
 }
 
-/// The profile `name` (Claude Code's default without one, or `harness`'s
-/// when given), checked to be of `harness` when given.
+/// The profile `name` (without one, `harness`'s default, or that of
+/// `vessel_harness::TRANSFER_DEFAULT`), checked to be of `harness` when
+/// given.
 pub(crate) fn named(
     profiles: &NodeProfiles,
     harness: Option<HarnessKind>,
@@ -219,7 +220,7 @@ pub(crate) fn named(
 ) -> Result<Profile, ServiceError> {
     let Some(name) = name else {
         return Ok(Profile::default_for(
-            harness.unwrap_or(HarnessKind::ClaudeCode),
+            harness.unwrap_or(vessel_harness::TRANSFER_DEFAULT),
         ));
     };
     let profile = profiles

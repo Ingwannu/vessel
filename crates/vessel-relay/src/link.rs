@@ -16,6 +16,9 @@
 //! - Each client's data connection is opened in a task of its own and
 //!   handed, as a carrier, to the node's `accept`: the node runs
 //!   `vessel_secure::respond` on it, exactly as for its own `/secure`.
+//! - Every wait for the relay's next message while registering has one
+//!   deadline ([`STEP`]) however many pings arrive meanwhile, so a relay
+//!   cannot hold a registration open by pinging.
 //! - The state is published on a watch ([`LinkState`]) for `vessel node
 //!   status` and for tests to wait on, instead of sleeping.
 //! - Tickets (protocol 6, `fleet.callback`): a fleet member registers with
@@ -370,8 +373,10 @@ async fn send<T: Serialize>(
 async fn receive<T: DeserializeOwned>(
     socket: &mut Socket,
 ) -> Result<T, Option<RegistrationRefusal>> {
+    let now = tokio::time::Instant::now();
+    let deadline = now.checked_add(STEP).unwrap_or(now);
     loop {
-        let message = match timeout(STEP, socket.next()).await {
+        let message = match tokio::time::timeout_at(deadline, socket.next()).await {
             Ok(Some(Ok(message))) => message,
             Ok(Some(Err(error))) => {
                 tracing::debug!(%error, "lost the relay while registering");

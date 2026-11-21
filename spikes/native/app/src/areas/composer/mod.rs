@@ -13,6 +13,7 @@
 mod attach;
 mod capabilities;
 mod context;
+mod diff_pill;
 mod drafts;
 mod files;
 mod lightbox;
