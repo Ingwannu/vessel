@@ -24,8 +24,7 @@
 //!   panel).
 //!   Paseo's menu also lists its other groups after a separator: plugin
 //!   panels (none in the native app yet) and the terminal profiles under
-//!   their label with Edit profiles. The New tab panel draws the profiles
-//!   (TRACKER 336); this menu waits for the kit menu's section label.
+//!   their label with Edit profiles (`terminal_profiles::menu`, ADR 0117).
 //! - Chords: shown only for actions Vessel performs (New tab, both splits,
 //!   Terminal's `NewTerminal`). The other launch shortcuts (`TabAgent`,
 //!   `TabChanges`, `TabFiles`, `TabBrowser`) are bound but not yet
@@ -38,10 +37,11 @@
 //!   Restore pane toggle (the W12 adoption).
 use super::{launch, mode, with_layout};
 use crate::areas::shortcuts::caps::caps;
+use crate::areas::terminal_profiles::menu::{self as profiles, Choice};
 use crate::shell::Shell;
 use std::rc::Rc;
 use vessel_app_kit::assets::Glyph;
-use vessel_app_kit::menu::{Content, menu_with};
+use vessel_app_kit::menu::{Content, LeadingSize, menu_with};
 use vessel_app_kit::toolbar_button::{
     Disclosure, Selection, ToolbarButton, ToolbarConfig, ToolbarIcon, ToolbarInk,
 };
@@ -114,11 +114,12 @@ pub(super) struct HeaderMenu {
 }
 
 /// What a header control or menu row does to its pane.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum PaneOp {
     ToggleMaximize,
     Split(Position),
     Launch(Launch),
+    Profile(Choice),
 }
 
 pub(super) fn controls(
@@ -293,7 +294,7 @@ pub(super) fn menu_overlay(
     }
     let rows = rows(shell, open.kind, window);
     let items: Vec<MenuItem> = rows.iter().map(|(_, item)| item.clone()).collect();
-    let ops: Vec<Option<PaneOp>> = rows.iter().map(|(op, _)| *op).collect();
+    let ops: Vec<Option<PaneOp>> = rows.iter().map(|(op, _)| op.clone()).collect();
     let content = match open.kind {
         MenuKind::NewTab => {
             Content::new("layout-new-tab-menu", &items).with_min_width(px(NEW_TAB_MIN))
@@ -307,7 +308,7 @@ pub(super) fn menu_overlay(
                 return;
             };
             PaneAction {
-                op: *op,
+                op: op.clone(),
                 pane: open.pane,
                 context: open.context.clone(),
             }
@@ -357,6 +358,11 @@ fn rows(shell: &Shell, kind: MenuKind, window: &Window) -> Vec<(Option<PaneOp>, 
                     item,
                 )
             })
+            .chain(
+                profiles::group(shell, LeadingSize::Small)
+                    .into_iter()
+                    .map(|(choice, item)| (choice.map(PaneOp::Profile), item)),
+            )
             .collect(),
     }
 }
@@ -374,7 +380,7 @@ impl PaneAction {
             return;
         }
         let pane_id = self.pane;
-        match self.op {
+        match self.op.clone() {
             PaneOp::Split(position) => shell.layout_split(pane_id, position, window, cx),
             PaneOp::ToggleMaximize => {
                 let result = with_layout(shell, |layout| layout.focus(pane_id));
@@ -392,6 +398,7 @@ impl PaneAction {
                 }
             }
             PaneOp::Launch(chosen) => launch::run(shell, chosen, None, window, cx),
+            PaneOp::Profile(choice) => shell.terminal_profiles_choose(choice, None, window, cx),
         }
     }
 }

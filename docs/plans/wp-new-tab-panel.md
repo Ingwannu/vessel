@@ -18,6 +18,12 @@ with the coordinator.
 3. No pencil that looks live and does nothing: "Edit profiles" is drawn
    disabled, as (1), until Settings › Terminals exists.
 
+Since ADR 0117 (P5n, `docs/plans/native-terminal-profiles.md`), the
+profile rows are the workspace machine's own list and launch, the pencil
+opens Settings › Terminals, and the "+" menu lists the group. The notes
+below about disabled profile rows, the disabled pencil and the "+" menu
+describe the panel before that.
+
 ## Differences from Paseo
 
 - Disabled rows and the disabled pencil have a look (half opacity, no

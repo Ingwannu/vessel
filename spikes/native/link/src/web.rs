@@ -162,6 +162,7 @@ impl Link {
             Command::Claims(ask) => self.emit(Event::Claims(ask.failed())),
             Command::TerminalClaims(ask) => self.emit(Event::TerminalClaims(ask.failed())),
             Command::NodeSettings(ask) => self.emit(refuse::node_settings(ask)),
+            Command::TerminalProfiles(ask) => self.emit(refuse::terminal_profiles(ask)),
             Command::Diagnostics(ask) => self.emit(refuse::diagnostics(ask)),
             Command::Plugins(ask) => self.emit(refuse::plugins(ask)),
             Command::PluginCatalog(ask) => self.emit(refuse::plugin_catalog(ask)),

@@ -224,7 +224,7 @@ fn the_new_tab_menu_lists_the_catalog_and_agent_opens_the_new_agent_page(cx: &mu
         let shell = probe.read(cx).0.read(cx);
         rows(shell, MenuKind::NewTab, window)
             .iter()
-            .map(|(op, item)| (*op, item.disabled))
+            .map(|(op, item)| (op.clone(), item.disabled))
             .collect::<Vec<_>>()
     });
     {
@@ -274,7 +274,7 @@ fn the_more_menu_splits_the_pane_it_was_opened_on(cx: &mut TestAppContext) {
         );
         let rows = rows(shell, MenuKind::Split, window);
         assert_eq!(
-            rows.iter().map(|(op, _)| *op).collect::<Vec<_>>(),
+            rows.iter().map(|(op, _)| op.clone()).collect::<Vec<_>>(),
             [
                 Some(PaneOp::Split(Position::Right)),
                 Some(PaneOp::Split(Position::Bottom)),
@@ -295,4 +295,53 @@ fn the_more_menu_splits_the_pane_it_was_opened_on(cx: &mut TestAppContext) {
             2
         );
     });
+}
+
+/// Paseo's "Terminal profiles" group after the launches: its label, each
+/// profile led by its mark (else the terminal glyph), then Edit profiles
+/// after a separator (ADR 0117).
+#[gpui::test]
+fn the_new_tab_menu_lists_the_machines_profiles_under_their_label(cx: &mut TestAppContext) {
+    language_tests::init(cx);
+    let (probe, cx) = cx.add_window_view(fixture);
+    probe.update(cx, |probe, cx| {
+        probe.0.update(cx, |shell, _cx| {
+            let list = vessel_proto::terminal_profiles::Profiles::shipped().unwrap();
+            shell.terminal_profiles_read_as("isolated", list);
+        });
+    });
+    cx.simulate_resize(gpui::size(px(1280.0), px(900.0)));
+    cx.run_until_parked();
+    let new = probe.read_with(cx, |probe, cx| place(probe.0.read(cx), Control::New));
+    cx.simulate_click(new.center(), Modifiers::none());
+    cx.run_until_parked();
+    let rows = cx.update(|window, cx| {
+        let shell = probe.read(cx).0.read(cx);
+        rows(shell, MenuKind::NewTab, window)
+    });
+    let group: Vec<_> = rows.iter().skip(7).collect();
+    let labels: Vec<&str> = group.iter().map(|(_, item)| item.label.as_ref()).collect();
+    assert_eq!(
+        labels,
+        [
+            "Terminal profiles",
+            "Claude Code",
+            "Codex",
+            "OpenCode",
+            "Pi",
+            "Edit profiles"
+        ]
+    );
+    assert!(group[0].1.heading && group[0].1.starts_group && group[0].0.is_none());
+    assert!(group[1].1.mark.is_some(), "Claude Code's mark");
+    assert_eq!(
+        group[4].1.leading,
+        Some(Glyph::SquareTerminal),
+        "Pi has no artwork"
+    );
+    assert_eq!(group[5].0, Some(PaneOp::Profile(Choice::Edit)));
+    assert!(group[5].1.starts_group);
+    // The kit draws the label as a heading, not a row.
+    assert!(cx.debug_bounds("menu-heading-7").is_some());
+    assert!(cx.debug_bounds("menu-row-7").is_none());
 }
