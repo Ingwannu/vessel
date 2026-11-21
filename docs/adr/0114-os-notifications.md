@@ -347,3 +347,21 @@ unchanged (ADR 0026, `view::session::read_through`).
 - Not changed: the person's own "Mark as read" in a row's menu stays `session.mark`. Below the constant every
   read stays as it is.
 - Test: `view/src/notices/claims/tests.rs`, `a_read_is_marked_by_inbox_read_only_on_a_machine_that_admits_the_protocol`.
+
+## Badges (2026-11-21, the claims follow-up's fifth row)
+
+Paseo shows how many workspaces want the person on the desktop's dock, and swaps its favicon among none, running
+and attention (`desktop-badge-state.ts:5-14`, `use-favicon-status.ts`).
+
+- **Page:** it does both, with Paseo's buckets over Vessel's sessions. The app badge uses `navigator.setAppBadge`
+  where the browser offers it. The favicon has three states, drawn by the build. ADR 0089, "The page's badge and
+  favicon", has the rule, the files and the tests.
+- **App: a stated difference (TRACKER 831).** The app shows no count on the OS dock or taskbar:
+  - GPUI has no badge call;
+  - Windows' `ITaskbarList3` overlay and Linux's `com.canonical.Unity.LauncherEntry` would each need a patch;
+  - the coordinator ruled on 2026-11-20 not to patch GPUI for it.
+  A window has no favicon to swap. What stays:
+  - the window title's count of notices since the app was last in front (`notices::title_with`, this ADR);
+  - the sidebar's and board's own marks for each session that needs the person or failed.
+- **Owed if the difference is lifted:** the count would come from the page's rule (`web/src/data/badge.ts`),
+  ported to `view` as one function, and be set through a GPUI patch that goes through the lead.
