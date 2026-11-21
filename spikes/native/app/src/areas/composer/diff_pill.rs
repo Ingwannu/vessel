@@ -15,6 +15,12 @@ use vessel_proto::registry::DiffStat;
 
 use crate::shell::Shell;
 
+/// The rail's gap above the card on a wide window: Paseo's
+/// `COMPOSER_PILL_CLEARANCE.wide` (`composer/pill-styles.ts`), which is not
+/// a step of the spacing scale. A compact window uses the 8 step, as Paseo's
+/// `compact` clearance does.
+pub(super) const CLEARANCE_WIDE: f32 = 10.0;
+
 /// The pill, when the open session's workspace has a line to show.
 #[must_use]
 pub(super) fn pill(

@@ -16,8 +16,8 @@ use vessel_app_kit::breakpoint::TOUCH_TARGET;
 use vessel_app_kit::picker::glyph;
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, InteractiveElement as _, IntoElement, MouseButton,
-    MouseDownEvent, ParentElement as _, SharedString, Styled as _, Window, div, px,
+    AnyElement, Context, Div, InteractiveElement as _, IntoElement, MouseButton, MouseDownEvent,
+    ParentElement as _, SharedString, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{MenuHandlers, MenuItem, Tokens, composer_card, menu};
 use vessel_app_view::composer::attach::Refusal;
@@ -104,7 +104,11 @@ pub(crate) fn session_card(
             .w_full()
             .flex()
             .flex_row()
-            .pb(px(spacing::S2))
+            .pb(px(if touch {
+                spacing::S2
+            } else {
+                super::diff_pill::CLEARANCE_WIDE
+            }))
             .child(pill)
             .into_any_element()
     });
