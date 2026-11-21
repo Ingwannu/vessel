@@ -62,6 +62,7 @@ export function useBadge(): void {
     return () => {
       stop();
       setFavicon("none");
+      setBadge(0);
     };
   }, [fleet]);
 }
