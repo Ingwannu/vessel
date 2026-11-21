@@ -280,8 +280,13 @@ impl Schedules {
         cadence: Cadence,
         asker: Asker,
     ) -> Result<ScheduleInfo, AutomationError> {
-        self.change(schedule, revision, DefinitionChange::Cadence(cadence), asker)
-            .await
+        self.change(
+            schedule,
+            revision,
+            DefinitionChange::Cadence(cadence),
+            asker,
+        )
+        .await
     }
 
     async fn change(

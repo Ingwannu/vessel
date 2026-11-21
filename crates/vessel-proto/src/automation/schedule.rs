@@ -27,10 +27,10 @@ use serde::{Deserialize, Serialize};
 use super::cron::CronExpr;
 use super::run::ScheduleRun;
 use super::text::{PromptText, ScheduleName, TimeZoneName};
+use crate::ProtocolVersion;
 use crate::id::{ScheduleId, SessionId};
 use crate::profile::Creator;
 use crate::session::SessionSpec;
-use crate::ProtocolVersion;
 
 /// Seconds between an `every` schedule's due times: at least a minute
 /// (all three references' floor), at most 366 days.
@@ -425,8 +425,8 @@ mod tests {
 
     #[test]
     fn cadence_update_uses_the_feature_protocol_and_direct_operate_scope() {
-        use crate::rpc::Request;
         use crate::Scope;
+        use crate::rpc::Request;
 
         let method = UpdateScheduleCadence::METHOD;
         let request = UpdateScheduleCadence {
@@ -442,7 +442,10 @@ mod tests {
         assert_eq!(encoded["params"].as_object().unwrap().len(), 3);
         assert_eq!(method.scope(), Some(Scope::Operate));
         assert!(!method.forwardable());
-        assert_eq!(request.into_call().required_protocol(), HEARTBEAT_CADENCE_PROTOCOL);
+        assert_eq!(
+            request.into_call().required_protocol(),
+            HEARTBEAT_CADENCE_PROTOCOL
+        );
     }
 
     #[test]

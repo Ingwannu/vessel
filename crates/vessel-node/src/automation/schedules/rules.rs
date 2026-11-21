@@ -2,8 +2,8 @@
 //! as, and who may change what"). Pure: the scheduler asks before it
 //! changes anything, and the tests ask without one.
 
-use vessel_proto::{Creator, SessionId};
 use vessel_proto::automation::{ScheduleInfo, ScheduleTarget};
+use vessel_proto::{Creator, SessionId};
 
 use super::state::update_admitted;
 
