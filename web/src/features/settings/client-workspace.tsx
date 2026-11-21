@@ -1,10 +1,10 @@
 import "./client-workspace.css";
 
 import { useState } from "react";
-import { useStore } from "@tanstack/react-store";
 
 import { useFleet } from "../../context";
 import { prefer, prefs } from "../../data/prefs";
+import { useStore } from "../../data/store";
 import { Row, RowList, Select, TextField, type Choice } from "../../ui/kit";
 import { toast } from "../../ui/toasts";
 import type {
