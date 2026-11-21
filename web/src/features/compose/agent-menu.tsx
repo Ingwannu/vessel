@@ -23,6 +23,7 @@ import {
 import { pickerLabel, pickerName } from "../../data/picker";
 import {
   Button,
+  Icon,
   Menu,
   MenuGroup,
   MenuNote,
@@ -48,6 +49,9 @@ export interface AgentMenuProps {
   state: ControlsState;
   onChoose: (choice: OptionChoice) => void;
   disabled?: boolean;
+  /** A form uses the same picker with a full-width Model trigger. Its
+   * other fields own effort and permissions. */
+  modelField?: { storedModel: string | null };
 }
 
 /** A select's values as the kit's choices, in the agent's words. */
@@ -68,14 +72,16 @@ function valuesOf(control: SelectControl) {
 function SelectRow({
   control,
   label,
+  currentLabel,
   onChoose,
 }: {
   control: SelectControl;
   label: string;
+  currentLabel?: string | null;
   onChoose: (choice: OptionChoice) => void;
 }) {
   return (
-    <MenuSubmenu label={label} value={currentName(control)}>
+    <MenuSubmenu label={label} value={currentLabel ?? currentName(control)}>
       <MenuRadioGroup
         value={control.current}
         onChange={(value) => {
@@ -119,23 +125,51 @@ export function AgentMenu({
   state,
   onChoose,
   disabled,
+  modelField,
 }: AgentMenuProps) {
   const controls = state.kind === "ready" ? state.controls : null;
+  const model = controls?.model ?? null;
+  const storedModel = modelField?.storedModel ?? null;
+  const storedChoice =
+    storedModel === null
+      ? undefined
+      : model?.values.find((choice) => choice.id === storedModel);
+  const shownModel =
+    modelField === undefined
+      ? null
+      : (storedChoice?.name ??
+        storedModel ??
+        (model === null ? null : currentName(model)));
+  const fieldText =
+    shownModel === null ? agent.name : `${agent.name} · ${shownModel}`;
   return (
     <Menu
-      side="top"
+      side={modelField === undefined ? "top" : "bottom"}
       align="start"
       width="narrow"
       trigger={
         <Button
-          variant="ghost"
-          size="sm"
-          shape="soft"
+          variant={modelField === undefined ? "ghost" : "secondary"}
+          size={modelField === undefined ? "sm" : "md"}
+          shape={modelField === undefined ? "soft" : "rect"}
           disabled={disabled}
-          aria-label={pickerName(state, agent.name)}
+          aria-label={
+            modelField === undefined
+              ? pickerName(state, agent.name)
+              : `Model: ${fieldText}`
+          }
+          end={
+            modelField === undefined ? undefined : (
+              <Icon name="chevron-down" size={13} />
+            )
+          }
           data-model-picker=""
         >
-          <TriggerLabel state={state} name={agent.name} />
+          {modelField === undefined ? (
+            <TriggerLabel state={state} name={agent.name} />
+          ) : (
+            <span className="trigger-label">{fieldText}</span>
+          )}
         </Button>
       }
     >
@@ -160,21 +194,27 @@ export function AgentMenu({
       </MenuSubmenu>
       {controls === null ? null : (
         <>
-          {controls.model === null ? null : (
+          {model === null ? null : (
             <SelectRow
-              control={controls.model}
+              control={
+                storedChoice === undefined
+                  ? model
+                  : { ...model, current: storedChoice.id }
+              }
               label={slotLabel("model")}
+              currentLabel={modelField === undefined ? null : shownModel}
               onChoose={onChoose}
             />
           )}
-          {controls.effort === null ? null : (
+          {modelField !== undefined || controls.effort === null ? null : (
             <SelectRow
               control={controls.effort}
               label={slotLabel("effort")}
               onChoose={onChoose}
             />
           )}
-          {controls.toggles.length + controls.selects.length === 0 ? null : (
+          {modelField !== undefined ||
+          controls.toggles.length + controls.selects.length === 0 ? null : (
             <>
               <MenuSeparator />
               {/* The agent's other settings, apart from the three rows the

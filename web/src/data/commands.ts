@@ -10,6 +10,7 @@ import type { ThemePreference } from "./theme";
 import { isLive, statusWord } from "./format";
 import { machineState, reachWord } from "./machines";
 import { nodeLabel } from "./nodes";
+import { schedulesLabel } from "./schedules/words";
 import {
   SETTINGS_SECTIONS,
   type SettingsSection,
@@ -32,6 +33,7 @@ export type PaletteTarget =
 /** The places a palette entry can name, for its icon. */
 export type PalettePlace =
   | "board"
+  | "schedules"
   | "settings"
   | { section: SettingsSection }
   | "machine"
@@ -58,22 +60,23 @@ export interface PaletteEntry {
 
 /** The board, Settings, and each of Settings' sections (its one list,
  * `settings.ts`). */
-const PLACES: readonly PaletteEntry[] = [
-  {
-    id: "go-board",
-    label: "Board",
-    group: "Go to",
-    place: "board",
-    target: { kind: "route", to: "/sessions" },
-  },
-  ...SETTINGS_SECTIONS.map((section): PaletteEntry => ({
+const SETTINGS_PLACES: readonly PaletteEntry[] = SETTINGS_SECTIONS.map(
+  (section): PaletteEntry => ({
     id: `go-settings-${section}`,
     label: `Settings: ${settingsSectionLabel(section)}`,
     group: "Go to",
     place: { section },
     target: { kind: "route", to: `/settings/${section}` },
-  })),
-];
+  }),
+);
+
+const BOARD: PaletteEntry = {
+  id: "go-board",
+  label: "Board",
+  group: "Go to",
+  place: "board",
+  target: { kind: "route", to: "/sessions" },
+};
 
 /** "Theme: system", "Theme: light", "Theme: dark". */
 const THEMES: readonly PaletteEntry[] = (
@@ -92,7 +95,16 @@ const THEMES: readonly PaletteEntry[] = (
 export function paletteEntries(
   state: FleetState,
   selected: string | null,
+  language = "en",
 ): PaletteEntry[] {
+  const schedules: PaletteEntry = {
+    id: "schedules",
+    label: schedulesLabel(language),
+    keywords: "schedules scheduled automation recurring 일정",
+    group: "Go to",
+    place: "schedules",
+    target: { kind: "route", to: "/schedules" },
+  };
   const machines: PaletteEntry[] = (state.book ?? []).map((node) => ({
     id: `machine-${node.key}`,
     label: nodeLabel(node, state.statuses[node.key]),
@@ -143,5 +155,13 @@ export function paletteEntries(
       target: { kind: "manage-labels" },
     },
   ];
-  return [...actions, ...PLACES, ...machines, ...sessions, ...THEMES];
+  return [
+    ...actions,
+    BOARD,
+    schedules,
+    ...SETTINGS_PLACES,
+    ...machines,
+    ...sessions,
+    ...THEMES,
+  ];
 }

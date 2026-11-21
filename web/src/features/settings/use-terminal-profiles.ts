@@ -48,15 +48,16 @@ export function useTerminalProfileSettings(
 
   const save = useCallback(
     async (next: readonly TerminalProfile[]) => {
-      asked.current += 1;
-      const mine = asked.current;
       setSaving(true);
       const result = await saveProfiles(fleet, machine, next);
-      if (mine === asked.current) {
-        setSaving(false);
-        if (result.ok) {
-          setListed(result);
-        }
+      // The save ends whatever was asked meanwhile: a read started during it
+      // (a reconnect) must not leave the controls waiting (P5w node review
+      // note 1). Its answer is the list in force after it, so a read still
+      // out is dropped.
+      setSaving(false);
+      if (result.ok) {
+        asked.current += 1;
+        setListed(result);
       }
       return result;
     },

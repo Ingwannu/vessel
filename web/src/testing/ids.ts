@@ -24,6 +24,7 @@ import type {
   QuestionId,
   QueueEntryId,
   RuntimeGeneration,
+  ScheduleId,
   SessionId,
   SettingsRevision,
   TerminalId,
@@ -60,6 +61,7 @@ interface Handles {
   QuestionId: QuestionId;
   QueueEntryId: QueueEntryId;
   RuntimeGeneration: RuntimeGeneration;
+  ScheduleId: ScheduleId;
   SessionId: SessionId;
   SettingsRevision: SettingsRevision;
   TerminalId: TerminalId;
