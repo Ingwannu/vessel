@@ -159,6 +159,8 @@ plugins-screen-unavailable = 이 플러그인 화면을 쓸 수 없습니다.
 
 # 플러그인 화면을 닫는 버튼(Paseo의 "Close plugin").
 plugins-screen-close = 플러그인 닫기
+
+# 그 버튼의 tooltip(Paseo의 "Close"). 버튼 이름은 "플러그인 닫기" 그대로입니다.
 plugins-screen-close-tip = 닫기
 
 # 관리자 권한이 없는 기기에서 플러그인 화면 위에 보이는 줄. $machine은 머신 이름입니다.
