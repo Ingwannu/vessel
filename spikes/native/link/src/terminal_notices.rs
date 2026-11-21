@@ -6,10 +6,16 @@
 //! place, then again from the revision it read, which the node answers when
 //! the list moves (ADR 0116, at most 30 s). What [`Watched`] finds goes to
 //! the app as [`crate::Event::TerminalNotices`]. A newer connection to the
-//! machine replaces the follower. A failed call ends it, as a lost
-//! connection fails every call, and the next connection starts a new one.
-//! A wait that runs past its bound asks again, and a list whose revision
-//! did not move is asked again after a quiet second.
+//! machine replaces the follower. A failed call on a connection that stays
+//! open is asked again, whole, after a 15 s rest, keeping what was told; a
+//! closed connection ends the follower, and the next connection starts a
+//! new one. A wait that runs past its bound asks again, and a list whose
+//! revision did not move is asked again after a quiet second.
+//!
+//! The rest is the page's (`RETRY_MS` in `use-terminal-notices.ts`): asking
+//! at once would spin on a node that keeps refusing, and ending would leave
+//! the machine unfollowed until the next connection (app review of row 3,
+//! note 3).
 //!
 //! While ADR 0089's constant is unassigned no machine admits claims, so no
 //! follower starts.
@@ -36,6 +42,10 @@ const WAIT: Duration = Duration::from_secs(30 + 15);
 /// or a delegated caller) would otherwise be asked at round-trip speed
 /// (app review of row 3, note 1; the catalog watcher's quiet wait).
 const QUIET: Duration = Duration::from_secs(1);
+
+/// How long a follower rests after a failed call before it asks for the
+/// whole list again.
+pub(crate) const RETRY: Duration = Duration::from_secs(15);
 
 /// The followers running, one per machine.
 #[derive(Debug, Default)]
@@ -76,7 +86,12 @@ impl State {
         if !claims(Some(client.protocol())) {
             return;
         }
-        let follower = tokio::spawn(follow(client, machine.to_owned(), self.events.clone()));
+        let follower = tokio::spawn(follow(
+            client,
+            machine.to_owned(),
+            self.events.clone(),
+            RETRY,
+        ));
         let _replaced = self
             .terminal_notices
             .following
@@ -103,8 +118,14 @@ impl State {
     }
 }
 
-/// Follow `machine`'s terminal list until a call fails or the app closes.
-pub(crate) async fn follow(client: NodeClient, machine: String, events: mpsc::Sender<Event>) {
+/// Follow `machine`'s terminal list until its connection closes or the app
+/// does, resting `retry` after a failed call.
+pub(crate) async fn follow(
+    client: NodeClient,
+    machine: String,
+    events: mpsc::Sender<Event>,
+    retry: Duration,
+) {
     let mut watched = Watched::default();
     let mut changed_from = None;
     loop {
@@ -115,8 +136,13 @@ pub(crate) async fn follow(client: NodeClient, machine: String, events: mpsc::Se
         let list = match tokio::time::timeout(WAIT, asked).await {
             Err(_elapsed) => continue,
             Ok(Err(error)) => {
-                tracing::debug!(%error, "a machine's terminals are no longer followed");
-                return;
+                tracing::debug!(%error, "a machine's terminal list failed; asked again after a rest");
+                tokio::select! {
+                    () = client.closed() => return,
+                    () = tokio::time::sleep(retry) => {}
+                }
+                changed_from = None;
+                continue;
             }
             Ok(Ok(list)) => list,
         };

@@ -257,14 +257,17 @@ assigned.
     `notices_claimed`) tells only what passes;
   - the page: `web/src/data/claims.ts`, wired in `use-notices.ts`.
 - What shows: `Admitted`, and a notice whose entry is not on the machine's first inbox page. That fallback
-  is the coordinator's rule, and ADR 0089 states the limit. Nothing else shows, and a claim is never
+  is the coordinator's rule, and ADR 0089 states the limit. A first page that cannot be read falls back the
+  same way for every notice, and no claim is made (ADR 0089, "Turned on", item 4; the page's
+  `askBeforeTelling`). Before, a failed page silenced them. Nothing else shows, and a claim is never
   retried.
 - Sound: an asked notice's sound plays with its notification when the answer admits it. On the app, the
   answer's notices share one sound, as a fleet change's do.
 - Tests:
   - rules, both clients: `view/src/notices/claims/tests.rs` and `web/src/data/claims.test.ts`;
   - the link through the real actor: one first page, one claim per notice found, which the client refuses
-    before the wire while unassigned;
+    before the wire while unassigned; a failed page answers every notice `NotOnFirstPage`
+    (`a_failed_first_page_tells_every_notice_by_the_old_path_and_claims_none`);
   - the app: only admitted and past-the-page notices are told, and every notice is told at once while
     unassigned.
 - Owed at assignment: an end-to-end claim against a node, with two windows of which one is admitted.
@@ -284,7 +287,9 @@ terminal's attention, and no machine admits claims, so nothing here runs.
   (`terminal.list` with no place), waiting on its revision (ADR 0116). Once the feature is assigned, the
   node moves that revision when a terminal's attention changes (`terminals/registry/listed.rs`).
   - One follower per connection (`link/src/terminal_notices.rs`).
-  - A newer connection replaces it, and a failed call ends it.
+  - A newer connection replaces it, and a closed connection ends it. A failed call on a connection that stays
+    open rests 15 s, then asks for the whole list again, keeping what was told (app review note 3; the page's
+    `RETRY_MS`). Before, a failed call ended the follower until the next connection.
   - A list whose revision did not move is asked again only after a quiet second. A node that answers without
     waiting (its wait slots full, a delegated caller) would otherwise be asked at round-trip speed (app review
     note).
@@ -301,6 +306,18 @@ terminal's attention, and no machine admits claims, so nothing here runs.
   - Admitted notices share one sound and count in the window's title, as session notices do.
 - **Click** (`app/src/areas/notify/terminals.rs`): opens the session whose workspace holds the terminal's
   place, then the terminal's tab there. Nothing opens when the fleet lists no such session.
+  - A session holds a place as the page's `holds` reads it (`view::terminal_tabs::holds`): its own shell, its
+    worktree's, any folder of its project, or its folder as a path. Before, the click compared the whole
+    place with `place_for(card)`, so a shell in a project's subfolder, or beside a session of a workspace,
+    opened nothing.
+  - A folder that is no session's as a path is asked of the node (app review note 2): the node keeps a folder
+    place canonical, and a session keeps its folder as given, so through a link or a `..` the two differ. The
+    link lists each folder session's folder (`Command::LocateTerminal`, `link/src/terminal_holder.rs`, with the
+    Decision Log), and the session the node names opens on the next frame (`Event::TerminalLocated`,
+    `settle_terminal_notice`). Each click first drops an earlier click's locate and find, so a late find never
+    opens over what a later click opened. A find that arrives after the person moved on some other way still
+    opens; it comes within one call's bound (15 s) for each folder asked. Paseo's daemon names the workspace in
+    the notification itself (`session-context.tsx:658-677`, `workspaceId`).
 - **Presence.** A terminal tab with the focused pane in the shown workspace is reported as
   `Terminal{terminal}` focus (`view/src/presence.rs`, `Shown::Terminal`), as Paseo's focus target is an agent
   or a terminal (`agent-attention-policy.ts:12`). The machine then suppresses that terminal's notice and
@@ -321,10 +338,16 @@ terminal's attention, and no machine admits claims, so nothing here runs.
   - `view/src/notices/terminals/tests.rs`: the first list, a new revision told once, the kinds, a failed
     terminal, alerts off;
   - `link/src/terminal_notices/tests.rs`, through the real framed actor: the whole list, then from its
-    revision, and only the new attention told; a fresh connection follows only while the constant is
-    assigned;
+    revision, and only the new attention told; a failed call rests, asks for the whole list again and tells
+    only what is new, and a closed connection ends the follower; a fresh connection follows only while the
+    constant is assigned;
+  - `link/src/terminal_holder/tests.rs`: the folders are listed in turn, a failed or empty one is passed
+    over, and the first that lists the terminal names its session;
+  - `view/src/terminal_tabs/places_tests.rs`, `a_session_holds_its_own_shells_its_workspaces_and_its_folder_as_a_path`;
   - `app/src/areas/notify/terminals/tests.rs`: only admitted notices are shown, with their titles; alerts
-    off never claims; a viewed terminal's attention is cleared once, only on a machine that admits claims;
+    off never claims; a viewed terminal's attention is cleared once, only on a machine that admits claims; a
+    folder terminal no session names as a path is asked of the node, and the session it names opens; a later
+    click that finds its holder at once drops the earlier find (`a_later_click_drops_an_earlier_clicks_find`);
   - `view/src/presence/tests.rs` and `link/src/presence/tests.rs`: a shown terminal is `Terminal` focus only
     to a machine that admits claims.
 
@@ -346,7 +369,13 @@ unchanged (ADR 0026, `view::session::read_through`).
   the session unread, and the next view sends it again.
 - Not changed: the person's own "Mark as read" in a row's menu stays `session.mark`. Below the constant every
   read stays as it is.
-- Test: `view/src/notices/claims/tests.rs`, `a_read_is_marked_by_inbox_read_only_on_a_machine_that_admits_the_protocol`.
+- The inbox path never sets the read-only stop on `Forbidden`: `inbox.read` takes the `Read` scope, which
+  every paired device has, so a refusal there is not the scope's (app review note 2 of row 4). Revisit it if
+  `inbox.read` ever asks for more.
+- Tests:
+  - `view/src/notices/claims/tests.rs`, `a_read_is_marked_by_inbox_read_only_on_a_machine_that_admits_the_protocol`;
+  - `app/src/areas/conversation/read/tests.rs`, `a_read_on_a_claiming_machine_is_one_inbox_read_and_no_mark`:
+    one `ReadInbox` and no `Act::Mark` once the constant is assigned, the read mark before it.
 
 ## Badges (2026-11-21, the claims follow-up's fifth row)
 
@@ -357,6 +386,9 @@ and attention (`desktop-badge-state.ts:5-14`, `use-favicon-status.ts`).
   where the browser offers it. The favicon has three states, drawn by the build. ADR 0089, "The page's badge and
   favicon", has the rule, the files and the tests.
 - **App: a stated difference (TRACKER 831).** The app shows no count on the OS dock or taskbar:
+  - Paseo's desktop shows its count on the macOS dock only: the app calls `setBadgeCount` only in Electron on a
+    Mac (`use-favicon-status.ts:80-95`, `updateMacDockBadge`), which sets the `NSDockTile` badge through
+    Electron's `app.setBadgeCount` (`desktop/src/window/window-manager.ts:181-194`);
   - GPUI has no badge call;
   - Windows' `ITaskbarList3` overlay and Linux's `com.canonical.Unity.LauncherEntry` would each need a patch;
   - the coordinator ruled on 2026-11-20 not to patch GPUI for it.

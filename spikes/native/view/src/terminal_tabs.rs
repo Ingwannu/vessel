@@ -26,7 +26,10 @@ use vessel_proto::{ErrorCode, TerminalId};
 
 pub mod places;
 
-pub use places::{beside_sessions, in_place, place_for, workspace_places, workspace_sessions};
+pub use places::{
+    beside_sessions, folder_sessions, holds, in_place, place_for, workspace_places,
+    workspace_sessions,
+};
 
 /// The terminals `place` shows as tabs: its live shells, by id.
 #[must_use]

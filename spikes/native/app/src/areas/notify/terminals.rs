@@ -9,13 +9,14 @@
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_link::Command;
 use vessel_app_link::claims::{TerminalAnswer, TerminalAsk};
+use vessel_app_link::terminal_holder::{Locate, Located};
 use vessel_app_view::layout::{AgentRole, OpenIntent, Placement, Target};
 use vessel_app_view::notices::claims::{Asked, claims};
 use vessel_app_view::notices::terminals::{
     TerminalAnnounce, TerminalNotice, announce_terminals, to_clear,
 };
 use vessel_app_view::notices::{NoticeKind, title_with};
-use vessel_app_view::terminal_tabs::place_for;
+use vessel_app_view::terminal_tabs::{folder_sessions, holds};
 use vessel_proto::TerminalId;
 use vessel_proto::notifications::NotificationClaim;
 use vessel_proto::terminals::TerminalPlace;
@@ -128,8 +129,12 @@ impl Shell {
 
     /// A click on a terminal notice: open a session whose workspace holds
     /// `place`, then the terminal's tab there, as Paseo's tap opens the
-    /// terminal tab (`session-context.tsx:658-677`). Nothing opens when no
-    /// session the fleet lists holds it.
+    /// terminal tab (`session-context.tsx:658-677`). A folder that is no
+    /// session's own as a path is asked of the node, which keeps it
+    /// canonical (`vessel_app_link::terminal_holder`); the session it names
+    /// opens on the next frame. Nothing opens when no session holds it.
+    /// Each click first drops an earlier click's locate and find, so a late
+    /// find never opens over what this click opened (app review R1).
     pub(super) fn terminal_notice_clicked(
         &mut self,
         machine: &str,
@@ -138,22 +143,85 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<'_, Self>,
     ) {
+        self.areas.notify.locating = None;
+        self.areas.notify.located = None;
+        let Some(known) = self
+            .fleet
+            .machines
+            .iter()
+            .find(|known| known.name == machine)
+        else {
+            return;
+        };
+        if let Some(card) = known.sessions.iter().find(|card| holds(card, place)) {
+            let open = crate::areas::session::Open::of(card);
+            self.open_terminal_tab(open, terminal, window, cx);
+            return;
+        }
+        let candidates = match place {
+            TerminalPlace::Folder { .. } => folder_sessions(&known.sessions),
+            TerminalPlace::Session { .. }
+            | TerminalPlace::Project { .. }
+            | TerminalPlace::Worktree { .. } => Vec::new(),
+        };
+        if candidates.is_empty() {
+            tracing::debug!("a terminal notice's click found no session holding it");
+            return;
+        }
+        self.areas.notify.locating = Some((machine.to_owned(), terminal));
+        self.command(Command::LocateTerminal(Locate {
+            machine: machine.to_owned(),
+            terminal,
+            candidates,
+        }));
+    }
+
+    /// The node named the session that holds the last clicked terminal:
+    /// open it on the next frame. A find for an earlier click is dropped.
+    pub(crate) fn terminal_located(&mut self, located: Located) {
+        let area = &mut self.areas.notify;
+        if area.locating.as_ref().is_some_and(|(machine, terminal)| {
+            *machine == located.machine && *terminal == located.terminal
+        }) {
+            area.locating = None;
+            area.located = Some(located);
+        }
+    }
+
+    /// Each frame: open the session a find named, then its terminal's tab.
+    pub(crate) fn settle_terminal_notice(
+        &mut self,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let Some(located) = self.areas.notify.located.take() else {
+            return;
+        };
         let open = self
             .fleet
             .machines
             .iter()
-            .filter(|known| known.name == machine)
+            .filter(|known| known.name == located.machine)
             .find_map(|known| {
                 known
                     .sessions
                     .iter()
-                    .find(|card| place_for(card, known.protocol) == *place)
+                    .find(|card| card.session == located.session)
             })
             .map(crate::areas::session::Open::of);
-        let Some(open) = open else {
-            tracing::debug!("a terminal notice's click found no session holding it");
-            return;
-        };
+        if let Some(open) = open {
+            self.open_terminal_tab(open, located.terminal, window, cx);
+        }
+    }
+
+    /// Open `open`'s session, then `terminal`'s tab in its workspace.
+    fn open_terminal_tab(
+        &mut self,
+        open: crate::areas::session::Open,
+        terminal: TerminalId,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
         self.open_session(open, window, cx);
         let Ok(workspace) = crate::areas::layout::current_key(self) else {
             return;

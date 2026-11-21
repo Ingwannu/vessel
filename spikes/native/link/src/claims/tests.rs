@@ -1,7 +1,8 @@
 //! Asking a machine about its notices, through the real framed actor:
 //! one first inbox page, then a claim per notice found on it. While ADR
 //! 0089's protocol is unassigned the client refuses the claim before the
-//! wire, so a found notice comes back failed and shows nothing.
+//! wire, so a found notice comes back failed and shows nothing. A page that
+//! fails sends every notice by ADR 0114's path.
 
 use crate::claims::Ask;
 use crate::testing::{actor::Actor, within};
@@ -12,7 +13,9 @@ use vessel_proto::inbox::{
     InboxCount, InboxCounts, InboxCursor, InboxEntry, InboxItem, InboxKey, InboxPage, InboxRead,
 };
 use vessel_proto::notifications::{ATTENTION_NOTIFICATIONS_PROTOCOL, NotificationClaim};
-use vessel_proto::{Call, EventSeq, Outcome as WireOutcome, Reply, SessionId};
+use vessel_proto::{
+    Call, ErrorCode, EventSeq, Outcome as WireOutcome, Reply, SessionId, WireError,
+};
 
 fn told(session: SessionId) -> Announce {
     Announce {
@@ -125,6 +128,45 @@ async fn a_machine_not_connected_answers_every_notice_failed() {
                 .asked
                 .iter()
                 .all(|(_one, asked)| *asked == Asked::Failed)
+        );
+        actor.retire().await;
+        actor.close_peer().await;
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn a_failed_first_page_tells_every_notice_by_the_old_path_and_claims_none() {
+    within(async {
+        let mut actor = Actor::new("fixture").await;
+        let (one, two) = (SessionId::random(), SessionId::random());
+        actor
+            .dispatch(Command::Claims(Ask {
+                machine: "fixture".to_owned(),
+                told: vec![told(one), told(two)],
+            }))
+            .await;
+        let request = actor.request().await;
+        assert!(matches!(request.call, Call::ListInbox(_)));
+        request
+            .answer
+            .send(WireOutcome::Err(WireError::new(
+                ErrorCode::Unavailable,
+                "busy",
+            )))
+            .unwrap();
+        let Event::Claims(answer) = actor.next_event().await else {
+            panic!("expected the claims' answer");
+        };
+        let outcomes: Vec<(SessionId, Asked)> = answer
+            .asked
+            .iter()
+            .map(|(notice, asked)| (notice.notice.session, *asked))
+            .collect();
+        assert_eq!(
+            outcomes,
+            vec![(one, Asked::NotOnFirstPage), (two, Asked::NotOnFirstPage)],
+            "no claim goes, and nothing is silenced"
         );
         actor.retire().await;
         actor.close_peer().await;

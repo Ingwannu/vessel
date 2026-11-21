@@ -95,6 +95,7 @@ pub mod sound {
 }
 pub mod schedules;
 pub mod sync;
+pub mod terminal_holder;
 pub mod terminals;
 pub mod usage;
 #[cfg(target_arch = "wasm32")]
