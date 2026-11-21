@@ -314,7 +314,9 @@ terminal's attention, and no machine admits claims, so nothing here runs.
     place canonical, and a session keeps its folder as given, so through a link or a `..` the two differ. The
     link lists each folder session's folder (`Command::LocateTerminal`, `link/src/terminal_holder.rs`, with the
     Decision Log), and the session the node names opens on the next frame (`Event::TerminalLocated`,
-    `settle_terminal_notice`). A find for an earlier click is dropped. Paseo's daemon names the workspace in
+    `settle_terminal_notice`). Each click first drops an earlier click's locate and find, so a late find never
+    opens over what a later click opened. A find that arrives after the person moved on some other way still
+    opens; it comes within one call's bound (15 s) for each folder asked. Paseo's daemon names the workspace in
     the notification itself (`session-context.tsx:658-677`, `workspaceId`).
 - **Presence.** A terminal tab with the focused pane in the shown workspace is reported as
   `Terminal{terminal}` focus (`view/src/presence.rs`, `Shown::Terminal`), as Paseo's focus target is an agent
@@ -344,7 +346,8 @@ terminal's attention, and no machine admits claims, so nothing here runs.
   - `view/src/terminal_tabs/places_tests.rs`, `a_session_holds_its_own_shells_its_workspaces_and_its_folder_as_a_path`;
   - `app/src/areas/notify/terminals/tests.rs`: only admitted notices are shown, with their titles; alerts
     off never claims; a viewed terminal's attention is cleared once, only on a machine that admits claims; a
-    folder terminal no session names as a path is asked of the node, and the session it names opens;
+    folder terminal no session names as a path is asked of the node, and the session it names opens; a later
+    click that finds its holder at once drops the earlier find (`a_later_click_drops_an_earlier_clicks_find`);
   - `view/src/presence/tests.rs` and `link/src/presence/tests.rs`: a shown terminal is `Terminal` focus only
     to a machine that admits claims.
 
