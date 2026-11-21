@@ -30,7 +30,11 @@ pub(super) fn review_text(review: &PromptReview) -> String {
         format!("Vessel review attachment ({})", review.mode.as_str()),
         format!("CWD: {}", review.root),
     ];
-    if let Some(base) = review.base.as_ref().filter(|base| !base.as_str().is_empty()) {
+    if let Some(base) = review
+        .base
+        .as_ref()
+        .filter(|base| !base.as_str().is_empty())
+    {
         lines.push(format!("Base: {base}"));
     }
     for (index, comment) in review.comments.iter().enumerate() {

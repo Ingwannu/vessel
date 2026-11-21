@@ -490,7 +490,6 @@ fn target_since(target: &crate::automation::ScheduleTarget) -> Option<u32> {
     }
 }
 
-
 /// `Some(Some(n))` when `content` holds a `context` or `review` block of
 /// protocol n (ADR 0124), `Some(None)` when it holds none, `None` while
 /// that protocol awaits its number.

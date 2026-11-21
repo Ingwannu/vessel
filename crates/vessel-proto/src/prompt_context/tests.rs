@@ -66,7 +66,10 @@ fn a_value_past_its_rule_does_not_decode() {
         ("title", serde_json::json!("t".repeat(201))),
         ("text", serde_json::json!("   ")),
         ("text", serde_json::json!("nul\0byte")),
-        ("text", serde_json::json!("x".repeat(BLOCK_BYTES.saturating_add(1)))),
+        (
+            "text",
+            serde_json::json!("x".repeat(BLOCK_BYTES.saturating_add(1))),
+        ),
         ("url", serde_json::json!("ftp://example.com/log")),
         ("url", serde_json::json!("https://exa mple.com")),
     ] {
@@ -126,11 +129,17 @@ fn a_review_keeps_its_bounds_as_a_whole() {
     let mut many = one.clone();
     let comment = many.comments.first().unwrap().clone();
     many.comments = vec![comment.clone(); MAX_COMMENTS.saturating_add(1)];
-    assert_eq!(many.check(), Err(ContextProblem::Comments(MAX_COMMENTS.saturating_add(1))));
+    assert_eq!(
+        many.check(),
+        Err(ContextProblem::Comments(MAX_COMMENTS.saturating_add(1)))
+    );
     let mut long = one.clone();
     let line = comment.lines.first().unwrap().clone();
     long.comments.first_mut().unwrap().lines = vec![line; MAX_LINES.saturating_add(1)];
-    assert_eq!(long.check(), Err(ContextProblem::Lines(MAX_LINES.saturating_add(1))));
+    assert_eq!(
+        long.check(),
+        Err(ContextProblem::Lines(MAX_LINES.saturating_add(1)))
+    );
     let mut large = one;
     let mut wordy = comment;
     wordy.body = "w".repeat(BODY_BYTES).parse().unwrap();

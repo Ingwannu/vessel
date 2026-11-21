@@ -305,8 +305,9 @@ impl AgentEvent {
     #[must_use]
     pub fn required_protocol(&self) -> Option<ProtocolVersion> {
         match self {
-            Self::Steered { content } => content_protocol(content)
-                .map(|since| since.max(ProtocolVersion::new(10))),
+            Self::Steered { content } => {
+                content_protocol(content).map(|since| since.max(ProtocolVersion::new(10)))
+            }
             Self::QuestionAsked(_) | Self::QuestionResolved { .. } => {
                 Some(ProtocolVersion::new(10))
             }
