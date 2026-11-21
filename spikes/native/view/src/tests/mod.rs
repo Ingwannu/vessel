@@ -36,5 +36,6 @@ mod sidebar_display;
 mod sidebar_status;
 mod sidebar_tree;
 mod sync;
+mod terminal_profiles;
 mod toasts;
 mod tree;

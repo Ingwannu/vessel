@@ -9,6 +9,7 @@ use tokio::task::JoinHandle;
 use vessel_app_view::terminal::Outgoing;
 use vessel_app_view::terminal_tabs::Failure;
 use vessel_client::{CallError, NodeClient, StreamError};
+use vessel_proto::terminal_profiles::ProfileLaunch;
 use vessel_proto::terminals::{CloseTerminal, CreateTerminal, ListTerminals, SendTerminal};
 use vessel_proto::{EventSeq, TerminalBytes, TerminalId, TerminalInput, TerminalSize};
 
@@ -85,12 +86,12 @@ impl crate::State {
 /// One unary call, bounded, as its reply.
 async fn call(client: &NodeClient, request: Request) -> Reply {
     match request {
-        Request::Create { place } => {
+        Request::Create { place, profile } => {
             let asked = client.call(CreateTerminal {
                 place: place.clone(),
                 size: None,
                 title: None,
-                profile: None,
+                profile: profile.map(|id| ProfileLaunch { id, prompt: None }),
             });
             Reply::Created {
                 place,

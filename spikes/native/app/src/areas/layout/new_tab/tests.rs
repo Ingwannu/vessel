@@ -5,11 +5,16 @@ use crate::areas::session::Open;
 use crate::routes::Route;
 use crate::shell::language_tests;
 use gpui::{AppContext as _, Modifiers, Render, TestAppContext, VisualTestContext};
+use tokio::sync::mpsc::Receiver;
 use vessel_app_kit::ui::{Entity, IntoElement, Pixels};
+use vessel_app_link::Command;
+use vessel_app_link::terminals::Request;
 use vessel_app_view::layout::{AgentRole, LayoutAction, LayoutMode, OpenIntent, Placement, Target};
+use vessel_app_view::{Machine, Reach};
 use vessel_proto::SessionId;
+use vessel_proto::terminal_profiles::Profiles;
 
-struct Probe(Entity<Shell>);
+struct Probe(Entity<Shell>, Receiver<Command>);
 
 fn retained_body(
     _shell: &Shell,
@@ -29,11 +34,25 @@ impl Render for Probe {
     }
 }
 
-/// An open session with its agent tab and a New tab tab, the New tab shown.
+/// An open session on a connected machine whose node keeps the shipped
+/// profiles, with its agent tab and a New tab tab, the New tab shown.
 fn fixture(window: &mut Window, cx: &mut Context<'_, Probe>) -> Probe {
-    Probe(cx.new(|cx| {
-        let mut shell = Shell::without_io(window, cx);
+    let mut commands = None;
+    let shell = cx.new(|cx| {
+        let (mut shell, sent) = language_tests::with_commands(window, cx);
+        commands = Some(sent);
         shell.route = Route::Session;
+        shell.fleet.machines = vec![Machine {
+            name: "laptop".to_owned(),
+            reach: Reach::Online,
+            sessions: Vec::new(),
+            agents: Vec::new(),
+            protocol: Some(vessel_proto::PROTOCOL_VERSION),
+            version: None,
+            node: None,
+            connection_epoch: None,
+        }];
+        shell.terminal_profiles_read_as("laptop", Profiles::shipped().unwrap());
         let session = SessionId::random();
         shell.areas.session.open = Some(Open {
             machine: "laptop".to_owned(),
@@ -64,7 +83,8 @@ fn fixture(window: &mut Window, cx: &mut Context<'_, Probe>) -> Probe {
         })
         .unwrap();
         shell
-    }))
+    });
+    Probe(shell, commands.unwrap())
 }
 
 fn at(cx: &mut TestAppContext, width: f32) -> (Entity<Probe>, &mut VisualTestContext) {
@@ -186,9 +206,16 @@ fn the_arrows_stay_on_ready_rows_and_enter_opens_the_new_agent_page(cx: &mut Tes
         });
     });
     cx.run_until_parked();
-    // Agent (0) and Terminal (1) are the ready rows: the arrows skip the
-    // waiting ones and wrap between the two.
-    for (key, row) in [("down", 1), ("down", 0), ("up", 1), ("up", 0)] {
+    // Agent (0), Terminal (1) and the four profiles (7-10) are the ready
+    // rows: the arrows skip the waiting ones and wrap at the ends.
+    for (key, row) in [
+        ("down", 1),
+        ("down", 7),
+        ("up", 1),
+        ("up", 0),
+        ("up", 10),
+        ("down", 0),
+    ] {
         cx.simulate_keystrokes(key);
         cx.run_until_parked();
         probe.read_with(cx, |probe, cx| {
@@ -274,19 +301,80 @@ fn the_rows_and_the_pencil_are_named_buttons(cx: &mut TestAppContext) {
         let label = format!(r#""label": "{label}""#);
         arias.iter().find(|aria| aria.contains(&label)).cloned()
     };
-    // Paseo's LauncherRow: a button named by its label; Agent and
-    // Terminal start.
-    for ready in ["Agent", "Terminal"] {
+    // Paseo's LauncherRow: a button named by its label; Agent, Terminal
+    // and every profile start; the pencil opens Settings › Terminals.
+    for ready in ["Agent", "Terminal", "Claude Code", "Pi", "Edit profiles"] {
         let aria = named(ready).unwrap();
         assert!(
             aria.contains(r#""Button""#) && aria.contains(r#""Click""#),
             "{ready}"
         );
     }
-    // A disabled row and the disabled pencil are named but offer no Click.
-    for disabled in ["Changes", "Pi", "Edit profiles"] {
-        let aria = named(disabled).unwrap();
-        assert!(aria.contains(r#""Button""#), "{disabled}");
-        assert!(!aria.contains(r#""Click""#), "{disabled}");
-    }
+    // A disabled row is named but offers no Click.
+    let changes = named("Changes").unwrap();
+    assert!(changes.contains(r#""Button""#));
+    assert!(!changes.contains(r#""Click""#));
+}
+
+#[gpui::test]
+fn a_profile_row_starts_its_profile_in_place_of_the_new_tab(cx: &mut TestAppContext) {
+    let (probe, cx) = at(cx, 1280.0);
+    let claude = cx.debug_bounds(row("profile-claude")).unwrap();
+    cx.simulate_click(claude.center(), Modifiers::none());
+    cx.run_until_parked();
+    let created: Vec<Request> = probe.update(cx, |probe, _cx| {
+        let mut asked = Vec::new();
+        while let Ok(command) = probe.1.try_recv() {
+            if let Command::Terminals(ask) = command {
+                asked.push(ask.request);
+            }
+        }
+        asked
+    });
+    let profile = created.into_iter().find_map(|request| {
+        let Request::Create { profile, .. } = request else {
+            return None;
+        };
+        Some(profile)
+    });
+    assert_eq!(
+        profile
+            .flatten()
+            .map(|id| id.as_str().to_owned())
+            .as_deref(),
+        Some("claude")
+    );
+}
+
+#[gpui::test]
+fn the_pencil_opens_settings_terminals_for_the_workspace_machine(cx: &mut TestAppContext) {
+    let (probe, cx) = at(cx, 1280.0);
+    let edit = cx.debug_bounds("new-tab-edit-profiles").unwrap();
+    cx.simulate_click(edit.center(), Modifiers::none());
+    cx.run_until_parked();
+    probe.read_with(cx, |probe, cx| {
+        let shell = probe.0.read(cx);
+        assert_eq!(shell.route, Route::Settings);
+        assert_eq!(
+            shell.areas.settings.section,
+            vessel_app_view::settings::Section::Terminals
+        );
+        assert_eq!(shell.areas.settings.machine.as_deref(), Some("laptop"));
+    });
+}
+
+#[gpui::test]
+fn no_profile_group_until_the_machine_list_is_read(cx: &mut TestAppContext) {
+    language_tests::init(cx);
+    let (probe, cx) = cx.add_window_view(fixture);
+    probe.update_in(cx, |probe, window, cx| {
+        probe.0.update(cx, |shell, cx| {
+            shell.areas.terminal_profiles = crate::areas::terminal_profiles::State::new(window, cx);
+            cx.notify();
+        });
+    });
+    cx.run_until_parked();
+    assert!(cx.debug_bounds("new-tab-group-label").is_none());
+    assert!(cx.debug_bounds(row("profile-claude")).is_none());
+    assert!(cx.debug_bounds(row("agent")).is_some());
 }

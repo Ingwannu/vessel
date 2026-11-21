@@ -85,6 +85,7 @@ pub mod search;
 pub mod sessions;
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 pub mod sound;
+pub mod terminal_profiles;
 /// A notice's sound where link has no audio output yet (ADR 0114): macOS
 /// and the browser build play nothing.
 #[cfg(not(any(target_os = "linux", target_os = "windows")))]

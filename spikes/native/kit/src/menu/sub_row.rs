@@ -40,6 +40,7 @@ pub(super) fn any_row<V: 'static>(
                 page,
                 submenus,
                 state: rows.state,
+                tokens: rows.tokens,
                 surfaces: rows.surfaces,
                 narrow: rows.narrow,
                 hover: !rows.sheet,
@@ -66,6 +67,7 @@ struct SubRow<'a> {
     page: &'a str,
     submenus: &'a Submenus,
     state: &'a MenuState,
+    tokens: &'a Tokens,
     surfaces: &'a Surfaces,
     narrow: bool,
     /// Pointer rest opens the page (off in a phone's sheet).
@@ -87,6 +89,7 @@ fn sub_row<V: 'static>(
         page,
         submenus,
         state,
+        tokens,
         surfaces,
         narrow,
         hover,
@@ -114,7 +117,7 @@ fn sub_row<V: 'static>(
             14.0,
             surfaces.foreground_muted,
         ));
-    let mut element = row_body(index, item, paint, narrow)
+    let mut element = row_body(index, item, paint, narrow, tokens)
         // Whether its page is open (TRACKER 808: GPUI has no has-popup).
         .aria_expanded(open)
         .relative()
