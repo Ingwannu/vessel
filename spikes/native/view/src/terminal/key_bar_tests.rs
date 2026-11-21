@@ -32,24 +32,12 @@ fn a_set_modifier_goes_with_the_next_bar_key_then_clears() {
     let mut sticky = Sticky::default();
     sticky.toggle(Ctrl);
     assert!(sticky.is_set(Ctrl));
-    assert_eq!(
-        press(Up, &mut sticky, CursorKeys::Normal),
-        "\x1b[1;5A"
-    );
+    assert_eq!(press(Up, &mut sticky, CursorKeys::Normal), "\x1b[1;5A");
     assert!(sticky.is_empty());
-    assert_eq!(
-        press(Up, &mut sticky, CursorKeys::Application),
-        "\x1bOA"
-    );
+    assert_eq!(press(Up, &mut sticky, CursorKeys::Application), "\x1bOA");
     sticky.toggle(Shift);
-    assert_eq!(
-        press(Tab, &mut sticky, CursorKeys::Normal),
-        "\x1b[Z"
-    );
-    assert_eq!(
-        press(Escape, &mut sticky, CursorKeys::Normal),
-        "\x1b"
-    );
+    assert_eq!(press(Tab, &mut sticky, CursorKeys::Normal), "\x1b[Z");
+    assert_eq!(press(Escape, &mut sticky, CursorKeys::Normal), "\x1b");
     assert_eq!(press(Enter, &mut sticky, CursorKeys::Normal), "\r");
 }
 
