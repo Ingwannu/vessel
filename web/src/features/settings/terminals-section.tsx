@@ -4,7 +4,8 @@
 // [Decision Log]
 // - Reference: one row per profile, in the list's order, with its mark,
 //   its name, and its command and arguments as a hint; Move up, Move down
-//   (off at the ends), Edit and Remove (asks first). Add sits at the
+//   (off at the ends), Edit and Remove (asks first; its trash in the
+//   danger colour, Paseo's `destructiveColorMapping`). Add sits at the
 //   section's end. Every change saves the whole list. A host not connected
 //   shows one line saying to connect; an empty list says how to add one.
 // - Choice: the kit's rows and icon buttons, the machine picker beside Add
@@ -201,7 +202,7 @@ function TerminalsOf({ machine }: { machine: NodeKey }) {
                 <IconButton
                   icon="trash"
                   label={PROFILE_WORDS.remove}
-                  variant="ghost"
+                  variant="danger"
                   size="sm"
                   disabled={hold.saving}
                   onClick={() => {
