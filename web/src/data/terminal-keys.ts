@@ -255,7 +255,9 @@ export function typedWith(
   if (!hasSticky(sticky)) {
     return null;
   }
-  if ([...text].length !== 1) {
+  // Paseo's `data.length !== 1`: only one UTF-16 unit maps to a key (the
+  // mapped set is ASCII), anything longer goes as typed.
+  if (text.length !== 1) {
     return text;
   }
   const named: Record<string, Pressed> = {
