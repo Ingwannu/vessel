@@ -94,10 +94,10 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
         Command::Labels(request) => Event::Labels(request.refused(labels_failure(why))),
         Command::RetireConnection(_tag) => return Settle::Ignore,
         // A viewed terminal's clear or a session's inbox read: the next view
-        // asks again, unseen.
-        Command::ClearTerminalAttention { .. }
-        | Command::LocateTerminal(_)
-        | Command::ReadInbox(_) => return Settle::Ignore,
+        // asks again, unseen. A notice's click that finds no holder opens
+        // nothing, as before it asked.
+        Command::ClearTerminalAttention { .. } | Command::ReadInbox(_) => return Settle::Ignore,
+        Command::LocateTerminal(_locate) => return Settle::Ignore,
         Command::CodeSource(request) => {
             Event::CodeSource(Box::new(request.refused(Problem::Unsent)))
         }
