@@ -2,7 +2,7 @@
 //! confidentiality is checked by decryption, not by our own mock of crypto.
 mod crypto_tests;
 mod node_delivery;
-use super::policy::{Plan, Presence, plan};
+use super::policy::{Plan, Presence, plan, plan_for};
 use chrono::{DateTime, TimeDelta, Utc};
 use vessel_proto::SessionId;
 use vessel_proto::push::{PushActivity, PushFocus, ReportPushPresence};
@@ -18,6 +18,7 @@ fn state(focus: PushFocus, millis_ago: Option<i64>) -> Presence {
                 .checked_sub_signed(TimeDelta::milliseconds(age))
                 .unwrap()
         }),
+        notifies: true,
     }
 }
 #[test]
@@ -131,6 +132,7 @@ fn focus_reports_do_not_renew_activity_and_client_times_cannot_be_supplied() {
     presence.report(
         ReportPushPresence {
             idle_age: None,
+            notifies: true,
             focus: PushFocus::Elsewhere,
             activity: PushActivity::Unchanged,
         },
@@ -140,6 +142,7 @@ fn focus_reports_do_not_renew_activity_and_client_times_cannot_be_supplied() {
     presence.report(
         ReportPushPresence {
             idle_age: None,
+            notifies: true,
             focus: PushFocus::Elsewhere,
             activity: PushActivity::Active,
         },
@@ -158,12 +161,14 @@ fn desktop_idle_uses_node_time_minus_elapsed_idle_and_periodic_reports_do_not_ex
     let mut state = Presence {
         focus: PushFocus::Background,
         active_at: None,
+        notifies: true,
     };
     state.report(
         ReportPushPresence {
             focus: PushFocus::Background,
             activity: PushActivity::Unchanged,
             idle_age: Some(vessel_proto::push::PushIdleAge::new(100_000)),
+            notifies: true,
         },
         now,
     );
@@ -173,6 +178,7 @@ fn desktop_idle_uses_node_time_minus_elapsed_idle_and_periodic_reports_do_not_ex
             focus: PushFocus::Background,
             activity: PushActivity::Unchanged,
             idle_age: Some(vessel_proto::push::PushIdleAge::new(120_000)),
+            notifies: true,
         },
         now + TimeDelta::seconds(20),
     );
@@ -183,8 +189,44 @@ fn desktop_idle_uses_node_time_minus_elapsed_idle_and_periodic_reports_do_not_ex
             focus: PushFocus::Elsewhere,
             activity: PushActivity::Active,
             idle_age: Some(vessel_proto::push::PushIdleAge::new(120_000)),
+            notifies: true,
         },
         now + TimeDelta::seconds(81),
     );
     assert_eq!(state.active_at, Some(now + TimeDelta::seconds(81)));
+}
+
+#[test]
+fn only_a_notifying_window_is_elected_and_a_silent_present_one_still_holds_push() {
+    let session = SessionId::random();
+    let target = PushFocus::Session { session };
+    let silent = Presence {
+        notifies: false,
+        ..state(PushFocus::Elsewhere, Some(1_000))
+    };
+    let older = state(PushFocus::Elsewhere, Some(60_000));
+    // The silent window is the latest active, yet the notifying one is
+    // elected (Paseo's `notifications: true` candidates).
+    assert_eq!(plan_for(&[silent, older], target, now()), Plan::Local(1));
+    // Present only at a silent window: nobody is admitted, and nothing is
+    // pushed while the person is there.
+    assert_eq!(plan_for(&[silent], target, now()), Plan::Suppressed);
+    // A silent window focused on the target suppresses, as any does.
+    let focused = Presence {
+        notifies: false,
+        ..state(target, Some(1_000))
+    };
+    assert_eq!(plan_for(&[focused, older], target, now()), Plan::Suppressed);
+    // Nobody present: push.
+    assert_eq!(
+        plan_for(
+            &[Presence {
+                notifies: false,
+                ..state(PushFocus::Elsewhere, Some(400_000))
+            }],
+            target,
+            now()
+        ),
+        Plan::Push
+    );
 }

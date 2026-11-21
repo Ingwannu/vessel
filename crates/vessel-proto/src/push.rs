@@ -107,6 +107,28 @@ pub struct ReportPushPresence {
     /// Optional desktop OS evidence; absent on older/native backends.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub idle_age: Option<PushIdleAge>,
+    /// Whether this window tells notices as the system's notifications.
+    /// Only a notifying window can be elected a claim's local recipient,
+    /// as only Paseo's clients subscribed with `notifications: true` are
+    /// (`websocket-server.ts:2884-2886`). Suppression and push still count
+    /// every present window. Absent reads `true`, the meaning before the
+    /// field; `false` is versioned to ADR 0089's protocol.
+    #[serde(default = "notifies", skip_serializing_if = "is_notifying")]
+    pub notifies: bool,
+}
+
+/// `notifies` when a report leaves it out.
+const fn notifies() -> bool {
+    true
+}
+
+/// Whether `notifies` is its default, which is left off the wire.
+#[expect(
+    clippy::trivially_copy_pass_by_ref,
+    reason = "serde's skip_serializing_if passes a reference"
+)]
+const fn is_notifying(notifies: &bool) -> bool {
+    *notifies
 }
 
 #[cfg(test)]

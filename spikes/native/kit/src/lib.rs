@@ -50,6 +50,7 @@ pub mod fonts;
 pub mod form_summary;
 pub mod frame;
 pub mod frame_log;
+pub mod host_filter;
 pub mod host_rename;
 pub mod hover_card;
 pub mod icon_chrome;
