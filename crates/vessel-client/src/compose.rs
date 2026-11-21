@@ -127,12 +127,14 @@ fn read(field: &QuestionField, text: &str) -> Result<Given, FillError> {
 }
 
 /// A waiting prompt's content with its words replaced by `text`: the
-/// files sent with it stay, after the new text, so editing a prompt's
-/// words never drops what was attached to it.
+/// files, context and reviews sent with it stay, after the new text, so
+/// editing a prompt's words never drops what was attached to it.
 #[must_use]
 pub fn with_text(content: &[ContentBlock], text: String) -> Vec<ContentBlock> {
     let kept = content.iter().filter(|block| match block {
-        ContentBlock::Attachment { .. } => true,
+        ContentBlock::Attachment { .. } | ContentBlock::Context(_) | ContentBlock::Review(_) => {
+            true
+        }
         ContentBlock::Text { .. }
         | ContentBlock::ResourceLink { .. }
         | ContentBlock::Opaque { .. } => false,

@@ -113,6 +113,9 @@ pub enum AttachmentError {
     /// Loading failed (reading the file, or the loader went away).
     #[error("loading the prompt's attachments failed: {0}")]
     Failed(String),
+    /// A context or review block past its bounds (ADR 0124).
+    #[error(transparent)]
+    Context(#[from] vessel_proto::prompt_context::ContextProblem),
 }
 
 /// An attachment kind in a sentence.
@@ -140,7 +143,9 @@ pub(crate) fn check(
             ContentBlock::Attachment { attachment } => Some(attachment),
             ContentBlock::Text { .. }
             | ContentBlock::ResourceLink { .. }
-            | ContentBlock::Opaque { .. } => None,
+            | ContentBlock::Opaque { .. }
+            | ContentBlock::Context(_)
+            | ContentBlock::Review(_) => None,
         })
         .collect();
     if named.len() > usize::try_from(limits.per_prompt).unwrap_or(usize::MAX) {

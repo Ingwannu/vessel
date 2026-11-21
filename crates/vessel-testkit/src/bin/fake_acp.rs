@@ -98,7 +98,9 @@
 //!   - `cwd`: one message chunk `cwd <path>`, the working directory of the
 //!     last `session/new` or `session/load`;
 //!   - `args`: one message chunk `args <JSON array of its arguments>`;
-//!   - `describe` (with whatever else the prompt holds): one message chunk
+//!   - `describe` (with whatever else the prompt holds, its other text
+//!     blocks included, as a prompt's context and review arrive): one
+//!     message chunk
 //!     saying each block of the prompt, `; `-separated (`describe`
 //!     module): `text <len>`, `image <type> <n> bytes` and `audio <type>
 //!     <n> bytes` (the base64 decoded), `link <name> <type> <size> read
@@ -719,7 +721,10 @@ async fn serve() -> ExitCode {
                             Error::internal_error().data("fake-acp: the turn failed"),
                         );
                     }
-                    if prompt == "describe" {
+                    // `describe` as the first text, whatever else: a
+                    // prompt's context and review arrive as more text
+                    // blocks (ADR 0124).
+                    if first_text(&request.prompt) == Some("describe") {
                         let described = describe::blocks(&request.prompt);
                         cx.send_notification(SessionNotification::new(
                             request.session_id.clone(),
@@ -1115,6 +1120,18 @@ fn text(text: &str) -> ContentBlock {
 }
 
 /// The prompt's text blocks, joined.
+/// The prompt's first text block.
+fn first_text(prompt: &[ContentBlock]) -> Option<&str> {
+    prompt.iter().find_map(|block| match block {
+        ContentBlock::Text(text) => Some(text.text.as_str()),
+        ContentBlock::Image(_)
+        | ContentBlock::Audio(_)
+        | ContentBlock::ResourceLink(_)
+        | ContentBlock::Resource(_)
+        | _ => None,
+    })
+}
+
 fn prompt_text(prompt: &[ContentBlock]) -> String {
     prompt
         .iter()

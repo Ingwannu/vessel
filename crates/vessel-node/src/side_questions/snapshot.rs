@@ -162,9 +162,13 @@ fn message_text(blocks: &[ContentBlock], limit: usize, bytes: usize) -> String {
         .iter()
         .filter_map(|block| match block {
             ContentBlock::Text { text } => Some(text.as_str()),
+            // What was said; attached context and reviews are not quoted
+            // into a side question's transcript (ADR 0124).
             ContentBlock::ResourceLink { .. }
             | ContentBlock::Opaque { .. }
-            | ContentBlock::Attachment { .. } => None,
+            | ContentBlock::Attachment { .. }
+            | ContentBlock::Context(_)
+            | ContentBlock::Review(_) => None,
         })
         .flat_map(str::chars);
     let mut text: String = characters.by_ref().take(limit).collect();
