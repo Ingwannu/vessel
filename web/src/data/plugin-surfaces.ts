@@ -155,7 +155,11 @@ export const rememberedScreens = new Store<ReadonlyMap<string, NodeKey>>(
 );
 
 /** Remember that `plugin`'s `screen` was shown from `node`. */
-export function rememberScreen(node: NodeKey, plugin: string, screen: string) {
+export function rememberScreen(
+  node: NodeKey,
+  plugin: string,
+  screen: string,
+): void {
   const key = screenKey(plugin, screen);
   rememberedScreens.update((all) =>
     all.get(key) === node ? all : new Map(all).set(key, node),

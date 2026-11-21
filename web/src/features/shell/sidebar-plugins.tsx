@@ -16,7 +16,6 @@ import "./sidebar-plugins.css";
 
 import { Link } from "@tanstack/react-router";
 
-import { nodeKeyOf } from "../../bridge/ids";
 import { useFleetState } from "../../context";
 import { pluginCatalogs } from "../../data/plugin-catalog";
 import {
@@ -25,7 +24,7 @@ import {
   sidebarItems,
 } from "../../data/plugin-surfaces";
 import { useStore } from "../../data/store";
-import { useWhere } from "../../data/where";
+import { shownPluginScreen, useWhere } from "../../data/where";
 import type { SidebarPlacement } from "../../wire/proto";
 import { Icon } from "../../ui/kit";
 import { rowClass } from "./sidebar";
@@ -35,15 +34,7 @@ function usePluginRows(placement: SidebarPlacement): SidebarItem[] {
   const catalogs = useStore(pluginCatalogs, (all) => all);
   const remembered = useStore(rememberedScreens, (all) => all);
   const statuses = useFleetState((state) => state.statuses);
-  const [first, shown, plugin, screen] = useWhere().segments;
-  const node = nodeKeyOf(shown ?? "");
-  const current =
-    first === "plugin" &&
-    node !== null &&
-    plugin !== undefined &&
-    screen !== undefined
-      ? { node, plugin, screen }
-      : null;
+  const current = shownPluginScreen(useWhere());
   return sidebarItems(catalogs, placement, {
     online: (key) => statuses[key]?.state === "connected",
     current,

@@ -80,3 +80,18 @@ export function shownSession(
     ? { node: key, id }
     : null;
 }
+
+/** The plugin screen the page shows (`/plugin/$node/$plugin/$screen`,
+ * ADR 0115 "Surfaces"), if one. */
+export function shownPluginScreen(
+  where: Where,
+): { node: NodeKey; plugin: string; screen: string } | null {
+  const [first, shown, plugin, screen] = where.segments;
+  const node = nodeKeyOf(shown ?? "");
+  return first === "plugin" &&
+    node !== null &&
+    plugin !== undefined &&
+    screen !== undefined
+    ? { node, plugin, screen }
+    : null;
+}
