@@ -145,7 +145,7 @@ impl Areas {
             terminal_tabs: terminal_tabs::TerminalTabs::new(cx),
             notify: notify::NotifyArea::new(window, cx),
             plugin_catalogs: vessel_app_view::plugins::Catalogs::default(),
-            plugin_screen: plugin_screen::ScreenArea::new(cx),
+            plugin_screen: plugin_screen::ScreenArea::new(window, cx),
             presence: presence::PresenceArea::new(window, cx),
         };
         // Track P: the composers' drafts read back, and kept as typed.

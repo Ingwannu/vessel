@@ -160,6 +160,7 @@ plugins-screen-unavailable = This plugin surface is unavailable.
 
 # The button that closes a plugin screen (Paseo's "Close plugin"). No values.
 plugins-screen-close = Close plugin
+plugins-screen-close-tip = Close
 
 # The line at the top of a plugin screen on a device without admin. $machine is the machine's name.
 plugins-screen-read-only = Changing this needs admin access to { $machine }.

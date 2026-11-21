@@ -1,6 +1,6 @@
 //! A plugin's full-page screen (ADR 0115, "Surfaces"): Paseo's plugin screen
 //! route (`packages/app/src/plugins/surface-screen.tsx:140-250`), with the
-//! header (title, machine, Close) the app's and the body the plugin's
+//! header the app's (`plugin_screen/header.rs`) and the body the plugin's
 //! declared surface (`plugin_screen/controls.rs`).
 //!
 //! [Decision Log]
@@ -25,13 +25,12 @@ use std::collections::HashMap;
 use vessel_app_kit::field::TextField;
 use vessel_app_kit::menu::MenuState;
 use vessel_app_kit::theme::spacing;
+use vessel_app_kit::tooltip::Place;
 use vessel_app_kit::ui::{
-    AnyElement, Context, Div, InteractiveElement as _, IntoElement as _, ParentElement as _,
+    AnyElement, Context, InteractiveElement as _, IntoElement as _, ParentElement as _,
     SharedString, StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
-use vessel_app_kit::{
-    ButtonKind, ButtonState, ControlSizing, Tokens, Type, TypeExt as _, button_with_kind_at,
-};
+use vessel_app_kit::{ComboboxState, Tokens, Tooltips, Type, TypeExt as _, select};
 use vessel_app_view::devices::{MachineKey, Ticket};
 use vessel_app_view::plugins::{ScreenAddress, needs_admin};
 use vessel_proto::plugins::{ContributionId, PluginId, Surface};
@@ -43,6 +42,7 @@ use crate::shell::Shell;
 const PAGE_WIDTH: f32 = 720.0;
 
 mod controls;
+mod header;
 mod inputs;
 mod menu;
 
@@ -68,6 +68,12 @@ pub(crate) struct ScreenArea {
     pub(crate) menu: MenuState,
     /// Which button's menu is open.
     pub(crate) menu_for: Option<ContributionId>,
+    /// The header's host list (`header.rs`) and where its filter was drawn.
+    host_list: ComboboxState,
+    host_anchor: select::Anchor,
+    /// The header's tooltips, and where its close button was drawn.
+    tips: Tooltips,
+    close_place: Place,
 }
 
 /// A value shown while its call is out.
@@ -80,7 +86,7 @@ pub(crate) enum Pending {
 }
 
 impl ScreenArea {
-    pub(crate) fn new(cx: &mut Context<'_, Shell>) -> Self {
+    pub(crate) fn new(window: &mut Window, cx: &mut Context<'_, Shell>) -> Self {
         Self {
             open: None,
             from: Route::Board,
@@ -91,6 +97,10 @@ impl ScreenArea {
             unfolded: RefCell::default(),
             menu: MenuState::new(cx),
             menu_for: None,
+            host_list: ComboboxState::new(window, cx),
+            host_anchor: select::Anchor::default(),
+            tips: Tooltips::new(),
+            close_place: Place::default(),
         }
     }
 }
@@ -195,12 +205,11 @@ pub(crate) fn render(
             surface(shell, &scope, found.surface, tokens, window, cx)
         }
     };
-    let machine = area.open.as_ref().map(|at| at.machine.as_str().to_owned());
     div()
         .size_full()
         .flex()
         .flex_col()
-        .child(header(title, machine, compact, tokens, shell, cx))
+        .child(header::render(shell, title, compact, tokens, cx))
         .child(
             div()
                 .id("plugin-screen-body")
@@ -218,6 +227,8 @@ pub(crate) fn render(
                 ),
         )
         .children(menu::render(shell, tokens, compact, cx))
+        .children(header::list(shell, tokens, window, cx))
+        .children(area.tips.render(tokens))
         .into_any_element()
 }
 
@@ -255,61 +266,6 @@ fn surface(
             cx,
         ))
         .into_any_element()
-}
-
-/// Paseo's header: the title, the machine under it, Close at the right.
-fn header(
-    title: SharedString,
-    machine: Option<String>,
-    compact: bool,
-    tokens: &Tokens,
-    shell: &Shell,
-    cx: &mut Context<'_, Shell>,
-) -> Div {
-    let words = shell.words.plugins();
-    let sizing = if compact {
-        ControlSizing::Touch
-    } else {
-        ControlSizing::Pointer
-    };
-    let close = button_with_kind_at(
-        "plugin-screen-close",
-        SharedString::new_static(words.screen_close()),
-        ButtonKind::Ghost,
-        ButtonState::Enabled,
-        sizing,
-        tokens,
-    )
-    .on_click(cx.listener(|shell, _event, window, cx| shell.close_plugin_screen(window, cx)));
-    div()
-        .flex()
-        .items_center()
-        .justify_between()
-        .gap(px(spacing::S3))
-        .px(px(spacing::S4))
-        .py(px(spacing::S3))
-        .border_b_1()
-        .border_color(tokens.border_subtle)
-        .child(
-            div()
-                .flex()
-                .flex_col()
-                .min_w_0()
-                .child(
-                    div()
-                        .type_(Type::Title)
-                        .text_color(tokens.text_primary)
-                        .truncate()
-                        .child(title),
-                )
-                .children(machine.map(|machine| {
-                    div()
-                        .type_(Type::Meta)
-                        .text_color(tokens.text_tertiary)
-                        .child(machine)
-                })),
-        )
-        .child(close)
 }
 
 /// Whether `machine` is connected now.

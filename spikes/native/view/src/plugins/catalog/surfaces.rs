@@ -104,6 +104,32 @@ impl Catalogs {
             })
     }
 
+    /// The connected machines, in book order, whose running `plugin`
+    /// declares `screen`: the screen header's host filter (Paseo's
+    /// `getPluginSurfaceContributionServerIds`, surface-screen.tsx:148-153),
+    /// shown when there are two or more.
+    #[must_use]
+    pub fn screen_machines(
+        &self,
+        plugin: &PluginId,
+        screen: &ContributionId,
+        online: &[MachineKey],
+    ) -> Vec<MachineKey> {
+        self.in_order()
+            .map(|(machine, _)| machine)
+            .filter(|machine| online.contains(machine))
+            .filter(|machine| {
+                self.screen(&ScreenAddress {
+                    machine: (*machine).clone(),
+                    plugin: plugin.clone(),
+                    screen: screen.clone(),
+                })
+                .is_some()
+            })
+            .cloned()
+            .collect()
+    }
+
     /// The connected machines' `placement` rows, one per plugin and item.
     #[must_use]
     pub fn sidebar_rows(

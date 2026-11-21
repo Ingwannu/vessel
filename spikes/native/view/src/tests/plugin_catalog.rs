@@ -550,4 +550,14 @@ fn a_sidebar_row_is_drawn_once_across_machines_and_opens_the_right_one() {
             .machine,
         key("server")
     );
+    // The screen header's host filter lists the connected machines that
+    // declare the screen, in book order.
+    let (notes, main) = (open.plugin.clone(), open.screen.clone());
+    assert_eq!(catalogs.screen_machines(&notes, &main, &both), both);
+    assert_eq!(catalogs.screen_machines(&notes, &main, &away), away);
+    assert!(
+        catalogs
+            .screen_machines(&notes, &"other".parse().unwrap(), &both)
+            .is_empty()
+    );
 }
