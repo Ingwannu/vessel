@@ -136,7 +136,9 @@ impl Link {
             | Command::SavePrefs(_)
             | Command::KeepCommands { .. }
             | Command::SaveDrafts(_)
-            | Command::RetireConnection(_) => {}
+            | Command::RetireConnection(_)
+            // The demo has no machine whose terminals ask for anyone.
+            | Command::ClearTerminalAttention { .. } => {}
             Command::CodeSource(request) => self.emit(refuse::code_source(request)),
             Command::Usage(ask) => self.emit(refuse::usage(ask)),
             Command::SessionAccess(access) => self.emit(refuse::session_access(access)),
@@ -157,8 +159,6 @@ impl Link {
             Command::Sync { ticket, .. } => self.emit(refuse::sync(ticket)),
             Command::Claims(ask) => self.emit(Event::Claims(ask.failed())),
             Command::TerminalClaims(ask) => self.emit(Event::TerminalClaims(ask.failed())),
-            // The demo has no machine whose terminals ask for anyone.
-            Command::ClearTerminalAttention { .. } => {}
             Command::NodeSettings(ask) => self.emit(refuse::node_settings(ask)),
             Command::Diagnostics(ask) => self.emit(refuse::diagnostics(ask)),
             Command::Plugins(ask) => self.emit(refuse::plugins(ask)),
