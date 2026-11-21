@@ -288,8 +288,12 @@ assigned.
   - the link through the real actor: one first page, one claim per notice found, which the client refuses
     before the wire while unassigned; a failed page answers every notice `NotOnFirstPage`
     (`a_failed_first_page_tells_every_notice_by_the_old_path_and_claims_none`);
-  - the app: only admitted and past-the-page notices are told, and every notice is told at once while
-    unassigned.
+  - the app: only admitted and past-the-page notices are told; a machine that admits claims is asked once for all
+    its notices, and while unassigned every notice is told at once (both branches assert); and at ADR 0089's
+    protocol `notify_fleet` sends one ask and shows nothing, never asks about the session in front, shows the
+    admitted notice, and its click opens the session
+    (`at_the_claims_protocol_a_fleet_change_asks_and_shows_only_what_is_admitted`; the protocol-47 adapters'
+    review).
 - Owed at assignment: an end-to-end claim against a node, with two windows of which one is admitted.
 
 ## Terminal notices (2026-11-21, the claims follow-up's third row, app part)
