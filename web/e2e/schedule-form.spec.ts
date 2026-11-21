@@ -50,6 +50,22 @@ test("creates a cron schedule and edits a stored elapsed schedule without conver
       create.getByRole("combobox", { name: "Project" }),
       /^shop$/,
     );
+    const model = create.getByRole("group", { name: "Model", exact: true });
+    const picker = model.getByRole("button", {
+      name: /Model: Claude Code · Fake-small/i,
+    });
+    await expect(picker).toBeVisible();
+    await expect(
+      create.getByRole("combobox", { name: "Agent", exact: true }),
+    ).toHaveCount(0);
+    await picker.click();
+    await page.getByRole("menuitem", { name: /^Model/ }).click();
+    await page
+      .getByRole("menuitemradio", { name: "Fake-large", exact: true })
+      .press("Enter");
+    await expect(
+      model.getByRole("button", { name: /Model: Claude Code · Fake-large/i }),
+    ).toBeVisible();
     await create
       .getByRole("textbox", { name: "Cron expression" })
       .fill("bad cadence");

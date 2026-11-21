@@ -82,9 +82,9 @@ sheets in the UI references above.
   the original revision. Heartbeats display Target and Cadence with
   their host and can be deleted from the row. Owner-preserving cadence
   editing depends on TRACKER 839.
-- Differences. Vessel's composer names the agent and the model in
-  separate controls where the node supplies both. A profile appears
-  when the machine offers choices. The node cannot mint a fresh worktree
+- Differences. The Model field reuses the composer picker and shows the
+  provider and model in one trigger. Thinking and Mode have their own
+  fields. A profile appears when the machine offers choices. The node cannot mint a fresh worktree
   for each run, so only an existing project is selectable on creation.
   An existing worktree or CWD stays as stored on edits. Old elapsed
   cadence is displayed as a fixed value. The app shows the next instant

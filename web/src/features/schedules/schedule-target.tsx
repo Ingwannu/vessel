@@ -1,24 +1,27 @@
-import { agentKey, agentName, sameAgent } from "../../data/agents";
-import { selectChoice, type SelectControl } from "../../data/options";
+import {
+  type ControlsState,
+  NO_CONTROLS,
+  selectChoice,
+  type SelectControl,
+} from "../../data/options";
 import type { NewSessionSpec } from "../../data/schedules/form";
 import { Button, FieldGroup, Select } from "../../ui/kit";
 import type { OptionChoice } from "../../wire/proto";
+import { AgentMenu } from "../compose/agent-menu";
 import { KEEP_PLACE, type useScheduleTarget } from "./use-schedule-target";
 
 function ScheduleOption({
   label,
   control,
-  override,
   choose,
   disabled,
 }: {
   label: string;
   control: SelectControl;
-  override?: string | null;
   choose: (choice: OptionChoice) => void;
   disabled: boolean;
 }) {
-  const value = override ?? control.current;
+  const value = control.current;
   const known = control.values.map((choice) => ({
     value: choice.id,
     label: choice.name,
@@ -68,18 +71,10 @@ export function ScheduleTargetFields({
           } as const,
           ...target.projectOptions,
         ];
-  const agentOptions =
-    target.harness === null ||
-    target.agentOptions.some((entry) => sameAgent(entry.agent, target.harness))
-      ? target.agentOptions
-      : [
-          {
-            value: agentKey(target.harness),
-            label: agentName(target.harness),
-            disabled: true,
-          },
-          ...target.agentOptions,
-        ];
+  const pickerState: ControlsState =
+    target.options.kind === "ready"
+      ? { kind: "ready", controls: controls ?? NO_CONTROLS }
+      : target.options;
   const profileOptions = target.profileOptions.some(
     (entry) => entry.value === target.profile,
   )
@@ -105,16 +100,24 @@ export function ScheduleTargetFields({
       </FieldGroup>
       {target.spec === null ? null : (
         <>
-          <FieldGroup label={controls?.model == null ? "Model" : "Agent"}>
-            <Select
-              aria-label={controls?.model == null ? "Model" : "Agent"}
-              value={target.harness === null ? null : agentKey(target.harness)}
-              options={agentOptions}
-              onChange={target.chooseAgent}
-              placeholder="Select agent"
-              disabled={busy || agentOptions.length === 0}
-            />
-          </FieldGroup>
+          {target.harness === null ? null : (
+            <FieldGroup label="Model">
+              <div className="schedule-model-picker">
+                <AgentMenu
+                  agent={{
+                    value: target.harness,
+                    name: target.harnessLabel,
+                    choices: target.agentOptions,
+                    onChange: target.chooseAgent,
+                  }}
+                  state={pickerState}
+                  modelField={{ storedModel: target.originalModel }}
+                  onChoose={target.chooseOption}
+                  disabled={busy}
+                />
+              </div>
+            </FieldGroup>
+          )}
           {target.options.kind === "loading" ? (
             <p className="schedule-form-note" role="status">
               Loading models…
@@ -145,15 +148,6 @@ export function ScheduleTargetFields({
               />
             </FieldGroup>
           ) : null}
-          {controls?.model == null ? null : (
-            <ScheduleOption
-              label="Model"
-              control={controls.model}
-              override={target.originalModel}
-              choose={target.chooseOption}
-              disabled={busy}
-            />
-          )}
           {controls?.effort == null ? null : (
             <ScheduleOption
               label="Thinking"

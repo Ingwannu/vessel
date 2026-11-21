@@ -44,8 +44,9 @@ interface ScheduleTarget {
   project: ProjectId | null;
   chooseProject: (value: ProjectId | typeof KEEP_PLACE) => void;
   harness: HarnessRef | null;
+  harnessLabel: string;
   agentOptions: readonly AgentChoice[];
-  chooseAgent: (key: string) => void;
+  chooseAgent: (agent: HarnessRef) => void;
   profile: string;
   profileOptions: readonly ProfileChoice[];
   chooseProfile: (value: string) => void;
@@ -158,16 +159,11 @@ export function useScheduleTarget(
       }));
     },
     harness,
+    harnessLabel: harness === null ? "" : agentName(harness, agents),
     agentOptions: availableAgents,
-    chooseAgent: (key: string) => {
-      const chosen = availableAgents.find((entry) => entry.value === key);
-      if (chosen !== undefined) {
-        setDraft((current) => ({
-          ...current,
-          agent: chosen.agent,
-          profile: "",
-          picks: {},
-        }));
+    chooseAgent: (agent: HarnessRef) => {
+      if (!sameAgent(harness, agent)) {
+        setDraft((current) => ({ ...current, agent, profile: "", picks: {} }));
       }
     },
     profile,

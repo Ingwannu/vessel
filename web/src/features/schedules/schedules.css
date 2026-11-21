@@ -141,3 +141,15 @@
   justify-content: space-between;
   gap: 8px;
 }
+
+.schedule-model-picker [data-model-picker] {
+  width: 100%;
+  justify-content: space-between;
+  border-color: var(--border-subtle);
+}
+
+.schedule-model-picker .trigger-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
