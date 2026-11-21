@@ -11,7 +11,16 @@ export const TERMINAL_MATCH_LIMIT = 20_000;
 type Direction = "next" | "previous";
 const EMPTY = { resultIndex: -1, resultCount: 0, bottom: false };
 
-export function terminalSearch(terminal: Terminal) {
+export interface TerminalSearch {
+  get: () => ISearchResultChangeEvent & { bottom: boolean };
+  subscribe: (listener: () => void) => () => void;
+  focus: () => void;
+  measure: (width: number, height: number) => void;
+  clear: () => void;
+  search: (query: string, direction?: Direction) => void;
+}
+
+export function terminalSearch(terminal: Terminal): TerminalSearch {
   const results = new Store(EMPTY);
   let addon: SearchAddon | null = null;
   let latest: ISearchResultChangeEvent = EMPTY;
@@ -87,8 +96,6 @@ export function terminalSearch(terminal: Terminal) {
     },
   };
 }
-
-export type TerminalSearch = ReturnType<typeof terminalSearch>;
 
 /** The top-right bar moves down if it would cover the selected match. */
 function covers(terminal: Terminal, widget: { width: number; height: number }) {
