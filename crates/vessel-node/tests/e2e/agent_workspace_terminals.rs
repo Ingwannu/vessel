@@ -72,8 +72,8 @@ fn beside(session: SessionId) -> CreateTerminal {
         place: TerminalPlace::Session { session },
         size: None,
         title: None,
+        profile: None,
     }
-    profile: None,
 }
 
 async fn info_of(client: &NodeClient, terminal: &TerminalInfo) -> TerminalInfo {
