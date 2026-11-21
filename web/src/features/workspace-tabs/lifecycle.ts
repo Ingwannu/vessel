@@ -133,6 +133,7 @@ export function useTabLifecycle(input: {
       case "diff":
       case "files":
       case "draft":
+      case "pull":
         return [];
     }
   };

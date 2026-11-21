@@ -102,6 +102,10 @@
 //!   `ContributionId`, `RpcName`, `ThemeName`, `FileExtension`,
 //!   `FileNamePattern` and `HexColor` are what a plugin's author names or
 //!   writes, plain.
+//! - Plugin settings (ADR 0115, "Settings"): `SettingsRevision` is the
+//!   node's opaque revision a client hands back unchanged, branded;
+//!   `SettingsId` is what a plugin's author names, plain; `SettingsMessage`
+//!   is a helper's words for a person, carried content.
 
 /// What a primitive alias is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -278,6 +282,9 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("SessionId", Alias::Handle),
     ("SessionTitle", Alias::Named),
     ("SessionUpdatedAt", Alias::Quantity),
+    ("SettingsId", Alias::Named),
+    ("SettingsMessage", Alias::Content),
+    ("SettingsRevision", Alias::Handle),
     ("Sha256Hex", Alias::Named),
     ("SkillName", Alias::Named),
     ("StreamId", Alias::Handle),

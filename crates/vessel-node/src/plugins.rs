@@ -40,12 +40,13 @@ mod host;
 mod manifest;
 mod rows;
 mod runs;
+mod settings;
 mod source;
 mod store;
 #[cfg(test)]
 mod tests;
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -57,7 +58,7 @@ use vessel_plugin::{SharedLogs, Supervisor};
 use vessel_proto::NodeId;
 use vessel_proto::plugins::{
     ClientDocument, PluginAddress, PluginGeneration, PluginId, PluginInspection, PluginList,
-    PluginListItem, PluginLogs,
+    PluginListItem, PluginLogs, SettingsId,
 };
 use vessel_store::DataDir;
 
@@ -124,6 +125,18 @@ pub(crate) enum PluginError {
     /// The running declarations exceed the node's catalog budget.
     #[error("the plugin catalog could not be built: {0}")]
     Catalog(String),
+    /// The installation declares no such settings document, or has no
+    /// helper to keep one.
+    #[error("plugin {id} keeps no settings {settings}")]
+    NoSettings {
+        /// The installation.
+        id: PluginId,
+        /// The document asked for.
+        settings: SettingsId,
+    },
+    /// A settings document could not be read or written.
+    #[error("the plugin's settings could not be kept: {0}")]
+    SettingsStore(String),
 }
 
 /// The node's plugins.
@@ -141,6 +154,8 @@ struct Inner {
     version: semver::Version,
     /// One change at a time (Paseo's `enqueue`).
     changes: tokio::sync::Mutex<()>,
+    /// One settings operation at a time per installation (`settings.rs`).
+    settings_locks: Mutex<HashMap<PluginId, Arc<tokio::sync::Mutex<()>>>>,
     state: Mutex<State>,
     generation: watch::Sender<PluginGeneration>,
     settled: watch::Sender<bool>,
@@ -227,6 +242,7 @@ impl Plugins {
                 home,
                 version: rows::node_version().clone(),
                 changes: tokio::sync::Mutex::new(()),
+                settings_locks: Mutex::default(),
                 state: Mutex::new(State {
                     // In force from the first moment, so a change made
                     // before the start-up task runs sees plugins as on.
@@ -402,11 +418,25 @@ impl Plugins {
             }
             return Err(error);
         }
+        // A settings write that already found the row holds this lock: wait
+        // for it, so it cannot write into a folder deleted under it.
+        let lock = self.settings_lock_held(plugin);
+        let held = match &lock {
+            Some(lock) => Some(lock.lock().await),
+            None => None,
+        };
         let data = self.inner.data.clone();
         let id = plugin.clone();
         if let Ok(Err(error)) = rows::blocking(move || data.remove_plugin_settings(&id)).await {
             tracing::warn!(plugin = %plugin, %error, "a removed plugin's settings could not be deleted");
         }
+        drop(held);
+        let _forgotten = self
+            .inner
+            .settings_locks
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .remove(plugin);
         self.bump();
         Ok(())
     }

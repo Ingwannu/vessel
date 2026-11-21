@@ -8,18 +8,28 @@
 // and sizes go out one send at a time, in order (data/terminal-sender.ts).
 // A routed session's model calls (protocol 7) are summed into the frame's
 // chrome; the records hold metadata only.
+//
+// Terminal queries (TRACKER 826): the session is read as the follow
+// starts and again after every gap, and records from its `next_seq` then
+// are live, the rest history (`data/terminal-live.ts`). This view is never
+// the one that opened the session, so it answers once it has focus and
+// the person has typed.
 
 import { useEffect, useRef, useState } from "react";
 
 import { useFleet } from "../../context";
-import { followSession, sendTerminal } from "../../data/calls";
+import { followSession, readSession, sendTerminal } from "../../data/calls";
 import { addCall, type Usage, usageLine } from "../../data/models";
 import { decodeBytes } from "../../data/terminal";
+import { liveBoundary } from "../../data/terminal-live";
 import { Banner, Tooltip } from "../../ui/kit";
 import { toast } from "../../ui/toasts";
 import type { NodeKey, StreamState } from "../../wire/bridge";
 import type { SessionInfo } from "../../wire/proto";
-import { mountTerminal } from "./mount-terminal";
+import { useMedia } from "../shell/use-media";
+import { COMPACT } from "../../ui/breakpoints";
+import { KeyBar } from "./key-bar";
+import { mountTerminal, type TerminalKeyBar } from "./mount-terminal";
 
 export function TerminalView({
   node,
@@ -34,6 +44,9 @@ export function TerminalView({
   const host = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<{ cols: number; rows: number } | null>(null);
   const [stream, setStream] = useState<StreamState | null>(null);
+  // Paseo shows the key bar off its mobile app only when compact (P4).
+  const compact = useMedia(COMPACT);
+  const [keyBar, setKeyBar] = useState<TerminalKeyBar | null>(null);
   // Kept with the session and the next record it expects, so a follow
   // that starts again from the first record counts no call twice.
   const [usage, setUsage] = useState<{
@@ -53,11 +66,16 @@ export function TerminalView({
       () =>
         toast("Keys dropped: the session is not reading its input", "error"),
     );
+    setKeyBar(terminal.keyBar);
+    const live = liveBoundary({
+      read: () => readSession(fleet, node, session.id),
+      onLink: (listener) => fleet.bridge.onLink(listener),
+    });
     const stop = followSession(fleet, node, session.id, 0, {
       record: (record) => {
         const event = record.event;
         if (event.type === "terminal") {
-          terminal.write(decodeBytes(event.data));
+          terminal.write(decodeBytes(event.data), live.written(record.seq));
         } else if (event.type === "model_call") {
           setUsage((current) => {
             const mine = current?.id === session.id ? current : null;
@@ -72,9 +90,14 @@ export function TerminalView({
           });
         }
       },
-      state: setStream,
+      state: (state) => {
+        live.stream(state);
+        setStream(state);
+      },
     });
     return () => {
+      setKeyBar(null);
+      live.stop();
       stop();
       terminal.close();
     };
@@ -118,6 +141,7 @@ export function TerminalView({
               ref={host}
               aria-label="Session terminal"
             />
+            {compact && keyBar !== null ? <KeyBar bar={keyBar} /> : null}
           </div>
         </div>
       </div>

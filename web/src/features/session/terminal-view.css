@@ -68,3 +68,53 @@
 .xterm .xterm-accessibility-tree {
   font-family: var(--font-mono);
 }
+
+/* The virtual key bar (P4), Paseo's `keyboardContainer`, `keyboardRows`,
+   `keyboardRow` and `keyButton*` (terminal-pane.tsx styles). */
+.terminal-key-bar {
+  flex: none;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-base);
+  padding: var(--s-2);
+}
+
+.terminal-key-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  width: 100%;
+  max-width: 880px;
+  margin: 0 auto;
+}
+
+.terminal-key-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+}
+
+.terminal-key {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  height: 34px;
+  padding: 0 var(--s-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font: var(--t-label);
+  cursor: pointer;
+}
+
+.terminal-key:hover {
+  background: var(--bg-elevated);
+}
+
+.terminal-key[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}

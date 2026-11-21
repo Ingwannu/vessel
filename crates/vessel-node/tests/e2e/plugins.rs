@@ -7,7 +7,8 @@
 
 use vessel_proto::plugins::{
     GetPluginCatalog, GetPluginLogs, InstallPlugin, InvokeContext, InvokePlugin, ListPlugins,
-    PLUGINS_PROTOCOL, PluginGeneration, PluginStatus, RemovePlugin, WatchPlugins,
+    PLUGINS_PROTOCOL, PluginGeneration, PluginStatus, ReadPluginSettings, RemovePlugin,
+    WatchPlugins,
 };
 use vessel_proto::settings::SetNodeSettings;
 use vessel_proto::{ErrorCode, RawJson, Scope};
@@ -208,6 +209,17 @@ async fn a_read_device_sees_the_catalog_but_not_paths_logs_or_methods() {
         // The owner reaches the node, which says a client-only plugin has
         // no methods.
         assert_eq!(code(owner.call(call).await), ErrorCode::NotFound);
+        // Settings documents (ADR 0115, "Settings") are an administrator's
+        // too; a client-only plugin keeps none.
+        let settings = ReadPluginSettings {
+            plugin: plugin_id(),
+            settings: "display".parse().unwrap(),
+        };
+        assert_eq!(
+            code(reader.call(settings.clone()).await),
+            ErrorCode::Forbidden
+        );
+        assert_eq!(code(owner.call(settings).await), ErrorCode::NotFound);
         node.stop().await.unwrap();
     })
     .await;

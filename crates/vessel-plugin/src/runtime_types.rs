@@ -6,6 +6,7 @@ use tokio::sync::{OwnedSemaphorePermit, mpsc, oneshot, watch};
 use tokio_util::sync::CancellationToken;
 use vessel_proto::plugins::{
     ClientDocument, HelperCall, HelperFailure, HelperPayload, HookSubscriptions, PluginAddress,
+    SettingsDeclarations,
 };
 
 /// Same outer callback budget as Paseo runtime.ts:41.
@@ -34,6 +35,8 @@ pub enum RuntimeState {
         client: Arc<ClientDocument>,
         /// Complete current lifecycle subscription set.
         hooks: HookSubscriptions,
+        /// The settings documents the helper parses (ADR 0115, "Settings").
+        settings: Arc<SettingsDeclarations>,
     },
     /// All live contribution/action authority was withdrawn.
     Stopped,
