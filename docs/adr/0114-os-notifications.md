@@ -193,7 +193,9 @@ before it sends a Web Push, and which window to tell.
 **Choice: Paseo's client tracker, copied** (`~/refs/paseo-latest/packages/app/src/hooks/client-activity-tracker.ts`
 and `use-client-activity.ts`).
 - Timing:
-  - a heartbeat every 15 s while connected, and one at once on connecting (`:1`, `:125-148`);
+  - a heartbeat every 15 s while connected, and one at once on connecting (`:1`, `:125-148`). The app
+    hands the link its first snapshot as soon as the shell exists, before the first machine connects, so
+    opening reaches every machine as input (app review R1);
   - an immediate heartbeat on input at most every 5 s (`:2`, `:63-73`).
 - Input and visibility:
   - window focus, a pointer press, a key, a wheel and a touch are input; opening counts as input (`:43`);

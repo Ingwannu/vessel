@@ -9,9 +9,11 @@
 //! - visibility: the window shown or not (`observe_window_visibility`), as
 //!   Paseo reads the document's (`:69-75`);
 //! - the shown session, read at each render (`:115-118`);
-//! - a heartbeat every 15 s (`:125-148`). The link hears every snapshot
-//!   and tells each connected machine; a machine that connects hears the
-//!   last one at once.
+//! - a heartbeat at once and then every 15 s (`:125-148`): the first one
+//!   goes as soon as the shell exists, so opening reaches the link before
+//!   the first machine connects, and a machine that connects hears that
+//!   last snapshot at once (app review R1). The link hears every snapshot
+//!   and tells each connected machine.
 
 use std::time::Instant;
 
@@ -30,6 +32,9 @@ pub(crate) struct PresenceArea {
     /// The clock's zero.
     started: Instant,
     _observers: [Subscription; 3],
+    /// Every snapshot handed to the link, for the tests.
+    #[cfg(test)]
+    handed: Vec<vessel_app_view::presence::Snapshot>,
 }
 
 impl std::fmt::Debug for PresenceArea {
@@ -57,6 +62,8 @@ impl PresenceArea {
             presence: Presence::new(0, true),
             started: Instant::now(),
             _observers: [visibility, activation, keys],
+            #[cfg(test)]
+            handed: Vec::new(),
         }
     }
 
@@ -64,14 +71,16 @@ impl PresenceArea {
         Millis::try_from(self.started.elapsed().as_millis()).unwrap_or(Millis::MAX)
     }
 
-    /// Every 15 s, a snapshot to the link, for as long as the shell lives.
+    /// A snapshot to the link at once, then every 15 s, for as long as the
+    /// shell lives. Paseo's `start()` sends before its interval
+    /// (`use-client-activity.ts:129-132`), and so does the page at mount.
     fn heartbeat(cx: &mut Context<'_, Shell>) {
         cx.spawn(async move |this, cx| {
             loop {
-                cx.background_executor().timer(HEARTBEAT).await;
                 if this.update(cx, |shell, _cx| shell.presence_send()).is_err() {
                     break;
                 }
+                cx.background_executor().timer(HEARTBEAT).await;
             }
         })
         .detach();
@@ -122,9 +131,12 @@ impl Shell {
     }
 
     /// The snapshot to the link.
-    fn presence_send(&self) {
-        let area = &self.areas.presence;
-        self.report_presence(area.presence.snapshot(area.now()));
+    fn presence_send(&mut self) {
+        let area = &mut self.areas.presence;
+        let snapshot = area.presence.snapshot(area.now());
+        #[cfg(test)]
+        area.handed.push(snapshot.clone());
+        self.report_presence(snapshot);
     }
 }
 
@@ -153,3 +165,6 @@ pub(crate) fn observer(cx: &Context<'_, Shell>) -> AnyElement {
     .size_0()
     .into_any_element()
 }
+
+#[cfg(test)]
+mod tests;
