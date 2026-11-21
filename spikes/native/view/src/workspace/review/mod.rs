@@ -141,14 +141,15 @@ impl ReviewDrafts {
     }
 
     /// The comments of `key` on `target`, oldest first.
-    pub fn on<'a>(
-        &'a self,
+    pub fn on(
+        &self,
         key: &ReviewKey,
-        target: &'a ReviewTarget,
-    ) -> impl Iterator<Item = &'a DraftComment> + 'a {
+        target: &ReviewTarget,
+    ) -> impl Iterator<Item = &DraftComment> + '_ {
+        let target = target.clone();
         self.comments(key)
             .iter()
-            .filter(move |comment| comment.target == *target)
+            .filter(move |comment| comment.target == target)
     }
 
     /// Paseo's `saveReviewDraftComment`: the body of comment `id` when it
@@ -169,23 +170,21 @@ impl ReviewDrafts {
             return Saved::TooLong;
         }
         let mut review = self.take(key);
-        let saved = match id.and_then(|id| review.comments.iter_mut().find(|c| c.id == id)) {
-            Some(comment) => {
-                body.clone_into(&mut comment.body);
-                comment.updated_at = now;
-                Saved::Edited(comment.id)
-            }
-            None => {
-                let id = self.next_id(&review, now);
-                review.comments.push(DraftComment {
-                    id,
-                    target,
-                    body: body.to_owned(),
-                    created_at: now,
-                    updated_at: now,
-                });
-                Saved::Added(id)
-            }
+        let kept = id.and_then(|id| review.comments.iter_mut().find(|c| c.id == id));
+        let saved = if let Some(comment) = kept {
+            body.clone_into(&mut comment.body);
+            comment.updated_at = now;
+            Saved::Edited(comment.id)
+        } else {
+            let id = self.next_id(&review, now);
+            review.comments.push(DraftComment {
+                id,
+                target,
+                body: body.to_owned(),
+                created_at: now,
+                updated_at: now,
+            });
+            Saved::Added(id)
         };
         self.reviews.push(review);
         self.prune();
@@ -237,11 +236,11 @@ impl ReviewDrafts {
         for review in &mut self.reviews {
             review.comments.retain(|comment| can_save(&comment.body));
             let over = review.comments.len().saturating_sub(Self::MAX_COMMENTS);
-            review.comments.drain(..over);
+            drop(review.comments.drain(..over));
         }
         self.reviews.retain(|review| !review.comments.is_empty());
         let over = self.reviews.len().saturating_sub(Self::MAX_KEYS);
-        self.reviews.drain(..over);
+        drop(self.reviews.drain(..over));
         let mut bytes: usize = self.reviews.iter().map(Review::bytes).sum();
         while bytes > Self::MAX_BYTES && !self.reviews.is_empty() {
             let dropped = self.reviews.remove(0);

@@ -118,14 +118,14 @@ impl Shell {
             .unwrap_or_default();
         let words = self.words.review();
         let field = TextField::form_multiline_with_source(
-            words.comment_placeholder(),
+            words.placeholder(),
             |shell: &mut Self, _id, _text, window, cx| shell.review_save(window, cx),
             Self::review_typed,
             FormMinimum::Default,
             window,
             cx,
         );
-        field.set_accessible_label(words.comment_label(), cx);
+        field.set_accessible_label(words.label(), cx);
         if !body.is_empty() {
             field.set_text(&body, window, cx);
         }

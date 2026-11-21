@@ -81,7 +81,7 @@ pub(super) fn line(
         .cursor_pointer()
         .role(gpui::Role::Button)
         .aria_label(SharedString::from(
-            shell.words.review().comment_add().to_owned(),
+            shell.words.review().add().to_owned(),
         ))
         .child(glyph(Glyph::Plus, 16.0, neutral.accent_foreground))
         .on_click(cx.listener(move |shell, _event, window, cx| {
@@ -224,7 +224,7 @@ fn comment_block(
                         "review-edit",
                         Glyph::Pencil,
                         neutral.foreground_muted,
-                        words.comment_edit(),
+                        words.edit(),
                     )
                     .on_click(cx.listener(move |shell, _event, window, cx| {
                         shell.review_open(target.clone(), Some(id), index, window, cx);
@@ -235,7 +235,7 @@ fn comment_block(
                         "review-delete",
                         Glyph::Trash2,
                         neutral.destructive,
-                        words.comment_delete(),
+                        words.delete(),
                     )
                     .on_click(cx.listener(
                         move |shell, _event, _window, cx| {
@@ -254,7 +254,7 @@ fn too_long(shell: &Shell, editor: &Editor, tokens: &Tokens) -> Option<Div> {
         div()
             .type_(Type::Meta)
             .text_color(tokens.neutral.destructive)
-            .child(shell.words.review().comment_too_long().to_owned())
+            .child(shell.words.review().too_long().to_owned())
     })
 }
 
@@ -273,26 +273,26 @@ fn editor_block(
     };
     let save = vessel_app_kit::button_with_kind(
         "review-save",
-        words.comment_save().to_owned(),
+        words.save().to_owned(),
         ButtonKind::Primary,
         state,
         tokens,
     )
     .aria_label(SharedString::from(
-        words.comment_save_accessibility().to_owned(),
+        words.save_accessibility().to_owned(),
     ))
     .when(state == ButtonState::Enabled, |save| {
         save.on_click(cx.listener(|shell, _event, window, cx| shell.review_save(window, cx)))
     });
     let cancel = vessel_app_kit::button_with_kind(
         "review-cancel",
-        words.comment_cancel().to_owned(),
+        words.cancel().to_owned(),
         ButtonKind::Ghost,
         ButtonState::Enabled,
         tokens,
     )
     .aria_label(SharedString::from(
-        words.comment_cancel_accessibility().to_owned(),
+        words.cancel_accessibility().to_owned(),
     ))
     .on_click(cx.listener(|shell, _event, _window, cx| shell.review_cancel(cx)));
     card(tokens)
@@ -350,30 +350,30 @@ pub(super) fn sheet(
     };
     let save = vessel_app_kit::button_with_kind(
         "review-sheet-save",
-        words.comment_sheet_save().to_owned(),
+        words.sheet_save().to_owned(),
         ButtonKind::Primary,
         state,
         tokens,
     )
     .aria_label(SharedString::from(
-        words.comment_save_accessibility().to_owned(),
+        words.save_accessibility().to_owned(),
     ))
     .when(state == ButtonState::Enabled, |save| {
         save.on_click(cx.listener(|shell, _event, window, cx| shell.review_save(window, cx)))
     });
     let cancel = vessel_app_kit::button_with_kind(
         "review-sheet-cancel",
-        words.comment_cancel().to_owned(),
+        words.cancel().to_owned(),
         ButtonKind::Secondary,
         ButtonState::Enabled,
         tokens,
     )
     .aria_label(SharedString::from(
-        words.comment_cancel_accessibility().to_owned(),
+        words.cancel_accessibility().to_owned(),
     ))
     .on_click(cx.listener(|shell, _event, _window, cx| shell.review_cancel(cx)));
     let content = DialogContent {
-        title: words.comment_label().to_owned().into(),
+        title: words.label().to_owned().into(),
         body: div()
             .flex()
             .flex_col()
