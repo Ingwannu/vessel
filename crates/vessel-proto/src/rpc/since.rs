@@ -116,9 +116,11 @@ impl Call {
             Self::PromptSession(request) => request
                 .notify
                 .then_some(11)
-                .max(context_since(&request.content)?),
+                .max(context_since(&request.content).ok()?),
             Self::ChangeQueue(request) => match &request.change {
-                crate::conversation::QueueChange::Edit { content, .. } => context_since(content)?,
+                crate::conversation::QueueChange::Edit { content, .. } => {
+                    context_since(content).ok()?
+                }
                 crate::conversation::QueueChange::Move { .. }
                 | crate::conversation::QueueChange::Remove { .. }
                 | crate::conversation::QueueChange::SendNow { .. }
@@ -134,7 +136,7 @@ impl Call {
                     .iter()
                     .any(|block| matches!(block, ContentBlock::Attachment { .. }))
                     .then_some(10)
-                    .max(context_since(content)?),
+                    .max(context_since(content).ok()?),
                 // A cancel naming its turn: an older node would cancel
                 // whatever runs, the next queued prompt included.
                 SessionInput::CancelTurn { turn } => turn.map(|_| 10),
@@ -490,17 +492,22 @@ fn target_since(target: &crate::automation::ScheduleTarget) -> Option<u32> {
     }
 }
 
-/// `Some(Some(n))` when `content` holds a `context` or `review` block of
-/// protocol n (ADR 0124), `Some(None)` when it holds none, `None` while
-/// that protocol awaits its number.
-fn context_since(content: &[ContentBlock]) -> Option<Option<u32>> {
+/// A protocol awaiting its number.
+struct Pending;
+
+/// `Some(n)` when `content` holds a `context` or `review` block of
+/// protocol n (ADR 0124), `None` when it holds none; `Pending` while that
+/// protocol awaits its number.
+fn context_since(content: &[ContentBlock]) -> Result<Option<u32>, Pending> {
     if content
         .iter()
         .any(|block| matches!(block, ContentBlock::Context(_) | ContentBlock::Review(_)))
     {
-        return crate::prompt_context::PROMPT_CONTEXT_PROTOCOL.map(|since| Some(since.get()));
+        return crate::prompt_context::PROMPT_CONTEXT_PROTOCOL
+            .map(|since| Some(since.get()))
+            .ok_or(Pending);
     }
-    Some(None)
+    Ok(None)
 }
 
 #[cfg(test)]
