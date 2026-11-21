@@ -280,33 +280,3 @@ function RadioRow<V extends string>({ option }: { option: Choice<V> }) {
 export function MenuSeparator() {
   return <Base.Separator className="menu-separator" />;
 }
-
-/** A heading over the rows that follow it, in a group so a screen reader
- * hears it with them; `accessory` sits at the heading's end (Paseo's
- * group accessory, "Edit profiles" beside "Terminal profiles"). */
-export function MenuGroup({
-  label,
-  accessory,
-  children,
-}: {
-  label: string;
-  accessory?: ReactNode;
-  children: ReactNode;
-}) {
-  const heading = (
-    <Base.GroupLabel className="menu-label">{label}</Base.GroupLabel>
-  );
-  return (
-    <Base.Group>
-      {accessory === undefined ? (
-        heading
-      ) : (
-        <div className="menu-label-row">
-          {heading}
-          {accessory}
-        </div>
-      )}
-      {children}
-    </Base.Group>
-  );
-}
