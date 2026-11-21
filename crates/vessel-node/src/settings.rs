@@ -43,6 +43,10 @@
 //!   it aside first (`settings.json.later-<UTC time>`), so a downgrade then
 //!   a change loses nothing; nothing is merged back on its own. If the
 //!   copy fails, the change fails and nothing changes.
+//! - Terminal profiles (ADR 0117): kept whole, as a person last saved them;
+//!   absent means the shipped ones, and an empty list none. A launch adopts
+//!   the prompt placeholder on read; nothing adopted is written back, so
+//!   Settings shows what was saved.
 
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
@@ -58,6 +62,7 @@ use vessel_proto::parking::ParkAfter;
 use vessel_proto::settings::{
     AgentDriver, AgentDrivers, MetadataSettings, NodeSettings, SetAgentDrivers, SetNodeSettings,
 };
+use vessel_proto::terminal_profiles::Profiles;
 use vessel_session::SessionRuntime;
 use vessel_store::{DataDir, SetAside};
 
@@ -209,7 +214,19 @@ impl Settings {
             metadata: Some(metadata),
             plugins_enabled,
             terminal_agent_hooks,
+            terminal_profiles: saved.terminal_profiles.clone(),
         }
+    }
+
+    /// The terminal profiles a launch looks in (ADR 0117): the kept list,
+    /// else the shipped ones (Paseo's `resolveTerminalProfiles`); adopted.
+    pub(crate) async fn terminal_profiles(&self) -> Profiles {
+        let saved = self.saved.lock().await;
+        let kept = match &saved.terminal_profiles {
+            Some(kept) => Ok(kept.clone()),
+            None => Profiles::shipped(),
+        };
+        kept.map(|profiles| profiles.adopted()).unwrap_or_default()
     }
 
     /// Install or remove the terminal agent hooks in the agents' own
@@ -267,6 +284,10 @@ impl Settings {
         }
         if let Some(enabled) = change.terminal_agent_hooks {
             next.terminal_agent_hooks = Some(enabled);
+        }
+        // The whole list, as Paseo's patch: Settings sends every row.
+        if let Some(profiles) = change.terminal_profiles {
+            next.terminal_profiles = Some(profiles);
         }
         self.persist(saved, next).await
     }

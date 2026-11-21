@@ -61,6 +61,7 @@ async fn open(client: &NodeClient, place: TerminalPlace) -> TerminalInfo {
             place,
             size: None,
             title: None,
+            profile: None,
         })
         .await
         .unwrap()
@@ -276,6 +277,7 @@ async fn a_shell_beside_a_session_runs_what_is_typed_and_ends_when_asked() {
                         place: beside(SessionId::random()),
                         size: None,
                         title: None,
+                        profile: None,
                     })
                     .await
             ),
@@ -304,6 +306,7 @@ async fn a_node_without_a_shell_opens_no_terminal() {
                         place: beside(session.id),
                         size: None,
                         title: None,
+                        profile: None,
                     })
                     .await
             ),
@@ -520,6 +523,7 @@ async fn an_agent_opens_terminals_only_where_a_person_allowed_and_uses_only_its_
                         place: beside(plain.id),
                         size: None,
                         title: None,
+                        profile: None,
                     })
                     .await
             ),
@@ -537,6 +541,7 @@ async fn an_agent_opens_terminals_only_where_a_person_allowed_and_uses_only_its_
                         place: beside(child.id),
                         size: None,
                         title: None,
+                        profile: None,
                     })
                     .await
             ),
@@ -573,6 +578,7 @@ async fn an_agent_opens_terminals_only_where_a_person_allowed_and_uses_only_its_
                         place: beside(allowed.id),
                         size: None,
                         title: None,
+                        profile: None,
                     })
                     .await
             ),
@@ -587,6 +593,7 @@ async fn an_agent_opens_terminals_only_where_a_person_allowed_and_uses_only_its_
                         place: beside(plain.id),
                         size: None,
                         title: None,
+                        profile: None,
                     })
                     .await
             ),

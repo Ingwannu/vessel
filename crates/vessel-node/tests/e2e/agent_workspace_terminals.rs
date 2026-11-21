@@ -73,6 +73,7 @@ fn beside(session: SessionId) -> CreateTerminal {
         size: None,
         title: None,
     }
+    profile: None,
 }
 
 async fn info_of(client: &NodeClient, terminal: &TerminalInfo) -> TerminalInfo {

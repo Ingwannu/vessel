@@ -4,10 +4,12 @@ use serde::{Deserialize, Serialize};
 
 use super::{TerminalInfo, TerminalPlace};
 use crate::id::{EventSeq, SubscriptionId, TerminalId};
+use crate::terminal_profiles::ProfileLaunch;
 use crate::terminal::{TerminalInput, TerminalSize};
 use crate::title::SessionTitle;
 
-/// `terminal.create`: open the user's shell in a place.
+/// `terminal.create`: open the user's shell in a place, or one of the
+/// node's terminal profiles.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct CreateTerminal {
@@ -16,9 +18,13 @@ pub struct CreateTerminal {
     /// Its window; 80×24 when absent.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub size: Option<TerminalSize>,
-    /// What to call it.
+    /// What to call it; a profile's name when absent and `profile` is set.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<SessionTitle>,
+    /// Run this profile's program instead of the shell (ADR 0117,
+    /// [`crate::terminal_profiles::TERMINAL_PROFILES_PROTOCOL`]).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub profile: Option<ProfileLaunch>,
 }
 
 /// `terminal.list`: the node's terminals, or one place's.

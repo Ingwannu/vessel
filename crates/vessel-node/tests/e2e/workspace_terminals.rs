@@ -55,6 +55,7 @@ async fn open(client: &NodeClient, place: TerminalPlace) -> TerminalInfo {
             place,
             size: None,
             title: None,
+            profile: None,
         })
         .await
         .unwrap()

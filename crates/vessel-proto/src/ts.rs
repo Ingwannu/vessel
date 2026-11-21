@@ -423,6 +423,11 @@ pub const PROTOCOLS: &[(&str, Option<crate::ProtocolVersion>, &str)] = &[
         crate::workspace::ORIGIN_LINK_PROTOCOL,
         "`origin` on `git.status`, `git.stage`, `git.unstage` and `git.discard` (ADR 0123 step B).",
     ),
+    (
+        "TERMINAL_PROFILES_PROTOCOL",
+        crate::terminal_profiles::TERMINAL_PROFILES_PROTOCOL,
+        "The node's terminal profiles in its settings, and `terminal.create`'s `profile` (ADR 0117).",
+    ),
 ];
 
 /// The constants of [`PROTOCOLS`], as the end of the declarations file.

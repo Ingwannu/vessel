@@ -13,12 +13,14 @@ use super::{
 /// A validated administrator-defined terminal launch template.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "ProfileWire", into = "ProfileWire")]
-#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(rename = "TerminalProfile"))]
 pub struct Profile {
     id: Id,
     name: Name,
     command: Program,
     args: Vec<Argument>,
+    // Absent on the wire when unset (`ProfileWire`), as Paseo's `icon?`.
+    #[cfg_attr(feature = "ts", ts(optional))]
     icon: Option<Icon>,
 }
 
@@ -77,6 +79,18 @@ impl Profile {
     #[must_use]
     pub const fn icon(&self) -> Option<&Icon> {
         self.icon.as_ref()
+    }
+
+    /// The program template, as configured (Settings shows and edits it).
+    #[must_use]
+    pub const fn command(&self) -> &Program {
+        &self.command
+    }
+
+    /// The argument templates, as configured.
+    #[must_use]
+    pub fn args(&self) -> &[Argument] {
+        &self.args
     }
 
     /// Profiles without a placeholder launch read-only, as the reference does.
@@ -219,9 +233,9 @@ impl fmt::Debug for Resolved {
 }
 
 /// A bounded ordered profile set; an explicit empty list disables all profiles.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "Vec<Profile>", into = "Vec<Profile>")]
-#[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(type = "Profile[]"))]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(rename = "TerminalProfiles"))]
 pub struct Profiles(Vec<Profile>);
 
 impl Profiles {

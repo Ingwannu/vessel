@@ -1155,9 +1155,13 @@ plan's "Track C: contract" (with its review) say why each choice.
 - Methods (all in `vessel-web`'s list; all but `terminal.subscribe`
   forwardable; long polls wait at most 30 s in the caller's wait shares,
   and never when forwarded):
-  - `terminal.create { place, size?, title? }` (operate): the account's
-    shell in the session's folder, or in the project's (`dir` inside
-    it); `unsupported` on a node without one. `terminal.list { place? }`,
+  - `terminal.create { place, size?, title?, profile? }` (operate): the
+    account's shell in the session's folder, or in the project's (`dir`
+    inside it); `unsupported` on a node without one. With `profile { id,
+    prompt? }` (ADR 0117, `TERMINAL_PROFILES_PROTOCOL`) it runs that one
+    of the node's terminal profiles instead, without a shell, named after
+    it; `not_found` for an id the node does not have, `spawn_failed`
+    "`<program>`: command not found" when the program is not there. `terminal.list { place? }`,
     `terminal.get { terminal, changed_from? }`, `terminal.read { terminal,
     from, limit, wait? }` (at most 512 records and 1 MiB a page),
     `terminal.subscribe { terminal, from }` (read; answers
@@ -2350,6 +2354,18 @@ server dispatch refused it through required_protocol.
 The report adds explicit own-process numeric observations, source states and
 closed resource-refusal detail; it never carries raw logs or environment.
 
+
+## Terminal profiles before their number (ADR 0117)
+
+`TERMINAL_PROFILES_PROTOCOL` is `None` until the integrator assigns it at the merge. It covers three things:
+- `node.settings` gains `terminal_profiles` (Paseo's `terminalProfiles`): absent when never set, which clients
+  show as the shipped four; an empty list when a person removed them all.
+- `node.set_settings` takes the whole list (`admin`), replacing it.
+- `terminal.create` gains `profile { id, prompt? }`: the node runs that profile's program, adopted and
+  substituted, without a shell (see the terminal methods above).
+
+While the number is unassigned, every client send and server dispatch refuses both fields through
+`required_protocol`, and every reply leaves the list out.
 
 ## Unassigned command-kind metadata values (ADR0085)
 

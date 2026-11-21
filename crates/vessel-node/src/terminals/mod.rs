@@ -35,7 +35,7 @@ use tokio_util::task::TaskTracker;
 use vessel_session::terminals::Scrollback;
 
 pub use env::{KNOWN_CREDENTIALS, Shell, credentials_in};
-pub(crate) use env::{scrubbed, shell_spec};
+pub(crate) use env::{executable, find_program, scrubbed, shell_spec};
 pub(crate) use ports::Ports;
 pub(crate) use registry::Terminals;
 pub(crate) use registry::{Entry, Owner, Start, TerminalsError};
@@ -70,6 +70,10 @@ pub struct TerminalsConfig {
     pub removed: Vec<OsString>,
     /// How much of a terminal's log is kept.
     pub scrollback: Scrollback,
+    /// The node's `PATH`, which its terminals inherit: where a terminal
+    /// profile's bare program name is looked for before it starts (ADR
+    /// 0117). `None`: not looked for, started as named.
+    pub search_path: Option<OsString>,
 }
 
 impl TerminalsConfig {
@@ -84,6 +88,7 @@ impl TerminalsConfig {
         names: impl IntoIterator<Item = OsString>,
         on_path: impl Fn(&str) -> Option<std::path::PathBuf>,
     ) -> Self {
+        let search_path = var("PATH");
         let shell = Shell::detect(
             cfg!(windows),
             cfg!(target_os = "macos"),
@@ -103,6 +108,7 @@ impl TerminalsConfig {
             shell: Some(shell),
             removed,
             scrollback: Scrollback::DEFAULT,
+            search_path,
         }
     }
 }
@@ -113,6 +119,7 @@ impl Default for TerminalsConfig {
             shell: None,
             removed: always_removed().collect(),
             scrollback: Scrollback::DEFAULT,
+            search_path: None,
         }
     }
 }

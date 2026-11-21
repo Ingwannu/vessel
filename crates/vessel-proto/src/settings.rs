@@ -25,6 +25,7 @@ use serde::{Deserialize, Serialize};
 use crate::harness::HarnessKind;
 use crate::parking::ParkAfter;
 use crate::restart::RestartRecovery;
+use crate::terminal_profiles::Profiles;
 
 /// The node's settings in force.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -60,6 +61,12 @@ pub struct NodeSettings {
     /// `ATTENTION_NOTIFICATIONS_PROTOCOL`, as the feature's other fields are.
     #[serde(default, skip_serializing_if = "core::ops::Not::not")]
     pub terminal_agent_hooks: bool,
+    /// The node's terminal profiles as kept (ADR 0117, Paseo's
+    /// `terminalProfiles`): absent when never set, which a client shows as
+    /// [`Profiles::shipped`]; empty when a person removed them all. Hidden
+    /// below `TERMINAL_PROFILES_PROTOCOL`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub terminal_profiles: Option<Profiles>,
 }
 
 impl NodeSettings {
@@ -79,11 +86,33 @@ impl NodeSettings {
             .for_plugins_protocol(protocol, crate::plugins::PLUGINS_PROTOCOL)
             .or(named);
         let base = plugins.as_ref().unwrap_or(self);
-        base.for_hooks_protocol(
+        let hooks = base
+            .for_hooks_protocol(
+                protocol,
+                crate::notifications::ATTENTION_NOTIFICATIONS_PROTOCOL,
+            )
+            .or(plugins);
+        let base = hooks.as_ref().unwrap_or(self);
+        base.for_profiles_protocol(
             protocol,
-            crate::notifications::ATTENTION_NOTIFICATIONS_PROTOCOL,
+            crate::terminal_profiles::TERMINAL_PROFILES_PROTOCOL,
         )
-        .or(plugins)
+        .or(hooks)
+    }
+
+    /// The terminal profiles (ADR 0117) stay hidden from a peer below their
+    /// protocol, as the other later fields are.
+    fn for_profiles_protocol(
+        &self,
+        protocol: crate::ProtocolVersion,
+        assigned: Option<crate::ProtocolVersion>,
+    ) -> Option<Self> {
+        let readable = assigned.is_some_and(|version| protocol >= version);
+        (!readable && self.terminal_profiles.is_some()).then(|| {
+            let mut older = self.clone();
+            older.terminal_profiles = None;
+            older
+        })
     }
 
     /// The terminal agent hooks switch (ADR 0089) stays hidden from a peer
@@ -275,6 +304,11 @@ pub struct SetNodeSettings {
     /// `ATTENTION_NOTIFICATIONS_PROTOCOL` is assigned.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub terminal_agent_hooks: Option<bool>,
+    /// Replace the node's terminal profiles with this list, in this order
+    /// (ADR 0117; Paseo patches the whole list too). Refused until
+    /// `TERMINAL_PROFILES_PROTOCOL` is assigned.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub terminal_profiles: Option<Profiles>,
 }
 
 #[cfg(test)]
@@ -293,6 +327,7 @@ mod tests {
             metadata: None,
             plugins_enabled: false,
             terminal_agent_hooks: false,
+            terminal_profiles: None,
         };
         let required = crate::PROTOCOL_VERSION;
         let older = crate::ProtocolVersion::new(required.get().checked_sub(1).unwrap());
@@ -443,3 +478,5 @@ mod tests {
 
 #[cfg(test)]
 mod names_tests;
+#[cfg(test)]
+mod profiles_tests;
