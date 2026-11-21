@@ -6,6 +6,9 @@ Shortcuts, Notifications and Diagnostics already use Keyboard, Bell and
 Stethoscope. The app Terminal and Files sections use SquareTerminal and
 Files. Paseo uses MessageSquare for Chat. The page's Chat section belongs
 to F-L74. Vessel's machine Terminals page manages running terminals.
+The sidebar footer also uses Settings, as in Paseo's
+`packages/app/src/components/left-sidebar.tsx:447–452`. The Machines
+filter keeps the sliders mark.
 
 The sidebar and the command palette share `sectionIcon` so both show
 the same mark for a settings destination. The page kit already applies
