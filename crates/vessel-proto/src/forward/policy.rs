@@ -331,7 +331,9 @@ impl Method {
             | Self::GetPublished
             | Self::Subscribe
             | Self::SubscribeTerminal
-            | Self::Unsubscribe => false,
+            | Self::Unsubscribe
+            // Same direct-client requirement as the scheduler's edit rule.
+            | Self::UpdateScheduleCadence => false,
         }
     }
 }

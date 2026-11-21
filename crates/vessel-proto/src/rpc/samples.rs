@@ -282,6 +282,7 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         | Method::ListRuns => json!({"schedule":id}),
         Method::CreateSchedule => json!({"definition":definition}),
         Method::UpdateSchedule => json!({"schedule":id,"revision":1,"definition":definition}),
+        Method::UpdateScheduleCadence => json!({"schedule":id,"revision":1,"cadence":cadence}),
         Method::CreatePrompt => json!({"name":"sample","text":"sample"}),
         Method::UpdatePrompt => json!({"prompt":id,"revision":1,"name":"sample","text":"sample"}),
         Method::DeletePrompt => json!({"prompt":id}),

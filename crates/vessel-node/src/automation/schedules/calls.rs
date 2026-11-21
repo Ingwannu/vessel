@@ -13,9 +13,9 @@ use vessel_proto::{Creator, ScheduleId, SessionId};
 use super::actor::Actor;
 use super::book::Entry;
 use super::check::{node_anchor, settle, settle_completed};
-use super::rules::{AGENT_SCHEDULES, Act, Asker, PEOPLE_SCHEDULES};
-use super::state::{advanced, ended_refused, ends_an_agents, update_admitted};
-use super::{Clock, Command, Runner};
+use super::rules::{AGENT_SCHEDULES, Act, Asker, PEOPLE_SCHEDULES, heartbeat_target};
+use super::state::{advanced, ended_refused, ends_an_agents};
+use super::{Clock, Command, DefinitionChange, Runner};
 use crate::automation::error::AutomationError;
 use crate::automation::time::Due;
 
@@ -41,11 +41,11 @@ impl<R: Runner, C: Clock> Actor<R, C> {
             Command::Update {
                 schedule,
                 revision,
-                definition,
+                change,
                 asker,
                 reply,
             } => {
-                let updated = self.update(schedule, revision, *definition, &asker).await;
+                let updated = self.update(schedule, revision, change, &asker).await;
                 let _gone = reply.send(updated);
             }
             Command::Pause {
@@ -182,27 +182,27 @@ impl<R: Runner, C: Clock> Actor<R, C> {
         &mut self,
         schedule: ScheduleId,
         revision: u32,
-        mut definition: ScheduleDefinition,
+        change: DefinitionChange,
         asker: &Asker,
     ) -> Result<ScheduleInfo, AutomationError> {
         let mut info = self.found(schedule)?.info.clone();
-        asker.may(Act::Update, &info.defined_by)?;
-        update_admitted(&info)?;
-        if revision != info.revision {
-            return Err(AutomationError::Conflict(format!(
-                "the schedule was changed meanwhile (now revision {}); edit that one",
-                info.revision
-            )));
-        }
-        // A person taking an agent's schedule over makes it a person's,
-        // which their bound counts.
-        let to_people = matches!(info.defined_by, Creator::Agent { .. })
-            && !matches!(asker.by, Creator::Agent { .. });
-        if to_people && self.book.counts().0 >= PEOPLE_SCHEDULES {
-            return Err(AutomationError::Conflict(
-                "the node has as many schedules as it keeps (256); delete some first".to_owned(),
-            ));
-        }
+        asker.check_update(&info, revision)?;
+        let previous_cadence = info.definition.cadence.clone();
+        let mut definition = match change {
+            DefinitionChange::Replace(definition) => {
+                // Only a full replacement changes who a run acts as, which
+                // can move the schedule into the person's quota.
+                self.check_transfer(&info.defined_by, &asker.by)?;
+                info.defined_by = asker.by.clone();
+                *definition
+            }
+            DefinitionChange::Cadence(cadence) => {
+                let _target = heartbeat_target(&info)?;
+                let mut definition = info.definition;
+                definition.cadence = cadence;
+                definition
+            }
+        };
         let now = self.clock.now();
         node_anchor(asker, &mut definition);
         let was_ended = matches!(info.state, ScheduleState::Ended { .. });
@@ -211,7 +211,7 @@ impl<R: Runner, C: Clock> Actor<R, C> {
         } else {
             settle(&self.zones, &mut definition, now)?
         };
-        let cadence_changed = definition.cadence != info.definition.cadence;
+        let cadence_changed = definition.cadence != previous_cadence;
         info.state = match info.state {
             ScheduleState::Active { next_due } => {
                 let next = if cadence_changed { first } else { next_due };
@@ -232,7 +232,6 @@ impl<R: Runner, C: Clock> Actor<R, C> {
             };
         }
         info.definition = definition;
-        info.defined_by = asker.by.clone();
         info.revision = info.revision.wrapping_add(1);
         info.updated_at = now;
         if ends_an_agents(&info) {
@@ -242,6 +241,18 @@ impl<R: Runner, C: Clock> Actor<R, C> {
         self.store.put_schedule(info.clone(), None).await?;
         self.book.put(info.clone());
         Ok(info)
+    }
+
+    fn check_transfer(&self, owner: &Creator, writer: &Creator) -> Result<(), AutomationError> {
+        if matches!(owner, Creator::Agent { .. })
+            && !matches!(writer, Creator::Agent { .. })
+            && self.book.counts().0 >= PEOPLE_SCHEDULES
+        {
+            return Err(AutomationError::Conflict(
+                "the node has as many schedules as it keeps (256); delete some first".to_owned(),
+            ));
+        }
+        Ok(())
     }
 
     async fn pause(

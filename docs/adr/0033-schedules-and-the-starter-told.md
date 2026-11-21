@@ -307,3 +307,20 @@ The original ownership, forwarded-call restrictions, revision comparison,
 serialization and storage path are unchanged. This requires no wire/schema
 change. Source tests and narrow/V3 evidence are recorded in wp-F1-node; this
 amendment itself does not claim a gate or reactivation behavior.
+
+### Heartbeat cadence edits preserve the owner (TRACKER 839)
+
+Paseo calls every existing-session target a Heartbeat (`schedule-format.ts`
+31–33) and its edit updates the cadence (`schedule-form-sheet.tsx` 316–324,
+406). Vessel's run identity and agent-session cleanup depend on the
+stored `defined_by`. Reusing the whole-definition edit for this control
+would transfer ownership to the person who saves and alter cleanup.
+
+`schedule.update_cadence` carries the schedule ID, checked revision and
+typed cadence. It uses the existing direct-update authority and Operate
+scope. The service checks the stored session as a prompt target. The
+scheduler checks the revision again because another definition could
+have changed the target while that read was in flight. The same actor
+transaction settles cadence and persists the result. The owner, target,
+prompt, run history, limit, expiry and catch-up stay with the saved record.
+The method stays pending until the integrator assigns its protocol.

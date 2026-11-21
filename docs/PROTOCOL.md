@@ -2401,6 +2401,15 @@ prior block is invalid on every approval reply while unassigned. CLI shows
 both choices; web refuses current, prior and approved-folder blocks until
 it can display them completely. No allocator or process runs in this stage.
 
+## Pending heartbeat cadence edit (TRACKER 839, ADR 0033)
+
+`schedule.update_cadence { schedule, revision, cadence }` returns
+`ScheduleInfo`. It requires direct Operate access and an existing-session
+target. The node uses the stored target for the prompt-target check and
+confirms the revision again when committing. The call preserves the owner
+and the rest of the definition. Its pending method row uses
+`HEARTBEAT_CADENCE_PROTOCOL` until the integrator assigns the version.
+
 ## Pending independent workspace registry (ADR 0082; assigned 25, see Version 25)
 
 The registry dependency declares workspace.registry, workspace.list,
