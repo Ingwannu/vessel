@@ -356,10 +356,12 @@ pub fn block_text(block: &ContentBlock) -> String {
     match block {
         ContentBlock::Text { text, .. } => text.clone(),
         ContentBlock::ResourceLink { uri, name, .. } => format!("[{name}]({uri})"),
-        ContentBlock::Opaque { .. } => String::new(),
+        // A context or review is not the prompt's words: its sent pills
+        // (`SentContext`).
+        ContentBlock::Opaque { .. } | ContentBlock::Context(_) | ContentBlock::Review(_) => {
+            String::new()
+        }
         ContentBlock::Attachment { attachment, .. } => format!("[{}]", attachment.name),
-        // Not the prompt's words: its sent pills (`SentContext`).
-        ContentBlock::Context(_) | ContentBlock::Review(_) => String::new(),
     }
 }
 
