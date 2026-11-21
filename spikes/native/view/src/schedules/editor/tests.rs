@@ -13,11 +13,16 @@ fn edit_keeps_opened_revision_expiry_ownership_input_and_elapsed_phase() {
     info.definition.ends_at = Some("2026-12-01T00:00:00Z".parse().unwrap());
     let mut draft = Draft::open(&info, None).unwrap();
     draft.fields.set_name("Updated name".to_owned());
-    draft.cadence.default_zone(Some(&"Asia/Seoul".parse().unwrap()));
+    draft
+        .cadence
+        .default_zone(Some(&"Asia/Seoul".parse().unwrap()));
     draft.cadence.set_expression(String::new());
     assert!(draft.cadence.is_elapsed());
     let locale = crate::localization::Translator::get(crate::localization::ENGLISH).unwrap();
-    assert_eq!(super::cadence::description(draft.cadence.checked().unwrap(), locale).unwrap(), "Every 90 seconds");
+    assert_eq!(
+        super::cadence::description(draft.cadence.checked().unwrap(), locale).unwrap(),
+        "Every 90 seconds"
+    );
     let Some(Save::Update(save)) = draft.save(draft.cadence.checked().unwrap()) else {
         panic!("expected revision-bound replacement");
     };

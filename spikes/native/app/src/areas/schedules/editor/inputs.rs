@@ -97,7 +97,6 @@ impl Inputs {
         } else if id == self.zone.id() {
             draft.cadence.set_zone(text);
             return Some(true);
-
         } else {
             return None;
         }

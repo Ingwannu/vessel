@@ -465,3 +465,6 @@ schedules-form-elapsed-seconds = { NUMBER($seconds, useGrouping: "false") }초�
 
 # Schedule rule or its first projected run.
 schedules-form-preview-line = { $description } · 다음 실행 { DATETIME($at) }
+
+# The retained elapsed cadence on an older node.
+schedules-form-elapsed-without-preview = { $cadence } · 이 머신에서는 미리보기를 사용할 수 없습니다

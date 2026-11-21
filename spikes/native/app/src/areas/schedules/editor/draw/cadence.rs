@@ -26,7 +26,13 @@ pub(super) fn body(
         draft.choice().label(shell.words)
     };
     let mut out = div().flex().flex_col().gap(px(S3)).child(choose(
-        shell, Field::Cadence, display, true, tokens, touch, cx,
+        shell,
+        Field::Cadence,
+        display,
+        true,
+        tokens,
+        touch,
+        cx,
     ));
     if let Some(inputs) = &editor.inputs {
         out = out.child(inputs.cron.element(tokens, touch, cx));
@@ -49,9 +55,21 @@ fn feedback(shell: &Shell, form: &Form, tokens: &Tokens) -> Option<Div> {
         Err(issue) => return Some(hint(issue.label(shell.words), true, tokens)),
     };
     let preview = &shell.areas.schedules.editor.preview_label;
-    let describe = || description(rule, shell.words).ok().map(|label| hint(label, false, tokens));
+    let describe = || {
+        description(rule, shell.words)
+            .ok()
+            .map(|label| hint(label, false, tokens))
+    };
     match form.preview() {
-        Some(Ok(_)) => preview.as_ref().map(|label| hint(label.clone(), false, tokens)).or_else(describe),
+        Some(Ok(_)) => preview
+            .as_ref()
+            .map(|label| hint(label.clone(), false, tokens))
+            .or_else(describe),
+        Some(Err(Failure::Older)) if form.draft.cadence.is_elapsed() => {
+            let summary = description(rule, shell.words).ok()?;
+            let text = words.form_elapsed_without_preview(&summary).ok()?;
+            Some(hint(text, false, tokens))
+        }
         Some(Err(Failure::Older)) => Some(hint(words.preview_unavailable_older(), false, tokens)),
         Some(Err(Failure::Unexpected)) => Some(hint(words.preview_mismatched(), true, tokens)),
         Some(Err(error)) => Some(hint(locale::failure(error, shell.words), true, tokens)),

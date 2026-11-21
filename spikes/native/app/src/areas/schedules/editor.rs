@@ -348,13 +348,20 @@ fn preview_label(
 ) -> Option<SharedString> {
     use vessel_app_view::{localization::Date, schedules::editor::cadence::description};
     if form.draft.opened().is_some_and(|opened| {
-        matches!(opened.state, vessel_proto::automation::ScheduleState::Ended { .. })
+        matches!(
+            opened.state,
+            vessel_proto::automation::ScheduleState::Ended { .. }
+        )
     }) {
         return None;
     }
-    let Ok(preview) = form.preview()? else { return None };
+    let Ok(preview) = form.preview()? else {
+        return None;
+    };
     let at = preview.runs.first()?;
-    let device = form.targets().and_then(|facts| facts.as_ref().ok())
+    let device = form
+        .targets()
+        .and_then(|facts| facts.as_ref().ok())
         .and_then(|facts| facts.device_zone.as_ref());
     let (local, zone) = device
         .and_then(|zone| {
@@ -363,6 +370,14 @@ fn preview_label(
         })
         .unwrap_or_else(|| (at.naive_utc(), "UTC".to_owned()));
     let rule = description(&preview.cadence, catalog).ok()?;
-    let at = Date::DateTime { date: local.date(), time: local.time(), zone };
-    catalog.schedules().form_preview_line(&at, &rule).ok().map(Into::into)
+    let at = Date::DateTime {
+        date: local.date(),
+        time: local.time(),
+        zone,
+    };
+    catalog
+        .schedules()
+        .form_preview_line(&at, &rule)
+        .ok()
+        .map(Into::into)
 }

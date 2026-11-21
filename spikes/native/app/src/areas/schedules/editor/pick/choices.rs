@@ -5,9 +5,7 @@ use vessel_app_view::{
     board::{Agent, agent_name},
     connection::ConnectionContext,
     controls_of,
-    schedules::{
-        editor::{cadence, io::Form},
-    },
+    schedules::editor::{cadence, io::Form},
     with_picks,
 };
 use vessel_proto::{

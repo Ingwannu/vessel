@@ -480,3 +480,6 @@ schedules-form-elapsed-seconds = { $seconds ->
 
 # Schedule rule or its first projected run.
 schedules-form-preview-line = { $description } · Next run { DATETIME($at) }
+
+# The retained elapsed cadence on an older node.
+schedules-form-elapsed-without-preview = { $cadence } · Preview is unavailable on this machine
