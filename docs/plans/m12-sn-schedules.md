@@ -2,7 +2,7 @@
 
 [ADR 0072](../adr/0072-schedules-screen.md) records the node contract and
 its differences from Paseo. P1 started from package base 14.105 and
-incorporates 14.106 for the review fixes. Paseo source references below
+incorporates 14.107 for the review fixes. Paseo source references below
 are relative to the pinned 0.15.4 tree.
 
 ## P1 · Screen and rows
