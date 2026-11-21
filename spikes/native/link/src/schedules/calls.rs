@@ -19,6 +19,8 @@ use vessel_proto::{
     workspace::{ListProjects, ListWorktrees, SessionPlace},
 };
 
+mod form;
+
 const LIST_DEADLINE: Duration = Duration::from_secs(15);
 const FACT_DEADLINE: Duration = Duration::from_secs(2);
 const RUN_DEADLINE: Duration = Duration::from_secs(120);

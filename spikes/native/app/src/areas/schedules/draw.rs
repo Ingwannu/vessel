@@ -36,19 +36,23 @@ pub(crate) fn render(
         cx.defer_in(window, Shell::schedules_overlay_frame);
     }
     let touch = kit::breakpoint::phone(window);
+    if shell.areas.schedules.editor.dismiss || shell.areas.schedules.editor.sync_inputs {
+        cx.defer_in(window, Shell::schedule_form_frame);
+    }
     let title = shell.words.sidebar().schedules();
+    let actions = vec![super::editor::new_button(shell, tokens, touch, cx)];
     let header = if touch {
         let owner = cx.entity().downgrade();
         kit::compact_header(
             title,
-            Vec::new(),
+            actions,
             move |window, cx| {
                 let _closed = owner.update(cx, |shell, cx| shell.toggle_sidebar(window, cx));
             },
             tokens,
         )
     } else {
-        kit::screen_header(title, Vec::new(), tokens, false)
+        kit::screen_header(title, actions, tokens, false)
     };
     let mut root = div()
         .relative()
@@ -77,7 +81,7 @@ pub(crate) fn render(
     if let Some(dialog) = super::overlays::deletion(shell, tokens, window, touch, cx) {
         root = root.child(dialog);
     }
-    root.into_any_element()
+    root.children(super::editor::render(shell, tokens, window, touch, cx)).into_any_element()
 }
 fn body(shell: &Shell, tokens: &Tokens, touch: bool, cx: &mut Context<'_, Shell>) -> AnyElement {
     let data = &shell.areas.schedules.data;

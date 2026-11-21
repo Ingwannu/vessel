@@ -36,6 +36,7 @@ pub(crate) fn leaving(
     if let Some(task) = shell.areas.schedules.tick.take() {
         drop(task);
     }
+    shell.areas.schedules.editor.close(window, cx);
     let ui = &mut shell.areas.schedules.ui;
     ui.menu.close_and_restore(window, cx);
     ui.picker.close_and_restore(window, cx);
@@ -86,7 +87,10 @@ impl Shell {
         context: &ConnectionTag,
         cx: &mut Context<'_, Self>,
     ) {
-        if self.areas.schedules.data.page.retired(context) && self.schedules_changed(cx) {
+        let retired = self.areas.schedules.editor.retired(context);
+        let page_changed = self.areas.schedules.data.page.retired(context)
+            && self.schedules_changed(cx);
+        if retired || page_changed {
             cx.notify();
         }
     }

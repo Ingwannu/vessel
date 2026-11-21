@@ -305,6 +305,15 @@ impl Page {
         succeeded
     }
 
+    /// The explicitly filtered machine, if the user narrowed the list.
+    #[must_use]
+    pub fn selected_machine(&self) -> Option<&MachineKey> {
+        match &self.machine {
+            MachineFilter::All => None,
+            MachineFilter::One(key) => Some(key),
+        }
+    }
+
     fn selected(&self, key: &MachineKey) -> bool {
         match &self.machine {
             MachineFilter::All => true,

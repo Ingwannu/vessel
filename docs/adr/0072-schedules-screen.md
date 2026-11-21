@@ -16,6 +16,12 @@ stored expiry, and previews on the node. A missing device IANA zone falls
 back to the machine's zone. Person saves in the new-session editor
 disclose ownership transfer.
 
+P2 resolves the device's IANA zone in native Link using the already
+locked `iana-time-zone` package. The lookup runs on a blocking worker,
+outside the actor loop. The typed machine fallback comes from
+`GetNode.timezone`. The wasm Link has no direct dependency on the lookup.
+The form can accept an explicit zone when both sources are unavailable.
+
 The client follows Paseo's target-based Heartbeat label
 (`schedule-format.ts` 31–33). Every schedule targeting an existing
 session is a Heartbeat, regardless of who defined it. The row offers

@@ -311,3 +311,220 @@ schedules-sunday = Sundays
 
 # Search aliases for the Schedules destination in Command Center.
 schedules-search-keywords = schedules scheduled automation recurring
+
+# Cadence preset picker labels; not the saved row’s full cadence description.
+schedules-preset-minute = Every minute
+
+# Hourly cadence preset picker label; not a saved cadence description.
+schedules-preset-hour = Every hour
+
+# Daily-at-nine cadence preset picker label; keep short.
+schedules-preset-daily = Daily 9:00
+
+# Monday-to-Friday-at-nine cadence preset picker label; keep short.
+schedules-preset-weekdays = Weekdays 9:00
+
+# Monday-at-nine cadence preset picker label; keep short.
+schedules-preset-mondays = Mondays 9:00
+
+# Whole field error; numeric maximum comes from the typed node bound.
+schedules-form-name-invalid = Use a short name on one line, without control characters.
+
+# Whole field error; numeric maximum comes from the typed node bound.
+schedules-form-prompt-invalid = Enter a prompt of at most { NUMBER($maximum, useGrouping: "false") } UTF-8 bytes, without control characters except tabs and line breaks.
+
+# Whole field error; numeric maximum comes from the typed node bound.
+schedules-form-max-runs-invalid = Enter a whole number from 1 to { NUMBER($maximum, useGrouping: "false") }, or leave it blank for unlimited runs.
+
+# Required structured chat target; a missing selection blocks saving.
+schedules-form-target-required = Choose an agent and a folder for this schedule.
+
+# Whole typed preview failure; never show wire message/Display.
+schedules-preview-mismatched = The machine returned a different or incomplete preview. No run times are shown.
+
+# Whole typed preview failure; never show wire message/Display.
+schedules-preview-unknown-zone = This machine does not know that time zone. Choose another zone or update the machine.
+
+# Save waits for the exact current node preview, except an explicit older-node refusal.
+schedules-form-preview-required = Preview the current rule before saving.
+
+# A machine supports schedule create/update but predates the read-only preview call.
+schedules-preview-unavailable-older = This machine cannot preview this rule. You can save it without a preview.
+
+# Schedule editor: form-new-title control/feedback, never a node diagnostic.
+schedules-form-new-title = New schedule
+
+# Schedule editor: form-edit-title control/feedback, never a node diagnostic.
+schedules-form-edit-title = Edit schedule
+
+# Schedule editor: form-create control/feedback, never a node diagnostic.
+schedules-form-create = Create schedule
+
+# Schedule editor: form-save control/feedback, never a node diagnostic.
+schedules-form-save = Save changes
+
+# Schedule editor: form-name control/feedback, never a node diagnostic.
+schedules-form-name = Name
+
+# Schedule editor: form-prompt control/feedback, never a node diagnostic.
+schedules-form-prompt = Prompt
+
+# Schedule editor: form-host control/feedback, never a node diagnostic.
+schedules-form-host = Host
+
+# Schedule editor: form-project control/feedback, never a node diagnostic.
+schedules-form-project = Project
+
+# Schedule editor: form-model control/feedback, never a node diagnostic.
+schedules-form-model = Model
+
+# Schedule editor: form-thinking control/feedback, never a node diagnostic.
+schedules-form-thinking = Thinking
+
+# Schedule editor: form-mode control/feedback, never a node diagnostic.
+schedules-form-mode = Mode
+
+# Schedule editor: form-archive control/feedback, never a node diagnostic.
+schedules-form-archive = Archive on finish
+
+# Schedule editor: form-limit control/feedback, never a node diagnostic.
+schedules-form-limit = Max runs
+
+# Schedule editor: form-optional control/feedback, never a node diagnostic.
+schedules-form-optional = Optional
+
+# Schedule editor: form-prompt-placeholder control/feedback, never a node diagnostic.
+schedules-form-prompt-placeholder = What should the agent do each run?
+
+# Schedule editor: form-unlimited control/feedback, never a node diagnostic.
+schedules-form-unlimited = Unlimited
+
+# Schedule editor: form-cadence control/feedback, never a node diagnostic.
+schedules-form-cadence = Cadence
+
+# Schedule editor: form-zone control/feedback, never a node diagnostic.
+schedules-form-zone = Time zone
+
+# Schedule editor: form-next-runs control/feedback, never a node diagnostic.
+schedules-form-next-runs = Next runs
+
+# Schedule editor: form-host-placeholder control/feedback, never a node diagnostic.
+schedules-form-host-placeholder = Select host
+
+# Schedule editor: form-project-placeholder control/feedback, never a node diagnostic.
+schedules-form-project-placeholder = Select project
+
+# Schedule editor: form-model-placeholder control/feedback, never a node diagnostic.
+schedules-form-model-placeholder = Select model
+
+# Schedule editor: form-zone-placeholder control/feedback, never a node diagnostic.
+schedules-form-zone-placeholder = Choose a time zone
+
+# Schedule editor: form-custom control/feedback, never a node diagnostic.
+schedules-form-custom = Custom
+
+# Schedule editor: form-interval control/feedback, never a node diagnostic.
+schedules-form-interval = Interval
+
+# One projected run; $at is the typed viewer-calendar date/time, with its explicit zone.
+schedules-form-next-at = { DATETIME($at) }
+
+# New-rule bootstrap when the viewer cannot report its own zone; never silently infer UTC.
+schedules-form-viewer-unknown = Your time zone is unavailable. Choose a time zone for this rule.
+
+# A rule zone has been explicitly selected but the display viewer zone is still unknown.
+schedules-form-viewer-display-utc = Your time zone is unavailable. Preview times are shown in UTC.
+
+# Placeholder for searching project choices on the selected machine; short.
+schedules-form-search-projects = Search projects...
+# Placeholder for filtering the current provider/model browser; short.
+schedules-form-search-models = Search models...
+# Placeholder for filtering offered thinking-option choices; short.
+schedules-form-search-thinking = Search thinking options...
+# Placeholder for filtering offered session modes; short.
+schedules-form-search-modes = Search modes...
+# Placeholder for filtering IANA time-zone names; short.
+schedules-form-search-zones = Search time zones...
+# Project choice list has no matching offered project; not a transport diagnostic.
+schedules-form-empty-projects = No projects found
+# Model choice list has no offered model; provider read errors use separate feedback.
+schedules-form-empty-models = No models found
+# Thinking choice list has no matching offered option; short.
+schedules-form-empty-thinking = No thinking options found
+# Session-mode choice list has no matching offered mode; short.
+schedules-form-empty-modes = No modes found
+# Time-zone choice list has no matching IANA name; short.
+schedules-form-empty-zones = No time zones found
+# Fallback empty filtered choice list; short, not a failed node read.
+schedules-form-empty-choices = No matching options
+# Example five-field cron expression in the form; preserve digits, spaces and operators.
+schedules-form-cron-placeholder = 0 9 * * *
+
+# Source model-browser feedback; short loading/retry/no-matching-model labels.
+schedules-form-model-loading = Loading
+# Retry only the failed provider-model read; short button label, never repeats a write.
+schedules-form-model-retry = Retry
+# Disabled retry button while that provider-model read is pending; short.
+schedules-form-model-retrying = Retrying...
+# Successful model catalog/search with no matching models; not a provider error.
+schedules-form-model-no-matches = No models match your search
+
+# Schedule form control or status.
+schedules-form-zone-invalid = Enter an IANA time zone such as Asia/Seoul.
+
+# Schedule form control or status.
+schedules-form-cron-invalid = Enter a valid five-field cron expression.
+
+# Schedule form control or status.
+schedules-form-interval-invalid = Enter an elapsed interval from 60 seconds to 366 days.
+
+# Schedule form control or status.
+schedules-form-ownership = Future runs will act as the person who saves these changes.
+
+# Schedule form control or status.
+schedules-form-unavailable-edit = This schedule cannot be edited on this machine.
+
+# Schedule form control or status.
+schedules-form-default-model = Default model
+
+# Schedule form control or status.
+schedules-form-default-choice = Default
+
+# Schedule form control or status.
+schedules-form-previewing = Checking the next runs…
+
+# Schedule form control or status.
+schedules-form-saving = Saving…
+
+# Schedule form control or status.
+schedules-form-count = Interval count
+
+# Schedule form control or status.
+schedules-form-unit = Unit
+
+# Schedule form control or status.
+schedules-form-script = Cron expression
+
+# Schedule form control or status.
+schedules-form-second = Seconds
+
+# Schedule form control or status.
+schedules-form-minute = Minutes
+
+# Schedule form control or status.
+schedules-form-hour = Hours
+
+# Schedule form control or status.
+schedules-form-day = Days
+
+# Schedule form control or status.
+schedules-form-host-zone = Machine time zone: { $zone }
+
+# Schedule form control or status.
+schedules-form-no-machine = Connect to a machine to create a schedule.
+
+# Schedule form control or status.
+schedules-form-options = Select an option
+
+# Accessible name of the row that opens the editor.
+schedules-form-edit-row = Edit schedule { $title }

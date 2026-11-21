@@ -38,7 +38,8 @@ pub(super) fn menu(
         .rows
         .iter()
         .find(|row| row.key == *selected.key())?;
-    let items: Vec<_> = row
+    let edit = super::editor::editable(shell, selected);
+    let mut items: Vec<_> = row
         .menu
         .iter()
         .map(|entry| {
@@ -49,7 +50,7 @@ pub(super) fn menu(
                 MenuItem::new(label)
             }
             .with_leading(glyph(entry.action));
-            item.starts_group = entry.action == Action::Delete && row.menu.len() > 1;
+            item.starts_group = entry.action == Action::Delete && (edit || row.menu.len() > 1);
             match entry.state {
                 EntryState::Enabled => {}
                 EntryState::Disabled => item.disabled = true,
@@ -60,6 +61,10 @@ pub(super) fn menu(
             item
         })
         .collect();
+    if edit {
+        items.insert(0, MenuItem::new(shell.words.schedules().form_edit_title())
+            .with_leading(kit::assets::Glyph::Pencil));
+    }
     let actions: Vec<_> = row.menu.iter().map(|entry| entry.action).collect();
     let selected = Rc::clone(selected);
     let handlers = MenuHandlers {
@@ -75,7 +80,11 @@ pub(super) fn menu(
             {
                 return;
             }
-            if let Some(action) = actions.get(index) {
+            if edit && index == 0 {
+                shell.schedule_edit_open(&selected, window, cx);
+                return;
+            }
+            if let Some(action) = actions.get(index.saturating_sub(usize::from(edit))) {
                 match *action {
                     Action::Delete => {
                         shell.schedule_delete_prompt(&selected, window, cx);

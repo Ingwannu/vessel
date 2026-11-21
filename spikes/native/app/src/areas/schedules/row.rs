@@ -35,14 +35,31 @@ pub(super) fn render(
             .map(|notice| super::draw::row_notice(notice, tokens)),
     );
     let trailing = trailing(shell, row, tokens, touch, cx);
-    kit::settings::row_with_content(
+    let element = kit::settings::row_with_content(
         content.into_any_element(),
         Some(trailing),
         index == 0,
         touch,
         tokens,
     )
-    .id(("schedules-row", index))
+    .id(("schedules-row", index));
+    if let Some(intent) = &row.intent
+        && super::editor::editable(shell, intent)
+    {
+        let intent = intent.clone();
+        let words = shell.words.schedules();
+        let label = words.form_edit_row(&row.title)
+            .unwrap_or_else(|_| words.form_edit_title().to_owned());
+        element.role(gpui::Role::Button).aria_label(label)
+            .cursor_pointer()
+            .hover({
+                let wash = tokens.neutral.interaction_highlight;
+                move |style| style.bg(wash)
+            })
+            .on_click(cx.listener(move |shell, _, window, cx| shell.schedule_edit_open(&intent, window, cx)))
+    } else {
+        element
+    }
 }
 
 fn target(row: &PreparedRow, tokens: &Tokens) -> Div {
