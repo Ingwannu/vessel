@@ -439,6 +439,11 @@ pub const PROTOCOLS: &[(&str, Option<crate::ProtocolVersion>, &str)] = &[
         "a catalog entry using `card`, the settings controls or `open_settings` (ADR 0115, \"Surfaces\").",
     ),
     (
+        "TERMINAL_PROFILES_PROTOCOL",
+        crate::terminal_profiles::TERMINAL_PROFILES_PROTOCOL,
+        "The node's terminal profiles in its settings, and `terminal.create`'s `profile` (ADR 0117).",
+    ),
+    (
         "PROMPT_CONTEXT_PROTOCOL",
         crate::prompt_context::PROMPT_CONTEXT_PROTOCOL,
         "A prompt's `context` and `review` blocks (ADR 0124).",

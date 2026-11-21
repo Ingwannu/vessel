@@ -65,16 +65,28 @@ function readMark(): Mark {
   return { viewBox, paths };
 }
 
+/** The favicon's states beside the plain one (ADR 0089, "The page's badge
+ * and favicon"): Paseo's running and attention favicons add one dot at the
+ * bottom right, at
+ * cx = cy = 570 and r = 130 of a 700 side, blue while anything runs and
+ * green when something wants the person (`favicon-dark-running.svg`,
+ * `favicon-dark-attention.svg`). The same ratio on the 64 tile. */
+const STATES = { running: "#3b82f6", attention: "#22c55e" } as const;
+
 /** The favicon: the mark in white on a rounded tile of the brand colour,
- * with the room a launcher's icon gives it. */
-function favicon(mark: Mark): string {
+ * with the room a launcher's icon gives it, and a state's dot when given. */
+function favicon(mark: Mark, dot?: string): string {
   const paths = mark.paths
     .map(
       (path) =>
         `<path fill="#fff"${path.evenOdd ? ' fill-rule="evenodd"' : ""} d="${path.d}"/>`,
     )
     .join("");
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="${BRAND}"/><svg x="10" y="10" width="44" height="44" viewBox="${mark.viewBox}">${paths}</svg></svg>`;
+  const state =
+    dot === undefined
+      ? ""
+      : `<circle cx="52.11" cy="52.11" r="11.89" fill="${dot}"/>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="${BRAND}"/><svg x="10" y="10" width="44" height="44" viewBox="${mark.viewBox}">${paths}</svg>${state}</svg>`;
 }
 
 export function vesselMark(): Plugin {
@@ -91,11 +103,19 @@ export function vesselMark(): Plugin {
       return `export const mark = ${JSON.stringify(readMark())};`;
     },
     generateBundle() {
+      const read = readMark();
       this.emitFile({
         type: "asset",
         fileName: "favicon.svg",
-        source: favicon(readMark()),
+        source: favicon(read),
       });
+      for (const [state, colour] of Object.entries(STATES)) {
+        this.emitFile({
+          type: "asset",
+          fileName: `favicon-${state}.svg`,
+          source: favicon(read, colour),
+        });
+      }
     },
     transformIndexHtml() {
       return [

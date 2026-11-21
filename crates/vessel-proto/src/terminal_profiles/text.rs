@@ -66,12 +66,14 @@ impl TextKind {
 }
 
 // Every field has a distinct type, while serde and validation cannot drift.
+// Each takes a TypeScript name of its own: the page's declarations are one
+// file, where a bare `Id` or `Name` would say nothing (ADR 0117).
 macro_rules! profile_text {
-    ($name:ident, $kind:ident, $max:expr, $doc:literal) => {
+    ($name:ident, $kind:ident, $ts:literal, $max:expr, $doc:literal) => {
         #[doc = $doc]
         #[derive(Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
         #[serde(try_from = "String", into = "String")]
-        #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(type = "string"))]
+        #[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(type = "string", rename = $ts))]
         pub struct $name(String);
 
         impl $name {
@@ -91,6 +93,13 @@ macro_rules! profile_text {
             #[must_use]
             pub fn as_str(&self) -> &str {
                 &self.0
+            }
+        }
+
+        impl std::str::FromStr for $name {
+            type Err = ProfileError;
+            fn from_str(value: &str) -> Result<Self, Self::Err> {
+                Self::parse(value)
             }
         }
 
@@ -115,34 +124,60 @@ macro_rules! profile_text {
     };
 }
 
-profile_text!(Id, Id, 64, "A stable terminal profile row identity.");
+profile_text!(
+    Id,
+    Id,
+    "TerminalProfileId",
+    64,
+    "A stable terminal profile row identity."
+);
 profile_text!(
     Name,
     Name,
+    "TerminalProfileName",
     800,
     "A one-line profile label, allowing long Unicode names."
 );
 profile_text!(
     Program,
     Program,
+    "TerminalProgram",
     4096,
     "A literal executable/path template, never a shell command."
 );
 profile_text!(
     Argument,
     Argument,
+    "TerminalArgument",
     16 * 1024,
     "One literal argv template/result, with whitespace preserved."
 );
 profile_text!(
     Prompt,
     Prompt,
-    64 * 1024,
-    "A bounded prompt to substitute as literal argv text."
+    "TerminalPrompt",
+    16 * 1024,
+    "A bounded prompt to substitute as literal argv text: at most one argument's bytes."
 );
 profile_text!(
     Icon,
     Icon,
+    "TerminalProfileIcon",
     Id::MAX_BYTES,
     "An optional catalog icon identity, independent of the program."
 );
+
+/// The most bytes one argument may hold once the prompt is in it (ADR 0117):
+/// a template's bound and a prompt's, so an argument that holds the
+/// placeholder once (every shipped profile's) takes any prompt the wire
+/// accepts.
+pub const RESOLVED_ARGUMENT_BYTES: usize = Argument::MAX_BYTES + Prompt::MAX_BYTES;
+
+impl Argument {
+    /// A substituted argument, bounded by [`RESOLVED_ARGUMENT_BYTES`] rather
+    /// than a template's bound.
+    pub(super) fn resolved(value: String) -> Result<Self, ProfileError> {
+        TextKind::Argument.validate(&value, RESOLVED_ARGUMENT_BYTES)?;
+        Ok(Self(value))
+    }
+}

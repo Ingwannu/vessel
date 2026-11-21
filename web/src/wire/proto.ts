@@ -2330,7 +2330,8 @@ export type CreateSession = {
 spec: SessionSpec, };
 
 /**
- * `terminal.create`: open the user's shell in a place.
+ * `terminal.create`: open the user's shell in a place, or one of the
+ * node's terminal profiles.
  */
 export type CreateTerminal = { 
 /**
@@ -2342,9 +2343,14 @@ place: TerminalPlace,
  */
 size?: TerminalSize | null, 
 /**
- * What to call it.
+ * What to call it; a profile's name when absent and `profile` is set.
  */
-title?: SessionTitle | null, };
+title?: SessionTitle | null, 
+/**
+ * Run this profile's program instead of the shell (ADR 0117,
+ * [`crate::terminal_profiles::TERMINAL_PROFILES_PROTOCOL`]).
+ */
+profile?: TerminalProfileLaunch | null, };
 
 /**
  * `worktree.create`: a worktree with no session yet.
@@ -7097,7 +7103,14 @@ plugins_enabled?: boolean,
  * `enableTerminalAgentHooks`, default off); hidden below
  * `ATTENTION_NOTIFICATIONS_PROTOCOL`, as the feature's other fields are.
  */
-terminal_agent_hooks?: boolean, };
+terminal_agent_hooks?: boolean, 
+/**
+ * The node's terminal profiles as kept (ADR 0117, Paseo's
+ * `terminalProfiles`): absent when never set, which a client shows as
+ * [`Profiles::shipped`]; empty when a person removed them all. Hidden
+ * below `TERMINAL_PROFILES_PROTOCOL`.
+ */
+terminal_profiles?: TerminalProfiles | null, };
 
 /**
  * Whether a node is taking new work.
@@ -11782,7 +11795,13 @@ plugins_enabled?: boolean | null,
  * configuration, at once (ADR 0089). Refused until
  * `ATTENTION_NOTIFICATIONS_PROTOCOL` is assigned.
  */
-terminal_agent_hooks?: boolean | null, };
+terminal_agent_hooks?: boolean | null, 
+/**
+ * Replace the node's terminal profiles with this list, in this order
+ * (ADR 0117; Paseo patches the whole list too). Refused below
+ * `TERMINAL_PROFILES_PROTOCOL` (45).
+ */
+terminal_profiles?: TerminalProfiles | null, };
 
 /**
  * `secret.set` (protocol 6): store a value in this node's `secrets.toml`,
@@ -12782,6 +12801,11 @@ reason: TerminalAttentionReason, } | { "state": "unknown" };
 export type TerminalActivitySignal = "idle" | "working" | "needs_input" | "clear" | "interrupt";
 
 /**
+ *One literal argv template/result, with whitespace preserved.
+ */
+export type TerminalArgument = string;
+
+/**
  * The node-assigned current revision, never a client-supplied timestamp.
  */
 export type TerminalAttention = { 
@@ -13000,6 +13024,58 @@ worktree: WorktreeId, } | { "kind": "folder",
  * The folder.
  */
 path: string, };
+
+/**
+ * A validated administrator-defined terminal launch template.
+ */
+export type TerminalProfile = { id: TerminalProfileId, name: TerminalProfileName, command: TerminalProgram, args: Array<TerminalArgument>, icon?: TerminalProfileIcon, };
+
+/**
+ *An optional catalog icon identity, independent of the program.
+ */
+export type TerminalProfileIcon = string;
+
+/**
+ *A stable terminal profile row identity.
+ */
+export type TerminalProfileId = string;
+
+/**
+ * Run one of the node's terminal profiles instead of its shell: the node
+ * finds `id` in its own list (saved, else shipped), adopts the prompt
+ * placeholder, puts `prompt` (or nothing) in it and starts the program
+ * with its arguments, without a shell.
+ */
+export type TerminalProfileLaunch = { 
+/**
+ * Which profile.
+ */
+id: TerminalProfileId, 
+/**
+ * The text for its placeholder: a new workspace's first message. Absent
+ * or empty, the arguments that are only the placeholder are left out.
+ */
+prompt?: TerminalPrompt | null, };
+
+/**
+ *A one-line profile label, allowing long Unicode names.
+ */
+export type TerminalProfileName = string;
+
+/**
+ * A bounded ordered profile set; an explicit empty list disables all profiles.
+ */
+export type TerminalProfiles = Array<TerminalProfile>;
+
+/**
+ *A literal executable/path template, never a shell command.
+ */
+export type TerminalProgram = string;
+
+/**
+ *A bounded prompt to substitute as literal argv text: at most one argument's bytes.
+ */
+export type TerminalPrompt = string;
 
 /**
  * Terminal window size in character cells.
@@ -14888,6 +14964,11 @@ export const ATTENTION_NOTIFICATIONS_PROTOCOL = null;
  * a catalog entry using `card`, the settings controls or `open_settings` (ADR 0115, "Surfaces").
  */
 export const PLUGIN_SURFACES_PROTOCOL = 44;
+
+/**
+ * The node's terminal profiles in its settings, and `terminal.create`'s `profile` (ADR 0117).
+ */
+export const TERMINAL_PROFILES_PROTOCOL = 45;
 
 /**
  * A prompt's `context` and `review` blocks (ADR 0124).

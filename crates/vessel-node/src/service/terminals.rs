@@ -3,6 +3,9 @@
 //! `vessel_session::terminals`'.
 
 mod place;
+mod profile;
+#[cfg(test)]
+mod profile_tests;
 
 pub(super) use place::archived;
 
@@ -90,6 +93,15 @@ impl NodeService {
             .resolve_terminal_place(principal, &asked)
             .await
             .map_err(wire)?;
+        // A profile's program (ADR 0117), found before anything is
+        // reserved, so a refusal leaves nothing behind.
+        let (shell, title) = match &request.profile {
+            Some(profile) => {
+                let launch = self.profile_launch(profile, &folder).await.map_err(wire)?;
+                (launch.program, request.title.or(launch.title))
+            }
+            None => (shell, request.title),
+        };
         if let TerminalPlace::Project { project, .. } = &asked {
             self.workspaces.register_root(*project).await;
         }
@@ -117,7 +129,7 @@ impl NodeService {
             Utc::now(),
         )
         .with_creator(creator(principal))
-        .with_title(request.title);
+        .with_title(title);
         let activity = terminals::producer_auth(id).map_err(wire)?;
         let handle = self
             .start_shell(&shell, info, &folder, size, activity.as_ref())

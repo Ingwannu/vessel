@@ -167,6 +167,11 @@ mod workspace;
 #[cfg(test)]
 #[cfg(unix)]
 mod workspace_terminals;
+// Terminal profiles over the wire (ADR 0117; Unix: the fake TUI is linked
+// as `claude`).
+#[cfg(test)]
+#[cfg(unix)]
+mod terminal_profiles;
 
 // An agent's shells in its session's workspace (TRACKER 832; Unix: the
 // terminals' shell is `/bin/sh`).

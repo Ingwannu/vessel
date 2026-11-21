@@ -122,6 +122,7 @@ async fn watched(owner: &NodeClient, fixture: &Fixture, forge: &FakeForge) -> Wa
             place: TerminalPlace::Session { session },
             size: None,
             title: None,
+            profile: None,
         })
         .await
         .unwrap();
@@ -239,6 +240,7 @@ async fn archiving_ends_the_watch_the_service_and_the_shell() {
             place: TerminalPlace::Session { session },
             size: None,
             title: None,
+            profile: None,
         };
         assert_eq!(code(owner.call(beside).await), ErrorCode::Conflict);
         let run = RunScript {

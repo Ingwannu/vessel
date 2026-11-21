@@ -251,7 +251,7 @@ added at merge, and is not classed here as missing or refused.
 | `daemon.autoArchiveAfterMerge` | ADR 0066's later slice, added at merge if that slice adds a field | **That ADR's.** 0066 adds no `node.settings` key and defers the switch. Not classed as absent. |
 | `daemon.enableTerminalAgentHooks` | none | **None.** |
 | `daemon.appendSystemPrompt` | none | **None.** Fleet instructions are a different mechanism (ADR 0012). |
-| `daemon.terminalProfiles` | none (`agent_terminals` on a profile is not this list) | **None.** |
+| `daemon.terminalProfiles` | `terminal_profiles` on `node.settings` (ADR 0117); `agent_terminals` on a harness profile is another list | **Reloadable setting.** Absent means the shipped profiles, empty means none; a launch reads it. |
 | `daemon.agentProfiles` | profiles and per-machine defaults, edited by their own commands | **None** as a config key. |
 | `daemon.relay.enabled`, `daemon.relay.requireProtectedSecurity` | a relay is on when `--relay` is present; no protected-security switch | **Start-time** for the list. No separate enabled or protected key. |
 | `daemon.serviceProxy.*` | none | **None.** |

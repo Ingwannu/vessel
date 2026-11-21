@@ -18,6 +18,7 @@ fn settings() -> NodeSettings {
         ),
         plugins_enabled: false,
         terminal_agent_hooks: false,
+        terminal_profiles: None,
     }
 }
 

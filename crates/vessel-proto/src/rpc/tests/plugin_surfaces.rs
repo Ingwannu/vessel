@@ -13,5 +13,6 @@ fn the_surfaces_add_no_method_and_come_after_the_settings() {
         "the surfaces change only what plugin.catalog may hold"
     );
     assert!(PLUGIN_SETTINGS_PROTOCOL < PLUGIN_SURFACES_PROTOCOL);
+    // At most the newest: terminal profiles (ADR 0117) are drafted after it.
     assert!(PLUGIN_SURFACES_PROTOCOL <= Some(crate::PROTOCOL_VERSION));
 }

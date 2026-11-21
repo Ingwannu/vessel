@@ -10,6 +10,7 @@ use vessel_proto::ports::{ListPorts, PortList, PortOwner, PortScan};
 use vessel_proto::scripts::{
     ListScripts, RestartScript, RunScript, ScriptPlace, ScriptRefusal, ScriptRunOutcome,
 };
+use vessel_proto::terminal_profiles::ProfileLaunch;
 use vessel_proto::terminals::{
     CloseTerminal, CreateTerminal, KillTerminal, ListTerminals, RenameTerminal, TerminalInfo,
     TerminalKind, TerminalPlace,
@@ -107,11 +108,17 @@ async fn open(connected: &Connected, open: OpenShell) -> Result<(), CliError> {
         }
     };
     let title = open.title.map(|title| parse(&title, "title")).transpose()?;
+    let profile = open
+        .profile
+        .map(|id| parse(&id, "profile"))
+        .transpose()?
+        .map(|id| ProfileLaunch { id, prompt: None });
     let terminal = client
         .call(CreateTerminal {
             place,
             size: attach::terminal::window_size(),
             title,
+            profile,
         })
         .await?;
     if open.detached {
