@@ -142,6 +142,31 @@ export function holds(session: SessionInfo, place: TerminalPlace): boolean {
   }
 }
 
+/** The sessions whose workspace is a folder of their own, one per folder:
+ * what the node is asked about when a folder terminal matches none of them
+ * as a path. The node keeps a folder canonical (ADR 0121), and a session
+ * keeps its folder as it was given, so through a link or a `..` the two
+ * differ; `terminal.list` with a folder place matches it canonically. The
+ * app's `folder_sessions`. */
+export function folderSessions(
+  sessions: readonly SessionInfo[],
+): { session: SessionInfo["id"]; path: string }[] {
+  const seen = new Set<string>();
+  const found: { session: SessionInfo["id"]; path: string }[] = [];
+  for (const session of sessions) {
+    const path = session.spec.cwd;
+    if (
+      sessionRoot(session) === null &&
+      typeof path === "string" &&
+      !seen.has(path)
+    ) {
+      seen.add(path);
+      found.push({ session: session.id, path });
+    }
+  }
+  return found;
+}
+
 /** A terminal notice's title, in Paseo's words. */
 export function terminalNoticeTitle(kind: NoticeKind): string {
   switch (kind) {

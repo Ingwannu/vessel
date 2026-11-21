@@ -67,7 +67,13 @@ export function useReadMarks(
     if (holds.has(session.id) && takeReadHold(session.id)) {
       heldAt.current = timeline.next;
     }
-    if (!hasConversation(protocol) || readOnly.has(node)) {
+    // A machine that refused `session.mark` may still take `inbox.read`
+    // (the `Read` scope): only the read mark's path is closed by it (node
+    // review of claims row 4, note 1).
+    if (
+      !hasConversation(protocol) ||
+      (!admitsClaims(protocol) && readOnly.has(node))
+    ) {
       return undefined;
     }
     const through = readThrough({

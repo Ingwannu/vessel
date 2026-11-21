@@ -18,7 +18,6 @@ import { attempt } from "../../data/outcome";
 import { entriesOf } from "../../data/records";
 import { requestTerminalTab } from "../../data/terminal-tab-request";
 import {
-  holds,
   readTerminals,
   type TerminalNotice,
   terminalNoticeTitle,
@@ -28,17 +27,15 @@ import {
 import { prefs } from "../../data/prefs";
 import type { NodeKey } from "../../wire/bridge";
 import { windowNotifies } from "./notifies";
+import { folderLister, holderOf } from "./terminal-holder";
 import { playNotice } from "./sound";
 
 /** How long a follower waits before asking again when the list's revision
  * did not move. */
 const QUIET_MS = 1_000;
 
-/** A session on `notice.node` whose workspace holds the terminal's place. */
-function holder(fleet: Fleet, notice: TerminalNotice): string | null {
-  const sessions = fleet.store.get().sessions[notice.node] ?? [];
-  return sessions.find((session) => holds(session, notice.place))?.id ?? null;
-}
+/** How long a machine whose list failed rests before it is followed again. */
+const RETRY_MS = 15_000;
 
 /** Follow `node`'s terminals until `stopped` or a call fails, handing on
  * each list's notices. */
@@ -96,15 +93,21 @@ export function useTerminalNotices(): void {
         });
         shown.onclick = () => {
           window.focus();
-          const session = holder(fleet, notice);
-          if (session !== null) {
-            requestTerminalTab(notice.node, notice.terminal);
-            void navigate({
-              to: "/sessions/$node/$id",
-              params: { node: notice.node, id: session },
-            });
-          }
           shown.close();
+          const sessions = fleet.store.get().sessions[notice.node] ?? [];
+          void holderOf(
+            sessions,
+            notice,
+            folderLister(fleet, notice.node),
+          ).then((session) => {
+            if (session !== null) {
+              requestTerminalTab(notice.node, notice.terminal);
+              void navigate({
+                to: "/sessions/$node/$id",
+                params: { node: notice.node, id: session },
+              });
+            }
+          });
         };
       }
       if (playsSound(alerts)) {
@@ -136,10 +139,20 @@ export function useTerminalNotices(): void {
         });
       }
     };
+    /** When each machine's follower last ended on a failed call. */
+    const failedAt = new Map<NodeKey, number>();
+    /** The timers that end each machine's rest. */
+    const rests = new Set<ReturnType<typeof setTimeout>>();
     const sync = () => {
       const statuses = fleet.store.get().statuses;
+      const now = Date.now();
       for (const [node, status] of entriesOf(statuses)) {
-        if (claimsOn(status) && !following.has(node)) {
+        const failed = failedAt.get(node);
+        // A machine that refuses or fails the list is asked again only after
+        // a pause, not at the store's tick rate (node review of claims row
+        // 3, note 1).
+        const resting = failed !== undefined && now - failed < RETRY_MS;
+        if (claimsOn(status) && !following.has(node) && !resting) {
           let stopped = false;
           const follower = {
             stop: () => {
@@ -147,11 +160,21 @@ export function useTerminalNotices(): void {
             },
           };
           following.set(node, follower);
-          // A follower that ended on a failed call leaves its place, so the
-          // next change of the machines starts a new one.
+          // A follower that ended on a failed call leaves its place, and the
+          // end of its rest starts a new one, as the app's follower asks
+          // again after its rest (node review of the follow-ups, note 3).
           void follow(fleet, node, () => stopped, claimed).finally(() => {
             if (following.get(node) === follower) {
               following.delete(node);
+              if (!stopped) {
+                failedAt.set(node, Date.now());
+                const rest = setTimeout(() => {
+                  rests.delete(rest);
+                  failedAt.delete(node);
+                  sync();
+                }, RETRY_MS);
+                rests.add(rest);
+              }
             }
           });
         }
@@ -167,6 +190,10 @@ export function useTerminalNotices(): void {
     const unsubscribe = fleet.store.subscribe(sync);
     return () => {
       unsubscribe();
+      for (const rest of rests) {
+        clearTimeout(rest);
+      }
+      rests.clear();
       for (const follower of following.values()) {
         follower.stop();
       }

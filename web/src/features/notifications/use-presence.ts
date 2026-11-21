@@ -26,10 +26,7 @@ import {
 } from "../../data/presence";
 import { claimsOn } from "../../data/claims";
 import { entriesOf } from "../../data/records";
-import {
-  shownTerminal,
-  subscribeShownTerminal,
-} from "../../data/shown-terminal";
+import { shownTab, subscribeShownTab } from "../../data/shown-terminal";
 import { shownSession, useWhere } from "../../data/where";
 import type { NodeKey } from "../../wire/bridge";
 import { windowNotifies } from "./notifies";
@@ -139,16 +136,19 @@ export function usePresence(): void {
 
   const node = shown?.node;
   const id = shown?.id;
-  const terminal = useSyncExternalStore(subscribeShownTerminal, shownTerminal);
-  const terminalId =
-    terminal !== null && terminal.node === node ? terminal.terminal : undefined;
+  const tab = useSyncExternalStore(subscribeShownTab, shownTab);
+  const onNode = tab !== null && tab.node === node ? tab : null;
+  const terminalId = onNode?.kind === "terminal" ? onNode.terminal : undefined;
+  // Files, Changes, Diff, a pull request or a draft in front: Paseo's
+  // focused agent is null then, so the window is elsewhere.
+  const aside = onNode?.kind === "aside";
   useEffect(() => {
     tracker.current?.setShown(
-      node === undefined || id === undefined
+      node === undefined || id === undefined || aside
         ? null
         : terminalId === undefined
           ? { node, id }
           : { node, id, terminal: terminalId },
     );
-  }, [node, id, terminalId]);
+  }, [node, id, terminalId, aside]);
 }

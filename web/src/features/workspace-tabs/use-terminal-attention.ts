@@ -16,7 +16,7 @@ import { useEffect, useRef } from "react";
 import { useFleet, useFleetState } from "../../context";
 import { claimsOn } from "../../data/claims";
 import { attempt } from "../../data/outcome";
-import { setShownTerminal } from "../../data/shown-terminal";
+import { setShownTab } from "../../data/shown-terminal";
 import { toClear } from "../../data/terminal-notices";
 import { takeTerminalTab } from "../../data/terminal-tab-request";
 import type { WorkspaceTab } from "../../data/workspace/tab-layout";
@@ -43,12 +43,19 @@ export function useTerminalAttention(
     }
   });
 
+  const kind = active?.kind;
   useEffect(() => {
-    setShownTerminal(terminal === null ? null : { node, terminal });
+    setShownTab(
+      terminal !== null
+        ? { node, kind: "terminal", terminal }
+        : kind === undefined || kind === "agent"
+          ? { node, kind: "agent" }
+          : { node, kind: "aside" },
+    );
     return () => {
-      setShownTerminal(null);
+      setShownTab(null);
     };
-  }, [node, terminal]);
+  }, [node, terminal, kind]);
 
   const cleared = useRef<string | null>(null);
   const row = rows.find((each) => each.id === terminal);
