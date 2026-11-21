@@ -218,10 +218,16 @@ fn every_prompt_the_wire_takes_launches_a_profile_that_holds_the_placeholder_onc
         &[&format!("{padded}{PROMPT_SENTINEL}")],
         None,
     );
+    // The widest template holding it once: its text and the longest prompt,
+    // within the bound.
+    let resolved = wide.resolve(&longest).unwrap().args()[0].as_str().len();
     assert_eq!(
-        wide.resolve(&longest).unwrap().args()[0].as_str().len(),
-        RESOLVED_ARGUMENT_BYTES
+        resolved,
+        Argument::MAX_BYTES
+            .saturating_sub(PROMPT_SENTINEL.len())
+            .saturating_add(Prompt::MAX_BYTES)
     );
+    assert!(resolved <= RESOLVED_ARGUMENT_BYTES);
     // Twice in one argument is past the bound: refused, naming it.
     let shorter =
         "p".repeat(Argument::MAX_BYTES.saturating_sub(PROMPT_SENTINEL.len().saturating_mul(2)));
