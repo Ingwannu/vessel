@@ -11,19 +11,29 @@ use vessel_proto::workspace::{
 
 use super::projects::wire;
 use super::{Connection, NodeService};
-use crate::workspace::IndexChange;
+use crate::workspace::{IndexChange, Origin};
 
 impl NodeService {
     /// `git.status`.
     pub(crate) async fn git_status(
         &self,
-        _: &Connection,
+        connection: &Connection,
         request: GetStatus,
     ) -> Result<GitStatus, WireError> {
         self.workspaces
-            .git_status(request.root)
+            .git_status(request.root, Origin::for_peer(connection.protocol()))
             .await
+            .map(|status| self.known_origin(status))
             .map_err(|error| wire(&error))
+    }
+
+    /// `status` with what the node knows of its `origin`'s host (ADR 0123
+    /// step B), when it carries one.
+    fn known_origin(&self, mut status: GitStatus) -> GitStatus {
+        if let Some(origin) = &mut status.origin {
+            origin.kind = self.forges.kind_of(&origin.host);
+        }
+        status
     }
 
     /// `git.changes`.
@@ -118,31 +128,43 @@ impl NodeService {
     /// `git.stage`.
     pub(crate) async fn git_stage(
         &self,
-        _: &Connection,
+        connection: &Connection,
         request: Stage,
     ) -> Result<GitStatus, WireError> {
         self.workspaces
-            .git_index(request.root, &request.paths, IndexChange::Stage)
+            .git_index(
+                request.root,
+                &request.paths,
+                IndexChange::Stage,
+                Origin::for_peer(connection.protocol()),
+            )
             .await
+            .map(|status| self.known_origin(status))
             .map_err(|error| wire(&error))
     }
 
     /// `git.unstage`.
     pub(crate) async fn git_unstage(
         &self,
-        _: &Connection,
+        connection: &Connection,
         request: Unstage,
     ) -> Result<GitStatus, WireError> {
         self.workspaces
-            .git_index(request.root, &request.paths, IndexChange::Unstage)
+            .git_index(
+                request.root,
+                &request.paths,
+                IndexChange::Unstage,
+                Origin::for_peer(connection.protocol()),
+            )
             .await
+            .map(|status| self.known_origin(status))
             .map_err(|error| wire(&error))
     }
 
     /// `git.discard`.
     pub(crate) async fn git_discard(
         &self,
-        _: &Connection,
+        connection: &Connection,
         request: Discard,
     ) -> Result<GitStatus, WireError> {
         self.workspaces
@@ -152,8 +174,10 @@ impl NodeService {
                 IndexChange::Discard {
                     untracked: request.untracked,
                 },
+                Origin::for_peer(connection.protocol()),
             )
             .await
+            .map(|status| self.known_origin(status))
             .map_err(|error| wire(&error))
     }
 

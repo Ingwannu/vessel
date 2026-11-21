@@ -223,6 +223,7 @@ fn status() -> GitStatus {
         operation: None,
         files: vec![],
         more: false,
+        origin: None,
     }
 }
 

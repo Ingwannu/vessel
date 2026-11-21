@@ -17,12 +17,30 @@
 //   label, a muted detail and a badge, the active one showing the key
 //   that inserts it. A note row stands in for an empty or loading list.
 // - Cost: the caller owns the keys (`moveActive`) and the anchoring.
+// - TRACKER 834: over the list, a card for the active command that says
+//   what it does (Paseo's `detailCard`, components/ui/autocomplete.tsx
+//   247-261, styles 297-323): its name, its description in two lines at
+//   most, then the input it takes. Paseo draws it whenever the selected
+//   option is a command with a description; the native app's kit has it
+//   (`autocomplete::detail_card`). The card repeats the active row's
+//   words, which the text already names through `aria-activedescendant`,
+//   so it is hidden from assistive technology rather than read twice.
 
 import "./suggestions.css";
 
 import type { ReactNode } from "react";
 
 import { Icon, type IconName } from "./icon";
+
+/** What the card over the list says of the active command. */
+export interface SuggestionCard {
+  /** The command as typed ("/review"). */
+  title: string;
+  /** What it does; the card is drawn only when this is not empty. */
+  description: string;
+  /** The input it takes ("text", "<optional instructions>"). */
+  hint?: string;
+}
 
 export interface SuggestionItem {
   key: string;
@@ -33,6 +51,8 @@ export interface SuggestionItem {
   /** A small tag at the right end. */
   badge?: string;
   icon?: IconName;
+  /** A command's card, shown over the list while the row is active. */
+  card?: SuggestionCard;
 }
 
 /** The index after `active` moved by `step` in a list of `count`,
@@ -76,65 +96,77 @@ export function Suggestions({
   onPick: (index: number) => void;
   onHover: (index: number) => void;
 }) {
+  const card = items[active]?.card;
   return (
-    <div className="suggestions popup">
-      <ul
-        id={id}
-        role="listbox"
-        aria-label={label}
-        className="suggestions-list"
-      >
-        {items.map((item, index) => (
-          <li
-            key={item.key}
-            id={suggestionId(id, index)}
-            role="option"
-            aria-selected={index === active}
-            className="suggestion"
-            data-active={index === active ? "" : undefined}
-            // The text keeps focus: a press picks without taking it.
-            onMouseDown={(event) => {
-              event.preventDefault();
-            }}
-            onClick={() => {
-              onPick(index);
-            }}
-            onMouseMove={() => {
-              if (index !== active) {
-                onHover(index);
-              }
-            }}
-          >
-            {item.icon === undefined ? null : (
-              <span className="suggestion-icon">
-                <Icon name={item.icon} size={14} />
-              </span>
-            )}
-            <span className="suggestion-text">
-              <span className="suggestion-label">{item.label}</span>
-              {item.detail === undefined ? null : (
-                <span className="suggestion-detail">{item.detail}</span>
+    <div className="suggestions-stack">
+      {card === undefined || card.description === "" ? null : (
+        <div className="suggestion-card popup" aria-hidden="true">
+          <p className="suggestion-card-title">{card.title}</p>
+          <p className="suggestion-card-description">{card.description}</p>
+          {card.hint === undefined || card.hint === "" ? null : (
+            <p className="suggestion-card-hint">{card.hint}</p>
+          )}
+        </div>
+      )}
+      <div className="suggestions popup">
+        <ul
+          id={id}
+          role="listbox"
+          aria-label={label}
+          className="suggestions-list"
+        >
+          {items.map((item, index) => (
+            <li
+              key={item.key}
+              id={suggestionId(id, index)}
+              role="option"
+              aria-selected={index === active}
+              className="suggestion"
+              data-active={index === active ? "" : undefined}
+              // The text keeps focus: a press picks without taking it.
+              onMouseDown={(event) => {
+                event.preventDefault();
+              }}
+              onClick={() => {
+                onPick(index);
+              }}
+              onMouseMove={() => {
+                if (index !== active) {
+                  onHover(index);
+                }
+              }}
+            >
+              {item.icon === undefined ? null : (
+                <span className="suggestion-icon">
+                  <Icon name={item.icon} size={14} />
+                </span>
               )}
-            </span>
-            {item.badge === undefined ? null : (
-              <span className="suggestion-badge">{item.badge}</span>
-            )}
-            {index === active ? (
-              <span className="suggestion-key" aria-hidden="true">
-                <Icon name="enter" size={12} />
+              <span className="suggestion-text">
+                <span className="suggestion-label">{item.label}</span>
+                {item.detail === undefined ? null : (
+                  <span className="suggestion-detail">{item.detail}</span>
+                )}
               </span>
-            ) : null}
-          </li>
-        ))}
-      </ul>
-      {note === undefined ? null : (
-        <p className="suggestions-note" role="status">
-          {note}
-        </p>
-      )}
-      {footer === undefined ? null : (
-        <p className="suggestions-foot">{footer}</p>
-      )}
+              {item.badge === undefined ? null : (
+                <span className="suggestion-badge">{item.badge}</span>
+              )}
+              {index === active ? (
+                <span className="suggestion-key" aria-hidden="true">
+                  <Icon name="enter" size={12} />
+                </span>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+        {note === undefined ? null : (
+          <p className="suggestions-note" role="status">
+            {note}
+          </p>
+        )}
+        {footer === undefined ? null : (
+          <p className="suggestions-foot">{footer}</p>
+        )}
+      </div>
     </div>
   );
 }

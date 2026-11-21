@@ -102,6 +102,7 @@ mod tests {
             operation: None,
             files: Vec::new(),
             more: false,
+            origin: None,
         }
     }
 

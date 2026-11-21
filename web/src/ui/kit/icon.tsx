@@ -98,6 +98,10 @@ export const ICON_NAMES = [
   "zoom-in",
   "zoom-out",
   "scan",
+  "git-pull-request",
+  "git-merge",
+  "git-pull-request-closed",
+  "github",
 ] as const;
 
 export type IconName = (typeof ICON_NAMES)[number];
