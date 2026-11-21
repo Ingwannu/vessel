@@ -94,11 +94,6 @@
   white-space: nowrap;
 }
 
-.plugin-screen-machine {
-  font: var(--t-meta);
-  color: var(--text-tertiary);
-}
-
 .plugin-screen-body {
   flex: 1;
   min-height: 0;
