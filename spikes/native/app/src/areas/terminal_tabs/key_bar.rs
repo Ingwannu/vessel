@@ -21,7 +21,7 @@
 
 use gpui::FontWeight;
 use vessel_app_kit::theme::radius;
-use vessel_app_kit::theme::spacing::{S1, S2, S4};
+use vessel_app_kit::theme::spacing::{S1, S2};
 use vessel_app_kit::ui::{
     AnyElement, Context, ElementId, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
     ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div, px,
@@ -49,13 +49,6 @@ pub(super) fn bar(
     if !breakpoint::phone(window) {
         return None;
     }
-    // The rows' width: the window's, less the bar's padding on both sides.
-    let width = window.viewport_size().width - px(S4);
-    let available = if width > px(MAX_WIDTH) {
-        MAX_WIDTH
-    } else {
-        f32::from(width)
-    };
     let mut rows = div()
         .flex()
         .flex_col()
@@ -63,7 +56,10 @@ pub(super) fn bar(
         .w_full()
         .max_w(px(MAX_WIDTH))
         .mx_auto();
-    for row in key_bar::rows(available, true) {
+    // The bar spans the window, its padding `S2` on each side (the view's
+    // `PADDING`).
+    let window_width = f32::from(window.viewport_size().width);
+    for row in key_bar::rows_for_window(window_width, true) {
         let mut line = div().flex().flex_row().items_center().gap(px(S1));
         for control in row.iter().copied().filter(|control| drawn(*control)) {
             line = line.child(button(control, sticky, key, tokens, cx));

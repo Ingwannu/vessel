@@ -11,6 +11,15 @@ fn the_rows_follow_paseos_widths() {
 }
 
 #[test]
+fn a_window_less_the_padding_picks_the_same_rows() {
+    assert_eq!(rows_for_window(315.0, true), THREE_COLUMN_ROWS);
+    assert_eq!(rows_for_window(316.0, true), ROWS);
+    assert_eq!(rows_for_window(675.0, false), ROWS);
+    assert_eq!(rows_for_window(676.0, false), WIDE_ROWS);
+    assert_eq!(rows_for_window(0.0, true), ROWS, "not measured yet");
+}
+
+#[test]
 fn every_table_holds_the_same_controls() {
     let mut controls: Vec<Vec<Control>> = [ROWS, WIDE_ROWS, THREE_COLUMN_ROWS]
         .iter()

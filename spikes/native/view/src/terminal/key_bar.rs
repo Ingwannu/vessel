@@ -181,6 +181,26 @@ pub const MAX_WIDTH: f32 = 880.0;
 /// A button's height (Paseo's `keyButton`).
 pub const KEY_HEIGHT: f32 = 34.0;
 
+/// The bar's padding, both sides together (`keyboardContainer`: spacing 2
+/// on each side). The rows are the window's width less this.
+pub const PADDING: f32 = 16.0;
+
+/// The rows for a bar spanning a window `window_width` wide: [`rows`] of
+/// the window's width less [`PADDING`], with the thresholds moved instead
+/// so nothing is computed at run time.
+#[must_use]
+pub fn rows_for_window(window_width: f32, compact: bool) -> &'static [&'static [Control]] {
+    const THREE_COLUMN_WINDOW: f32 = THREE_COLUMN_MAX_WIDTH + PADDING;
+    const SINGLE_ROW_WINDOW: f32 = SINGLE_ROW_MIN_WIDTH + PADDING;
+    if window_width > PADDING && window_width < THREE_COLUMN_WINDOW {
+        THREE_COLUMN_ROWS
+    } else if !compact && window_width >= SINGLE_ROW_WINDOW {
+        WIDE_ROWS
+    } else {
+        ROWS
+    }
+}
+
 /// The rows for a bar `available_width` wide (Paseo's
 /// `resolveTerminalVirtualKeyboardRows`, 87-97); a width of 0 is not yet
 /// measured.
