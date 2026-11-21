@@ -58,12 +58,17 @@ impl Actor {
         self.state.presence(snapshot);
     }
     /// Follow `machine`'s terminals as a connection that admits claims
-    /// would, on this actor's events.
-    pub(crate) fn follow_terminals(&self, machine: &str) -> tokio::task::JoinHandle<()> {
+    /// would, on this actor's events, resting `retry` after a failed call.
+    pub(crate) fn follow_terminals(
+        &self,
+        machine: &str,
+        retry: std::time::Duration,
+    ) -> tokio::task::JoinHandle<()> {
         tokio::spawn(crate::terminal_notices::follow(
             self.peer.client.as_ref().unwrap().clone(),
             machine.to_owned(),
             self.state.events.clone(),
+            retry,
         ))
     }
     /// `machine` connected afresh: whether a terminal follower started.

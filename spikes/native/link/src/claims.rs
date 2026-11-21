@@ -5,7 +5,8 @@
 //! The app hands over one machine's notices at a time ([`Ask`]). The link
 //! reads that machine's first inbox page once, finds each notice's exact
 //! entry, and claims it. It answers every notice with what asking came to
-//! ([`Answer`]). The app shows only those
+//! ([`Answer`]). When that page cannot be read, every notice takes ADR
+//! 0114's path, as one past the first page does. The app shows only those
 //! `vessel_app_view::notices::claims::shows` lets through. A claim is never
 //! retried.
 //!
@@ -139,9 +140,20 @@ async fn ask_machine(client: &vessel_client::NodeClient, ask: Ask) -> Answer {
         .await
     {
         Ok(page) => page.entries,
+        // A failed page tells every notice by ADR 0114's path rather than
+        // silencing them (ADR 0089, "Turned on", item 4; the page's
+        // `askBeforeTelling`): no claim is made, as for a notice past the
+        // first page.
         Err(error) => {
             tracing::debug!(%error, "a machine's inbox was not read for its notices");
-            return ask.failed();
+            return Answer {
+                machine: ask.machine,
+                asked: ask
+                    .told
+                    .into_iter()
+                    .map(|one| (one, Asked::NotOnFirstPage))
+                    .collect(),
+            };
         }
     };
     let mut asked = Vec::with_capacity(ask.told.len());
