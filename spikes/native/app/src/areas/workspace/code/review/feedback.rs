@@ -23,16 +23,24 @@
 //!   the list by the button's clearance; the native list has no padding
 //!   of its own).
 
+use std::cell::Cell;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use vessel_app_kit::menu::{Content, MenuHandlers, MenuItem, MenuState, menu_with};
+use vessel_app_kit::assets::Glyph;
+use vessel_app_kit::menu::{Content, LeadingSize, MenuHandlers, MenuItem, MenuState, menu_with};
 use vessel_app_kit::theme::{radius, spacing};
 use vessel_app_kit::ui::{
-    AnyElement, ClickEvent, Context, Div, IntoElement, ParentElement as _, Pixels, Point,
-    StatefulInteractiveElement as _, Styled as _, Window, div, px,
+    AnyElement, Bounds, ClickEvent, Context, Div, FluentBuilder as _, InteractiveElement as _,
+    IntoElement,
+    ParentElement as _, Pixels, Point, StatefulInteractiveElement as _, Styled as _, Window, div,
+    px,
 };
-use vessel_app_kit::{ButtonKind, ButtonState, Tokens, Type, TypeExt as _, breakpoint};
+use vessel_app_kit::{
+    ButtonContent, ButtonIcon, ButtonKind, ButtonState, ControlSizing, Tokens, Type, TypeExt as _,
+    anchor_probe, breakpoint, glyph,
+};
+use vessel_app_view::agent_mark::AgentMark;
 use vessel_app_link::Command;
 use vessel_app_link::attachments::{Files, SubmitFailure, WithFiles};
 use vessel_app_view::composer::context::{ContextAttachment, ContextTray};
@@ -52,12 +60,22 @@ use crate::shell::Shell;
 const NOTICE_BOTTOM: f32 = 56.0;
 /// The chooser's width.
 const CHOOSER: f32 = 240.0;
+/// Paseo's floating action button (`floating-action-layout.ts`): 56 high,
+/// its icon `ICON_SIZE.lg`.
+const FAB: f32 = 56.0;
+const FAB_ICON: f32 = 20.0;
+/// The list's clearance under the button (`use-feedback.ts`): a phone's
+/// button and its inset, or the md control and its 16, plus 44.
+pub(in super::super) const CLEARANCE_PHONE: f32 = 116.0;
+pub(in super::super) const CLEARANCE: f32 = 92.0;
 
 /// An agent the review can go to.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(in super::super) struct Recipient {
     session: SessionId,
     title: String,
+    /// Its provider's mark (Paseo's `WorkspaceTabIcon`).
+    mark: Option<AgentMark>,
 }
 
 /// A review on its way.
@@ -72,6 +90,8 @@ struct Sending {
 /// The button's state across frames.
 pub(in super::super) struct Feedback {
     menu: MenuState,
+    /// The button's bounds, for the chooser above it.
+    place: Rc<Cell<Option<Bounds<Pixels>>>>,
     choices: Vec<Recipient>,
     sending: Option<Sending>,
     failed: bool,
@@ -81,6 +101,7 @@ impl Feedback {
     pub(in super::super) fn new(cx: &mut Context<'_, Shell>) -> Self {
         Self {
             menu: MenuState::new(cx),
+            place: Rc::default(),
             choices: Vec::new(),
             sending: None,
             failed: false,
@@ -123,6 +144,7 @@ impl Shell {
             .map(|card| Recipient {
                 session: card.session,
                 title: card.title.clone(),
+                mark: card.detail.harness.as_ref().map(AgentMark::of),
             })
             .collect()
     }
@@ -168,7 +190,10 @@ impl Shell {
             Press::Choose => {
                 let feedback = &mut self.areas.workspace.code.changes.review.feedback;
                 feedback.choices = recipients;
-                feedback.menu.open(at, window, cx);
+                match feedback.place.get() {
+                    Some(bounds) => feedback.menu.open_above(bounds, px(CHOOSER), window, cx),
+                    None => feedback.menu.open(at, window, cx),
+                }
             }
         }
         cx.notify();
@@ -334,17 +359,27 @@ pub(in super::super) fn surface(
         None => words.feedback_send(Number::count(count_of(facts.sendable.unwrap_or(0)))),
     }
     .unwrap_or_default();
-    let button = vessel_app_kit::button_with_kind(
-        "review-feedback",
-        label,
-        ButtonKind::Primary,
-        if state.can_send {
-            ButtonState::Enabled
-        } else {
-            ButtonState::Disabled
-        },
-        tokens,
-    );
+    let narrow = breakpoint::phone(window);
+    let place = Rc::clone(&shell.review_feedback().place);
+    let button = if narrow {
+        fab(label, state.can_send, tokens)
+    } else {
+        vessel_app_kit::button_with_content(
+            "review-feedback",
+            ButtonContent::IconAndLabel {
+                icon: ButtonIcon::new(Glyph::Send),
+                label: label.into(),
+            },
+            ButtonKind::Primary,
+            if state.can_send {
+                ButtonState::Enabled
+            } else {
+                ButtonState::Disabled
+            },
+            ControlSizing::from_compact(false),
+            tokens,
+        )
+    };
     let button = if state.can_send {
         button.on_click(cx.listener(|shell, event: &ClickEvent, window, cx| {
             shell.review_feedback_pressed(event.position(), window, cx);
@@ -352,23 +387,38 @@ pub(in super::super) fn surface(
     } else {
         button
     };
+    let button = div().relative().child(button).child(anchor_probe(&place));
     let mut drawn = vec![
-        div()
-            .absolute()
-            .bottom(px(spacing::S4))
-            .left_0()
-            .right_0()
-            .flex()
-            .justify_center()
-            .child(button)
-            .into_any_element(),
+        if narrow {
+            div()
+                .absolute()
+                .bottom(px(spacing::S4))
+                .right(px(spacing::S4))
+                .child(button)
+        } else {
+            div()
+                .absolute()
+                .bottom(px(spacing::S4))
+                .left_0()
+                .right_0()
+                .flex()
+                .justify_center()
+                .child(button)
+        }
+        .into_any_element(),
     ];
     drawn.extend(notice(shell, state.unavailable, tokens).map(IntoElement::into_any_element));
     let feedback = shell.review_feedback();
     let items: Vec<MenuItem> = feedback
         .choices
         .iter()
-        .map(|choice| MenuItem::new(choice.title.clone()))
+        .map(|choice| {
+            let item = MenuItem::new(choice.title.clone());
+            match choice.mark.and_then(crate::agent_mark::artwork) {
+                Some(artwork) => item.with_mark(artwork, LeadingSize::Regular),
+                None => item.with_leading_at(Glyph::Bot, LeadingSize::Regular),
+            }
+        })
         .collect();
     let handlers = MenuHandlers {
         state: |shell: &mut Shell| &mut shell.areas.workspace.code.changes.review.feedback.menu,
@@ -400,4 +450,40 @@ pub(in super::super) fn surface(
         cx,
     ));
     drawn
+}
+
+/// The list's last row: room under the button while it shows (Paseo's
+/// `contentInsetBottom`), nothing otherwise.
+pub(in super::super) fn spacer(shell: &Shell, window: &Window) -> AnyElement {
+    let shows = shell
+        .review_key()
+        .is_some_and(|key| !shell.areas.composer.drafts.reviews().comments(&key).is_empty());
+    let room = match (shows, breakpoint::phone(window)) {
+        (false, _) => 0.0,
+        (true, true) => CLEARANCE_PHONE,
+        (true, false) => CLEARANCE,
+    };
+    div().w_full().h(px(room)).into_any_element()
+}
+
+/// Paseo's `FloatingActionButton` on a phone: fully round, 56 high, the
+/// send mark at its large size, then the words.
+fn fab(label: String, enabled: bool, tokens: &Tokens) -> vessel_app_kit::ui::Stateful<Div> {
+    div()
+        .id("review-feedback")
+        .h(px(FAB))
+        .px(px(spacing::S4))
+        .rounded_full()
+        .flex()
+        .items_center()
+        .gap(px(spacing::S2))
+        .bg(tokens.btn_primary_bg)
+        .text_color(tokens.btn_primary_fg)
+        .type_(Type::Body)
+        .role(gpui::Role::Button)
+        .aria_label(vessel_app_kit::ui::SharedString::from(label.clone()))
+        .when(enabled, vessel_app_kit::ui::Styled::cursor_pointer)
+        .when(!enabled, |fab| fab.opacity(0.5))
+        .child(glyph(Glyph::Send, FAB_ICON, tokens.btn_primary_fg))
+        .child(label)
 }

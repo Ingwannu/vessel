@@ -43,6 +43,10 @@ pub(super) fn row(
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let changes = &shell.areas.workspace.code.changes;
+    // `relist` counts one row past the rows: the room under "Send feedback".
+    if index == changes.rows.len() {
+        return super::review::feedback::spacer(shell, window);
+    }
     let Summary::Ready(summary) = &changes.summary else {
         return div().into_any_element();
     };

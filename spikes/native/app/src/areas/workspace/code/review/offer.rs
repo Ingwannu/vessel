@@ -107,6 +107,10 @@ impl Shell {
         };
         let target = DraftKey::Session { session };
         self.review_read_commented();
+        // The list's trailing room follows whether the button shows.
+        let changes = &self.areas.workspace.code.changes;
+        let last = changes.rows.len();
+        changes.list.changed(last..last.saturating_add(1));
         match self.review_offer() {
             Some(offer) => {
                 let tray = self.areas.composer.contexts.tray(target);
