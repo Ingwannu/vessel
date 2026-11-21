@@ -11,8 +11,9 @@ use vessel_proto::{HarnessKind, NodeId, ProfileName};
 
 use super::{
     ActionId, Alerts, Bindings, Choices, CodeSize, ContentWidth, ConversationDisplay, ExplorerSort,
-    Grouping, InterfaceSize, Panel, SendKey, SessionSort, ShortcutEdits, SidebarTrailing, Theme,
-    TurnDelivery, UsageDisplay, UsagePins,
+    Grouping, InterfaceSize, OpenLocationDestination, OpenLocationSource, Panel,
+    PullRequestLocation, SendKey, SessionSort, ShortcutEdits, SidebarTrailing, TerminalScrollback,
+    Theme, TurnDelivery, UsageDisplay, UsagePins,
 };
 #[cfg(doc)]
 use super::{
@@ -43,6 +44,17 @@ pub enum PreferenceChange {
     InspectorPanel(Panel),
     /// [`Layout::explorer_sort`].
     ExplorerSort(ExplorerSort),
+    /// Terminal history lines.
+    TerminalScrollback(TerminalScrollback),
+    /// The location for one workspace action.
+    OpenLocation {
+        /// The action whose destination is changing.
+        source: OpenLocationSource,
+        /// Where that action opens.
+        destination: OpenLocationDestination,
+    },
+    /// Where the workspace pull request opens.
+    PullRequestLocation(PullRequestLocation),
     /// [`Composer::send`].
     Send(SendKey),
     /// [`Composer::delivery`].

@@ -39,7 +39,9 @@ pub use prefs::{
     MAX_MACHINES, MAX_USAGE_PINS, MachineDefaults, Notifications, OutOfRange, Panel,
     PreferenceChange, Preferences, PreferencesState, Revision, SendKey, SessionSort, ShortcutEdit,
     ShortcutEdits, ShortcutTarget, SidebarTrailing, SidebarView, Theme, TooMany, TurnDelivery,
-    UsageDisplay, UsagePin, UsagePins, UsagePreferences,
+    OpenLocationDestination, OpenLocationPreferences, OpenLocationSource, PullRequestLocation,
+    ScrollbackOutOfRange, TerminalPreferences, TerminalScrollback, UsageDisplay, UsagePin,
+    UsagePins, UsagePreferences,
 };
 
 use std::fmt;

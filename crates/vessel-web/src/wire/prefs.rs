@@ -39,6 +39,7 @@ mod drafts;
 mod keys;
 mod labels;
 mod usage;
+mod workspace;
 
 use std::collections::BTreeMap;
 
@@ -55,6 +56,11 @@ pub use keys::{ActionId, InvalidActionId, InvalidKeyBinding, KeyBinding};
 use labels::no_picks;
 pub use labels::{LabelPick, LabelPicks};
 pub use usage::{MAX_USAGE_PINS, UsageDisplay, UsagePin, UsagePins, UsagePreferences};
+
+pub use workspace::{
+    OpenLocationDestination, OpenLocationPreferences, OpenLocationSource, PullRequestLocation,
+    ScrollbackOutOfRange, TerminalPreferences, TerminalScrollback,
+};
 
 /// The most keys bound to one action.
 pub const MAX_BINDINGS: usize = 2;
@@ -170,6 +176,10 @@ pub struct Preferences {
     pub appearance: Appearance,
     /// Which panels show.
     pub layout: Layout,
+    /// The built-in terminal display.
+    pub terminal: TerminalPreferences,
+    /// Where workspace actions open.
+    pub open_location: OpenLocationPreferences,
     /// The composer.
     pub composer: Composer,
     /// Keys the person chose, by action: an action not here has its

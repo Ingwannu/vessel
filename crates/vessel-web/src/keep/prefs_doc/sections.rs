@@ -12,8 +12,9 @@ use super::super::lenient::{Blank, Entries, Field};
 use crate::wire::{
     AgentDefaults, AgentKind, Alerts, Appearance, ChoiceKey, Choices, CodeSize, Composer,
     ContentWidth, ConversationDisplay, ExplorerSort, Grouping, InterfaceSize, LabelPicks, Layout,
-    MachineDefaults, Notifications, Panel, SendKey, SessionSort, SidebarTrailing, SidebarView,
-    Theme, TurnDelivery, UsageDisplay, UsagePins, UsagePreferences,
+    MachineDefaults, Notifications, OpenLocationDestination, OpenLocationPreferences, Panel,
+    PullRequestLocation, SendKey, SessionSort, SidebarTrailing, SidebarView, TerminalPreferences,
+    TerminalScrollback, Theme, TurnDelivery, UsageDisplay, UsagePins, UsagePreferences,
 };
 
 /// Declares a section of plain settings: each a [`Field`], the section's
@@ -62,6 +63,21 @@ section! {
 section! {
     /// `layout`.
     LayoutFile => Layout { sidebar: Panel, inspector: Panel, explorer_sort: ExplorerSort }
+}
+
+section! {
+    /// `terminal`.
+    TerminalFile => TerminalPreferences { scrollback: TerminalScrollback }
+}
+
+section! {
+    /// `open_location`.
+    OpenLocationFile => OpenLocationPreferences {
+        explorer_files: OpenLocationDestination,
+        diffs: OpenLocationDestination,
+        diff_files: OpenLocationDestination,
+        pull_requests: PullRequestLocation,
+    }
 }
 
 section! {
