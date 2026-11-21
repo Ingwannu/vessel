@@ -504,6 +504,41 @@ on the desktop's dock and swaps its favicon among none, running and attention (`
   favicon's three states); `e2e/brand.spec.ts` (the icon link is one of the three; both variants are served
   with their dot).
 
+## Turned on (2026-11-21, impl U; the number is given at the node-line merge)
+
+`ATTENTION_NOTIFICATIONS_PROTOCOL` is assigned: 45 in this packet, the next after 44, and the integrator gives the
+real number at merge (`PROTOCOL_VERSION` with it, docs/PROTOCOL.md "Version 45"). Everything below that was
+pending on it goes live together, and every test that read "while unassigned" now runs its assigned branch.
+
+What this packet adds for it, each with the coordinator's approval (2026-11-21):
+
+1. **Paseo's Ctrl-C/Esc fallback** (`terminal/terminal.ts:180-182,1164-1166`). A terminal input that is exactly
+   `\x03` or `\x1b` applies `TerminalActivitySignal::Interrupt` to that terminal
+   (`vessel-session/src/terminals/attention.rs` `interrupts`, `handle.rs` `send`). Working becomes unknown, and any
+   other state stays. Claude Code runs no `Stop` hook on an interrupt, so without this the terminal would stay
+   working. An Esc that starts a longer sequence (an arrow key) is not one.
+2. **`vessel hooks` end to end** (`vessel-cli/tests/cli/terminals/hooks.rs`), on a real node:
+   - in a Vessel terminal, `vessel hooks claude UserPromptSubmit` then `Stop` give Working, then Finished, on the
+     terminal;
+   - a standalone Esc after another `UserPromptSubmit` gives unknown.
+   The command reaches the node through its local endpoint with the terminal's capability, so this is also the
+   IPC route's wire test owed below (`ipc::admit` → `admit_producer` → a report).
+3. **The worker's per-burst pushed set, integrated** (`push/tests/node_delivery/terminal_delivery.rs`). After a
+   terminal's Finished is pushed, a second finish at once falls in the terminal's gap and is not pushed.
+4. **A failed first inbox page takes ADR 0114's fallback** for every notice ("The clients' session claims").
+5. **Only a notifying window is elected.**
+   - Paseo elects only among clients subscribed with `notifications: true` (`websocket-server.ts:2884-2894,
+     2987-2989`; `session.ts:2336-2345`), and its app always subscribes so (`session-context.tsx:492`).
+   - Vessel's windows have their own alerts. A window that only sounds, or tells nothing, would otherwise be
+     elected as the latest active, and the window that shows notifications would hear `not_recipient`.
+   - `ReportPushPresence.notifies` says whether the window shows the system's notifications. It is versioned to
+     this constant, and absent reads true.
+   - `push/policy.rs` `plan_for` elects only among notifying windows. Every present window still counts for
+     suppression, and for push: a person present only at silent windows is not pushed, and no window is admitted.
+   - A non-notifying window never claims, and plays its own sound (ADR 0114). The page:
+     `features/notifications/notifies.ts`, `use-notices.ts`, `use-terminal-notices.ts`, `use-presence.ts`. The
+     app's half is on the app line.
+
 ## Owed before the feature constant is assigned
 
 The node review of TRACKER 815 (2026-11-20, the staging line merged onto the
@@ -537,15 +572,15 @@ backend/m12-impl-usage-815-owed) answers each:
      refused by the renewal's own check;
    - a current cursor paired with another session's key claims nothing;
    - `inbox.attention` reads two sessions from one snapshot.
-   Still owed at assignment: the IPC route (`ipc::admit` to `admit_producer`
-   to a report) with the assigned protocol, as the wire test the
-   "Activity-only local producer capability" section already requires.
+   At assignment (done, "Turned on" item 2): the IPC route (`ipc::admit` to
+   `admit_producer` to a report) with the assigned protocol, as the wire test
+   the "Activity-only local producer capability" section already requires.
 6. The terminal list wake. Done: T2's `Shown` holds the attention once the
    feature is assigned (left out while unassigned, when every peer has it cut).
 
 At assignment (the node review of the owed packet, 2026-11-20, PASS):
 - the worker's per-burst pushed set gets its integration test beside the IPC
-  route's;
+  route's (done, "Turned on" item 3);
 - the spacing reads the wall clock, so a clock step moves a gap; a monotonic
   `Instant` would ignore steps;
 - `pushed` takes the time after the burst's deliveries, which only lengthens a
@@ -555,8 +590,8 @@ At assignment (the node review of the owed packet, 2026-11-20, PASS):
 At assignment (the node review of the agent hooks, 2026-11-20):
 - Paseo clears a terminal's working activity on a standalone Ctrl-C or Esc in its input
   (`terminal/terminal.ts:180-182,1164-1166`), because Claude Code runs no `Stop` hook on an interrupt.
-  Vessel has no such input-side fallback yet, so after Esc during a Claude turn the terminal would stay
-  "working". It is owed with the assigned wire.
+  Vessel had no such input-side fallback, so after Esc during a Claude turn the terminal would stay
+  "working". Done with the assigned wire ("Turned on" item 1).
 
 Recorded, not owed (they fail closed or are allowed by the design):
 - one malformed parentage row fails a whole `pending_push` page through

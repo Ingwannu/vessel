@@ -26,6 +26,7 @@ import {
 } from "../../data/notices";
 import { prefs } from "../../data/prefs";
 import { sessionName } from "../../data/titles";
+import { windowNotifies } from "./notifies";
 import { playNotice, unlockSound } from "./sound";
 import { entriesOf } from "../../data/records";
 import { shownSession, useWhere } from "../../data/where";
@@ -93,7 +94,13 @@ export function useNotices(): void {
       // machine; every other machine's notices are told at once (ADR 0114).
       const asking = new Map<NodeKey, Notice[]>();
       for (const notice of told(found, { front, shown: shown.current })) {
-        if (claimsOn(fleet.store.get().statuses[notice.node])) {
+        // Only a window that shows the system's notifications claims; a
+        // window that only sounds keeps ADR 0114's local path
+        // (`notifies.ts`).
+        if (
+          windowNotifies() &&
+          claimsOn(fleet.store.get().statuses[notice.node])
+        ) {
           asking.set(notice.node, [...(asking.get(notice.node) ?? []), notice]);
         } else {
           tell(notice);

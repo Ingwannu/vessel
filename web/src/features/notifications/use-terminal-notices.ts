@@ -27,6 +27,7 @@ import {
 } from "../../data/terminal-notices";
 import { prefs } from "../../data/prefs";
 import type { NodeKey } from "../../wire/bridge";
+import { windowNotifies } from "./notifies";
 import { playNotice } from "./sound";
 
 /** How long a follower waits before asking again when the list's revision
@@ -112,7 +113,15 @@ export function useTerminalNotices(): void {
     };
     const claimed = (notices: TerminalNotice[]) => {
       const { alerts } = prefs.get().values.notifications;
-      if (!showsSystem(alerts) && !playsSound(alerts)) {
+      if (!windowNotifies()) {
+        // A window that does not show the system's notifications never
+        // claims, so it never takes a notice from one that does; one that
+        // sounds plays its own sound (ADR 0114's local path).
+        if (playsSound(alerts)) {
+          for (const notice of notices) {
+            playNotice(notice.kind);
+          }
+        }
         return;
       }
       for (const notice of notices) {
