@@ -234,6 +234,7 @@ mod routes {
             "/devices",
             "/settings/appearance",
             "/kit",
+            "/plugin/gpu.box/prefs/main",
         ] {
             let response = serve(
                 &Method::GET,

@@ -25,6 +25,10 @@ export interface Where {
   machine: NodeKey | undefined;
   /** `?agent=` (Settings' Agents: the open card), when given. */
   agent: string | undefined;
+  /** `?plugin=` and `?screen=` (Settings › Plugins: an open settings
+   * screen, ADR 0115 "Surfaces"), when given. */
+  plugin: string | undefined;
+  screen: string | undefined;
 }
 
 /** A machine's key from a query value, when it is one. */
@@ -61,6 +65,8 @@ export function useWhere(): Where {
     node: machineValue(params.get("node")),
     machine: machineValue(params.get("machine")),
     agent: queryValue(params.get("agent")),
+    plugin: queryValue(params.get("plugin")),
+    screen: queryValue(params.get("screen")),
   };
 }
 
@@ -72,5 +78,20 @@ export function shownSession(
   const key = node === undefined ? null : nodeKeyOf(node);
   return first === "sessions" && key !== null && id !== undefined
     ? { node: key, id }
+    : null;
+}
+
+/** The plugin screen the page shows (`/plugin/$node/$plugin/$screen`,
+ * ADR 0115 "Surfaces"), if one. */
+export function shownPluginScreen(
+  where: Where,
+): { node: NodeKey; plugin: string; screen: string } | null {
+  const [first, shown, plugin, screen] = where.segments;
+  const node = nodeKeyOf(shown ?? "");
+  return first === "plugin" &&
+    node !== null &&
+    plugin !== undefined &&
+    screen !== undefined
+    ? { node, plugin, screen }
     : null;
 }

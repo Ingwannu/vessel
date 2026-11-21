@@ -105,6 +105,8 @@ mod profiles;
 #[cfg(test)]
 mod project_directory;
 #[cfg(test)]
+mod prompt_context;
+#[cfg(test)]
 mod prompts;
 #[cfg(test)]
 mod registration;

@@ -352,7 +352,11 @@ pub fn block_text(block: &ContentBlock) -> String {
     match block {
         ContentBlock::Text { text, .. } => text.clone(),
         ContentBlock::ResourceLink { uri, name, .. } => format!("[{name}]({uri})"),
-        ContentBlock::Opaque { .. } => String::new(),
+        // Context and review blocks (ADR 0124) are not the prompt's words;
+        // the agent reads their text, a person sees them as pills.
+        ContentBlock::Opaque { .. } | ContentBlock::Context(_) | ContentBlock::Review(_) => {
+            String::new()
+        }
         ContentBlock::Attachment { attachment, .. } => format!("[{}]", attachment.name),
     }
 }
@@ -365,9 +369,13 @@ pub fn prompt_parts(content: &[ContentBlock]) -> (String, Vec<AttachmentRef>) {
     for block in content {
         match block {
             ContentBlock::Attachment { attachment, .. } => attachments.push(attachment.clone()),
+            // Context and review blocks add nothing here: `block_text` gives
+            // them no words and they are not files.
             ContentBlock::Text { .. }
             | ContentBlock::ResourceLink { .. }
-            | ContentBlock::Opaque { .. } => text.push_str(&block_text(block)),
+            | ContentBlock::Opaque { .. }
+            | ContentBlock::Context(_)
+            | ContentBlock::Review(_) => text.push_str(&block_text(block)),
         }
     }
     (text, attachments)

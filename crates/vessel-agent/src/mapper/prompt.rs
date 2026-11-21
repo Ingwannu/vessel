@@ -3,6 +3,7 @@
 //! a link to the stored copy) where the agent said it takes that kind.
 
 use agent_client_protocol::v1::schema as acp;
+use vessel_proto::prompt_context::agent_text;
 use vessel_proto::{AgentAbilities, AttachmentKind, AttachmentRef, ContentBlock};
 
 use crate::attached::{AttachmentBody, Attachments};
@@ -27,6 +28,11 @@ pub(crate) fn prompt_block(
             serde_json::from_str(raw.as_text()).map_err(InputError::InvalidContent)
         }
         ContentBlock::Attachment { attachment } => attached(attachment, attachments, abilities),
+        // A person's context or review: the text the node renders for it
+        // (ADR 0124).
+        ContentBlock::Context(_) | ContentBlock::Review(_) => Ok(acp::ContentBlock::Text(
+            acp::TextContent::new(agent_text(&block).unwrap_or_default()),
+        )),
     }
 }
 
