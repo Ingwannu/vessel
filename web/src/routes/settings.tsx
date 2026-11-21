@@ -16,6 +16,7 @@ import { DiagnosticsSection } from "../features/diagnostics/diagnostics-section"
 import { AppearanceSection } from "../features/settings/appearance";
 import { DevicesSection } from "../features/settings/devices-section";
 import { GeneralSection } from "../features/settings/general";
+import { PluginSettingsDetail } from "../features/plugins/plugin-settings-detail";
 import { PluginsSection } from "../features/settings/plugins-section";
 import { ProjectsSection } from "../features/projects/projects-section";
 import { ModelsSection } from "../features/settings/models";
@@ -23,6 +24,7 @@ import { NotificationsSection } from "../features/settings/notifications-section
 import { ShortcutsSection } from "../features/settings/shortcuts-section";
 import { UsageSection } from "../features/usage/usage-section";
 import { SyncSection } from "../features/settings/sync-section";
+import { TerminalsSection } from "../features/settings/terminals-section";
 
 export function SettingsPage(): ReactElement | null {
   const place = useSettingsPlace();
@@ -69,8 +71,14 @@ export function SettingsPage(): ReactElement | null {
       return <DevicesSection machine={place.machine} />;
     case "sync":
       return <SyncSection machine={place.machine} />;
+    case "terminals":
+      return <TerminalsSection machine={place.machine} />;
     case "plugins":
-      return <PluginsSection machine={place.machine} />;
+      return place.pluginScreen === undefined ? (
+        <PluginsSection machine={place.machine} />
+      ) : (
+        <PluginSettingsDetail machine={place.machine} {...place.pluginScreen} />
+      );
     case "diagnostics":
       return <DiagnosticsSection />;
     case "about":

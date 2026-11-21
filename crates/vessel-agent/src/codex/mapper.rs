@@ -21,6 +21,7 @@ use std::path::PathBuf;
 
 use serde_json::Value;
 use vessel_proto::conversation::UsageObservation;
+use vessel_proto::prompt_context::agent_text;
 use vessel_proto::{
     AgentEvent, ContentBlock, ContextUsage, PlanEntry, PlanPriority, PlanStatus, RawJson,
     StopReason, TokenCount, ToolCall, ToolCallContent, ToolCallId, ToolCallStatus, ToolCallUpdate,
@@ -61,6 +62,10 @@ pub(super) fn user_input(content: &[ContentBlock]) -> Result<Vec<UserInput>, Inp
             ContentBlock::Opaque { .. } => Err(InputError::InvalidContent(
                 serde::de::Error::custom("Codex takes text and links to files"),
             )),
+            // A person's context or review, as its text (ADR 0124).
+            ContentBlock::Context(_) | ContentBlock::Review(_) => Ok(UserInput::Text {
+                text: agent_text(block).unwrap_or_default(),
+            }),
         })
         .collect()
 }

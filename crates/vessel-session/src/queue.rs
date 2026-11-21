@@ -289,7 +289,9 @@ mod tests {
                 ContentBlock::Text { text } => Some(text.clone()),
                 ContentBlock::ResourceLink { .. }
                 | ContentBlock::Opaque { .. }
-                | ContentBlock::Attachment { .. } => None,
+                | ContentBlock::Attachment { .. }
+                | ContentBlock::Context(_)
+                | ContentBlock::Review(_) => None,
             })
             .collect()
     }

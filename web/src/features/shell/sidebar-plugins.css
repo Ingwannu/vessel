@@ -1,0 +1,15 @@
+/* A plugin's footer rows (ADR 0115, "Surfaces"), above Settings: the block
+   takes the foot's place at the bottom, and the foot follows it. */
+.side-plugin-foot {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  margin-top: auto;
+  padding: 4px 8px 0;
+  border-top: 1px solid var(--border-faint);
+}
+
+.side-plugin-foot + .side-foot {
+  margin-top: 0;
+  border-top: 0;
+}

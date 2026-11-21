@@ -111,6 +111,10 @@
 //!   typed with `--profile`), name, program, arguments and icon name are
 //!   what a person types or picks, plain; a launch's prompt is a message's
 //!   text, carried content.
+//! - A prompt's context and review (ADR 0124): `ContextTitle` and
+//!   `ContextUrl` are what a person reads and opens, plain; `ContextText`,
+//!   `ReviewBody` and `ReviewText` (a context's words, a reviewer's comment,
+//!   a diff's line) are carried content.
 
 /// What a primitive alias is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -158,6 +162,9 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("ConfigKey", Alias::Named),
     ("ContentHash", Alias::Handle),
     ("ContentText", Alias::Content),
+    ("ContextText", Alias::Content),
+    ("ContextTitle", Alias::Named),
+    ("ContextUrl", Alias::Named),
     ("ContributionId", Alias::Named),
     ("CostUnit", Alias::Named),
     ("CronExpr", Alias::Named),
@@ -261,6 +268,8 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("RepoPath", Alias::Named),
     ("RepoQuery", Alias::Named),
     ("ReportCount", Alias::Quantity),
+    ("ReviewBody", Alias::Content),
+    ("ReviewText", Alias::Content),
     ("Revision", Alias::Quantity),
     ("RouteUrl", Alias::Named),
     ("RpcName", Alias::Named),

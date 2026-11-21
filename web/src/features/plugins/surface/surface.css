@@ -1,0 +1,114 @@
+/* A declared plugin surface (ADR 0115, "Surfaces"). Layout kinds take the
+   design's spacing; a card is the row list's surface with Paseo's dividers
+   between its direct children (SettingsCard). */
+
+.plugin-surface {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  min-width: 0;
+}
+
+.plugin-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  min-width: 0;
+}
+
+.plugin-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+  min-width: 0;
+}
+
+.plugin-text,
+.plugin-doc-note,
+.plugin-read-only {
+  margin: 0;
+  font: var(--t-body);
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.plugin-doc-note,
+.plugin-read-only {
+  font: var(--t-meta);
+  color: var(--text-secondary);
+}
+
+.plugin-markdown {
+  min-width: 0;
+}
+
+/* A card's child that is not a setting: a row of the list holding it. */
+.plugin-card-item {
+  display: block;
+}
+
+/* A setting's refusal in its row's description (Paseo's row `error`). */
+.plugin-row-error {
+  color: var(--danger);
+}
+
+/* A setting's text field on the right of its row (Paseo's input,
+   minWidth 180). */
+.plugin-row-input {
+  display: inline-flex;
+  min-width: 180px;
+}
+
+.plugin-status-line {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  font: var(--t-meta);
+  color: var(--text-secondary);
+}
+
+/* The screen route's frame: Paseo's header (title, close) over the body. */
+.plugin-screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.plugin-screen-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-5);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.plugin-screen-head h1 {
+  margin: 0;
+  font: var(--t-title);
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.plugin-screen-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--s-5);
+}
+
+.plugin-screen-body > .plugin-surface {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.plugin-unavailable {
+  margin: 0;
+  font: var(--t-body);
+  color: var(--danger);
+}
