@@ -8,8 +8,9 @@
 
 use vessel_client::NodeClient;
 use vessel_proto::automation::{
-    AfterRun, Cadence, CatchUp, EndReason, EverySeconds, RunEnd, RunOutcome, RunTrigger,
-    ScheduleDefinition, ScheduleInfo, ScheduleState, ScheduleTarget, SkipReason,
+    AfterRun, Cadence, CatchUp, EndReason, EverySeconds, HEARTBEAT_CADENCE_PROTOCOL, RunEnd,
+    RunOutcome, RunTrigger, ScheduleDefinition, ScheduleInfo, ScheduleState, ScheduleTarget,
+    SkipReason, UpdateScheduleCadence,
 };
 use vessel_proto::{
     AgentEvent, ContentBlock, Creator, Delivered, Delivery, ErrorCode, EventSeq, QueueChange,
@@ -352,6 +353,34 @@ async fn what_is_refused_at_creation() {
     .await;
 }
 
+async fn check_cadence_edit(owner: &NodeClient, heartbeat: &ScheduleInfo) {
+    let cadence = Cadence::Every {
+        seconds: EverySeconds::try_from(7200).unwrap(),
+        anchor: Some(heartbeat.created_at),
+    };
+    let update = UpdateScheduleCadence {
+        schedule: heartbeat.id,
+        revision: heartbeat.revision,
+        cadence: cadence.clone(),
+    };
+    let result = owner.call(update).await;
+    if HEARTBEAT_CADENCE_PROTOCOL.is_some() {
+        let edited = result.unwrap();
+        let mut expected = heartbeat.definition.clone();
+        expected.cadence = cadence;
+        assert_eq!(edited.definition, expected);
+        assert_eq!(edited.defined_by, heartbeat.defined_by);
+        assert_eq!(edited.revision, heartbeat.revision + 1);
+        assert_eq!(owner.schedule(heartbeat.id).await.unwrap(), edited);
+    } else {
+        assert!(matches!(
+            result,
+            Err(vessel_rpc::CallError::UnassignedProtocol { .. })
+        ));
+        assert_eq!(owner.schedule(heartbeat.id).await.unwrap(), *heartbeat);
+    }
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn an_agent_keeps_a_heartbeat_that_ends_with_its_session() {
     within(async {
@@ -375,6 +404,7 @@ async fn an_agent_keeps_a_heartbeat_that_ends_with_its_session() {
         assert!(
             matches!(heartbeat.defined_by, Creator::Agent { session, .. } if session == first.id)
         );
+        check_cadence_edit(&owner, &heartbeat).await;
         // Not someone else's session, and never run now.
         let theirs = structured(&owner, &fixture).await;
         assert_eq!(
