@@ -127,4 +127,5 @@ Paseo 0.15.4 paths are relative to `packages/`.
 - An older node refuses neither field, because the client checks `Call::since` first and refuses to send.
 - The native app's and the page's `NodeSettings` and `CreateTerminal` literals gain the new fields when they merge
   this.
+- The native app lists, launches and edits profiles as `docs/plans/native-terminal-profiles.md` describes.
 - Adding a CLI that takes a value, or a provider mark, means one more line in the proto tables.

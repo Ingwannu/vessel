@@ -500,3 +500,29 @@ bad handshake).
   until the peer's close or end, all within the existing 1 s.
 - Draining bytes rather than websocket messages on the relay: after a
   frame over the limit the stream cannot be parsed any further.
+
+## Amendment (2026-11-21): the direct route's sockets and headers
+
+A review of the public repository (2026-11-20) found the node's direct
+route still served by `axum::serve`: no deadline on a request's headers
+and no cap on sockets. The round-10 budgets count only channels that
+reached `/secure`. A node listening beyond loopback could be sent half
+requests until it ran out of descriptors, which its sessions, store and
+files share, and a stop waited on each one. Now:
+
+- The node runs the relay's accept loop, cut down (`vessel-node`'s
+  `direct`): HTTP/1 with a 10 s deadline on a request's headers; 512
+  sockets in all and 32 per address (an IPv4 address or an IPv6 `/64`,
+  scaled for the `/56` and `/48` as `vessel_relay::address` scales them),
+  counted from `accept` and held through a websocket upgrade until the
+  socket closes; `503` past either; 5 s for connections to finish when the
+  node stops.
+- Loopback and a trusted proxy count only in the 512. Loopback is this
+  machine (its tools and the web UI's bridge); a trusted proxy's clients
+  would all be one address, and the proxy limits per client (README).
+- Alternatives: a timeout on a connection's whole life (cuts long-lived
+  websockets); a per-address connect rate as the relay keeps (a node
+  serves its own devices, not the public, and the cap and the deadline
+  already bound one host).
+- Cost: the direct route serves no HTTP/2; every client speaks HTTP/1
+  websockets.

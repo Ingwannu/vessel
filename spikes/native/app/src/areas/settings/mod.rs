@@ -165,13 +165,14 @@ impl SettingsState {
 
 impl Shell {
     /// Each frame, the Settings pages that wait on the window settle what
-    /// came in since (devices, sync, the machine's agents, the book that
-    /// Overview and Connections show).
+    /// came in since (devices, sync, the machine's agents and terminal
+    /// profiles, the book that Overview and Connections show).
     pub(crate) fn settle_settings(&mut self, window: &Window) {
         self.settle_usage(window);
         self.settle_devices(window);
         self.settle_sync(window);
         self.settle_host_agents(window);
+        self.settle_terminal_profiles(window);
         self.settle_book(window);
     }
 

@@ -92,6 +92,14 @@ pub(super) fn node_settings(ask: crate::node_settings::Ask) -> Event {
     )))
 }
 
+pub(super) fn terminal_profiles(ask: crate::terminal_profiles::Ask) -> Event {
+    Event::TerminalProfiles(
+        ask.refused(vessel_app_view::terminal_profiles::Problem::Refused(
+            ErrorCode::Unsupported,
+        )),
+    )
+}
+
 pub(super) fn diagnostics(ask: crate::diagnostics::Ask) -> Event {
     Event::Diagnostics(ask.refused(vessel_app_view::diagnostics::Problem::Refused(
         ErrorCode::Unsupported,

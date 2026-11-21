@@ -16,6 +16,7 @@ use vessel_app_view::terminal::Origin;
 use vessel_app_view::terminal_tabs::{Failure, in_place, shows_as_tab};
 use vessel_app_view::toasts::ToastTone;
 use vessel_proto::TerminalId;
+use vessel_proto::terminal_profiles::Id;
 use vessel_proto::terminals::{TerminalInfo, TerminalList, TerminalPlace};
 
 use super::{Creating, Listing, Pane, PaneKey, pane_key, place_of};
@@ -81,6 +82,28 @@ impl Shell {
         window: &Window,
         cx: &mut Context<'_, Self>,
     ) {
+        self.terminal_tab_open(replaces, None, window, cx);
+    }
+
+    /// The same for one of the machine's terminal profiles (ADR 0117): the
+    /// node runs its program instead of the shell and names the tab after it.
+    pub(crate) fn terminal_tab_new_profile(
+        &mut self,
+        profile: Id,
+        replaces: Option<TabId>,
+        window: &Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        self.terminal_tab_open(replaces, Some(profile), window, cx);
+    }
+
+    fn terminal_tab_open(
+        &mut self,
+        replaces: Option<TabId>,
+        profile: Option<Id>,
+        window: &Window,
+        cx: &mut Context<'_, Self>,
+    ) {
         // Paseo's `createTerminalDisabled`: one create at a time.
         if self.terminal_tab_creating() {
             return;
@@ -109,7 +132,7 @@ impl Shell {
         });
         self.command(Command::Terminals(Ask {
             machine,
-            request: Request::Create { place },
+            request: Request::Create { place, profile },
         }));
     }
 
@@ -200,6 +223,8 @@ impl Shell {
         let machine = machine.as_str().to_owned();
         if self.machine_online(&machine) {
             self.terminal_tabs_poll_beside(&machine, &workspace, &place);
+            // New tab's profile rows (ADR 0117).
+            self.terminal_profiles_ensure(&machine);
         }
         let tabs = &self.areas.terminal_tabs;
         if tabs

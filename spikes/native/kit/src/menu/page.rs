@@ -147,7 +147,7 @@ pub fn form_rows<V: 'static>(
         .bg(neutral.surface2)
         .child(page.field.menu_line(tokens, ROW_LINE, cx));
     let paint = super::item::paint(&page.action, false, &surfaces);
-    let mut action = row_body(0, &page.action, paint, narrow);
+    let mut action = row_body(0, &page.action, paint, narrow, tokens);
     if page.action.selectable() {
         let wash = surfaces.surface2;
         action = action
