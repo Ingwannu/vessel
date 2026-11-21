@@ -191,8 +191,8 @@ impl Row<'_> {
         }
         let allowed = super::super::actions(self.schedule, self.authority);
         let pending = self.mutation.progress();
-        let ended = matches!(Status::of(&self.schedule.state), Status::Ended(_))
-            && !super::super::is_heartbeat(self.schedule);
+        let heartbeat = super::super::is_heartbeat(self.schedule);
+        let ended = matches!(Status::of(&self.schedule.state), Status::Ended(_)) && !heartbeat;
         [
             Action::Pause,
             Action::Resume,
@@ -200,6 +200,8 @@ impl Row<'_> {
             Action::Delete,
         ]
         .into_iter()
+        // A refresh can convert a row while an earlier execution call settles.
+        .filter(|action| !heartbeat || *action == Action::Delete)
         .filter(|action| {
             let opposite = match pending {
                 Some(Action::Pause) => *action == Action::Resume,

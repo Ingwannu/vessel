@@ -1,5 +1,5 @@
-//! A row settles only its own current mutation; no optimistic pause/resume and
-//! no automatic retry of a run or deletion with an uncertain network result.
+//! A row settles only its own current mutation. A newer listed definition
+//! survives delayed acknowledgements. Ambiguous writes require a fresh read.
 
 use super::super::{
     Action,
@@ -7,6 +7,8 @@ use super::super::{
 };
 use super::{Ask, Page, Request, RowKey, Snapshot};
 use vessel_proto::automation::{ScheduleInfo, ScheduleRun};
+
+const REVISION_HALF_RANGE: u32 = 1 << (u32::BITS - 1);
 
 /// Row-local progress/error, exposed to drawing without a second decision.
 #[derive(Debug, Default)]
@@ -211,7 +213,11 @@ impl WriteValue {
     fn apply(self, id: vessel_proto::ScheduleId, snapshot: &mut Snapshot) {
         match self {
             Self::Schedule(info) => {
-                if let Some(old) = snapshot.schedules.iter_mut().find(|old| old.id == id) {
+                if let Some(old) = snapshot.schedules.iter_mut().find(|old| old.id == id)
+                    // A newer list can reach the app while this acknowledgement
+                    // waits in transit. Revisions wrap at the node.
+                    && info.revision.wrapping_sub(old.revision) < REVISION_HALF_RANGE
+                {
                     *old = *info;
                 }
             }
