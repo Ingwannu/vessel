@@ -17,7 +17,7 @@ use vessel_app_kit::ui::{
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, choice};
 use vessel_app_view::plugins::{ControlValue, control_input};
-use vessel_proto::plugins::{ContributionId, PluginChoiceOption, RpcName, ToggleState};
+use vessel_proto::plugins::{ChoiceOption, ContributionId, RpcName, ToggleState};
 
 use super::controls::Scope;
 use super::{Pending, control_id};
@@ -77,7 +77,7 @@ pub(super) fn choices(
     scope: &Scope<'_>,
     id: &ContributionId,
     label: &str,
-    options: &[PluginChoiceOption],
+    options: &[ChoiceOption],
     selected: Option<&ContributionId>,
     submit: &RpcName,
     tokens: &Tokens,

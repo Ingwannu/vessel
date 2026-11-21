@@ -21,9 +21,8 @@
 use vessel_app_kit::settings;
 use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
-    AnyElement, Context, FluentBuilder as _, Hsla, InteractiveElement as _, IntoElement as _,
-    ParentElement as _, SharedString, StatefulInteractiveElement as _, Styled as _, Window, div,
-    px,
+    AnyElement, Context, FluentBuilder as _, Hsla, IntoElement as _, ParentElement as _,
+    SharedString, StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{
     ButtonKind, ButtonState, ControlSizing, Tokens, Type, TypeExt as _, button_with_kind_at, dot,
@@ -119,7 +118,7 @@ impl Shell {
             return;
         };
         if let Some(control) = control {
-            let _was = self.areas.plugin_screen.calls.insert(asked.ticket, control);
+            self.areas.plugin_screen.calls.push((asked.ticket, control));
         }
         self.plugin_catalog_calls(vec![(machine, asked)]);
     }

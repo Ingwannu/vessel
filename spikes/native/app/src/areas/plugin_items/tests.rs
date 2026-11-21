@@ -98,10 +98,10 @@ fn a_serving_machines_item_runs_its_method_and_a_refusal_is_a_toast(cx: &mut Tes
     };
     assert_eq!(watch.request, Request::Watch(PluginGeneration::new(2)));
     assert!(commands.try_recv().is_err());
-    shell.update_in(cx, |shell, _window, _cx| {
+    shell.update_in(cx, |shell, window, cx| {
         let items = shell.areas.plugin_catalogs.commands(&shell.plugin_place());
         assert_eq!(items.len(), 1);
-        shell.run_plugin_command(&items[0].id);
+        shell.run_plugin_command(&items[0].id, window, cx);
     });
     let Ok(Command::PluginCatalog(invoke)) = commands.try_recv() else {
         panic!("the item runs");

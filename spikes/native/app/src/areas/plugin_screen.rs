@@ -58,7 +58,7 @@ pub(crate) struct ScreenArea {
     /// control id; then the declaration wins again.
     pending: RefCell<HashMap<ContributionId, Pending>>,
     /// Which pending value a method call's answer clears.
-    calls: HashMap<Ticket, ContributionId>,
+    calls: Vec<(Ticket, ContributionId)>,
     /// The popover buttons shown open (drawn in place under the button).
     unfolded: RefCell<Vec<ContributionId>>,
     /// The menu of a declared menu button.
@@ -84,7 +84,7 @@ impl ScreenArea {
             remembered: HashMap::new(),
             fields: HashMap::new(),
             pending: RefCell::default(),
-            calls: HashMap::new(),
+            calls: Vec::new(),
             unfolded: RefCell::default(),
             menu: MenuState::new(cx),
             menu_for: None,
@@ -149,7 +149,8 @@ impl Shell {
     /// A method call from the screen answered: its pending value goes.
     pub(crate) fn plugin_screen_settled(&mut self, ticket: Ticket) {
         let area = &mut self.areas.plugin_screen;
-        if let Some(control) = area.calls.remove(&ticket) {
+        if let Some(at) = area.calls.iter().position(|(held, _)| *held == ticket) {
+            let (_, control) = area.calls.swap_remove(at);
             let _cleared = area.pending.borrow_mut().remove(&control);
         }
     }
@@ -203,7 +204,7 @@ pub(crate) fn render(
                 .id("plugin-screen-body")
                 .flex_1()
                 .overflow_y_scroll()
-                .p(px(spacing::S5))
+                .p(px(spacing::S6))
                 .child(
                     div()
                         .max_w(px(720.0))
@@ -283,7 +284,7 @@ fn header(
         .items_center()
         .justify_between()
         .gap(px(spacing::S3))
-        .px(px(spacing::S5))
+        .px(px(spacing::S4))
         .py(px(spacing::S3))
         .border_b_1()
         .border_color(tokens.border_subtle)
