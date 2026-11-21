@@ -2,9 +2,10 @@
 //! the terminal view's resize rule and frame.
 
 use vessel_app_view::is_web_url;
+use vessel_app_view::terminal::grid::Bracketed;
 use vessel_app_view::terminal::{
     MAX_PASTE_PENDING, MAX_PENDING, MAX_SEND_BYTES, Outgoing, ResizeRule, Taken, TerminalLog,
-    TerminalSender,
+    TerminalSender, encode_paste,
 };
 
 use vessel_proto::ResizeIntent;
@@ -176,11 +177,70 @@ fn goes_on_after_a_failed_send_without_repeating_it() {
     let _ = sender.keys("one");
     let first = sender.take();
     let _ = sender.keys("two");
-    sender.answered(); // failed: not repeated
+    sender.failed(); // not repeated
     assert_eq!(
         (first, sender.take()),
         (Some(keys("one")), Some(keys("two")))
     );
+}
+
+/// P4w node review note 1: a part of a long paste that fails ends the
+/// paste there, so it never lands with a hole; keys typed after it go.
+#[test]
+fn a_failed_part_drops_the_rest_of_its_paste_and_keys_after_it_go() {
+    let mut sender = TerminalSender::default();
+    let paste = "a".repeat(MAX_SEND_BYTES.saturating_mul(3));
+    assert_eq!(sender.paste(paste), Taken::Queued);
+    assert_eq!(sender.keys("x"), Taken::Queued);
+    let first = sender.take();
+    assert!(matches!(first, Some(Outgoing::Keys(part)) if part.len() == MAX_SEND_BYTES));
+    sender.failed();
+    assert_eq!(drain(&mut sender), [keys("x")]);
+    // A paste's room is given back with the parts dropped.
+    let whole = "b".repeat(MAX_PASTE_PENDING);
+    assert_eq!(sender.paste(whole), Taken::Queued);
+}
+
+/// App review R1: a bracketed paste whose part fails still ends: its end
+/// marker goes next, then the keys typed after it, so the program leaves
+/// paste mode before them.
+#[test]
+fn a_failed_part_of_a_bracketed_paste_still_sends_its_end_marker() {
+    let mut sender = TerminalSender::default();
+    let paste = encode_paste(&"a".repeat(MAX_SEND_BYTES.saturating_mul(3)), Bracketed::On);
+    assert_eq!(sender.paste(paste), Taken::Queued);
+    assert_eq!(sender.keys("\r"), Taken::Queued);
+    assert!(matches!(sender.take(), Some(Outgoing::Keys(part)) if part.starts_with("\x1b[200~")));
+    sender.failed();
+    assert_eq!(drain(&mut sender), [keys("\x1b[201~"), keys("\r")]);
+}
+
+/// A part that failed after the cut fell inside the end marker: only the
+/// marker's unsent tail goes.
+#[test]
+fn a_part_failed_inside_the_end_marker_sends_only_its_tail() {
+    let mut sender = TerminalSender::default();
+    // START (6) + body + END (6) = one bound and three bytes: the cut leaves
+    // the end marker's last three bytes for a second part.
+    let body = "a".repeat(MAX_SEND_BYTES.saturating_sub(9));
+    let paste = encode_paste(&body, Bracketed::On);
+    assert_eq!(paste.len(), MAX_SEND_BYTES.saturating_add(3));
+    assert_eq!(sender.paste(paste), Taken::Queued);
+    assert_eq!(sender.keys("x"), Taken::Queued);
+    let _first = sender.take();
+    sender.failed();
+    assert_eq!(drain(&mut sender), [keys("01~"), keys("x")]);
+}
+
+/// A failed last part, or a failed send of keys, drops nothing more.
+#[test]
+fn a_failed_last_part_drops_nothing_after_it() {
+    let mut sender = TerminalSender::default();
+    assert_eq!(sender.paste("short".to_owned()), Taken::Queued);
+    assert_eq!(sender.keys("x"), Taken::Queued);
+    assert_eq!(sender.take(), Some(keys("short")));
+    sender.failed();
+    assert_eq!(drain(&mut sender), [keys("x")]);
 }
 
 #[test]
