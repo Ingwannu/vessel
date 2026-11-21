@@ -21,7 +21,7 @@
 use chrono::Utc;
 use vessel_app_kit::field::FieldId;
 use vessel_app_kit::ui::{Context, Window};
-use vessel_app_kit::{FormMinimum, TextField};
+use vessel_app_kit::{FormMinimum, FormTextareaPresentation, TextField};
 use vessel_app_view::workspace::changes::ScopeKind;
 use vessel_app_view::workspace::diff_rows::DiffRow;
 use vessel_app_view::workspace::review::{
@@ -139,10 +139,12 @@ impl Shell {
             .map(|kept| kept.body.clone())
             .unwrap_or_default();
         let words = self.words.review();
-        let field = TextField::form_multiline_with_source(
+        // Paseo's `editorInput`: its own surface and border inside the card.
+        let field = TextField::form_multiline_with_source_presentation(
             words.placeholder(),
             |shell: &mut Self, _id, _text, window, cx| shell.review_save(window, cx),
             Self::review_typed,
+            FormTextareaPresentation::Review,
             FormMinimum::Default,
             window,
             cx,

@@ -34,10 +34,12 @@ const COMMENT: u16 = 72;
 const EDITOR: u16 = 132;
 const GAP: u16 = 6;
 const PADDING: u16 = 8;
-/// The "+": its side, and its left edge (the number's right edge, 34, plus
-/// 10, less its side).
+/// The "+": its side, and its left edge on a pointer's row: on the number
+/// gutter's right edge (34, less its side), so it never covers the code.
+/// On a phone it sits in the room the kit leaves after the number
+/// (`DIFF_REVIEW_ADD_LEFT`), covering neither the number nor the code.
 const ADD: f32 = 22.0;
-const ADD_LEFT: f32 = 22.0;
+const ADD_LEFT: f32 = 12.0;
 /// Its top: (the line's 20 less its 22) / 2, rounded down.
 const ADD_TOP: f32 = -1.0;
 /// A comment's edit and delete buttons, round.
@@ -66,19 +68,23 @@ pub(in super::super) fn line(
     window: &Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
-    let drawn = super::super::change_rows::diff_row(line, tokens);
+    let narrow = breakpoint::phone(window);
+    let drawn = super::super::change_rows::diff_row(line, narrow, tokens);
     let (Some(target), Some(key)) = (target_of(path, line), shell.review_key()) else {
         return drawn;
     };
     let neutral = tokens.neutral;
-    let narrow = breakpoint::phone(window);
     let group = SharedString::from(format!("review-line-{index}"));
     let opened = target.clone();
     let add = div()
         .id(("review-add", index))
         .absolute()
         .top(px(ADD_TOP))
-        .left(px(ADD_LEFT))
+        .left(px(if narrow {
+            vessel_app_kit::DIFF_REVIEW_ADD_LEFT
+        } else {
+            ADD_LEFT
+        }))
         .size(px(ADD))
         .rounded(px(radius::MD))
         .bg(neutral.accent)

@@ -111,7 +111,8 @@ pub use host_rename::host_rename_button;
 pub use hover_card::HoverCards;
 pub use menu::{MenuHandlers, MenuItem, MenuState, Tone, menu, menu_right};
 pub use output::{
-    Line as OutputLine, Start, Tone as LineTone, diff_line, lines_box, output_box, version_of,
+    Line as OutputLine, REVIEW_ADD_LEFT as DIFF_REVIEW_ADD_LEFT, Start, Tone as LineTone,
+    diff_line, diff_line_with_review_room, lines_box, output_box, version_of,
 };
 pub use picker::{
     ComboHandlers, ComboHeader, ComboRow, ComboboxState, Leading, PillParts, RowRole, SendKind,
