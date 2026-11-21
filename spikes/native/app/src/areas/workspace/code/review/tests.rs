@@ -226,9 +226,8 @@ fn the_list_keeps_room_under_send_feedback_while_comments_are_kept(cx: &mut Test
         assert_eq!(changes.list.rows(), changes.rows.len().saturating_add(1));
     });
     redraw(&shell, cx);
-    let room = |cx: &mut gpui::VisualTestContext| {
-        cx.debug_bounds("review-room").unwrap().size.height
-    };
+    let room =
+        |cx: &mut gpui::VisualTestContext| cx.debug_bounds("review-room").unwrap().size.height;
     assert_eq!(room(cx), gpui::px(0.0));
     let (_key, id) = shell.update_in(cx, |shell, window, cx| saved(shell, window, cx));
     redraw(&shell, cx);

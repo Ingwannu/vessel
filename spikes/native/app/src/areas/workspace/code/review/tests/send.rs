@@ -101,7 +101,12 @@ fn press_send(
 }
 
 /// The node's answer, as the link gives it to the shell.
-fn answer(shell: &Entity<Shell>, cx: &mut VisualTestContext, scene: &mut Scenario, outcome: Outcome) {
+fn answer(
+    shell: &Entity<Shell>,
+    cx: &mut VisualTestContext,
+    scene: &mut Scenario,
+    outcome: Outcome,
+) {
     shell.update(cx, |shell, cx| {
         scene.reply(shell.fixture_link(), outcome).unwrap();
         for _ in 0..32 {
@@ -150,10 +155,7 @@ fn feedback_to_the_one_agent_sends_one_review_and_clears_it_once_delivered(
             .count();
         assert_eq!(prompts, 1);
     });
-    assert_eq!(
-        cx.debug_bounds("review-room").unwrap().size.height,
-        px(0.0)
-    );
+    assert_eq!(cx.debug_bounds("review-room").unwrap().size.height, px(0.0));
     shell.update(cx, |shell, _| scene.close(shell.fixture_link()).unwrap());
 }
 

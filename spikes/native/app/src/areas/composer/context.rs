@@ -4,7 +4,9 @@
 mod intents;
 use crate::shell::Shell;
 use gpui::FocusHandle;
-use vessel_app_kit::attachment::{Body, PillOpen, Standing, attachment_pill_scoped, attachment_tray};
+use vessel_app_kit::attachment::{
+    Body, PillOpen, Standing, attachment_pill_scoped, attachment_tray,
+};
 use vessel_app_kit::dialog::{DialogContent, DialogSize, DialogState, dialog};
 use vessel_app_kit::ui::{
     AnyElement, Context, IntoElement as _, ParentElement as _, SharedString, Styled as _, Window,
