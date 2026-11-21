@@ -120,6 +120,7 @@ pub(crate) mod make {
                 replayed: false,
                 turn: 1,
                 attachments: Vec::new(),
+                context: Vec::new(),
             }),
         )
     }

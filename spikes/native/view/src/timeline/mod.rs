@@ -51,6 +51,7 @@ mod question_step;
 mod rewind;
 mod rows;
 mod runs;
+mod sent_context;
 mod usage;
 mod window;
 
@@ -88,6 +89,7 @@ pub use question_step::{
 pub use rewind::rewind_point;
 pub use rows::Rows;
 pub use runs::{Folds, RunSummary, Tally, ToolRun};
+pub use sent_context::{SentContext, sent_context};
 pub use tool_sections::{ToolSection, ToolSectionLabel, tool_sections};
 pub use usage::ModelUsage;
 pub use window::{

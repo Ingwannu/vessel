@@ -25,6 +25,7 @@ fn entries() -> Vec<Entry> {
                         replayed: false,
                         turn: 1,
                         attachments: Vec::new(),
+                        context: Vec::new(),
                     })
                 } else {
                     EntryKind::Message {

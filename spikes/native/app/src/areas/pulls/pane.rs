@@ -169,6 +169,7 @@ pub(super) fn shown(
     window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
+    shell.areas.pulls.card_menu.begin_draw();
     // An answer's "Add to chat" waits for a frame with the window.
     if facts.is_some_and(|facts| !facts.adding.pending.is_empty()) {
         cx.defer_in(window, Shell::pulls_attach_pending);
