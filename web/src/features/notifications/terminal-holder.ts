@@ -14,31 +14,44 @@ import {
   holds,
   type TerminalNotice,
 } from "../../data/terminal-notices";
-import type { SessionId } from "../../wire/proto";
+import type { NodeKey } from "../../wire/bridge";
+import type { SessionId, SessionInfo, TerminalInfo } from "../../wire/proto";
 
-/** The session that holds `notice`'s terminal, or `null` when none does. */
+/** A folder's terminals on the notice's machine, matched as the node keeps
+ * folders; `null` when the call fails. */
+export type ListFolder = (
+  path: string,
+) => Promise<readonly TerminalInfo[] | null>;
+
+/** The session of `sessions` (the notice's machine's) that holds
+ * `notice`'s terminal, or `null` when none does. */
 export async function holderOf(
-  fleet: Fleet,
+  sessions: readonly SessionInfo[],
   notice: TerminalNotice,
+  listFolder: ListFolder,
 ): Promise<SessionId | null> {
-  const sessions = fleet.store.get().sessions[notice.node] ?? [];
   const found = sessions.find((session) => holds(session, notice.place));
   if (found !== undefined || notice.place.kind !== "folder") {
     return found?.id ?? null;
   }
   for (const candidate of folderSessions(sessions)) {
-    const listed = await attempt(() =>
-      fleet.bridge.call(notice.node, "terminal.list", {
-        place: { kind: "folder", path: candidate.path },
-        changed_from: null,
-      }),
-    );
-    if (
-      listed.ok &&
-      listed.value.terminals.some((info) => info.id === notice.terminal)
-    ) {
+    const terminals = await listFolder(candidate.path);
+    if (terminals?.some((info) => info.id === notice.terminal) === true) {
       return candidate.session;
     }
   }
   return null;
+}
+
+/** [`ListFolder`] through the fleet's bridge, on `node`. */
+export function folderLister(fleet: Fleet, node: NodeKey): ListFolder {
+  return async (path) => {
+    const listed = await attempt(() =>
+      fleet.bridge.call(node, "terminal.list", {
+        place: { kind: "folder", path },
+        changed_from: null,
+      }),
+    );
+    return listed.ok ? listed.value.terminals : null;
+  };
 }

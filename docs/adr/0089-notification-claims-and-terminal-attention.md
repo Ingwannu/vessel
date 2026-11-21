@@ -558,14 +558,16 @@ What this packet adds for it, each with the coordinator's approval (2026-11-21):
   as the terminal tab's `elsewhere`: that session's push is no longer held back while the person looks at another
   tab.
 - **A paused restart.** A terminal follower that ended on a failed list is started again only after 15 s
-  (`use-terminal-notices.ts`, `RETRY_MS`), not at the store's tick rate.
+  (`use-terminal-notices.ts`, `RETRY_MS`), not at the store's tick rate. A timer ends the rest and starts it, as
+  the app's follower asks again after its rest, so it does not wait for the next change of the machines.
 - **`inbox.read` before the read-only stop.** A machine that refused `session.mark` still gets `inbox.read`
   (the `Read` scope) once it admits this protocol (`use-read-marks.ts`).
 - **A folder terminal's click asks the node.** The node keeps a folder place canonical, and a session keeps its
   folder as it was given, so through a link or a `..` no session matched and the click opened nothing. When no
   session holds the place as a path, each folder session's folder is listed with `terminal.list`, which matches a
   folder place canonically. The first that lists the terminal opens (`features/notifications/terminal-holder.ts`,
-  `folderSessions` in `data/terminal-notices.ts`). Paseo's daemon names the workspace in the notification itself
+  `folderSessions` in `data/terminal-notices.ts`; tests in `terminal-holder.test.ts`: a path holder needs no call,
+  the folders are asked in turn past a failed or empty one, another place asks nothing). Paseo's daemon names the workspace in the notification itself
   (`session-context.tsx:658-677`, `workspaceId`); Vessel's notice carries only the place, so the page asks.
 
 ## Owed before the feature constant is assigned
