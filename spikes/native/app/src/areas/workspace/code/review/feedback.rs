@@ -32,17 +32,16 @@ use vessel_app_kit::menu::{Content, LeadingSize, MenuHandlers, MenuItem, MenuSta
 use vessel_app_kit::theme::{radius, spacing};
 use vessel_app_kit::ui::{
     AnyElement, Bounds, ClickEvent, Context, Div, FluentBuilder as _, InteractiveElement as _,
-    IntoElement,
-    ParentElement as _, Pixels, Point, StatefulInteractiveElement as _, Styled as _, Window, div,
-    px,
+    IntoElement, ParentElement as _, Pixels, Point, StatefulInteractiveElement as _, Styled as _,
+    Window, div, px,
 };
 use vessel_app_kit::{
     ButtonContent, ButtonIcon, ButtonKind, ButtonState, ControlSizing, Tokens, Type, TypeExt as _,
     anchor_probe, breakpoint, glyph,
 };
-use vessel_app_view::agent_mark::AgentMark;
 use vessel_app_link::Command;
 use vessel_app_link::attachments::{Files, SubmitFailure, WithFiles};
+use vessel_app_view::agent_mark::AgentMark;
 use vessel_app_view::composer::context::{ContextAttachment, ContextTray};
 use vessel_app_view::localization::Number;
 use vessel_app_view::machine_book::Name;
@@ -455,9 +454,15 @@ pub(in super::super) fn surface(
 /// The list's last row: room under the button while it shows (Paseo's
 /// `contentInsetBottom`), nothing otherwise.
 pub(in super::super) fn spacer(shell: &Shell, window: &Window) -> AnyElement {
-    let shows = shell
-        .review_key()
-        .is_some_and(|key| !shell.areas.composer.drafts.reviews().comments(&key).is_empty());
+    let shows = shell.review_key().is_some_and(|key| {
+        !shell
+            .areas
+            .composer
+            .drafts
+            .reviews()
+            .comments(&key)
+            .is_empty()
+    });
     let room = match (shows, breakpoint::phone(window)) {
         (false, _) => 0.0,
         (true, true) => CLEARANCE_PHONE,
