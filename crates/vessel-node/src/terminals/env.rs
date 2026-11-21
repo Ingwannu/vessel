@@ -251,10 +251,7 @@ mod tests {
         // An empty entry is not the node's own folder.
         let only_empty = OsString::from(":");
         let local = on(&["claude"]);
-        assert_eq!(
-            find_program("claude", here, Some(&only_empty), local),
-            None
-        );
+        assert_eq!(find_program("claude", here, Some(&only_empty), local), None);
         assert_eq!(
             find_program("claude", here, None, found),
             Some(PathBuf::from("claude"))
