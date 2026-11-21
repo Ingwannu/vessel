@@ -212,6 +212,10 @@ pub enum Command {
     /// `notification.claim`, a terminal's exact attention): answered as
     /// [`crate::Event::TerminalClaims`].
     TerminalClaims(crate::claims::TerminalAsk),
+    /// The session shown was read through a record, on a machine that
+    /// admits ADR 0089's protocol: `inbox.read` in place of a read mark
+    /// (claims row 4). Nothing comes back; the session's list shows it.
+    ReadInbox(crate::claims::ReadInbox),
     /// The person viewed a terminal: clear its attention at the exact
     /// revision shown (ADR 0089 `terminal.attention_clear`). Nothing comes
     /// back: the followed list shows the result.

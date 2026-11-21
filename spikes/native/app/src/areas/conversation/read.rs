@@ -24,16 +24,25 @@
 //!   same moment are told apart by kind only (both are marks); a pin's
 //!   refusal arriving while a read is on its way is taken as the read's
 //!   and not shown.
+//! - Inbox read (claims row 4): on a machine that admits ADR 0089's
+//!   protocol, the same read goes as `inbox.read` (`read_inbox_through`),
+//!   which takes the `Read` scope, so a device given only `read` marks too.
+//!   Nothing answers it but the session's list, so nothing waits in
+//!   flight. While the protocol is unassigned no machine admits it, and the
+//!   read mark stays as it is (`view::notices::claims::read_call`). The
+//!   person's own "Mark as read" in a row's menu stays a mark.
 
 use std::cell::Cell;
 use std::time::{Duration, Instant};
 
 use vessel_app_kit::ui::{Context, Window};
-use vessel_app_link::{Act, ActAnswer, ActFailed, ActKind};
+use vessel_app_link::claims::ReadInbox;
+use vessel_app_link::{Act, ActAnswer, ActFailed, ActKind, Command};
+use vessel_app_view::notices::claims::{ReadCall, read_call};
 use vessel_app_view::session::{ReadView, read_through};
 use vessel_proto::{ErrorCode, EventSeq, Mark, SessionId};
 
-use super::ConversationArea;
+use super::{ConversationArea, Seat};
 use crate::shell::Shell;
 
 /// At most one read mark a second (the page's).
@@ -154,9 +163,34 @@ impl Shell {
         area.read.sent = Some(through);
         area.read.last = Some(Instant::now());
         area.read.held_at = None;
-        area.read.in_flight = true;
         tracing::debug!(%through, "the session shown marked read");
+        if let Some(read) = self.inbox_read(through) {
+            // `inbox.read` is answered by the session's list, not by an
+            // act's answer, so nothing waits on it here.
+            self.command(Command::ReadInbox(read));
+            return;
+        }
+        self.areas.conversation.read.in_flight = true;
         self.act(Act::Mark(Mark::Read { through }));
+    }
+
+    /// The `inbox.read` for the session shown, when its machine admits ADR
+    /// 0089's protocol (claims row 4). Below it, the read mark stays as it
+    /// is (`session.mark`).
+    fn inbox_read(&self, through: EventSeq) -> Option<ReadInbox> {
+        // The session `act` would mark: the same seat's target.
+        let shown = Seat::SESSION.legacy_target(self)?;
+        let protocol = self
+            .fleet
+            .machines
+            .iter()
+            .find(|known| known.name == shown.machine)
+            .and_then(|known| known.protocol);
+        (read_call(protocol) == ReadCall::Inbox).then(|| ReadInbox {
+            machine: shown.machine.clone(),
+            session: shown.session,
+            through,
+        })
     }
 }
 

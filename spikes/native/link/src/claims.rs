@@ -50,6 +50,20 @@ impl Ask {
     }
 }
 
+/// A session read through a record on a machine that admits ADR 0089's
+/// protocol (`inbox.read`, claims row 4). It takes the `Read` scope, so a
+/// device given only `read` can mark this way, where `session.mark` asks
+/// for more.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReadInbox {
+    /// The machine, by its book name.
+    pub machine: String,
+    /// Which session.
+    pub session: vessel_proto::SessionId,
+    /// The record after the last one shown.
+    pub through: vessel_proto::EventSeq,
+}
+
 /// One machine's terminal notices to ask about.
 #[derive(Debug)]
 pub struct TerminalAsk {
@@ -147,6 +161,27 @@ async fn ask_machine(client: &vessel_client::NodeClient, ask: Ask) -> Answer {
     Answer {
         machine: ask.machine,
         asked,
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl crate::State {
+    /// Mark a session read through a record with `inbox.read`, fire and
+    /// forget: a lost mark leaves the session unread, and the next view
+    /// sends it again.
+    pub(crate) fn read_inbox(&self, read: ReadInbox) {
+        let Some(client) = self
+            .clients
+            .get(&read.machine)
+            .map(|connected| connected.client.clone())
+        else {
+            return;
+        };
+        drop(tokio::spawn(async move {
+            if let Err(error) = client.read_inbox_through(read.session, read.through).await {
+                tracing::debug!(%error, "a session read was not marked in the inbox");
+            }
+        }));
     }
 }
 

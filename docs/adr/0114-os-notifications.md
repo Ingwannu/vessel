@@ -328,3 +328,22 @@ terminal's attention, and no machine admits claims, so nothing here runs.
   - `view/src/presence/tests.rs` and `link/src/presence/tests.rs`: a shown terminal is `Terminal` focus only
     to a machine that admits claims.
 
+
+## Inbox read (2026-11-21, the claims follow-up's fourth row, app part)
+
+On a machine that admits ADR 0089's constant, the app marks the session shown read with `inbox.read`
+(`read_inbox_through(session, through)`) instead of `session.mark read`. The rule for when a read is due is
+unchanged (ADR 0026, `view::session::read_through`).
+
+- Why: `inbox.read` takes the `Read` scope, so a device given only `read` can mark this way, where
+  `session.mark` asks for more. The node's inbox and its attention read the same mark.
+- Where:
+  - `view/src/notices/claims.rs` holds `read_call(protocol)`: `Inbox` when the machine admits claims, `Mark`
+    otherwise;
+  - `app/src/areas/conversation/read.rs` sends `Command::ReadInbox` for the session `act` would mark;
+  - `link/src/claims.rs` holds `ReadInbox` and calls it, fire and forget.
+- Nothing answers it but the session's list, so the read area does not wait on it in flight. A lost one leaves
+  the session unread, and the next view sends it again.
+- Not changed: the person's own "Mark as read" in a row's menu stays `session.mark`. Below the constant every
+  read stays as it is.
+- Test: `view/src/notices/claims/tests.rs`, `a_read_is_marked_by_inbox_read_only_on_a_machine_that_admits_the_protocol`.

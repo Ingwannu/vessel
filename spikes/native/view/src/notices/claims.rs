@@ -46,6 +46,29 @@ pub fn claims(protocol: Option<ProtocolVersion>) -> bool {
     }
 }
 
+/// How a session read on screen is marked on a machine (claims row 4).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ReadCall {
+    /// `inbox.read` (`read_inbox_through`). It takes the `Read` scope, so a
+    /// device given only `read` can mark this way.
+    Inbox,
+    /// `session.mark` with `read { through }`, as before ADR 0089's
+    /// protocol.
+    Mark,
+}
+
+/// The read call for a machine at `protocol`: `inbox.read` once it admits
+/// ADR 0089's protocol, the read mark before (and always while the
+/// protocol is unassigned).
+#[must_use]
+pub fn read_call(protocol: Option<ProtocolVersion>) -> ReadCall {
+    if claims(protocol) {
+        ReadCall::Inbox
+    } else {
+        ReadCall::Mark
+    }
+}
+
 /// Whether an inbox item is what `kind` told of: a request for "needs
 /// you", a turn's end for "finished".
 const fn told_of(kind: NoticeKind, item: &InboxItem) -> bool {
