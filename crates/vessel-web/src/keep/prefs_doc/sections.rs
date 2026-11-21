@@ -12,9 +12,10 @@ use super::super::lenient::{Blank, Entries, Field};
 use crate::wire::{
     AgentDefaults, AgentKind, Alerts, Appearance, ChoiceKey, Choices, CodeSize, Composer,
     ContentWidth, ConversationDisplay, ExplorerSort, Grouping, InterfaceSize, LabelPicks, Layout,
-    MachineDefaults, Notifications, OpenLocationDestination, OpenLocationPreferences, Panel,
-    PullRequestLocation, SendKey, SessionSort, SidebarTrailing, SidebarView, TerminalPreferences,
-    TerminalScrollback, Theme, TurnDelivery, UsageDisplay, UsagePins, UsagePreferences,
+    MachineDefaults, Notifications, OpenLocationDestination, OpenLocationPreferences,
+    OpenLocationSource, Panel, PullRequestLocation, SendKey, SessionSort, SidebarTrailing,
+    SidebarView, TerminalPreferences, TerminalScrollback, Theme, TurnDelivery, UsageDisplay,
+    UsagePins, UsagePreferences,
 };
 
 /// Declares a section of plain settings: each a [`Field`], the section's
@@ -77,6 +78,17 @@ section! {
         diffs: OpenLocationDestination,
         diff_files: OpenLocationDestination,
         pull_requests: PullRequestLocation,
+    }
+}
+
+impl OpenLocationFile {
+    pub(super) fn set(&mut self, source: OpenLocationSource, destination: OpenLocationDestination) {
+        let field = match source {
+            OpenLocationSource::ExplorerFiles => &mut self.explorer_files,
+            OpenLocationSource::Diffs => &mut self.diffs,
+            OpenLocationSource::DiffFiles => &mut self.diff_files,
+        };
+        field.set(destination);
     }
 }
 

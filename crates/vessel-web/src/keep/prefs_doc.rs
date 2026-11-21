@@ -31,8 +31,7 @@ use self::sections::{
 };
 use super::lenient::{Blank, Entries, Field};
 use crate::wire::{
-    ActionId, AgentDefaults, AgentKind, Bindings, OpenLocationSource, PreferenceChange,
-    Preferences, ShortcutTarget,
+    ActionId, AgentDefaults, AgentKind, Bindings, PreferenceChange, Preferences, ShortcutTarget,
 };
 
 /// The file's format.
@@ -279,13 +278,7 @@ impl PrefsDoc {
                 source,
                 destination,
             } => {
-                let locations = body.open_location.make_read();
-                let field = match source {
-                    OpenLocationSource::ExplorerFiles => &mut locations.explorer_files,
-                    OpenLocationSource::Diffs => &mut locations.diffs,
-                    OpenLocationSource::DiffFiles => &mut locations.diff_files,
-                };
-                field.set(*destination);
+                body.open_location.make_read().set(*source, *destination);
             }
             PreferenceChange::PullRequestLocation(destination) => {
                 body.open_location
