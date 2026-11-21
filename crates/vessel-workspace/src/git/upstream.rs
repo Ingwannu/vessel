@@ -96,17 +96,43 @@ impl Git {
         let Ok(name) = remote.parse::<RemoteName>() else {
             return Ok(None);
         };
+        Ok(self
+            .address_of(dir, &name)
+            .await?
+            .map(|address| (name, address)))
+    }
+
+    /// `origin`'s address in `dir` (ADR 0123 step B: Paseo's checkout
+    /// status reads `origin`, whatever the branch pushes to); `None` when
+    /// there is no `origin`.
+    ///
+    /// # Errors
+    /// As the run's.
+    pub async fn origin_address(&self, dir: &Path) -> Result<Option<RemoteAddress>, GitError> {
+        let Ok(origin) = "origin".parse::<RemoteName>() else {
+            return Ok(None);
+        };
+        self.address_of(dir, &origin).await
+    }
+
+    /// `remote`'s address, through `remote get-url`, so `insteadOf` applies
+    /// as it does to a push.
+    async fn address_of(
+        &self,
+        dir: &Path,
+        remote: &RemoteName,
+    ) -> Result<Option<RemoteAddress>, GitError> {
         let output = self
             .command(dir)
             .args(["remote", "get-url", "--"])
-            .arg(name.to_string())
+            .arg(remote.to_string())
             .output()
             .await?;
         if output.code != Some(0) {
             return Ok(None);
         }
         let address = String::from_utf8_lossy(&output.stdout).trim().to_owned();
-        Ok((!address.is_empty()).then_some((name, RemoteAddress(address))))
+        Ok((!address.is_empty()).then_some(RemoteAddress(address)))
     }
 
     /// The commit `remote` was last seen to have `branch` at (its
@@ -159,6 +185,7 @@ mod tests {
         assert_eq!(checkout.branch.as_ref(), Some(&topic));
         let head = checkout.head.unwrap();
         assert_eq!(git.remote_address(&repo, &topic).await.unwrap(), None);
+        assert_eq!(git.origin_address(&repo).await.unwrap(), None);
         sandbox.run(
             &repo,
             &[
@@ -175,6 +202,19 @@ mod tests {
             "https://user:secret@example.invalid/o/n.git"
         );
         assert!(!format!("{address:?}").contains("secret"));
+        // `origin` whatever the branch pushes to (ADR 0123 step B).
+        sandbox.run(
+            &repo,
+            &["remote", "add", "fork", "https://example.invalid/f/n.git"],
+        );
+        sandbox.run(&repo, &["config", "branch.topic.remote", "fork"]);
+        let (pushes_to, _) = git.remote_address(&repo, &topic).await.unwrap().unwrap();
+        assert_eq!(pushes_to.to_string(), "fork");
+        assert_eq!(
+            git.origin_address(&repo).await.unwrap().unwrap().expose(),
+            "https://user:secret@example.invalid/o/n.git"
+        );
+        sandbox.run(&repo, &["config", "--unset", "branch.topic.remote"]);
         assert_eq!(git.tracking(&repo, &remote, &topic).await.unwrap(), None);
         sandbox.run(
             &repo,
