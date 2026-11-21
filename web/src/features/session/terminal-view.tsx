@@ -26,7 +26,10 @@ import { Banner, Tooltip } from "../../ui/kit";
 import { toast } from "../../ui/toasts";
 import type { NodeKey, StreamState } from "../../wire/bridge";
 import type { SessionInfo } from "../../wire/proto";
-import { mountTerminal } from "./mount-terminal";
+import { useMedia } from "../shell/use-media";
+import { COMPACT } from "../../ui/breakpoints";
+import { KeyBar } from "./key-bar";
+import { mountTerminal, type TerminalKeyBar } from "./mount-terminal";
 
 export function TerminalView({
   node,
@@ -41,6 +44,9 @@ export function TerminalView({
   const host = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<{ cols: number; rows: number } | null>(null);
   const [stream, setStream] = useState<StreamState | null>(null);
+  // Paseo shows the key bar off its mobile app only when compact (P4).
+  const compact = useMedia(COMPACT);
+  const [keyBar, setKeyBar] = useState<TerminalKeyBar | null>(null);
   // Kept with the session and the next record it expects, so a follow
   // that starts again from the first record counts no call twice.
   const [usage, setUsage] = useState<{
@@ -60,6 +66,7 @@ export function TerminalView({
       () =>
         toast("Keys dropped: the session is not reading its input", "error"),
     );
+    setKeyBar(terminal.keyBar);
     const live = liveBoundary({
       read: () => readSession(fleet, node, session.id),
       onLink: (listener) => fleet.bridge.onLink(listener),
@@ -89,6 +96,7 @@ export function TerminalView({
       },
     });
     return () => {
+      setKeyBar(null);
       live.stop();
       stop();
       terminal.close();
@@ -133,6 +141,7 @@ export function TerminalView({
               ref={host}
               aria-label="Session terminal"
             />
+            {compact && keyBar !== null ? <KeyBar bar={keyBar} /> : null}
           </div>
         </div>
       </div>

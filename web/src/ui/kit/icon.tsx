@@ -76,6 +76,7 @@ export const ICON_NAMES = [
   "minus",
   "trash",
   "keyboard",
+  "keyboard-off",
   "bell",
   "sidebar",
   "list",
