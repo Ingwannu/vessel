@@ -13,6 +13,7 @@ import {
   ATTENTION_NOTIFICATIONS_PROTOCOL,
   askBeforeTelling,
   type ClaimCalls,
+  admitsClaims,
   claimsOn,
   shows,
   sourceFor,
@@ -73,6 +74,14 @@ describe("claims (ADR 0089), page side", () => {
       expect(claimsOn(undefined)).toBe(false);
     }
     expect(claimsOn({ state: "idle" })).toBe(false);
+  });
+
+  test("a read goes as inbox.read only on a machine that admits the protocol (row 4)", () => {
+    // While unassigned, every machine keeps the read mark, at any protocol.
+    expect(admitsClaims(Number.MAX_SAFE_INTEGER)).toBe(
+      ATTENTION_NOTIFICATIONS_PROTOCOL !== null,
+    );
+    expect(admitsClaims(null)).toBe(false);
   });
 
   test("the source is the newest unread entry of the session that matches the kind", () => {
