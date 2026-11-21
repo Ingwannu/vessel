@@ -8,7 +8,7 @@
 //!   to know the placeholder.
 //! - Reference: keyed on the command's base name, never the id (Settings
 //!   makes ids); the appended form is the shipped default's for that
-//!   program (`--prompt=` for OpenCode, which reads a trailing positional as
+//!   program (`--prompt=` for `opencode`, which reads a trailing positional as
 //!   a folder). A profile that already takes the prompt, or has any
 //!   positional (a subcommand, a prompt, `--`), is left alone; the values of
 //!   the options a CLI is known to take are skipped first. Nothing is written
