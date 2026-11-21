@@ -2,8 +2,8 @@
 // explorer rows), against the fleet's `shop` repository: a row's right
 // click lists Paseo's rows in Paseo's order for a file, an open folder
 // and a closed one; the copies put the paths on the clipboard, Download
-// saves the file's exact bytes, Add to chat names the file in the
-// session's draft, Collapse closes the folder; and the rows that change
+// saves the file's exact bytes, Add to chat puts a file pill in the
+// session's composer, Collapse closes the folder; and the rows that change
 // files (New file, New folder, Rename typed in the tree, Duplicate,
 // Delete after Paseo's question), leaving `shop` as it was.
 
@@ -87,9 +87,15 @@ test("a tree row's right click offers Paseo's file actions, and each does its wo
 
   menu = await menuOf(page, cart);
   await menu.getByRole("menuitem", { name: "Add to chat" }).click();
-  await expect(page.getByRole("textbox", { name: "Prompt" })).toHaveValue(
-    "@src/cart.ts ",
-  );
+  // Paseo's workspace file pill: the name, the path under it; the draft's
+  // text is left as it was (TRACKER 833).
+  const pills = page.getByRole("list", { name: "Attachments" });
+  await expect(pills.getByRole("listitem")).toHaveCount(1);
+  await expect(pills.getByRole("listitem")).toContainText("cart.ts");
+  await expect(pills.getByRole("listitem")).toContainText("src/cart.ts");
+  await expect(page.getByRole("textbox", { name: "Prompt" })).toHaveValue("");
+  await pills.getByRole("button", { name: "Remove file attachment" }).click();
+  await expect(pills).toHaveCount(0);
 
   await openPanelTab(page, "Files");
   // An open folder: Collapse in a group of its own, no Download or Add

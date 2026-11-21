@@ -142,6 +142,7 @@ async fn a_scheduled_session_is_watched_and_put_away_with_what_runs_beside_it() 
                 place: TerminalPlace::Session { session },
                 size: None,
                 title: None,
+                profile: None,
             })
             .await
             .unwrap();

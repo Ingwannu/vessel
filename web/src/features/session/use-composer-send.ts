@@ -3,12 +3,21 @@
 // uploaded first (data/tray.ts), the prompt with its delivery, Stop
 // naming the turn it means, and a queued prompt edited in the box. What
 // the node refused is kept to be said under the box, the text and the
-// files kept with it.
+// files kept with it. The session's context pills (TRACKER 833,
+// data/context-tray.ts) go as one text block each after the words and
+// the files, as the native app sends them; a prompt that went takes the
+// pills it carried.
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { useFleet } from "../../context";
 import { cancelTurn, sendPrompt } from "../../data/calls";
+import {
+  type ContextTray,
+  contextOf,
+  promptContent,
+  textPrompt,
+} from "../../data/context-tray";
 import { changeQueue, promptSession } from "../../data/conversation-calls";
 import {
   hasConversation,
@@ -40,6 +49,8 @@ export interface Editing {
 
 export interface ComposerSend {
   plan: SendPlan;
+  /** The session's context pills, for the strip. */
+  context: ContextTray;
   /** What a message would do while a turn runs (`nextDelivery`). */
   next: Delivery | null;
   sending: boolean;
@@ -84,7 +95,10 @@ export function useComposerSend({
   const [sending, setSending] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const [steerRefused, setSteerRefused] = useState(false);
-  const filled = useStore(tray.items, (items) => items.length > 0);
+  const context = useMemo(() => contextOf(session.id), [session.id]);
+  const pills = useStore(context.pills, (value) => value);
+  const filled =
+    useStore(tray.items, (items) => items.length > 0) || pills.length > 0;
   const text = draft.text;
   // A waiting permission blocks only where nothing can be delivered
   // during a turn (before protocol 10); from 10 the rules decide (794).
@@ -118,12 +132,16 @@ export function useComposerSend({
       case "stop":
         return;
       case "send": {
-        const prompt = text.trim();
+        // A machine before the conversation calls takes text only: the
+        // pills' texts follow the words.
+        const carried = pills;
+        const prompt = textPrompt(text, carried);
         setSending(true);
         void sendPrompt(fleet, node, session.id, prompt).then((outcome) => {
           setSending(false);
           if (outcome.ok) {
             draft.clear();
+            context.sent(carried);
             onSent();
           } else {
             setProblem(outcome.problem.message);
@@ -147,14 +165,8 @@ export function useComposerSend({
         );
         return;
       }
-      const words = text.trim();
-      const content: ContentBlock[] = [
-        ...(words === "" ? [] : [{ type: "text" as const, text: words }]),
-        ...ready.refs.map((attachment) => ({
-          type: "attachment" as const,
-          attachment,
-        })),
-      ];
+      const carried = context.pills.get();
+      const content = promptContent(text, ready.refs, carried);
       const outcome = await promptSession(
         fleet,
         node,
@@ -168,6 +180,7 @@ export function useComposerSend({
         tray.sent((ref, image) => {
           seedImage(node, session.id, ref.id, image);
         });
+        context.sent(carried);
         onSent();
         return;
       }
@@ -240,6 +253,7 @@ export function useComposerSend({
   };
   return {
     plan,
+    context,
     next: nextDelivery(state),
     sending,
     problem,

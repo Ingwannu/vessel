@@ -14,6 +14,7 @@
 //   line; attach.test.ts holds the same strings.
 // - Differences: none in the text. `now` is a parameter of `About`.
 
+import type { ContextPill } from "../../context-tray";
 import type { ThreadPlace, TimelineItem } from "../../../wire/proto";
 import {
   itemAge,
@@ -39,6 +40,18 @@ export interface Attachment {
   readonly text: string;
   /** Its page, when there is one. */
   readonly url: string | null;
+}
+
+/** `attachment` as a pill in the session's composer (TRACKER 833): its
+ * second line is its kind's word, not a path. */
+export function pillOf(attachment: Attachment): ContextPill {
+  return {
+    kind: attachment.kind,
+    id: attachment.id,
+    title: attachment.title,
+    detail: null,
+    text: attachment.text,
+  };
 }
 
 /** The pull request an attachment is about. */

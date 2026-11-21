@@ -3,12 +3,26 @@
 // image's 24px thumbnail or a file's icon, its name and "type · size",
 // a remove button), with GOAT's upload band and retry: a chip shows its
 // upload's progress, and one that failed says why, with Retry where
-// trying again can help.
+// trying again can help. After the files, a session's context pills
+// (TRACKER 833, data/context-tray.ts): Paseo's file-text mark, the
+// pill's title, its kind's word or a file's path, and Remove; nothing
+// opens on a press (Paseo's pills for these kinds open nothing either).
 
 import "./attachment-strip.css";
 
-import { useStore } from "../../data/store";
+import { Store, useStore } from "../../data/store";
 import { sizeLabel } from "../../data/attach";
+import {
+  type ContextPill,
+  type ContextTray,
+  pillKey,
+} from "../../data/context-tray";
+import {
+  contextWords,
+  pillLine,
+  removeLabel,
+  type ContextWords,
+} from "../../data/context-words";
 import type { Tray } from "../../data/tray";
 import type { TrayItem } from "../../data/tray-item";
 import { Icon, IconButton, Tooltip } from "../../ui/kit";
@@ -96,16 +110,70 @@ function Chip({ item, tray }: { item: TrayItem; tray: Tray }) {
   );
 }
 
-export function AttachmentStrip({ tray }: { tray: Tray }) {
+function Pill({
+  pill,
+  context,
+  words,
+}: {
+  pill: ContextPill;
+  context: ContextTray;
+  words: ContextWords;
+}) {
+  const remove = removeLabel(pill, words);
+  return (
+    <li className="attachment-chip context-pill">
+      <span className="attachment-icon">
+        <Icon name="file-text" size={14} />
+      </span>
+      <span className="attachment-text">
+        <span className="attachment-name">{pill.title}</span>
+        <span className="attachment-meta">{pillLine(pill, words)}</span>
+      </span>
+      <Tooltip label={remove}>
+        <IconButton
+          label={remove}
+          icon="close"
+          size="xs"
+          onClick={() => {
+            context.remove(pillKey(pill));
+          }}
+        />
+      </Tooltip>
+    </li>
+  );
+}
+
+const NO_CONTEXT = new Store<readonly ContextPill[]>([]);
+
+export function AttachmentStrip({
+  tray,
+  context = null,
+}: {
+  tray: Tray;
+  /** The session's context pills; the new-session page has none. */
+  context?: ContextTray | null;
+}) {
   const items = useStore(tray.items, (value) => value);
-  if (items.length === 0) {
+  const pills = useStore(context?.pills ?? NO_CONTEXT, (value) => value);
+  if (items.length === 0 && pills.length === 0) {
     return null;
   }
+  const words = contextWords(navigator.language);
   return (
-    <ul className="attachment-strip" aria-label="Attached files">
+    <ul className="attachment-strip" aria-label={words.strip}>
       {items.map((item) => (
         <Chip key={item.key} item={item} tray={tray} />
       ))}
+      {context === null
+        ? null
+        : pills.map((pill) => (
+            <Pill
+              key={pillKey(pill)}
+              pill={pill}
+              context={context}
+              words={words}
+            />
+          ))}
     </ul>
   );
 }

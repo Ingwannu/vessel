@@ -96,6 +96,7 @@ async fn a_list_poll_answers_a_start_a_rename_and_a_close_but_not_a_resize() {
                 place: place.clone(),
                 size: None,
                 title: None,
+                profile: None,
             })
             .await
             .unwrap();
@@ -153,6 +154,7 @@ async fn only_the_connection_that_claimed_a_terminal_updates_its_size() {
                 },
                 size: None,
                 title: None,
+                profile: None,
             })
             .await
             .unwrap();

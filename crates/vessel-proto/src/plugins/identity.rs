@@ -50,6 +50,12 @@ pub enum InvalidPluginValue {
         "plugin settings ids require a lowercase letter, then lowercase letters, digits, underscores or hyphens, at most {MAX_SETTINGS_ID_BYTES} bytes"
     )]
     SettingsId,
+    /// One top-level property of a settings document (ADR 0115, "Surfaces"):
+    /// a letter or underscore, then letters, digits or underscores.
+    #[error(
+        "plugin settings keys require a letter or underscore, then letters, digits or underscores, at most {MAX_SETTINGS_KEY_BYTES} bytes"
+    )]
+    SettingsKey,
 }
 
 // Paseo bounds theme names in its JS schema; the identifier/RPC/caption bounds
@@ -63,6 +69,9 @@ const MAX_EXTENSION_BYTES: usize = 32;
 const MAX_FILE_PATTERN_BYTES: usize = 256;
 // Paseo's pattern has no bound; this one keeps `<id>.json` a short file name.
 const MAX_SETTINGS_ID_BYTES: usize = 64;
+// A JavaScript identifier in ASCII, as Paseo's zod object keys usually are;
+// nested paths are a stated limit (ADR 0115, "Surfaces").
+const MAX_SETTINGS_KEY_BYTES: usize = 64;
 
 macro_rules! text_type {
     ($(#[$doc:meta])* $name:ident, $validate:ident, $error:ident) => {
@@ -113,6 +122,8 @@ text_type!(/// A literal filename matcher; unlike a stored attachment, it can na
     FileNamePattern, file_pattern, FileNamePattern);
 text_type!(/// One settings document of an installation (Paseo's `defineSettings` id); its file's name.
     SettingsId, settings_identifier, SettingsId);
+text_type!(/// One top-level property of a settings document that a control binds.
+    SettingsKey, settings_key, SettingsKey);
 
 fn identifier(raw: &str) -> Option<&str> {
     (raw.len() <= MAX_ID_BYTES
@@ -129,6 +140,16 @@ fn settings_identifier(raw: &str) -> Option<&str> {
         && raw
             .bytes()
             .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || matches!(b, b'_' | b'-')))
+    .then_some(raw)
+}
+
+fn settings_key(raw: &str) -> Option<&str> {
+    (raw.len() <= MAX_SETTINGS_KEY_BYTES
+        && raw
+            .bytes()
+            .next()
+            .is_some_and(|b| b.is_ascii_alphabetic() || b == b'_')
+        && raw.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_'))
     .then_some(raw)
 }
 

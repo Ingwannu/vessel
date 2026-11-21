@@ -236,7 +236,7 @@ test("files go with a prompt, and the prompt shows them", async ({ page }) => {
     { name: "notes.txt", mimeType: "text/plain", buffer: Buffer.from("hello") },
     { name: "dot.png", mimeType: "image/png", buffer: PNG },
   ]);
-  const strip = composer(page).getByRole("list", { name: "Attached files" });
+  const strip = composer(page).getByRole("list", { name: "Attachments" });
   await expect(strip.getByRole("listitem")).toHaveCount(2);
   await expect(strip).toContainText("notes.txt");
   // The image's chip shows it (a `data:` thumbnail: the page's content
@@ -310,7 +310,7 @@ test("a new session's first message takes its files with it", async ({
     buffer: Buffer.from("# brief"),
   });
   await page.keyboard.press("Escape");
-  await expect(box.getByRole("list", { name: "Attached files" })).toContainText(
+  await expect(box.getByRole("list", { name: "Attachments" })).toContainText(
     "brief.md",
   );
   await box.getByRole("button", { name: "Send" }).click();

@@ -154,13 +154,19 @@ impl Call {
                 };
                 polls.max(placed)
             }
-            // As the list's place above.
+            // As the list's place above. A profile (ADR 0117): an older
+            // node would drop it and start its shell instead.
             Self::CreateTerminal(request) => {
-                if request.place.is_workspace_place() {
+                let placed = if request.place.is_workspace_place() {
                     Some(crate::terminals::WORKSPACE_TERMINALS_PROTOCOL?.get())
                 } else {
                     None
-                }
+                };
+                let profile = match request.profile {
+                    Some(_) => Some(crate::terminal_profiles::TERMINAL_PROFILES_PROTOCOL?.get()),
+                    None => None,
+                };
+                placed.max(profile)
             }
             // Ending a worktree's terminals with it (ADR 0121): an older
             // node would ignore the acknowledgement and refuse the removal.
@@ -195,7 +201,13 @@ impl Call {
                     Some(_) => Some(crate::notifications::ATTENTION_NOTIFICATIONS_PROTOCOL?.get()),
                     None => None,
                 };
-                let base = drivers.max(plugins).max(hooks);
+                // The terminal profiles (ADR 0117): an older node would
+                // keep its list and say nothing.
+                let profiles = match request.terminal_profiles {
+                    Some(_) => Some(crate::terminal_profiles::TERMINAL_PROFILES_PROTOCOL?.get()),
+                    None => None,
+                };
+                let base = drivers.max(plugins).max(hooks).max(profiles);
                 if request.metadata.is_some() {
                     Some(crate::GENERATED_NAMES?.get()).max(base)
                 } else {

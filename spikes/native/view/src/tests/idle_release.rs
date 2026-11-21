@@ -24,6 +24,7 @@ fn idle(minutes: u16) -> NodeSettings {
         metadata: None,
         plugins_enabled: false,
         terminal_agent_hooks: false,
+        terminal_profiles: None,
     }
 }
 
@@ -35,6 +36,7 @@ fn never() -> NodeSettings {
         metadata: None,
         plugins_enabled: false,
         terminal_agent_hooks: false,
+        terminal_profiles: None,
     }
 }
 
@@ -153,7 +155,8 @@ fn has_nothing_to_switch_on_an_older_node_or_a_value_it_does_not_know() {
             park_after: ParkAfter::Unknown,
             metadata: None,
             plugins_enabled: false,
-            terminal_agent_hooks: false
+            terminal_agent_hooks: false,
+            terminal_profiles: None
         })
     ));
     assert_eq!(page.toggle(tickets.next_ticket().unwrap()), None);

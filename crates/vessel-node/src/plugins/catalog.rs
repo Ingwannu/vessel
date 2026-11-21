@@ -30,23 +30,35 @@
 //!   helper writes to stderr is in its log.
 //! - Cost: a catalog over the whole-node budget is refused as a whole
 //!   rather than trimmed, so a client never draws half of a plugin set.
+//! - Kinds newer than the caller (ADR 0115, "Surfaces"): each entry's
+//!   `required_client` is the oldest protocol that decodes every kind its
+//!   document uses, and an entry above the caller's negotiated protocol is
+//!   left out. A native app decodes the catalog strictly, so one unknown
+//!   kind would fail the whole reply; leaving the entry out keeps the rest
+//!   drawable, and the caller sees that plugin once it is updated. The
+//!   alternative, refusing new kinds while an older client is connected,
+//!   cannot be decided when a helper declares.
 
 use std::sync::Arc;
 
 use tokio_util::sync::CancellationToken;
 use vessel_plugin::{CallError, RuntimeState};
-use vessel_proto::RawJson;
 use vessel_proto::plugins::{
     ClientCatalog, ClientDocument, ClientInstallation, HelperCall, HelperPayload, InvokeContext,
     InvokePlugin, PluginAddress, PluginCatalog, RpcName,
 };
+use vessel_proto::{ProtocolVersion, RawJson};
 
 use super::{PluginError, Plugins, Run};
 
 impl Plugins {
     /// The running installations' declarations, at the current generation;
     /// `may_invoke` is whether the caller may call their methods.
-    pub(crate) async fn catalog(&self, may_invoke: bool) -> Result<PluginCatalog, PluginError> {
+    pub(crate) async fn catalog(
+        &self,
+        may_invoke: bool,
+        caller: ProtocolVersion,
+    ) -> Result<PluginCatalog, PluginError> {
         self.settled().await;
         let generation = *self.inner.generation.borrow();
         let wanted = *self.inner.wanted_switch.borrow();
@@ -63,12 +75,11 @@ impl Plugins {
                 Vec::new()
             }
         };
-        let required = vessel_proto::plugins::PLUGIN_CATALOG_PROTOCOL
-            .unwrap_or(vessel_proto::PROTOCOL_VERSION);
         let installations = installations
             .into_iter()
+            .filter(|(_, document)| document.required_client() <= caller)
             .map(|(address, document)| {
-                ClientInstallation::new(address, required, (*document).clone())
+                ClientInstallation::new(address, document.required_client(), (*document).clone())
             })
             .collect::<Result<Vec<_>, _>>()
             .map_err(|error| PluginError::Catalog(error.to_string()))?;

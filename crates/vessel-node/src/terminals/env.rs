@@ -141,21 +141,10 @@ impl Shell {
     }
 }
 
-/// Whether `path` is a file this account may run: on Unix an execute bit
-/// (the kernel checks the rest at `exec`), on Windows a file.
+/// Whether `path` is a file this account may run (`vessel_proc::may_run`:
+/// the kernel's own check on Unix, as Paseo's `access(X_OK)`).
 pub(crate) fn executable(path: &Path) -> bool {
-    let Ok(metadata) = std::fs::metadata(path) else {
-        return false;
-    };
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt as _;
-        metadata.is_file() && metadata.permissions().mode() & 0o111 != 0
-    }
-    #[cfg(not(unix))]
-    {
-        metadata.is_file()
-    }
+    vessel_proc::may_run(path)
 }
 
 /// The variables every terminal's process gets on top of the node's.

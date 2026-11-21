@@ -1,17 +1,29 @@
-//! Administrator-configured terminal launch templates (ADR 0091).
-//! This module validates and substitutes literal argv; it performs no I/O,
-//! program lookup, shell interpolation or process creation.
+//! Administrator-configured terminal launch templates (ADR 0117, which
+//! takes them out of ADR 0091). This module validates, adopts and
+//! substitutes literal argv; it performs no I/O, program lookup, shell
+//! interpolation or process creation.
 
+mod adopt;
+mod icon;
+mod launch;
 mod text;
 mod values;
 
-pub use text::{Argument, Icon, Id, Name, Program, Prompt, TextKind};
+pub use adopt::base_name;
+pub use icon::{KNOWN_ICONS, ProfileIcon, guess};
+pub use launch::ProfileLaunch;
+pub use text::{Argument, Icon, Id, Name, Program, Prompt, RESOLVED_ARGUMENT_BYTES, TextKind};
 pub use values::{Profile, Profiles, Resolved};
 
 /// The reference profile format's literal placeholder, replaced in every entry.
 pub const PROMPT_SENTINEL: &str = "{{{prompt}}}";
-/// Whole-package version; only the integrator assigns it after consumers land.
-pub const CREATION_PROTOCOL: Option<crate::ProtocolVersion> = None;
+/// The node's terminal profiles (ADR 0117): `terminal_profiles` in
+/// `node.settings` and `node.set_settings`, and `terminal.create`'s
+/// `profile`. Protocol 45, assigned at its node-line merge, the next after
+/// 44 (plugin surfaces); a peer below it is refused the fields and is not
+/// shown them.
+pub const TERMINAL_PROFILES_PROTOCOL: Option<crate::ProtocolVersion> =
+    Some(crate::ProtocolVersion::new(45));
 /// Maximum configured profiles, keeping settings and picker work bounded.
 pub const MAX_PROFILES: usize = 64;
 /// Maximum argv entries in one profile or resolved launch.
@@ -53,5 +65,7 @@ pub enum ProfileError {
     CommandTooLarge,
 }
 
+#[cfg(test)]
+mod adopt_tests;
 #[cfg(test)]
 mod tests;
