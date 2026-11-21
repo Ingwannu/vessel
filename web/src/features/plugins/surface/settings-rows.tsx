@@ -12,9 +12,12 @@
 //   draft. Reload reads again and moves the document's drafts to the new
 //   revision, so "Reload before saving again" (the node's words, Paseo's)
 //   means what it says.
-// - One status line per document, above the rows: loading, invalid with
-//   Reset to defaults, a failed read with Retry, a conflict with Reload.
-//   A refused value is shown on the row that sent it.
+// - Each row is the page's settings row (the kit Row, as General draws
+//   its settings): label and hint on the left, the control on the right,
+//   as Paseo's `SettingsRow`. A refused value shows on the row that sent
+//   it; the document's state is doc-status.tsx's line above the rows.
+
+import type { ReactNode } from "react";
 
 import { useFleet } from "../../../context";
 import {
@@ -22,7 +25,6 @@ import {
   draftKey,
   dropDraft,
   keepDraft,
-  rebaseDrafts,
   type SettingsAddress,
   settingsDrafts,
   textAt,
@@ -32,22 +34,12 @@ import {
 import {
   type DocEntry,
   docEntry,
-  reloadDoc,
-  resetDoc,
   saveDoc,
   settingsDocs,
 } from "../../../data/plugin-settings-docs";
-import { SURFACE_WORDS } from "../../../data/plugin-surfaces";
 import { useStore } from "../../../data/store";
 import type { ControlContent } from "../../../wire/proto";
-import {
-  Alert,
-  Button,
-  Field,
-  Select,
-  Switch,
-  TextField,
-} from "../../../ui/kit";
+import { Row, Select, Switch, TextField } from "../../../ui/kit";
 import type { SurfaceScope } from "./scope";
 
 type Bound<K extends ControlContent["kind"]> = Extract<
@@ -75,68 +67,28 @@ function rowError(entry: DocEntry, key: string): string | null {
     : null;
 }
 
-/** One document's state, above its rows. */
-export function DocStatus({
-  scope,
-  settings,
+/** Paseo's `SettingsRow` (components/settings/index.tsx:59-96) as the
+ * page draws a setting: the kit Row, its label and hint (or the refusal,
+ * in the danger colour) on the left and the control on the right. */
+function SettingRow({
+  label,
+  hint,
+  error,
+  control,
 }: {
-  scope: SurfaceScope;
-  settings: string;
+  label: string;
+  hint: string | null;
+  error: string | null;
+  control: ReactNode;
 }) {
-  const fleet = useFleet();
-  const at = addressOf(scope, settings);
-  const entry = useEntry(at);
-  const state = entry.state;
-  if (state.status === "loading")
-    return <p className="plugin-doc-note">{SURFACE_WORDS.loading}</p>;
-  if (state.status === "error")
-    return (
-      <Alert variant="error" size="sm" description={state.error}>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => void reloadDoc(fleet, at)}
-        >
-          {SURFACE_WORDS.retry}
-        </Button>
-      </Alert>
-    );
-  if (state.status === "invalid")
-    return (
-      <Alert variant="error" size="sm" description={state.error}>
-        <Button
-          size="sm"
-          variant="outline"
-          disabled={entry.saving !== null}
-          onClick={() => void resetDoc(fleet, at)}
-        >
-          {SURFACE_WORDS.reset}
-        </Button>
-      </Alert>
-    );
-  const error = entry.error;
-  if (error === null || (!error.conflict && error.key !== null)) return null;
+  const description =
+    error === null ? hint : <span className="plugin-row-error">{error}</span>;
   return (
-    <Alert
-      variant={error.conflict ? "warning" : "error"}
-      size="sm"
-      description={error.words}
-    >
-      {error.conflict ? (
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() =>
-            void reloadDoc(fleet, at).then(() => {
-              const now = docEntry(settingsDocs.get(), at).state;
-              if (now.status === "ready") rebaseDrafts(at, now.revision);
-            })
-          }
-        >
-          {SURFACE_WORDS.reload}
-        </Button>
-      ) : null}
-    </Alert>
+    <Row
+      title={label}
+      {...(description === null ? {} : { detail: { description } })}
+      control={control}
+    />
   );
 }
 
@@ -156,27 +108,28 @@ export function SettingsSwitchRow({
     state.status === "ready" ? boolAt(state.values, control.key) : null;
   const usable = bound?.ok === true && scope.mayInvoke && entry.saving === null;
   return (
-    <Field
+    <SettingRow
       label={control.label}
-      hint={control.hint ?? undefined}
+      hint={control.hint}
       error={bound?.ok === false ? WRONG_TYPE : rowError(entry, control.key)}
-    >
-      <Switch
-        label={control.label}
-        checked={bound?.ok === true && bound.value}
-        disabled={!usable}
-        onChange={(next) => {
-          if (state.status !== "ready") return;
-          void saveDoc(
-            fleet,
-            at,
-            control.key,
-            state.revision,
-            withValue(state.values, control.key, next),
-          );
-        }}
-      />
-    </Field>
+      control={
+        <Switch
+          label={control.label}
+          checked={bound?.ok === true && bound.value}
+          disabled={!usable}
+          onChange={(next) => {
+            if (state.status !== "ready") return;
+            void saveDoc(
+              fleet,
+              at,
+              control.key,
+              state.revision,
+              withValue(state.values, control.key, next),
+            );
+          }}
+        />
+      }
+    />
   );
 }
 
@@ -203,30 +156,34 @@ export function SettingsSelectRow({
       ? bound.value
       : null;
   return (
-    <Field
+    <SettingRow
       label={control.label}
-      hint={control.hint ?? undefined}
+      hint={control.hint}
       error={bound?.ok === false ? WRONG_TYPE : rowError(entry, control.key)}
-    >
-      <Select
-        aria-label={control.label}
-        value={value}
-        options={options}
-        disabled={
-          bound?.ok !== true || !scope.mayInvoke || entry.saving !== null
-        }
-        onChange={(next: string) => {
-          if (state.status !== "ready") return;
-          void saveDoc(
-            fleet,
-            at,
-            control.key,
-            state.revision,
-            withValue(state.values, control.key, next),
-          );
-        }}
-      />
-    </Field>
+      control={
+        <Select
+          aria-label={control.label}
+          size="sm"
+          width="fit"
+          align="end"
+          value={value}
+          options={options}
+          disabled={
+            bound?.ok !== true || !scope.mayInvoke || entry.saving !== null
+          }
+          onChange={(next: string) => {
+            if (state.status !== "ready") return;
+            void saveDoc(
+              fleet,
+              at,
+              control.key,
+              state.revision,
+              withValue(state.values, control.key, next),
+            );
+          }}
+        />
+      }
+    />
   );
 }
 
@@ -249,47 +206,54 @@ export function SettingsInputRow({
   const usable = bound?.ok === true && scope.mayInvoke && entry.saving === null;
   const shown = draft?.text ?? (bound?.ok === true ? bound.value : "");
   return (
-    <Field
+    <SettingRow
       label={control.label}
-      hint={control.hint ?? undefined}
+      hint={control.hint}
       error={bound?.ok === false ? WRONG_TYPE : rowError(entry, control.key)}
-    >
-      <TextField
-        aria-label={control.label}
-        value={shown}
-        {...(control.placeholder === null
-          ? {}
-          : { placeholder: control.placeholder })}
-        type={control.mode === "secret" ? "password" : "text"}
-        disabled={!usable}
-        onChange={(text) => {
-          if (state.status !== "ready") return;
-          keepDraft(id, { text, revision: draft?.revision ?? state.revision });
-        }}
-        onKeyDown={(event) => {
-          if (event.key === "Escape" && draft !== null) {
-            event.preventDefault();
-            dropDraft(id);
-            return;
-          }
-          if (
-            event.key !== "Enter" ||
-            draft === null ||
-            state.status !== "ready"
-          )
-            return;
-          event.preventDefault();
-          void saveDoc(
-            fleet,
-            at,
-            control.key,
-            draft.revision,
-            withValue(state.values, control.key, draft.text),
-          ).then((saved) => {
-            if (saved) dropDraft(id);
-          });
-        }}
-      />
-    </Field>
+      control={
+        <span className="plugin-row-input">
+          <TextField
+            aria-label={control.label}
+            size="sm"
+            value={shown}
+            {...(control.placeholder === null
+              ? {}
+              : { placeholder: control.placeholder })}
+            type={control.mode === "secret" ? "password" : "text"}
+            disabled={!usable}
+            onChange={(text) => {
+              if (state.status !== "ready") return;
+              keepDraft(id, {
+                text,
+                revision: draft?.revision ?? state.revision,
+              });
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Escape" && draft !== null) {
+                event.preventDefault();
+                dropDraft(id);
+                return;
+              }
+              if (
+                event.key !== "Enter" ||
+                draft === null ||
+                state.status !== "ready"
+              )
+                return;
+              event.preventDefault();
+              void saveDoc(
+                fleet,
+                at,
+                control.key,
+                draft.revision,
+                withValue(state.values, control.key, draft.text),
+              ).then((saved) => {
+                if (saved) dropDraft(id);
+              });
+            }}
+          />
+        </span>
+      }
+    />
   );
 }

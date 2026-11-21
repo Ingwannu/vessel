@@ -44,20 +44,21 @@
   min-width: 0;
 }
 
-.plugin-card {
-  display: flex;
-  flex-direction: column;
-  border-radius: var(--r-2);
-  background: var(--bg-surface);
-  overflow: hidden;
+/* A card's child that is not a setting: a row of the list holding it. */
+.plugin-card-item {
+  display: block;
 }
 
-.plugin-card > * {
-  padding: var(--s-3) var(--s-4);
+/* A setting's refusal in its row's description (Paseo's row `error`). */
+.plugin-row-error {
+  color: var(--danger);
 }
 
-.plugin-card > * + * {
-  border-top: 1px solid var(--border-subtle);
+/* A setting's text field on the right of its row (Paseo's input,
+   minWidth 180). */
+.plugin-row-input {
+  display: inline-flex;
+  min-width: 180px;
 }
 
 .plugin-status-line {

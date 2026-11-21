@@ -28,7 +28,7 @@ import { loadDoc } from "../../../data/plugin-settings-docs";
 import { readOnlyLine } from "../../../data/plugin-surfaces";
 import { useStore } from "../../../data/store";
 import type { PluginControl, Surface } from "../../../wire/proto";
-import { StatusDot } from "../../../ui/kit";
+import { RowList, StatusDot } from "../../../ui/kit";
 import { SettingsSection } from "../../settings/settings-page";
 import {
   PluginButton,
@@ -37,8 +37,8 @@ import {
   PluginToggle,
 } from "./action-controls";
 import { boundDocuments, needsAdmin, type SurfaceScope, toneOf } from "./scope";
+import { DocStatus } from "./doc-status";
 import {
-  DocStatus,
   SettingsInputRow,
   SettingsSelectRow,
   SettingsSwitchRow,
@@ -82,10 +82,13 @@ function ControlView({
         </SettingsSection>
       );
     case "card":
+      // Paseo's SettingsCard: the page's row list, a divider between rows.
       return (
-        <div className="plugin-card">
-          <Controls scope={scope} controls={content.surface.controls} />
-        </div>
+        <RowList label="Group">
+          {content.surface.controls.map((child) => (
+            <CardItem key={child.id} scope={scope} control={child} />
+          ))}
+        </RowList>
       );
     case "status":
       return (
@@ -124,11 +127,49 @@ function ControlView({
         />
       );
     case "settings_switch":
+      return (
+        <RowList label={content.label}>
+          <SettingsSwitchRow scope={scope} control={content} />
+        </RowList>
+      );
+    case "settings_select":
+      return (
+        <RowList label={content.label}>
+          <SettingsSelectRow scope={scope} control={content} />
+        </RowList>
+      );
+    case "settings_input":
+      return (
+        <RowList label={content.label}>
+          <SettingsInputRow scope={scope} control={content} />
+        </RowList>
+      );
+  }
+}
+
+/** One child of a card: a setting is a row of the list; anything else is
+ * a row holding the control. */
+function CardItem({
+  scope,
+  control,
+}: {
+  scope: SurfaceScope;
+  control: PluginControl;
+}) {
+  const content = control.content;
+  switch (content.kind) {
+    case "settings_switch":
       return <SettingsSwitchRow scope={scope} control={content} />;
     case "settings_select":
       return <SettingsSelectRow scope={scope} control={content} />;
     case "settings_input":
       return <SettingsInputRow scope={scope} control={content} />;
+    default:
+      return (
+        <li className="row plugin-card-item">
+          <ControlView scope={scope} control={control} />
+        </li>
+      );
   }
 }
 
