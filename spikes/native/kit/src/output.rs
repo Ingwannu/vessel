@@ -82,6 +82,33 @@ const GUTTER: f32 = 32.0;
 const NUMBER: f32 = 32.0;
 const BAR: f32 = 2.0;
 
+/// A diff's number column: its width and the padding right of the number.
+#[derive(Clone, Copy)]
+struct Column {
+    width: f32,
+    pad: f32,
+}
+
+/// The number column of a box, and of a list's diff line.
+const PLAIN: Column = Column {
+    width: NUMBER,
+    pad: PAD,
+};
+
+/// A reviewable diff line on a phone (the code panel's Changes, where a
+/// review "+" shows on every line, Paseo's touch layout): the number ends
+/// where it does in [`PLAIN`] (26 from the row's start), and 32 of room
+/// follow it before the code, for the 22-point "+" with 5 either side, so
+/// the "+" covers neither the number nor the code.
+const REVIEW: Column = Column {
+    width: 56.0,
+    pad: 32.0,
+};
+
+/// Where [`diff_line_with_review_room`]'s "+" goes from the row's start:
+/// 5 past the number's end.
+pub const REVIEW_ADD_LEFT: f32 = 31.0;
+
 /// How strongly a diff's line is washed in its colour.
 const WASH: f32 = 0.08;
 
@@ -306,6 +333,17 @@ pub fn version_of<T: std::hash::Hash + ?Sized>(text: &T) -> u64 {
 /// row cannot scroll sideways on its own).
 #[must_use]
 pub fn diff_line(line: &Line, wrap: bool, tokens: &Tokens) -> AnyElement {
+    diff_line_in(line, wrap, PLAIN, tokens)
+}
+
+/// [`diff_line`] with room right of its number for a review "+" (a
+/// phone's Changes; see [`REVIEW`] and [`REVIEW_ADD_LEFT`]).
+#[must_use]
+pub fn diff_line_with_review_room(line: &Line, wrap: bool, tokens: &Tokens) -> AnyElement {
+    diff_line_in(line, wrap, REVIEW, tokens)
+}
+
+fn diff_line_in(line: &Line, wrap: bool, column: Column, tokens: &Tokens) -> AnyElement {
     let paint = Paint {
         look: Look::of(tokens),
         added: tokens.st_ready,
@@ -317,19 +355,19 @@ pub fn diff_line(line: &Line, wrap: bool, tokens: &Tokens) -> AnyElement {
         .text_size(px(crate::fonts::code(SIZE)))
         .line_height(px(crate::fonts::code(LINE)))
         .text_color(paint.look.text.opacity(0.8))
-        .child(row_of(line, &[], true, wrap, paint))
+        .child(row_of(line, &[], Some(column), wrap, paint))
         .into_any_element()
 }
 
 /// One line: a diff's bar and number, then the text, unwrapped.
 fn row(line: &Line, emphasis: &[Range<usize>], numbered: bool, paint: Paint) -> AnyElement {
-    row_of(line, emphasis, numbered, false, paint)
+    row_of(line, emphasis, numbered.then_some(PLAIN), false, paint)
 }
 
 fn row_of(
     line: &Line,
     emphasis: &[Range<usize>],
-    numbered: bool,
+    numbered: Option<Column>,
     wrap: bool,
     paint: Paint,
 ) -> AnyElement {
@@ -346,7 +384,7 @@ fn row_of(
     if let Some(ink) = ink {
         row = row.bg(ink.opacity(WASH));
     }
-    if numbered {
+    if let Some(column) = numbered {
         row = row
             .child(
                 // Stretched to the row's height by the row (a percentage of
@@ -355,9 +393,9 @@ fn row_of(
             )
             .child(
                 div()
-                    .w(px(NUMBER))
+                    .w(px(column.width))
                     .flex_none()
-                    .pr(px(PAD))
+                    .pr(px(column.pad))
                     .text_right()
                     .text_color(paint.look.quiet)
                     .children(line.number.map(|number| number.to_string())),

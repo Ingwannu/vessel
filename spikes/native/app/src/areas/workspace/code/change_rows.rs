@@ -10,7 +10,9 @@ use vessel_app_kit::ui::{
     ParentElement as _, SharedString, StatefulInteractiveElement as _, Styled as _, Window, div,
     px,
 };
-use vessel_app_kit::{LineTone, OutputLine, Tokens, Type, TypeExt as _, diff_line, glyph};
+use vessel_app_kit::{
+    LineTone, OutputLine, Tokens, Type, TypeExt as _, diff_line, diff_line_with_review_room, glyph,
+};
 use vessel_app_view::workspace::changes::{
     ChangeRow, FileNote, FileState, Tone, split_path, status_letter,
 };
@@ -37,7 +39,7 @@ pub(super) fn row(
     shell: &mut Shell,
     index: usize,
     tokens: &Tokens,
-    _window: &mut Window,
+    window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let changes = &shell.areas.workspace.code.changes;
@@ -54,7 +56,10 @@ pub(super) fn row(
             |change| file_header(shell, index, &change, open, tokens, cx),
         ),
         ChangeRow::Diff { file, row, .. } => {
-            let line = file_of(file).and_then(|change| match changes.states.get(&change.path) {
+            let Some(change) = file_of(file) else {
+                return div().into_any_element();
+            };
+            let line = match changes.states.get(&change.path) {
                 Some(
                     FileState::Read(DiffBody::Rows { rows, .. })
                     | FileState::Loading(Some(DiffBody::Rows { rows, .. })),
@@ -66,8 +71,13 @@ pub(super) fn row(
                     | FileState::Failed(_),
                 )
                 | None => None,
-            });
-            line.map_or_else(|| div().into_any_element(), |line| diff_row(&line, tokens))
+            };
+            line.map_or_else(
+                || div().into_any_element(),
+                |line| {
+                    super::review::rows::line(shell, index, &change.path, &line, tokens, window, cx)
+                },
+            )
         }
         ChangeRow::Note {
             file,
@@ -218,7 +228,9 @@ fn file_header(
 
 /// A row of a file's diff: a hunk's header, or a line as the kit draws a
 /// diff's line (its bar, its number, its wash), wrapped.
-fn diff_row(line: &DiffRow, tokens: &Tokens) -> AnyElement {
+/// `room`: a phone's row, with room right of the number for the review
+/// "+" (the kit's `diff_line_with_review_room`).
+pub(super) fn diff_row(line: &DiffRow, room: bool, tokens: &Tokens) -> AnyElement {
     let neutral = tokens.neutral;
     match line {
         DiffRow::Hunk {
@@ -252,15 +264,16 @@ fn diff_row(line: &DiffRow, tokens: &Tokens) -> AnyElement {
                 LineKind::Removed => (LineTone::Removed, *old),
                 LineKind::Context | LineKind::NoNewline => (LineTone::Plain, new.or(*old)),
             };
-            diff_line(
-                &OutputLine {
-                    text: SharedString::from(text.to_string()),
-                    tone,
-                    number: number.and_then(|number| usize::try_from(number).ok()),
-                },
-                true,
-                tokens,
-            )
+            let drawn = OutputLine {
+                text: SharedString::from(text.to_string()),
+                tone,
+                number: number.and_then(|number| usize::try_from(number).ok()),
+            };
+            if room {
+                diff_line_with_review_room(&drawn, true, tokens)
+            } else {
+                diff_line(&drawn, true, tokens)
+            }
         }
         DiffRow::Cut { .. } => note_row("\u{2026}".to_owned(), tokens).into_any_element(),
     }

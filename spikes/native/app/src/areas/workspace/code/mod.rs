@@ -41,6 +41,7 @@ mod line_syntax;
 mod panels;
 mod panels_view;
 mod pull_tab;
+mod review;
 mod search;
 mod shown_source;
 mod sort;
@@ -127,6 +128,8 @@ struct Changes {
     list: VirtualList,
     picker: ComboboxState,
     sources: shown_source::Sources,
+    /// The review comment being written (ADR 0124, `review/`).
+    review: review::Review,
 }
 
 /// A file shown in the Files tab.
@@ -223,6 +226,7 @@ impl CodePanel {
                 list: VirtualList::new(false),
                 picker: ComboboxState::new(window, cx),
                 sources: shown_source::Sources::default(),
+                review: review::Review::new(cx),
             },
             files: Files {
                 listings: HashMap::new(),

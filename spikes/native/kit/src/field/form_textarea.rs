@@ -2,7 +2,9 @@
 //! Why: changing only the minimum cannot turn GOAT's px9/py3 into the source
 //! schedule form's ordinary MD px12/py5-or11. The area must not paint that shell.
 use super::{FORM_INSET_X, FORM_INSET_Y, FORM_MAX, FieldId, FormMinimum, TextField};
-use crate::{ControlSizing, Tokens, control_sizing::md_field_vertical};
+use crate::theme::{radius, spacing};
+use crate::widgets::TypeExt as _;
+use crate::{ControlSizing, Tokens, Type, control_sizing::md_field_vertical};
 use gpui::prelude::*;
 use gpui::{Context, Div, Window, px};
 /// Form textarea chrome, independent of the chosen minimum and text engine.
@@ -13,6 +15,12 @@ pub enum FormTextareaPresentation {
     Compact,
     /// Source ordinary MD12/5 pointer or12/11 touch.
     Md,
+    /// Paseo's inline review input (`review/surface.tsx` `editorInput`,
+    /// `editorInputFocused`): `surface1`, a hairline of `border`
+    /// (`accent` while it holds the keys), 6 round, 12 across and 8 down.
+    /// It sits in a `surface2` card, where the form shell's own
+    /// `surface2` and unfocused clear border would not show.
+    Review,
 }
 impl FormTextareaPresentation {
     pub(super) fn frame(
@@ -22,7 +30,11 @@ impl FormTextareaPresentation {
         narrow: bool,
         minimum: FormMinimum,
     ) -> Div {
-        let frame = super::form_shell(focused, tokens, narrow)
+        let shell = match self {
+            Self::Review => review_shell(focused, tokens),
+            Self::Compact | Self::Md => super::form_shell(focused, tokens, narrow),
+        };
+        let frame = shell
             .flex_col()
             .items_stretch()
             .min_h(px(minimum.height(narrow)))
@@ -30,9 +42,29 @@ impl FormTextareaPresentation {
         match self {
             Self::Compact => frame.px(px(FORM_INSET_X)).py(px(FORM_INSET_Y)),
             Self::Md => frame.py(px(md_field_vertical(ControlSizing::from_compact(narrow)))),
+            Self::Review => frame.px(px(spacing::S3)).py(px(spacing::S2)),
         }
     }
 }
+/// [`FormTextareaPresentation::Review`]'s shell.
+fn review_shell(focused: bool, tokens: &Tokens) -> Div {
+    let neutral = tokens.neutral;
+    gpui::div()
+        .flex()
+        .w_full()
+        .rounded(px(radius::MD))
+        .bg(neutral.surface1)
+        .border_1()
+        .border_color(if focused {
+            neutral.accent
+        } else {
+            neutral.border
+        })
+        .type_(Type::Body)
+        .line_height(px(crate::fonts::ui(20.0)))
+        .text_color(neutral.foreground)
+}
+
 impl TextField {
     /// Identified form textarea with explicit compact/MD chrome, same engine.
     /// The minimum, source callbacks, Enter/editability and cap are unchanged.
@@ -90,6 +122,29 @@ mod tests {
                         assert_eq!(style.text.line_height, Some(px(20.0).into()));
                     }
                 }
+            }
+        }
+    }
+
+    #[test]
+    fn the_review_input_is_surface1_with_its_own_border_accent_while_focused() {
+        for scheme in [crate::Scheme::Light, crate::Scheme::Dark] {
+            let tokens = Tokens::of(scheme);
+            for (focused, border) in [
+                (false, tokens.neutral.border),
+                (true, tokens.neutral.accent),
+            ] {
+                let mut frame = FormTextareaPresentation::Review.frame(
+                    focused,
+                    &tokens,
+                    false,
+                    FormMinimum::Default,
+                );
+                let style = frame.style();
+                assert_eq!(style.background, Some(tokens.neutral.surface1.into()));
+                assert_eq!(style.border_color, Some(border));
+                assert_eq!(style.padding.left, Some(px(12.0).into()));
+                assert_eq!(style.padding.top, Some(px(8.0).into()));
             }
         }
     }
