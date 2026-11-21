@@ -67,6 +67,8 @@ interface WorkspaceState {
   markDirty: (key: string, dirty: boolean) => void;
   lifecycle: ReturnType<typeof useTabLifecycle>;
   actions: readonly TabAction[];
+  /** The machine's terminal profiles for New tab (ADR 0117). */
+  profiles: ProfileGroup;
   terminals: readonly TerminalInfo[];
   openFile: (path: RelPath, line: number | null) => void;
   move: (source: string, target: string, side: "before" | "after") => void;
