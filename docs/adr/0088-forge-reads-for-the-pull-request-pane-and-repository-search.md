@@ -147,9 +147,14 @@ point it at any `https` address, which the node then fetches without
 authorization and returns up to 200 lines of to a `read` caller who can
 see the session. The node refuses, before any request, a `Location` whose
 host is `localhost` (or a name under it) or a literal address in a
-loopback, private, link-local, unique-local (fc00::/7), shared
-(100.64.0.0/10), broadcast or unspecified range, an IPv4-mapped IPv6
-address included. A name that only resolves to such an address is not
+special-purpose range: IPv4 "this network" (0/8), private, shared
+(100.64.0.0/10), loopback, link-local, IETF (192.0.0.0/24),
+benchmarking (198.18.0.0/15), multicast (224/4) and reserved (240/4,
+broadcast included); IPv6 loopback, unspecified, unique-local
+(fc00::/7), link-local (fe80::/10) and multicast (ff00::/8); and an
+IPv4 address carried in IPv6 (mapped, compatible, NAT64 64:ff9b::/96,
+6to4 2002::/16) is judged as that IPv4 address (the node reviewer's
+second note, same day). A name that only resolves to such an address is not
 refused (a stated gap): filtering by resolution belongs to the shared
 resolver of ADR 0104, not to this one request.
 

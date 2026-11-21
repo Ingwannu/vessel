@@ -1,0 +1,37 @@
+/* Settings › Terminals (terminals-section.tsx, ADR 0117): Paseo's terminal
+   profile rows, their four buttons, and the edit dialog's fields. */
+
+.terminal-profiles-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+}
+
+.terminal-profile-buttons {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* The command line under a row's name: one line, cut at its end, in the
+   page's code face. */
+.terminal-profile-command {
+  display: block;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.terminal-profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.terminal-profile-refused {
+  margin: 0;
+  color: var(--danger);
+  font: 400 13px / 18px var(--font-sans);
+}

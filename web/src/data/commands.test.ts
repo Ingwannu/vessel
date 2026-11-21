@@ -145,6 +145,7 @@ describe("paletteEntries", () => {
       "Settings: Projects",
       "Settings: Devices",
       "Settings: Usage",
+      "Settings: Terminals",
       "Settings: Sync",
       "Settings: Plugins",
       "Settings: Diagnostics",

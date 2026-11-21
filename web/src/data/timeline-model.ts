@@ -175,6 +175,10 @@ export function blockText(block: ContentBlock): string {
       return "";
     case "attachment":
       return `[${block.attachment.name}]`;
+    // Not the prompt's words: pills in the timeline (ADR 0124).
+    case "context":
+    case "review":
+      return "";
   }
 }
 

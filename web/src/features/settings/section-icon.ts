@@ -22,6 +22,8 @@ export function sectionIcon(section: SettingsSection): IconName {
       return "plan";
     case "usage":
       return "plan";
+    case "terminals":
+      return "terminal";
     case "machines":
       return "machine";
     case "projects":
