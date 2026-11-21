@@ -11,6 +11,8 @@ function at(path: string, query: Partial<Where> = {}): Where {
     node: undefined,
     machine: undefined,
     agent: undefined,
+    plugin: undefined,
+    screen: undefined,
     ...query,
   };
 }
@@ -42,6 +44,25 @@ describe("a Settings address", () => {
       exact: false,
     });
     expect(settingsPlace(at("/settings/machines/extra"))?.exact).toBe(false);
+  });
+
+  it("names the plugin settings screen open in Settings › Plugins", () => {
+    expect(
+      settingsPlace(
+        at("/settings/plugins", {
+          machine: fixtureId("NodeKey", "gpu-box"),
+          plugin: "prefs",
+          screen: "display",
+        }),
+      ),
+    ).toMatchObject({
+      section: "plugins",
+      machine: "gpu-box",
+      pluginScreen: { plugin: "prefs", screen: "display" },
+    });
+    expect(
+      settingsPlace(at("/settings/plugins", { plugin: "prefs" }))?.pluginScreen,
+    ).toBeUndefined();
   });
 
   it("is nothing outside Settings", () => {
