@@ -1,0 +1,293 @@
+/* The Pull request pane (pull-pane.tsx, TRACKER 430): Paseo's pane in the
+   page's tokens. One column, sections 16 apart; meta words 12 on 16 in the
+   muted colour; tones from the status colours (success, danger, warning,
+   merged); Pretendard through the page's font tokens only. */
+
+.pull-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%;
+  overflow: auto;
+  padding: 12px 16px 24px;
+  font: var(--t-body);
+  color: var(--text-primary);
+}
+
+.pull-muted {
+  font: var(--t-meta);
+  color: var(--text-tertiary);
+}
+
+.pull-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.pull-view,
+.pull-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.pull-view {
+  font: var(--t-meta);
+  color: var(--text-secondary);
+}
+
+.pull-view:hover,
+.pull-link:hover {
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.pull-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pull-title {
+  margin: 0;
+  font: var(--t-title);
+}
+
+.pull-where {
+  margin: 0;
+}
+
+.pull-state {
+  align-self: flex-start;
+  padding: 0 6px;
+  border-radius: 999px;
+  font: var(--t-meta);
+  border: 1px solid currentColor;
+}
+
+.pull-pane .tone-open,
+.pull-pane .tone-success {
+  color: var(--online);
+}
+
+.pull-pane .tone-merged {
+  color: var(--st-merged);
+}
+
+.pull-pane .tone-closed,
+.pull-pane .tone-failure {
+  color: var(--danger);
+}
+
+.pull-pane .tone-pending {
+  color: var(--warn);
+}
+
+.pull-pane .tone-draft,
+.pull-pane .tone-ignored,
+.pull-pane .tone-none,
+.pull-pane .tone-unknown {
+  color: var(--text-tertiary);
+}
+
+.pull-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pull-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pull-section-title {
+  font: var(--t-kicker);
+  color: var(--text-tertiary);
+}
+
+.pull-checks-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pull-checks-words {
+  display: flex;
+  flex-direction: column;
+}
+
+.pull-ring {
+  flex: none;
+}
+
+.pull-ring-track {
+  stroke: var(--border-subtle);
+}
+
+.pull-ring-part {
+  stroke: currentColor;
+}
+
+.pull-group-head,
+.pull-card-fold {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: var(--t-meta);
+  text-align: start;
+  cursor: pointer;
+}
+
+.pull-group-head:focus-visible,
+.pull-card-fold:focus-visible {
+  outline: var(--focus);
+  outline-offset: 2px;
+}
+
+.pull-mark {
+  display: inline-flex;
+}
+
+.pull-group-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 20px;
+}
+
+.pull-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+}
+
+.pull-row-name {
+  display: inline-flex;
+  flex: 1 1 auto;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pull-row-time {
+  flex: none;
+}
+
+.pull-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+}
+
+.pull-card .pull-card {
+  margin-top: 4px;
+}
+
+.pull-card-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pull-card-fold {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.pull-card-author {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.pull-card-meta {
+  display: flex;
+  gap: 6px;
+  font: var(--t-meta);
+}
+
+.pull-card-body {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.pull-thread-place {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pull-thread-comment {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.pull-badge {
+  padding: 0 6px;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-tertiary);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pull-kebab {
+    opacity: 0;
+  }
+
+  .pull-card-head:hover .pull-kebab,
+  .pull-kebab:focus-within,
+  .pull-kebab:has([data-popup-open]) {
+    opacity: 1;
+  }
+}
+
+/* A comment's markdown, compact (Paseo's pane renders it smaller than the
+   conversation's): the session's `.md` rules, tighter, full width. */
+.pull-md {
+  max-width: none;
+}
+
+.pull-md p,
+.pull-md ul,
+.pull-md pre,
+.pull-md blockquote {
+  margin: 0 0 4px;
+}
+
+.pull-md :last-child {
+  margin-bottom: 0;
+}
+
+/* A pane state on its own (Paseo's pane-error.tsx 25-38): the whole pane,
+   centred both ways, 12 apart, 16 at the sides, muted words centred. The
+   kit's EmptyState keeps its mark and title (a stated difference). */
+.pull-centred {
+  justify-content: center;
+  align-items: center;
+  padding: 0 16px;
+}
+
+.pull-centred .empty {
+  align-items: center;
+  gap: 12px;
+  padding: 0;
+  text-align: center;
+  color: var(--text-tertiary);
+}

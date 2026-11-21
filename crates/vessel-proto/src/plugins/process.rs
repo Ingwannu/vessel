@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{
     ClientDocument, HelperPayload, HookName, HookSubscriptions, LogText, PluginAddress, RpcName,
+    SettingsDeclarations, SettingsId, SettingsStep,
 };
 
 /// Maximum complete JSON body, checked before allocating or decoding a frame.
@@ -88,6 +89,14 @@ pub enum HelperCall {
         /// Business types stay with the lifecycle owner.
         input: HelperPayload,
     },
+    /// Parse, migrate or report one settings document the helper declared
+    /// in `ready` (ADR 0115, "Settings"); the node owns the stored file.
+    Settings {
+        /// The declared document.
+        settings: SettingsId,
+        /// What is asked.
+        step: SettingsStep,
+    },
 }
 
 /// Messages only the supervising node writes to the child's stdin. An adapter
@@ -145,6 +154,10 @@ pub enum HelperToNode {
         client: ClientDocument,
         /// Initial lifecycle subscriptions.
         hooks: HookSubscriptions,
+        /// The settings documents it parses (ADR 0115, "Settings"); absent
+        /// from a helper that keeps none.
+        #[serde(default)]
+        settings: SettingsDeclarations,
     },
     /// Complete result for a live request.
     Result {

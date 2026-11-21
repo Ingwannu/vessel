@@ -86,12 +86,11 @@ impl RuntimeHandle {
 
 fn call_bytes(call: &HelperCall) -> Result<u32, CallError> {
     let payload = match call {
-        HelperCall::Invoke { input, .. } | HelperCall::Hook { input, .. } => input,
+        HelperCall::Invoke { input, .. } | HelperCall::Hook { input, .. } => Some(input),
+        HelperCall::Settings { step, .. } => step.payload(),
     };
     let count = payload
-        .raw()
-        .as_text()
-        .len()
+        .map_or(0, |payload| payload.raw().as_text().len())
         .checked_add(CALL_OVERHEAD_BYTES)
         .ok_or(CallError::Busy)?;
     if count > MAX_ADMITTED_BYTES {

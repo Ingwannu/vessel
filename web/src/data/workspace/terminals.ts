@@ -23,12 +23,28 @@ export function workspaceTerminals(
   return attempt(() => fleet.bridge.call(node, "terminal.list", { place }));
 }
 
-export function openWorkspaceTerminal(
+/** The terminals this tab opened: their pane is the "opened" view of
+ * ADR 0073's duty, answering a live query before anyone types (a program
+ * started there, nvim say, asks at once). Kept for the tab's life. */
+const openedHere = new Set<TerminalId>();
+
+/** Whether this tab opened `terminal`. */
+export function openedInThisTab(terminal: TerminalId): boolean {
+  return openedHere.has(terminal);
+}
+
+export async function openWorkspaceTerminal(
   fleet: Fleet,
   node: NodeKey,
   place: TerminalPlace,
 ): Promise<Outcome<TerminalInfo>> {
-  return attempt(() => fleet.bridge.call(node, "terminal.create", { place }));
+  const result = await attempt(() =>
+    fleet.bridge.call(node, "terminal.create", { place }),
+  );
+  if (result.ok) {
+    openedHere.add(result.value.id);
+  }
+  return result;
 }
 
 export function renameWorkspaceTerminal(

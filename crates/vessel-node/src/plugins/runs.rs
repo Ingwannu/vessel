@@ -4,7 +4,7 @@
 
 use tokio::sync::watch;
 use vessel_plugin::RuntimeState;
-use vessel_proto::plugins::{PluginAddress, PluginId, RuntimeGeneration};
+use vessel_proto::plugins::{PluginAddress, PluginId, RuntimeGeneration, SettingsId};
 
 use super::rows::{host_line, read_manifest};
 use super::{PluginError, Plugins, Run, host};
@@ -178,8 +178,34 @@ impl Plugins {
     ) {
         // A closed sender also means the actor ended; the row is checked
         // either way. The watch reference is not kept across an await.
+        // Each new run is told its settings documents' states once
+        // (`deliver_settings`, ADR 0115 "Settings").
+        let mut delivered = None;
         loop {
-            let stopped = matches!(*state.borrow_and_update(), RuntimeState::Stopped);
+            let (stopped, fresh) = match &*state.borrow_and_update() {
+                RuntimeState::Stopped => (true, None),
+                RuntimeState::Running {
+                    address, settings, ..
+                } if delivered != Some(address.generation) => {
+                    delivered = Some(address.generation);
+                    let declared: Vec<SettingsId> = settings
+                        .iter()
+                        .map(|declared| declared.id.clone())
+                        .collect();
+                    (
+                        false,
+                        Some(declared).filter(|declared| !declared.is_empty()),
+                    )
+                }
+                RuntimeState::Running { .. } | RuntimeState::Starting => (false, None),
+            };
+            if let Some(declared) = fresh {
+                let plugins = self.clone();
+                let plugin = plugin.clone();
+                drop(self.inner.tasks.spawn(async move {
+                    plugins.deliver_settings(&plugin, &declared).await;
+                }));
+            }
             if stopped || state.changed().await.is_err() {
                 break;
             }

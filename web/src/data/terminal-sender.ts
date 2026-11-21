@@ -19,12 +19,44 @@
 // - Failures: a send that fails is not repeated (it may have been
 //   applied); the stream's own state says why, and later items still go,
 //   in order.
+// - Send size (the P1 review carry-over, P4): the node refuses a send of
+//   more than `SendTerminal::MAX_BYTES` (64 KiB) whole, so a longer paste
+//   was lost unseen. One send carries at most that many bytes of UTF-8,
+//   cut at a character boundary; the rest stays first in the queue, so a
+//   long paste is several sends, in order, with nothing after it slipping
+//   between them. Native's sender does the same (`sender.rs`).
 
 import type { TerminalInput } from "../wire/proto";
 import { encodeText } from "./terminal";
 
 /** Most characters of keys waiting while a send is in flight. */
 export const MAX_PENDING = 1024 * 1024;
+
+/** Most characters of keys and answers waiting before a terminal's answer
+ * to a query is dropped (TRACKER 826). A flood of queries then never fills
+ * the room the person's keys need. A dropped answer is never sent late, as
+ * ADR 0073 has it, and nobody is told: the program asked too fast. */
+export const MAX_ANSWERS_PENDING = 64 * 1024;
+
+/** Most bytes one send carries (`SendTerminal::MAX_BYTES`). */
+export const MAX_SEND_BYTES = 64 * 1024;
+
+/** The longest start of `text` whose UTF-8 fits `bytes`, cut at a
+ * character boundary, and the rest. */
+export function cutAt(text: string, bytes: number): [string, string] {
+  let used = 0;
+  let end = 0;
+  for (const character of text) {
+    const code = character.codePointAt(0) ?? 0;
+    const size = code < 0x80 ? 1 : code < 0x800 ? 2 : code < 0x10000 ? 3 : 4;
+    if (used + size > bytes) {
+      break;
+    }
+    used += size;
+    end += character.length;
+  }
+  return [text.slice(0, end), text.slice(end)];
+}
 
 type Item =
   | { kind: "keys"; text: string }
@@ -60,14 +92,21 @@ export class TerminalSender {
       return;
     }
     this.#overflowing = false;
-    this.#chars += text.length;
-    const last = this.#items.at(-1);
-    if (last?.kind === "keys") {
-      last.text += text;
-    } else {
-      this.#items.push({ kind: "keys", text });
+    this.#queue(text);
+  }
+
+  /** Queue a terminal's answer to a query, in order with the keys, while
+   * at most `MAX_ANSWERS_PENDING` characters would wait; past that it is
+   * dropped without a word. */
+  answer(text: string): void {
+    if (
+      this.#closed ||
+      text === "" ||
+      this.#chars + text.length > MAX_ANSWERS_PENDING
+    ) {
+      return;
     }
-    this.#pump();
+    this.#queue(text);
   }
 
   /** Queue a size; a size queued just before is replaced. */
@@ -81,6 +120,17 @@ export class TerminalSender {
       last.rows = rows;
     } else {
       this.#items.push({ kind: "resize", cols, rows });
+    }
+    this.#pump();
+  }
+
+  #queue(text: string): void {
+    this.#chars += text.length;
+    const last = this.#items.at(-1);
+    if (last?.kind === "keys") {
+      last.text += text;
+    } else {
+      this.#items.push({ kind: "keys", text });
     }
     this.#pump();
   }
@@ -100,14 +150,19 @@ export class TerminalSender {
     if (item === undefined || this.#closed) {
       return;
     }
+    let input: TerminalInput;
     if (item.kind === "keys") {
-      this.#chars -= item.text.length;
+      const [part, rest] = cutAt(item.text, MAX_SEND_BYTES);
+      if (rest !== "") {
+        // The rest goes next, before anything queued after it.
+        this.#items.unshift({ kind: "keys", text: rest });
+      }
+      this.#chars -= part.length;
+      input = { kind: "data", data: encodeText(part) };
+    } else {
+      input = { kind: "resize", size: { cols: item.cols, rows: item.rows } };
     }
     this.#busy = true;
-    const input: TerminalInput =
-      item.kind === "keys"
-        ? { kind: "data", data: encodeText(item.text) }
-        : { kind: "resize", size: { cols: item.cols, rows: item.rows } };
     this.#send(input)
       .catch(() => undefined)
       .finally(() => {

@@ -236,9 +236,87 @@ workspace-folder terminals' 40.
   what it writes to stderr is in its log.
 - Text a caller sends to the manager is bounded before the plugin host sees
   it: a source or a path 4 KiB, a ref 256 bytes (`invalid_request`).
-- Plugin settings (Paseo's `PluginSettingsStore`) are a separate note before
-  their code; screens, panels, sidebar items, header buttons and composer
-  pills are P3b.
+- Plugin settings are the next section; screens, panels, sidebar items,
+  header buttons and composer pills are P3b.
+
+### Settings (2026-11-20, P3s; coordinator ruling 2026-11-20)
+
+Paseo 0.15.4 keeps host-scoped settings documents per installation:
+`defineSettings({id, scope: "host", version, schema, migrate?})`
+(packages/plugin/src/settings.ts:5-51) and its `PluginSettingsStore`
+(packages/server/src/server/plugins/settings/index.ts:35-185), with the
+author contract in public-docs/plugins/reference.md:1302-1435 and
+docs/plugins.md:739-753.
+
+- **The node owns the store and the helper owns the schema.**
+  - The file is `plugin-settings/<installation id>/<settings id>.json` in the
+    node's data directory: 0700 folders, a 0600 file, Paseo's envelope
+    `{version, values}`, written to a temporary file and renamed.
+  - The revision is the sha256 of the stored bytes in lowercase hex, or
+    `missing` (Paseo's).
+  - One lock per installation orders reads that migrate, writes, resets and
+    the notices to the helper.
+  - **Stated difference from Paseo:** Paseo's store lives in the plugin
+    subprocess; here the helper never writes its own settings files, so its
+    file access stays narrow and the guarantees (atomic, owner-only,
+    revisioned) do not depend on each helper's language. ADR 0079 records
+    it.
+- **Helper protocol.**
+  - `ready` may declare `settings: [{id, version}]`: at most 16, ids unique,
+    an id `^[a-z][a-z0-9_-]{0,63}$`, a version from 1 to 2^53-1. An older
+    helper sends none and keeps none.
+  - The node sends a `settings` call whose `step` is one of:
+    - `parse {values}`: the schema's defaults applied, then validated;
+    - `migrate {from, values}`: an older version converted;
+    - `changed {state}`: the document's state after `ready`, and after each
+      save, reset or migration. This is Paseo's server-side `read()` and
+      `subscribe()`; its answer is not read.
+  - `parse` and `migrate` are answered with `{verdict: "valid", values}` or
+    `{verdict: "invalid", message}`. A refusal is an answer, not a protocol
+    error.
+- **Read** (`plugin.settings.read`, Paseo's `read`):
+  - a missing file parses `{}` at revision `missing`;
+  - the declared version parses;
+  - an older version migrates, is saved once, and tells the helper and
+    `plugin.watch`;
+  - a newer version is invalid ("Settings were saved by a newer plugin
+    version");
+  - unreadable bytes are invalid.
+  Invalid data stays on disk until a save or a reset replaces it.
+- **Write and reset** (`plugin.settings.write`, `plugin.settings.reset`,
+  Paseo's `write`):
+  - another revision is a `conflict` ("Settings changed on another client.
+    Reload before saving again.");
+  - a save over a stored document of another version is invalid ("Reload or
+    reset settings before saving a different schema version");
+  - a reset parses `{}` whatever is stored;
+  - a saved document tells the helper, then moves `plugin.watch`.
+- **Scope.** The three methods are Admin and refused to agents (Paseo's
+  `daemon.manage`): the values may hold anything, and they are ordinary JSON,
+  not a credential vault.
+- **Refusal words.** The words reach Admin callers as plain text, at most
+  1 KiB, with control characters replaced, and never reach agents. The full
+  text goes to the plugin's log. This is ADR 0079's stated exception to safe
+  error classes; Paseo shows its schema's messages so a person can fix a
+  value.
+- **Errors.**
+  - no installation, an undeclared document or a client-only plugin:
+    `not_found`;
+  - not running: `unavailable`, as Paseo's settings RPCs need the plugin
+    process;
+  - values over the helper payload budget: `invalid_request`;
+  - a helper failure or timeout: the safe classes.
+- **Change notice.** `plugin.watch`, as decided above. A Vessel client's
+  catalog re-read is data only and disposes nothing, so Paseo's reason to
+  keep settings changes off the catalog reload path (open drafts lost when
+  the plugin is disposed) does not apply. Clients keep a draft keyed by
+  machine, plugin and document across re-reads.
+- **Lifecycle.** Values survive node restart, reload, disable and update.
+  Remove deletes the installation's folder after any write in flight.
+  Reinstalling the id starts from defaults.
+- **No UI yet.** Settings screens come with P3b's declarative surfaces, which
+  bind a document by id.
+- **Protocol.** 43 (`PLUGIN_SETTINGS_PROTOCOL`), after the origin link's 42; assigned at its node-line merge.
 
 ## Alternatives
 
