@@ -134,8 +134,7 @@ impl Watched {
                     title: info
                         .title
                         .as_ref()
-                        .map(|title| title.as_str().to_owned())
-                        .unwrap_or_default(),
+                        .map_or_else(String::new, |title| title.as_str().to_owned()),
                 })
             })
             .collect()

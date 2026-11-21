@@ -36,9 +36,9 @@ pub(crate) struct Hub {
     following: HashMap<String, AbortHandle>,
 }
 
+#[cfg(test)]
 impl Hub {
     /// Whether `machine`'s terminals are followed.
-    #[cfg(test)]
     pub(crate) fn follows(&self, machine: &str) -> bool {
         self.following.contains_key(machine)
     }
