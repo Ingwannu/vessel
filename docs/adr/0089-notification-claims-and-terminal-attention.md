@@ -534,8 +534,17 @@ What this packet adds for it, each with the coordinator's approval (2026-11-21):
      elected as the latest active, and the window that shows notifications would hear `not_recipient`.
    - `ReportPushPresence.notifies` says whether the window shows the system's notifications. It is versioned to
      this constant, and absent reads true.
-   - `push/policy.rs` `plan_for` elects only among notifying windows. Every present window still counts for
-     suppression, and for push: a person present only at silent windows is not pushed, and no window is admitted.
+   - `push/policy.rs` `plan_for` elects only among notifying windows. That much is Paseo's.
+   - **A deliberate difference** (the coordinator's ruling on this plan, 2026-11-21): every present window still
+     counts for suppression, and for push.
+     - A focused silent window suppresses.
+     - A person present only at silent windows is not pushed, and no window is admitted.
+     - Paseo builds its whole plan from the notifying clients only: `allStates = notificationEntries`
+       (`websocket-server.ts:2883-2886,2987-2990`), then `agent-attention-policy.ts:42-76`. So a non-notifying
+       client there neither suppresses nor holds push back.
+     - Why Vessel differs: Paseo's only non-notifying clients are not its app, which always subscribes with
+       `notifications: true` (`session-context.tsx:492`). Vessel's are windows of the page or the app with a
+       person in front of them, who would otherwise be pushed while at the screen.
    - A non-notifying window never claims, and plays its own sound (ADR 0114). The page:
      `features/notifications/notifies.ts`, `use-notices.ts`, `use-terminal-notices.ts`, `use-presence.ts`. The
      app's half is on the app line.

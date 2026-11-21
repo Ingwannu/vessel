@@ -39,11 +39,20 @@ pub(crate) enum Plan {
 pub(crate) fn plan(states: &[Presence], session: SessionId, now: DateTime<Utc>) -> Plan {
     plan_for(states, PushFocus::Session { session }, now)
 }
-/// Paseo's plan, electing only among windows that notify
-/// (`websocket-server.ts:2884-2894`). Every present window still counts for
-/// suppression and for push: a person present only at windows that do not
-/// notify is not pushed, and no window is admitted, so each plays its own
-/// sound (ADR 0114).
+/// The local recipient is elected only among present windows that notify,
+/// as Paseo elects among clients subscribed with `notifications: true`
+/// (`websocket-server.ts:2883-2886,2987-2990`).
+///
+/// A deliberate difference (ADR 0089, "Turned on", item 5): every present
+/// window still counts for suppression and for push. A focused one that
+/// does not notify suppresses, and a person present only at such windows is
+/// not pushed; no window is admitted, so each plays its own sound (ADR
+/// 0114). Paseo builds its whole plan from the notifying clients only
+/// (`allStates = notificationEntries`, then
+/// `agent-attention-policy.ts:42-76`), so there a non-notifying client
+/// neither suppresses nor holds push back. Its only such clients are not
+/// its app, which always subscribes with `notifications: true`
+/// (`session-context.tsx:492`); Vessel's are windows with a person at them.
 pub(crate) fn plan_for(states: &[Presence], target: PushFocus, now: DateTime<Utc>) -> Plan {
     let mut recipient = None;
     let mut present = false;
