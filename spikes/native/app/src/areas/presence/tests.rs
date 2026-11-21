@@ -27,7 +27,7 @@ fn opening_reaches_the_link_at_once_and_a_new_connection_hears_it_as_input(
             .expect("a snapshot at once, before the 15 s heartbeat");
         // A machine that connects now hears opening as input.
         let mut told = Told::default();
-        let report = told.report("connection", "lab", held, 0);
+        let report = told.report("connection", "lab", held, 0, false);
         assert_eq!(report.activity, PushActivity::Active);
     });
 }

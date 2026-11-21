@@ -2,15 +2,22 @@
 //! shown only when the machine admits it: titled in Paseo's words, with the
 //! terminal's title (never its command) as the body.
 
+use std::path::PathBuf;
+
 use gpui::TestAppContext;
+use vessel_app_link::Command;
 use vessel_app_link::Link;
 use vessel_app_link::claims::TerminalAnswer;
 use vessel_app_view::notices::NoticeKind;
 use vessel_app_view::notices::claims::Asked;
 use vessel_app_view::notices::terminals::{TerminalAnnounce, TerminalNotice};
 use vessel_app_view::prefs::Alerts;
-use vessel_proto::notifications::{NotificationClaim, TerminalAttentionRevision};
-use vessel_proto::terminals::TerminalPlace;
+use vessel_app_view::{Fleet, Machine, Reach};
+use vessel_proto::notifications::{
+    ATTENTION_NOTIFICATIONS_PROTOCOL, ClearTerminalAttention, NotificationClaim, TerminalActivity,
+    TerminalAttention, TerminalAttentionReason, TerminalAttentionRevision,
+};
+use vessel_proto::terminals::{TerminalInfo, TerminalKind, TerminalPlace};
 use vessel_proto::{SessionId, TerminalId};
 
 use crate::shell::{Shell, language_tests};
@@ -109,4 +116,74 @@ fn a_window_that_tells_nothing_never_claims(cx: &mut TestAppContext) {
     assert_eq!(ask.machine, "lab");
     assert_eq!(ask.told.len(), 1);
     assert!(ask.told[0].system);
+}
+
+#[gpui::test]
+fn a_viewed_terminal_clears_its_attention_once_on_a_machine_that_admits_claims(
+    cx: &mut TestAppContext,
+) {
+    language_tests::init(cx);
+    let (link, mut sent) = Link::detached(8).unwrap();
+    let (shell, cx) = cx.add_window_view(move |window, cx| Shell::with_test_link(window, cx, link));
+    cx.run_until_parked();
+    while sent.try_recv().is_ok() {}
+    let id = TerminalId::random();
+    shell.update(cx, |shell, _cx| {
+        shell.fleet = Fleet {
+            machines: vec![Machine {
+                connection_epoch: None,
+                node: None,
+                name: "lab".to_owned(),
+                reach: Reach::Online,
+                sessions: Vec::new(),
+                agents: Vec::new(),
+                protocol: Some(vessel_proto::PROTOCOL_VERSION),
+                version: None,
+            }],
+            read_at: None,
+        };
+        let mut info = TerminalInfo::new(
+            id,
+            TerminalPlace::Session {
+                session: SessionId::random(),
+            },
+            PathBuf::from("/work"),
+            TerminalKind::Shell {
+                program: PathBuf::from("/bin/sh"),
+            },
+            chrono::Utc::now(),
+        );
+        info.attention = Some(TerminalAttention {
+            terminal: id,
+            revision: TerminalAttentionRevision::new(7),
+            activity: TerminalActivity::Attention {
+                reason: TerminalAttentionReason::NeedsInput,
+            },
+            changed_at: chrono::Utc::now(),
+        });
+        shell.areas.terminal_tabs.listed_for_test(info);
+        shell.terminal_attention_seen("lab", id);
+        shell.terminal_attention_seen("lab", id);
+    });
+    let mut clears = Vec::new();
+    while let Ok(command) = sent.try_recv() {
+        if let Command::ClearTerminalAttention { machine, clear } = command {
+            clears.push((machine, clear));
+        }
+    }
+    if ATTENTION_NOTIFICATIONS_PROTOCOL.is_some() {
+        assert_eq!(
+            clears,
+            vec![(
+                "lab".to_owned(),
+                ClearTerminalAttention {
+                    terminal: id,
+                    revision: TerminalAttentionRevision::new(7),
+                }
+            )],
+            "once, at the revision shown"
+        );
+    } else {
+        assert!(clears.is_empty(), "no machine admits claims yet");
+    }
 }

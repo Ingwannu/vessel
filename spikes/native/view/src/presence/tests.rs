@@ -93,7 +93,7 @@ impl Window {
 
     fn send(&mut self, machine: &mut Machine) {
         let snapshot = self.presence.snapshot(self.now);
-        let report = self.told.report(BOX, BOX, &snapshot, 0);
+        let report = self.told.report(BOX, BOX, &snapshot, 0, false);
         machine.report(self.name, &report, self.now);
         self.sent.push(report);
     }
@@ -148,21 +148,45 @@ fn immediate_heartbeats_go_at_most_every_five_seconds() {
 }
 
 #[test]
+fn a_shown_terminal_is_terminal_focus_only_to_a_machine_that_admits_claims() {
+    let mut presence = Presence::new(0, true);
+    let terminal = vessel_proto::TerminalId::random();
+    assert!(presence.show(Some((BOX, session(1).into())), 1_000));
+    assert!(
+        presence.show(Some((BOX, Shown::Terminal(terminal))), 2_000),
+        "a terminal tab after the conversation is a change, and input"
+    );
+    let snapshot = presence.snapshot(2_000);
+    assert_eq!(snapshot.last_input, 2_000);
+    assert_eq!(snapshot.focus(BOX, true), PushFocus::Terminal { terminal });
+    assert_eq!(snapshot.focus(BOX, false), PushFocus::Elsewhere);
+    assert_eq!(snapshot.focus(LAB, true), PushFocus::Elsewhere);
+    assert!(presence.visibility(false, 3_000));
+    assert_eq!(
+        presence.snapshot(3_000).focus(BOX, true),
+        PushFocus::Background
+    );
+}
+
+#[test]
 fn a_new_shown_session_is_input_and_goes_at_once_the_same_one_does_not() {
     let mut presence = Presence::new(0, true);
-    assert!(presence.show(Some((BOX, session(1))), 1_000));
-    assert!(!presence.show(Some((BOX, session(1))), 2_000));
+    assert!(presence.show(Some((BOX, session(1).into())), 1_000));
+    assert!(!presence.show(Some((BOX, session(1).into())), 2_000));
     let snapshot = presence.snapshot(2_000);
     assert_eq!(snapshot.last_input, 1_000);
     assert_eq!(
-        snapshot.focus(BOX),
+        snapshot.focus(BOX, false),
         PushFocus::Session {
             session: session(1)
         }
     );
-    assert_eq!(snapshot.focus(LAB), PushFocus::Elsewhere);
-    assert!(presence.show(Some((LAB, session(1))), 3_000));
-    assert_eq!(presence.snapshot(3_000).focus(BOX), PushFocus::Elsewhere);
+    assert_eq!(snapshot.focus(LAB, false), PushFocus::Elsewhere);
+    assert!(presence.show(Some((LAB, session(1).into())), 3_000));
+    assert_eq!(
+        presence.snapshot(3_000).focus(BOX, false),
+        PushFocus::Elsewhere
+    );
     assert!(presence.show(None, 4_000));
     assert!(!presence.show(None, 5_000));
 }
@@ -170,17 +194,17 @@ fn a_new_shown_session_is_input_and_goes_at_once_the_same_one_does_not() {
 #[test]
 fn hidden_reports_background_and_visible_again_is_input() {
     let mut presence = Presence::new(0, true);
-    assert!(presence.show(Some((BOX, session(1))), 0));
+    assert!(presence.show(Some((BOX, session(1).into())), 0));
     assert!(presence.visibility(false, 60_000));
     assert!(!presence.visibility(false, 61_000));
     let hidden = presence.snapshot(61_000);
-    assert_eq!(hidden.focus(BOX), PushFocus::Background);
+    assert_eq!(hidden.focus(BOX, false), PushFocus::Background);
     assert_eq!(hidden.last_input, 0, "hiding is not input");
     assert!(presence.visibility(true, 75_000));
     let back = presence.snapshot(75_000);
     assert_eq!(back.last_input, 75_000);
     assert_eq!(
-        back.focus(BOX),
+        back.focus(BOX, false),
         PushFocus::Session {
             session: session(1)
         }
@@ -193,22 +217,22 @@ fn a_new_connection_hears_active_only_for_input_in_the_last_fifteen_seconds() {
     let mut told = Told::default();
     let snapshot = presence.snapshot(10_000);
     assert_eq!(
-        told.report("first", BOX, &snapshot, 5_000).activity,
+        told.report("first", BOX, &snapshot, 5_000, false).activity,
         PushActivity::Active
     );
     assert_eq!(
-        told.report("second", BOX, &snapshot, 5_001).activity,
+        told.report("second", BOX, &snapshot, 5_001, false).activity,
         PushActivity::Unchanged,
         "16 s after the input, counting the time since the snapshot"
     );
     assert_eq!(
-        told.report("first", BOX, &snapshot, 0).activity,
+        told.report("first", BOX, &snapshot, 0, false).activity,
         PushActivity::Unchanged,
         "already told"
     );
     told.retain(|connection| *connection == "second");
     assert_eq!(
-        told.report("first", BOX, &snapshot, 0).activity,
+        told.report("first", BOX, &snapshot, 0, false).activity,
         PushActivity::Active,
         "a connection that went away is told afresh"
     );
@@ -224,7 +248,7 @@ fn a_window_that_goes_stale_lets_push_resume_180_seconds_after_its_last_input() 
     let other = PushFocus::Session {
         session: session(2),
     };
-    assert!(window.presence.show(Some((BOX, session(1))), 0));
+    assert!(window.presence.show(Some((BOX, session(1).into())), 0));
     window.send(&mut machine);
     assert_eq!(machine.plan(other, 0), Plan::Told("window"));
     // No more input: the heartbeats keep coming, unchanged.
@@ -268,7 +292,7 @@ fn a_hidden_window_is_present_but_never_suppresses_as_paseo_counts_it() {
     let shown = PushFocus::Session {
         session: session(1),
     };
-    assert!(window.presence.show(Some((BOX, session(1))), 0));
+    assert!(window.presence.show(Some((BOX, session(1).into())), 0));
     window.send(&mut machine);
     assert_eq!(machine.plan(shown, 0), Plan::Suppressed);
     assert!(window.presence.visibility(false, 0));

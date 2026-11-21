@@ -212,6 +212,15 @@ pub enum Command {
     /// `notification.claim`, a terminal's exact attention): answered as
     /// [`crate::Event::TerminalClaims`].
     TerminalClaims(crate::claims::TerminalAsk),
+    /// The person viewed a terminal: clear its attention at the exact
+    /// revision shown (ADR 0089 `terminal.attention_clear`). Nothing comes
+    /// back: the followed list shows the result.
+    ClearTerminalAttention {
+        /// The machine, by its book name.
+        machine: String,
+        /// Which terminal, at which revision.
+        clear: vessel_proto::notifications::ClearTerminalAttention,
+    },
     /// A workspace's shell terminals (ADR 0031); answered by
     /// `Event::Terminals`.
     Terminals(crate::terminals::Ask),

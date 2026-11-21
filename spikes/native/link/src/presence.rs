@@ -20,6 +20,7 @@ use std::time::Instant;
 
 use tokio::sync::watch;
 use vessel_app_view::connection::ConnectionEpoch;
+use vessel_app_view::notices::claims::claims;
 use vessel_app_view::presence::{Millis, Snapshot, Told};
 use vessel_client::NodeClient;
 use vessel_proto::push::ReportPushPresence;
@@ -46,13 +47,21 @@ pub(crate) struct Hub {
 
 impl Hub {
     /// The report for one connection, `later` counted from the snapshot.
-    fn report(&mut self, machine: &str, epoch: ConnectionEpoch) -> Option<ReportPushPresence> {
+    fn report(
+        &mut self,
+        machine: &str,
+        epoch: ConnectionEpoch,
+        terminals: bool,
+    ) -> Option<ReportPushPresence> {
         let (snapshot, taken) = self.last.as_ref()?;
         let later = Millis::try_from(taken.elapsed().as_millis()).unwrap_or(Millis::MAX);
-        Some(
-            self.told
-                .report((machine.to_owned(), epoch), machine, snapshot, later),
-        )
+        Some(self.told.report(
+            (machine.to_owned(), epoch),
+            machine,
+            snapshot,
+            later,
+            terminals,
+        ))
     }
 }
 
@@ -93,14 +102,17 @@ impl State {
     }
 
     fn presence_to(&mut self, machine: &str, epoch: ConnectionEpoch) {
-        let Some(report) = self.presence_hub.report(machine, epoch) else {
-            return;
-        };
         let Some(client) = self
             .clients
             .get(machine)
             .map(|connected| connected.client.clone())
         else {
+            return;
+        };
+        // Only a machine that admits claims may hear a shown terminal
+        // (`vessel_app_view::presence`'s Decision Log).
+        let terminals = claims(Some(client.protocol()));
+        let Some(report) = self.presence_hub.report(machine, epoch, terminals) else {
             return;
         };
         drop(tokio::spawn(report_presence(client, report)));

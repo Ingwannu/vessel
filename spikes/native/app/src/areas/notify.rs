@@ -48,6 +48,7 @@ use vessel_app_view::board::Fleet;
 use vessel_app_view::notices::{
     Announce, Notice, NoticeKind, Seen, Unseen, announce, notices, title_with,
 };
+use vessel_proto::notifications::TerminalAttentionRevision;
 use vessel_proto::terminals::TerminalPlace;
 use vessel_proto::{SessionId, TerminalId};
 
@@ -76,6 +77,9 @@ pub(crate) struct NotifyArea {
     pub(crate) turns: u64,
     /// The last test's result, shown under Settings' section.
     pub(crate) tested: Option<Tested>,
+    /// The last terminal attention a view cleared, so a render does not
+    /// clear it again (`notify/terminals.rs`).
+    cleared: Option<(TerminalId, TerminalAttentionRevision)>,
     _activation: Subscription,
 }
 
@@ -127,6 +131,7 @@ impl NotifyArea {
             next: 0,
             turns: 0,
             tested: None,
+            cleared: None,
             _activation: activation,
         }
     }

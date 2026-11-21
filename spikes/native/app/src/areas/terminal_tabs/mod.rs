@@ -56,6 +56,7 @@ mod find;
 mod find_bar;
 mod input;
 mod open;
+pub(crate) use open::shown_terminal;
 mod select;
 mod stream;
 #[cfg(test)]
@@ -229,6 +230,12 @@ pub(crate) struct TerminalTabs {
 }
 
 impl TerminalTabs {
+    /// A list's terminal, as the shown workspace's last list would hold it.
+    #[cfg(test)]
+    pub(crate) fn listed_for_test(&mut self, info: TerminalInfo) {
+        let _earlier = self.listed_infos.insert(info.id, info);
+    }
+
     pub(crate) fn new(cx: &mut App) -> Self {
         Self {
             panes: HashMap::new(),
@@ -353,6 +360,20 @@ pub(crate) fn label(shell: &Shell, terminal: TerminalId) -> String {
             || shell.words.terminal_tabs().fallback().to_owned(),
             str::to_owned,
         )
+}
+
+/// What the shown workspace's last list says of `terminal`, else its open
+/// pane's. The list comes first: once ADR 0089's feature is assigned, the
+/// list moves when a terminal's attention does, and a pane keeps what it
+/// opened with.
+pub(crate) fn listed_info(shell: &Shell, terminal: TerminalId) -> Option<&TerminalInfo> {
+    let tabs = &shell.areas.terminal_tabs;
+    tabs.listed_infos.get(&terminal).or_else(|| {
+        tabs.panes
+            .iter()
+            .find(|(key, _)| key.terminal == terminal)
+            .and_then(|(_, pane)| pane.info.as_ref())
+    })
 }
 
 /// The place a workspace opens and lists its shells in (ADR 0121): from

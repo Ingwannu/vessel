@@ -21,6 +21,7 @@ use tokio::task::AbortHandle;
 use vessel_app_view::notices::claims::claims;
 use vessel_app_view::notices::terminals::Watched;
 use vessel_client::NodeClient;
+use vessel_proto::notifications::ClearTerminalAttention;
 use vessel_proto::terminals::ListTerminals;
 
 use crate::{Event, State};
@@ -73,6 +74,25 @@ impl State {
             .terminal_notices
             .following
             .insert(machine.to_owned(), follower.abort_handle());
+    }
+}
+
+impl State {
+    /// Clear a viewed terminal's attention on `machine`, fire and forget:
+    /// a lost clear leaves the attention, which the next view clears.
+    pub(crate) fn clear_terminal_attention(&self, machine: &str, clear: ClearTerminalAttention) {
+        let Some(client) = self
+            .clients
+            .get(machine)
+            .map(|connected| connected.client.clone())
+        else {
+            return;
+        };
+        drop(tokio::spawn(async move {
+            if let Err(error) = client.clear_terminal_attention(clear).await {
+                tracing::debug!(%error, "a viewed terminal's attention was not cleared");
+            }
+        }));
     }
 }
 

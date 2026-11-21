@@ -37,7 +37,8 @@ use std::collections::HashMap;
 use vessel_proto::SessionStatus;
 use vessel_proto::TerminalId;
 use vessel_proto::notifications::{
-    NotificationSource, TerminalActivity, TerminalAttentionReason, TerminalAttentionRevision,
+    ClearTerminalAttention, NotificationSource, TerminalActivity, TerminalAttentionReason,
+    TerminalAttentionRevision,
 };
 use vessel_proto::terminals::{TerminalInfo, TerminalPlace};
 
@@ -136,6 +137,22 @@ impl Watched {
             })
             .collect()
     }
+}
+
+/// What viewing `info` clears: its attention at the exact revision shown,
+/// while it asks for the person (ADR 0089 `terminal.attention_clear`; a
+/// stale view never clears a newer revision). Paseo's node clears a focused
+/// terminal's attention on a visible heartbeat (`session.ts:5064-5066`);
+/// Vessel's clear is the client's, by revision.
+#[must_use]
+pub fn to_clear(info: &TerminalInfo) -> Option<ClearTerminalAttention> {
+    let attention = info.attention?;
+    matches!(attention.activity, TerminalActivity::Attention { .. }).then_some(
+        ClearTerminalAttention {
+            terminal: info.id,
+            revision: attention.revision,
+        },
+    )
 }
 
 /// How a terminal notice is told, under Settings' `alerts`: `None` when

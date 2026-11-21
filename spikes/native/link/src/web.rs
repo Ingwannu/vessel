@@ -157,6 +157,8 @@ impl Link {
             Command::Sync { ticket, .. } => self.emit(refuse::sync(ticket)),
             Command::Claims(ask) => self.emit(Event::Claims(ask.failed())),
             Command::TerminalClaims(ask) => self.emit(Event::TerminalClaims(ask.failed())),
+            // The demo has no machine whose terminals ask for anyone.
+            Command::ClearTerminalAttention { .. } => {}
             Command::NodeSettings(ask) => self.emit(refuse::node_settings(ask)),
             Command::Diagnostics(ask) => self.emit(refuse::diagnostics(ask)),
             Command::Plugins(ask) => self.emit(refuse::plugins(ask)),

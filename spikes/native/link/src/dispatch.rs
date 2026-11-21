@@ -44,6 +44,9 @@ impl State {
             Command::Sync { machine, ticket } => self.sync(&machine, ticket).await,
             Command::Claims(ask) => self.claims(ask).await,
             Command::TerminalClaims(ask) => self.terminal_claims(ask).await,
+            Command::ClearTerminalAttention { machine, clear } => {
+                self.clear_terminal_attention(&machine, clear);
+            }
             Command::NodeSettings(ask) => self.node_settings(ask).await,
             Command::Diagnostics(ask) => self.diagnostics(ask).await,
             Command::Plugins(ask) => self.plugins(ask, Event::Plugins).await,

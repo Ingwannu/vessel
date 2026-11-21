@@ -12,7 +12,7 @@ use vessel_proto::notifications::{
 use vessel_proto::terminals::{TerminalInfo, TerminalKind, TerminalPlace};
 use vessel_proto::{SessionId, SessionStatus, SessionTitle, TerminalId};
 
-use super::{TerminalNotice, Watched, announce_terminals};
+use super::{TerminalNotice, Watched, announce_terminals, to_clear};
 use crate::notices::NoticeKind;
 use crate::prefs::Alerts;
 
@@ -156,4 +156,19 @@ fn a_window_that_tells_nothing_claims_nothing() {
     assert_eq!(sound.len(), 1);
     assert!(!sound[0].system);
     assert!(sound[0].sound);
+}
+
+#[test]
+fn viewing_clears_only_attention_at_the_exact_revision_shown() {
+    let id = TerminalId::random();
+    let asked = asking(
+        terminal(id, None),
+        7,
+        Some(TerminalAttentionReason::NeedsInput),
+    );
+    let clear = to_clear(&asked).unwrap();
+    assert_eq!(clear.terminal, id);
+    assert_eq!(clear.revision, TerminalAttentionRevision::new(7));
+    assert_eq!(to_clear(&asking(terminal(id, None), 8, None)), None);
+    assert_eq!(to_clear(&terminal(id, None)), None);
 }

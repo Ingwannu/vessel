@@ -3,7 +3,8 @@
 //! input it has not heard of.
 
 use crate::testing::{actor::Actor, within};
-use vessel_app_view::presence::Presence;
+use vessel_app_view::presence::{Presence, Shown};
+use vessel_proto::notifications::ATTENTION_NOTIFICATIONS_PROTOCOL;
 use vessel_proto::push::{PushActivity, PushFocus, ReportPushPresence};
 use vessel_proto::{Ack, Call, Outcome as WireOutcome, Reply, SessionId};
 
@@ -25,7 +26,7 @@ async fn a_snapshot_reaches_the_machine_with_its_focus_and_new_input_only() {
         let mut actor = Actor::new("fixture").await;
         let session = SessionId::random();
         let mut presence = Presence::new(0, true);
-        assert!(presence.show(Some(("fixture", session)), 0));
+        assert!(presence.show(Some(("fixture", session.into())), 0));
         actor.presence(presence.snapshot(0));
         let first = reported(&mut actor).await;
         assert_eq!(first.focus, PushFocus::Session { session });
@@ -34,7 +35,7 @@ async fn a_snapshot_reaches_the_machine_with_its_focus_and_new_input_only() {
 
         // Another machine's session shown, with no new input since: this
         // machine is shown elsewhere, and hears nothing new.
-        assert!(presence.show(Some(("other", session)), 0));
+        assert!(presence.show(Some(("other", session.into())), 0));
         actor.presence(presence.snapshot(15_000));
         let second = reported(&mut actor).await;
         assert_eq!(second.focus, PushFocus::Elsewhere);
@@ -48,6 +49,30 @@ async fn a_snapshot_reaches_the_machine_with_its_focus_and_new_input_only() {
         assert_eq!(third.focus, PushFocus::Background);
         assert_eq!(third.activity, PushActivity::Active);
 
+        actor.retire().await;
+        actor.close_peer().await;
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn a_shown_terminal_is_terminal_focus_only_to_a_machine_that_admits_claims() {
+    within(async {
+        let mut actor = Actor::new("fixture").await;
+        let terminal = vessel_proto::TerminalId::random();
+        let mut presence = Presence::new(0, true);
+        assert!(presence.show(Some(("fixture", Shown::Terminal(terminal))), 0));
+        actor.presence(presence.snapshot(0));
+        let report = reported(&mut actor).await;
+        // A report carrying `Terminal` focus is versioned to ADR 0089's
+        // constant: while it is unassigned the machine hears `Elsewhere`,
+        // as a terminal tab was before.
+        let expected = if ATTENTION_NOTIFICATIONS_PROTOCOL.is_some() {
+            PushFocus::Terminal { terminal }
+        } else {
+            PushFocus::Elsewhere
+        };
+        assert_eq!(report.focus, expected);
         actor.retire().await;
         actor.close_peer().await;
     })

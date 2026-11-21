@@ -8,7 +8,8 @@
 //!   Paseo's window `focus` (`:64-67,78-82`);
 //! - visibility: the window shown or not (`observe_window_visibility`), as
 //!   Paseo reads the document's (`:69-75`);
-//! - the shown session, read at each render (`:115-118`);
+//! - the shown session, read at each render (`:115-118`), or the terminal
+//!   whose tab has the focused pane there (claims row 3);
 //! - a heartbeat at once and then every 15 s (`:125-148`): the first one
 //!   goes as soon as the shell exists, so opening reaches the link before
 //!   the first machine connects, and a machine that connects hears that
@@ -21,7 +22,7 @@ use gpui::{
     AnyElement, Context, DispatchPhase, IntoElement, MouseDownEvent, ScrollEvent, Styled as _,
     Subscription, Window,
 };
-use vessel_app_view::presence::{HEARTBEAT, Millis, Presence};
+use vessel_app_view::presence::{HEARTBEAT, Millis, Presence, Shown};
 
 use crate::routes::Route;
 use crate::shell::Shell;
@@ -109,7 +110,8 @@ impl Shell {
         }
     }
 
-    /// The session shown, at each render: a change sends at once.
+    /// The session shown, or the terminal whose tab has the focused pane
+    /// in its workspace, at each render: a change sends at once.
     pub(crate) fn presence_shown(&mut self) {
         let shown = self
             .areas
@@ -117,16 +119,32 @@ impl Shell {
             .open
             .as_ref()
             .filter(|_| self.route == Route::Session)
-            .map(|open| (open.machine.clone(), open.session));
+            .map(|open| (open.machine.clone(), Shown::Session(open.session)));
+        let shown = shown.map(|(machine, session)| {
+            let terminal = crate::areas::layout::current_key(self)
+                .ok()
+                .and_then(|key| {
+                    crate::areas::layout::read_layout(
+                        self,
+                        &key,
+                        crate::areas::terminal_tabs::shown_terminal,
+                    )
+                });
+            (machine, terminal.map_or(session, Shown::Terminal))
+        });
         let area = &mut self.areas.presence;
         let now = area.now();
+        let visible = area.presence.visible();
         if area.presence.show(
             shown
                 .as_ref()
-                .map(|(machine, session)| (machine.as_str(), *session)),
+                .map(|(machine, what)| (machine.as_str(), *what)),
             now,
         ) {
             self.presence_send();
+        }
+        if let Some((machine, Shown::Terminal(terminal))) = shown.filter(|_| visible) {
+            self.terminal_attention_seen(&machine, terminal);
         }
     }
 

@@ -298,8 +298,20 @@ terminal's attention, and no machine admits claims, so nothing here runs.
   - Admitted notices share one sound and count in the window's title, as session notices do.
 - **Click** (`app/src/areas/notify/terminals.rs`): opens the session whose workspace holds the terminal's
   place, then the terminal's tab there. Nothing opens when the fleet lists no such session.
-- **Not in this part.** Viewing a terminal does not yet send `terminal.attention_clear`, presence does not yet
-  report `Terminal` focus, and the page has none of it. These are the row's next parts.
+- **Presence.** A terminal tab with the focused pane in the shown workspace is reported as
+  `Terminal{terminal}` focus (`view/src/presence.rs`, `Shown::Terminal`), as Paseo's focus target is an agent
+  or a terminal (`agent-attention-policy.ts:12`). The machine then suppresses that terminal's notice and
+  keeps the session's.
+  - A report carrying `Terminal` focus is versioned to ADR 0089's constant (`rpc/since.rs`). So only a
+    machine that admits claims hears it.
+  - Every other machine hears `Elsewhere`, as for a terminal tab before.
+- **Viewing clears.** While the window is visible and a terminal's tab is shown, the app sends
+  `terminal.attention_clear` with the exact attention revision its list shows (`notices::terminals::to_clear`,
+  `notify/terminals.rs`), once per revision.
+  - Paseo's node clears a focused terminal's attention on a visible heartbeat (`session.ts:5064-5066`).
+    Vessel's clear is the client's, by revision, so a stale view never clears newer attention (ADR 0089).
+  - A lost clear is not retried, and the next view sends it again.
+- **Not in this part:** the page. It follows on the node line.
 - **Tests:**
   - `view/src/notices/terminals/tests.rs`: the first list, a new revision told once, the kinds, a failed
     terminal, alerts off;
@@ -307,5 +319,7 @@ terminal's attention, and no machine admits claims, so nothing here runs.
     revision, and only the new attention told; a fresh connection follows only while the constant is
     assigned;
   - `app/src/areas/notify/terminals/tests.rs`: only admitted notices are shown, with their titles; alerts
-    off never claims.
+    off never claims; a viewed terminal's attention is cleared once, only on a machine that admits claims;
+  - `view/src/presence/tests.rs` and `link/src/presence/tests.rs`: a shown terminal is `Terminal` focus only
+    to a machine that admits claims.
 

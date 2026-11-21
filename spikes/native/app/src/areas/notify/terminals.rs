@@ -10,8 +10,10 @@ use vessel_app_kit::ui::{Context, Window};
 use vessel_app_link::Command;
 use vessel_app_link::claims::{TerminalAnswer, TerminalAsk};
 use vessel_app_view::layout::{AgentRole, OpenIntent, Placement, Target};
-use vessel_app_view::notices::claims::Asked;
-use vessel_app_view::notices::terminals::{TerminalAnnounce, TerminalNotice, announce_terminals};
+use vessel_app_view::notices::claims::{Asked, claims};
+use vessel_app_view::notices::terminals::{
+    TerminalAnnounce, TerminalNotice, announce_terminals, to_clear,
+};
 use vessel_app_view::notices::{NoticeKind, title_with};
 use vessel_app_view::terminal_tabs::place_for;
 use vessel_proto::TerminalId;
@@ -92,6 +94,36 @@ impl Shell {
         if let Some(kind) = sound {
             vessel_app_link::sound::play(kind);
         }
+    }
+
+    /// The person is looking at `terminal`'s tab in a visible window: clear
+    /// its attention at the exact revision shown, once per revision
+    /// (`vessel_app_view::notices::terminals::to_clear`). Only a machine
+    /// that admits claims is asked.
+    pub(crate) fn terminal_attention_seen(&mut self, machine: &str, terminal: TerminalId) {
+        let protocol = self
+            .fleet
+            .machines
+            .iter()
+            .find(|known| known.name == machine)
+            .and_then(|known| known.protocol);
+        if !claims(protocol) {
+            return;
+        }
+        let Some(clear) =
+            crate::areas::terminal_tabs::listed_info(self, terminal).and_then(to_clear)
+        else {
+            return;
+        };
+        let seen = (terminal, clear.revision);
+        if self.areas.notify.cleared == Some(seen) {
+            return;
+        }
+        self.areas.notify.cleared = Some(seen);
+        self.command(Command::ClearTerminalAttention {
+            machine: machine.to_owned(),
+            clear,
+        });
     }
 
     /// A click on a terminal notice: open a session whose workspace holds

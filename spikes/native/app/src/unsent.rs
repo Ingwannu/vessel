@@ -93,6 +93,8 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
         )),
         Command::Labels(request) => Event::Labels(request.refused(labels_failure(why))),
         Command::RetireConnection(_tag) => return Settle::Ignore,
+        // A viewed terminal's clear: the next view asks again, unseen.
+        Command::ClearTerminalAttention { .. } => return Settle::Ignore,
         Command::CodeSource(request) => {
             Event::CodeSource(Box::new(request.refused(Problem::Unsent)))
         }

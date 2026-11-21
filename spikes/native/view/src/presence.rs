@@ -36,13 +36,37 @@
 //! - Choice: this module is pure, with the clock passed in as milliseconds;
 //!   the app records input and visibility, and the link sends each
 //!   machine its report through [`Told`].
+//! - A shown terminal (claims row 3): Paseo's focus target is an agent or
+//!   a terminal (`agent-attention-policy.ts:12`). A focused terminal tab is
+//!   reported as `Terminal` focus, so the machine suppresses that
+//!   terminal's notice and keeps the session's. A report carrying
+//!   `Terminal` focus is versioned to ADR 0089's constant
+//!   (`rpc/since.rs`), so only a machine that admits claims hears it. Any
+//!   other machine hears `Elsewhere`, which is what a terminal tab was
+//!   before.
 
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::time::Duration;
 
-use vessel_proto::SessionId;
 use vessel_proto::push::{PushActivity, PushFocus, ReportPushPresence};
+use vessel_proto::{SessionId, TerminalId};
+
+/// What the window shows on a machine: a session's conversation, or a
+/// terminal's tab.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Shown {
+    /// A session's conversation.
+    Session(SessionId),
+    /// A terminal's tab.
+    Terminal(TerminalId),
+}
+
+impl From<SessionId> for Shown {
+    fn from(session: SessionId) -> Self {
+        Self::Session(session)
+    }
+}
 
 /// Paseo's `HEARTBEAT_INTERVAL_MS` (`client-activity-tracker.ts:1`).
 pub const HEARTBEAT: Duration = Duration::from_secs(15);
@@ -63,7 +87,7 @@ fn millis(duration: Duration) -> Millis {
 pub struct Presence {
     last_input: Millis,
     visible: bool,
-    shown: Option<(String, SessionId)>,
+    shown: Option<(String, Shown)>,
     last_immediate: Option<Millis>,
 }
 
@@ -96,12 +120,12 @@ impl Presence {
         due
     }
 
-    /// The shown session, on its machine. A change is input and sends at
-    /// once (`true`); the same one sends nothing.
-    pub fn show(&mut self, shown: Option<(&str, SessionId)>, now: Millis) -> bool {
+    /// The shown session or terminal, on its machine. A change is input and
+    /// sends at once (`true`); the same one sends nothing.
+    pub fn show(&mut self, shown: Option<(&str, Shown)>, now: Millis) -> bool {
         let same = match (&self.shown, shown) {
-            (Some((machine, session)), Some((next_machine, next_session))) => {
-                machine == next_machine && *session == next_session
+            (Some((machine, was)), Some((next_machine, next))) => {
+                machine == next_machine && *was == next
             }
             (None, None) => true,
             _ => false,
@@ -109,7 +133,7 @@ impl Presence {
         if same {
             return false;
         }
-        self.shown = shown.map(|(machine, session)| (machine.to_owned(), session));
+        self.shown = shown.map(|(machine, what)| (machine.to_owned(), what));
         self.input(now);
         true
     }
@@ -127,6 +151,12 @@ impl Presence {
         true
     }
 
+    /// Whether the window is visible.
+    #[must_use]
+    pub const fn visible(&self) -> bool {
+        self.visible
+    }
+
     /// What the link needs to report to each machine at `now`.
     #[must_use]
     pub fn snapshot(&self, now: Millis) -> Snapshot {
@@ -142,23 +172,30 @@ impl Presence {
 /// The window's presence at one moment, handed to the link.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Snapshot {
-    shown: Option<(String, SessionId)>,
+    shown: Option<(String, Shown)>,
     visible: bool,
     last_input: Millis,
     now: Millis,
 }
 
 impl Snapshot {
-    /// What `machine` is shown: its session when the window is visible
-    /// and shows one of its sessions; elsewhere when visible; background
-    /// when hidden.
+    /// What `machine` is shown: its session, or its terminal when
+    /// `terminals` (the machine admits claims), when the window is visible
+    /// and shows one; elsewhere when visible; background when hidden.
     #[must_use]
-    pub fn focus(&self, machine: &str) -> PushFocus {
+    pub fn focus(&self, machine: &str, terminals: bool) -> PushFocus {
         if !self.visible {
             return PushFocus::Background;
         }
         match &self.shown {
-            Some((shown, session)) if shown == machine => PushFocus::Session { session: *session },
+            Some((on, Shown::Session(session))) if on == machine => {
+                PushFocus::Session { session: *session }
+            }
+            Some((on, Shown::Terminal(terminal))) if on == machine && terminals => {
+                PushFocus::Terminal {
+                    terminal: *terminal,
+                }
+            }
             _ => PushFocus::Elsewhere,
         }
     }
@@ -182,13 +219,15 @@ impl<K> Default for Told<K> {
 impl<K: Eq + Hash> Told<K> {
     /// The report for `machine` on `connection`, `later` milliseconds after
     /// `snapshot` was taken. A connection not told before hears `Active`
-    /// only for input in the last 15 s.
+    /// only for input in the last 15 s. `terminals`: the machine admits
+    /// claims, so it may hear a shown terminal ([`Snapshot::focus`]).
     pub fn report(
         &mut self,
         connection: K,
         machine: &str,
         snapshot: &Snapshot,
         later: Millis,
+        terminals: bool,
     ) -> ReportPushPresence {
         let before = self.told.insert(connection, snapshot.last_input);
         let fresh = before.map_or_else(
@@ -202,7 +241,7 @@ impl<K: Eq + Hash> Told<K> {
             |before| snapshot.last_input > before,
         );
         ReportPushPresence {
-            focus: snapshot.focus(machine),
+            focus: snapshot.focus(machine, terminals),
             activity: if fresh {
                 PushActivity::Active
             } else {
