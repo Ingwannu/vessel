@@ -26,6 +26,8 @@ pub enum Command {
     Usage(crate::usage::Ask),
     /// One schedule list or explicit mutation.
     Schedules(vessel_app_view::schedules::page::Request),
+    /// One request from the current schedule editor.
+    ScheduleForm(vessel_app_view::schedules::editor::io::Request),
     /// Passive read/follow bound to an authenticated deep-link destination.
     SessionAccess(crate::sessions::Access),
     /// Resolve a session for a deep link or Copy link without starting it.

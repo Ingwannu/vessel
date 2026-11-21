@@ -131,7 +131,7 @@ fn select_triggers_name_the_host_filter_and_settings_field(cx: &mut TestAppConte
     }
 }
 
-fn named_button(cx: &mut gpui::VisualTestContext, name: &str) -> bool {
+pub(crate) fn named_button(cx: &mut gpui::VisualTestContext, name: &str) -> bool {
     cx.run_until_parked();
     let tree = cx.update(|window, _| window.debug_a11y_tree_json().unwrap());
     let label = format!(r#""label": "{name}""#);

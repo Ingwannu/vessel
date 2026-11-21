@@ -20,6 +20,7 @@ pub mod presentation;
 pub mod time;
 pub use crate::badge::Variant;
 pub mod description;
+pub mod editor;
 pub mod load;
 pub mod locale;
 pub mod page;

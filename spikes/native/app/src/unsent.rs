@@ -66,6 +66,13 @@ const fn agents_error(why: Rejected) -> AgentsError {
     }
 }
 
+fn act_error(code: Option<ErrorCode>, words: &str) -> ActFailed {
+    ActFailed {
+        code,
+        message: words.to_owned(),
+    }
+}
+
 /// How `unsent` settles; `words`, the app's sentence for it, in the
 /// person's language.
 pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
@@ -74,10 +81,8 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
     let event = match *unsent.command {
         Command::Usage(ask) => usage_refused(ask, why),
         Command::Schedules(request) => crate::areas::schedules::refuse(request, why),
-        Command::SessionAccess(access) => access.refused(ActFailed {
-            code: None,
-            message: words.to_owned(),
-        }),
+        Command::ScheduleForm(request) => crate::areas::schedules::refuse_form(request, why),
+        Command::SessionAccess(access) => access.refused(act_error(None, words)),
         Command::SessionLifecycle(request) => {
             Event::SessionLifecycle(vessel_app_link::sessions::lifecycle::Answer {
                 ticket: request.ticket,

@@ -24,6 +24,8 @@ pub enum Event {
     Usage(crate::usage::Answer),
     /// A schedule list or mutation result on its original admission.
     Schedules(crate::schedules::Answer),
+    /// Schedule editor outcome on its immutable admission.
+    ScheduleForm(crate::schedules::form::Answer),
     /// Session address lookup, correlated to its requesting control.
     Sessions(crate::sessions::Answer),
     /// The matching lifecycle mutation result.
