@@ -45,6 +45,7 @@ import type {
   PushFocus,
   ReportPushPresence,
   SessionId,
+  TerminalId,
 } from "../wire/proto";
 import type { Fleet } from "./fleet";
 import { attempt, type Outcome, type Problem } from "./outcome";
@@ -58,10 +59,12 @@ export const ACTIVITY_HEARTBEAT_THROTTLE_MS = 5_000;
 /** `push.presence`'s protocol. */
 export const PRESENCE_PROTOCOL = 22;
 
-/** The session this window shows, on its machine. */
+/** The session this window shows, on its machine, and the terminal whose
+ * tab its workspace shows, if one does (claims row 3). */
 export interface ShownSession {
   node: NodeKey;
   id: SessionId;
+  terminal?: TerminalId;
 }
 
 /** The shown session as the tracker takes it (`where.ts`'s `shownSession`). */
@@ -103,6 +106,10 @@ export interface PresenceLink {
   nodes: () => readonly NodeKey[];
   /** Send, without waiting; a failure is the link's to note. */
   send: (node: NodeKey, report: ReportPushPresence) => void;
+  /** Whether `node` may hear a shown terminal: it admits claims. A report
+   * carrying `terminal` focus is versioned to ADR 0089's constant
+   * (`rpc/since.rs`). Absent: no machine may. */
+  terminals?: (node: NodeKey) => boolean;
 }
 
 export interface PresenceTracker {
@@ -146,7 +153,15 @@ export function createPresenceTracker(input: PresenceInput): PresenceTracker {
       return { focus: "background" };
     }
     if (shown !== null && shown.node === node) {
-      return { focus: "session", session: shown.id };
+      // A shown terminal is Paseo's terminal focus target
+      // (`agent-attention-policy.ts:12`): never the session's, so its push
+      // is not held back. Only a machine that admits claims hears it.
+      if (shown.terminal === undefined) {
+        return { focus: "session", session: shown.id };
+      }
+      return link.terminals?.(node) === true
+        ? { focus: "terminal", terminal: shown.terminal }
+        : { focus: "elsewhere" };
     }
     return { focus: "elsewhere" };
   }
@@ -187,7 +202,11 @@ export function createPresenceTracker(input: PresenceInput): PresenceTracker {
       sendHeartbeat();
     },
     setShown(next) {
-      if (next?.node === shown?.node && next?.id === shown?.id) {
+      if (
+        next?.node === shown?.node &&
+        next?.id === shown?.id &&
+        next?.terminal === shown?.terminal
+      ) {
         return;
       }
       shown = next;

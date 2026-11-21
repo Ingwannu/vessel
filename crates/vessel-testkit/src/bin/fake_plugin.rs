@@ -4,6 +4,9 @@
 //! plain JSON, as the other fakes keep no wire dependency.
 //!
 //! - `ready` declares the document `display` at version 2 and no methods.
+//!   Its client holds a settings screen `display` whose card binds `color`
+//!   to a select (blue or red), and a command that opens it, so the catalog
+//!   has kinds of the surfaces' protocol (ADR 0115, "Surfaces").
 //! - `parse`: the schema is `{color: string = "blue", size: whole number =
 //!   1}`. Another key or another type is refused with words. A document
 //!   holding `"boom"` is refused with words that hold control characters and
@@ -48,10 +51,46 @@ fn ready() -> Value {
     json!({
         "type": "ready",
         "protocol": 1,
-        "client": {"methods": [], "contributions": [], "themes": []},
+        "client": {"methods": [], "contributions": contributions(), "themes": []},
         "hooks": [],
         "settings": [{"id": "display", "version": 2}],
     })
+}
+
+/// A settings screen with a card binding `color`, and a command opening it.
+fn contributions() -> Value {
+    let select = json!({
+        "id": "color",
+        "content": {
+            "kind": "settings_select",
+            "settings": "display",
+            "key": "color",
+            "label": "Color",
+            "options": [{"id": "blue", "title": "Blue"}, {"id": "red", "title": "Red"}],
+        },
+    });
+    json!([
+        {
+            "id": "display",
+            "title": "Display",
+            "content": {
+                "kind": "settings_screen",
+                "surface": {"controls": [
+                    {"id": "card", "content": {"kind": "card", "surface": {"controls": [select]}}},
+                ]},
+            },
+        },
+        {
+            "id": "open-display",
+            "title": "Display settings",
+            "content": {
+                "kind": "command",
+                "keywords": [],
+                "context": "global",
+                "action": {"kind": "open_settings", "screen": "display"},
+            },
+        },
+    ])
 }
 
 /// The step of a `display` settings call.
