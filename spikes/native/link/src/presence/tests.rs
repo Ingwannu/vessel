@@ -66,7 +66,7 @@ async fn a_shown_terminal_is_terminal_focus_only_to_a_machine_that_admits_claims
         let report = reported(&mut actor).await;
         // A report carrying `Terminal` focus is versioned to ADR 0089's
         // constant: while it is unassigned the machine hears `Elsewhere`,
-        // as a terminal tab was before.
+        // not the route's session (Paseo's focus target is the terminal).
         let expected = if ATTENTION_NOTIFICATIONS_PROTOCOL.is_some() {
             PushFocus::Terminal { terminal }
         } else {

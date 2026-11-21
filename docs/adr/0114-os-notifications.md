@@ -304,7 +304,9 @@ terminal's attention, and no machine admits claims, so nothing here runs.
   keeps the session's.
   - A report carrying `Terminal` focus is versioned to ADR 0089's constant (`rpc/since.rs`). So only a
     machine that admits claims hears it.
-  - Every other machine hears `Elsewhere`, as for a terminal tab before.
+  - Every other machine hears `Elsewhere`. **This changes push today.** Before this row, a terminal tab
+    reported its route's session, so that session's push was held back while the person looked at the
+    terminal. Now it goes, as Paseo's does: its focus target is then the terminal, not the agent.
 - **Viewing clears.** While the window is visible and a terminal's tab is shown, the app sends
   `terminal.attention_clear` with the exact attention revision its list shows (`notices::terminals::to_clear`,
   `notify/terminals.rs`), once per revision.

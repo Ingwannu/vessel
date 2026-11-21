@@ -42,8 +42,10 @@
 //!   terminal's notice and keeps the session's. A report carrying
 //!   `Terminal` focus is versioned to ADR 0089's constant
 //!   (`rpc/since.rs`), so only a machine that admits claims hears it. Any
-//!   other machine hears `Elsewhere`, which is what a terminal tab was
-//!   before.
+//!   other machine hears `Elsewhere`: the person is not looking at the
+//!   session's conversation. This changes push today. Before, a terminal
+//!   tab reported its route's session, and that session's push was held
+//!   back; now it goes, as Paseo's does while a terminal has the focus.
 
 use std::collections::HashMap;
 use std::hash::Hash;
