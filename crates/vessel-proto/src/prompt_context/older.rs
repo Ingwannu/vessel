@@ -6,7 +6,7 @@
 
 use super::{PROMPT_CONTEXT_PROTOCOL, agent_text};
 use crate::ContentBlock;
-use crate::conversation::{PromptQueue, QueuedPrompt};
+use crate::conversation::{PromptQueue, QueueChange, QueuedPrompt};
 use crate::node::ProtocolVersion;
 
 /// The first version with attachment blocks.
@@ -108,4 +108,19 @@ pub(crate) fn context_since(content: &[ContentBlock]) -> Result<Option<u32>, Pen
             .ok_or(Pending);
     }
     Ok(None)
+}
+
+impl QueueChange {
+    /// The content an edit puts in the queue; none for any other change.
+    pub(crate) fn content(&self) -> &[ContentBlock] {
+        match self {
+            Self::Edit { content, .. } => content,
+            Self::Move { .. }
+            | Self::Remove { .. }
+            | Self::SendNow { .. }
+            | Self::Hold
+            | Self::Resume
+            | Self::Clear => &[],
+        }
+    }
 }

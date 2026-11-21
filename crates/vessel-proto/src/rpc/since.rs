@@ -118,17 +118,7 @@ impl Call {
                 .notify
                 .then_some(11)
                 .max(context_since(&request.content).ok()?),
-            Self::ChangeQueue(request) => match &request.change {
-                crate::conversation::QueueChange::Edit { content, .. } => {
-                    context_since(content).ok()?
-                }
-                crate::conversation::QueueChange::Move { .. }
-                | crate::conversation::QueueChange::Remove { .. }
-                | crate::conversation::QueueChange::SendNow { .. }
-                | crate::conversation::QueueChange::Hold
-                | crate::conversation::QueueChange::Resume
-                | crate::conversation::QueueChange::Clear => None,
-            },
+            Self::ChangeQueue(request) => context_since(request.change.content()).ok()?,
             // An answer to a question, and a prompt naming an attachment,
             // came in 10: an older node cannot decode either.
             Self::SendInput(request) => match &request.input {
