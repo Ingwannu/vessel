@@ -72,6 +72,7 @@ async fn visible_first_or_last_does_not_drop_background_and_scan_continues_after
                 presence,
                 ReportPushPresence {
                     idle_age: None,
+                    notifies: true,
                     focus: PushFocus::Session { session: visible },
                     activity: PushActivity::Active
                 }

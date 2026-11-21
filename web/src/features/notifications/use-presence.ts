@@ -32,6 +32,7 @@ import {
 } from "../../data/shown-terminal";
 import { shownSession, useWhere } from "../../data/where";
 import type { NodeKey } from "../../wire/bridge";
+import { windowNotifies } from "./notifies";
 
 export function usePresence(): void {
   const fleet = useFleet();
@@ -59,7 +60,14 @@ export function usePresence(): void {
         nodes: serving,
         terminals: (node) => claimsOn(fleet.store.get().statuses[node]),
         send(node, report) {
-          void reportPresence(fleet, node, report).then((sent) => {
+          // A window that does not show the system's notifications says so
+          // to a machine that admits claims, which then never elects it
+          // (`notifies.ts`); absent reads true, as before.
+          const told =
+            claimsOn(fleet.store.get().statuses[node]) && !windowNotifies()
+              ? { ...report, notifies: false }
+              : report;
+          void reportPresence(fleet, node, told).then((sent) => {
             if (!sent.ok && refusesPresence(sent.problem)) {
               refused.add(node);
             }
