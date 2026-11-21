@@ -24,6 +24,10 @@ import "./plugins-section.css";
 import { useState } from "react";
 
 import { useFleetState } from "../../context";
+import { pluginCatalogs } from "../../data/plugin-catalog";
+import { settingsScreens } from "../../data/plugin-surfaces";
+import { useStore } from "../../data/store";
+import { useOpenSurface } from "../plugins/use-open-surface";
 import { machineFor } from "../../data/machines";
 import {
   installSource,
@@ -80,6 +84,8 @@ function PluginsOf({ machine }: { machine: NodeKey }) {
   const [source, setSource] = useState("");
   const [logsOf, setLogsOf] = useState<PluginListItem | null>(null);
   const [removing, setRemoving] = useState<PluginListItem | null>(null);
+  const held = useStore(pluginCatalogs, (all) => all.get(machine));
+  const open = useOpenSurface();
   const picker = <MachinePicker section="plugins" machine={machine} />;
   const state = pluginPageState({
     connected,
@@ -180,6 +186,15 @@ function PluginsOf({ machine }: { machine: NodeKey }) {
             onAction: plugins.act,
             onLogs: setLogsOf,
             onRemove: setRemoving,
+            settingsOf: (plugin) => settingsScreens(held, plugin.id),
+            onSettings: (plugin, screen) => {
+              open({
+                kind: "settings",
+                node: machine,
+                plugin: plugin.id,
+                screen,
+              });
+            },
           }}
         />
       </SettingsSection>
