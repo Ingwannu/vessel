@@ -298,7 +298,8 @@ impl SessionError {
                 | AttachmentError::TooLarge { .. }
                 | AttachmentError::Twice(_)
                 | AttachmentError::NotTaken { .. }
-                | AttachmentError::NotKept(_),
+                | AttachmentError::NotKept(_)
+                | AttachmentError::Context(_),
             ) => ErrorCode::InvalidRequest,
             Self::Probe(vessel_agent::ProbeError::CatalogUnsupported { .. }) => ErrorCode::Unsupported,
             Self::NotReloadable(refusal) => refusal.code(),

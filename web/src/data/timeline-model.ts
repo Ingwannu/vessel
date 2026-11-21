@@ -175,6 +175,11 @@ export function blockText(block: ContentBlock): string {
       return "";
     case "attachment":
       return `[${block.attachment.name}]`;
+    // Attached context and reviews are not words of the prompt (ADR
+    // 0124); the timeline draws them as pills (P6c).
+    case "context":
+    case "review":
+      return "";
   }
 }
 

@@ -68,6 +68,28 @@ no runtime to compile. The package that serves the method changes `staged`
 to `pending` in the commit that adds its handler; from then on the guard
 requires the handler, as for every assigned or pending row.
 
+## Version 45 (draft, 2026-11-21, milestone 12): a prompt's context and review blocks (implementer G, ADR 0124)
+
+Drafted as 45 (`PROMPT_CONTEXT_PROTOCOL`, `PROTOCOL_VERSION` 45); the integrator assigns the number at the node-line
+merge. No method is added; `ContentBlock` gains two blocks for what a client sends (a prompt, a steer, a queued
+prompt's edit):
+
+- `context { kind, title, subtitle?, text, url? }`: a pull request's comment, review or check logs, a workspace
+  file, a browser element, earlier conversation, a forge's issue or pull request, a plugin's resource. `kind` is
+  `pull_comment | pull_review | pull_check | workspace_file | browser_element | chat_history | forge_issue |
+  forge_change_request | plugin_resource`; `title` and `subtitle` one line of at most 200 characters, `text` at most
+  64 KiB (not blank, no NUL), `url` `https` or `http`.
+- `review { root, mode, base?, comments }`: a diff review. `mode` is `unstaged | staged | uncommitted | base |
+  commit`; each comment `{ path, side: old | new, line, body, hunk_header, target, lines }` with each line
+  `{ old?, new?, kind: add | remove | context, content }`. 1 to 100 comments, at most 7 lines each, a body at most
+  16 KiB, the review's text for the agent at most 64 KiB; a block past these is refused (`invalid_request`).
+- The agent receives a `context`'s text, and a `review` as Paseo's review text under the heading "Vessel review
+  attachment (<mode>)" (`prompt_context::agent_text`). The session's log, its timeline and its queue keep the typed
+  blocks, so clients draw them as pills.
+- A peer below 45 reads each block as a `text` block of that same text: in `turn_started`, `user_message_chunk` and
+  `steered`, in the queue of `session.conversation` and of `queue_changed`. `Call::since` makes `session.prompt`,
+  `session.send`'s prompt and a queue `edit` holding one need 45, so a client sends `text` to an older node.
+
 ## Version 44 (2026-11-21, milestone 12): plugin surfaces' declaration kinds (impl P, ADR 0115 "Surfaces")
 
 Assigned 44 (`PLUGIN_SURFACES_PROTOCOL`, `PROTOCOL_VERSION` 44) at its node-line merge, the next after the settings'

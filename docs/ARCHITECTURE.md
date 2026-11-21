@@ -806,6 +806,16 @@ In the crate table's order.
     sessions ask for a prompt's bodies (`load::serve`: base64 for images
     and audio, a `file:` URI for a file, each read back on the blocking
     pool).
+  - A prompt's `context` and `review` blocks (ADR 0124, drafted as
+    protocol 45; `vessel_proto::prompt_context`): each value checks its
+    own bounds as it decodes, and the same entry points check a block's
+    whole bounds (`sessions/conversation.rs`, `prompt_context::check`,
+    refused as an attachment error, `invalid_request`). The log and the
+    queue keep the typed blocks; each harness driver gives the agent the
+    text `prompt_context::agent_text` renders (a context's text, a review
+    in Paseo's form), and a peer before the protocol reads that text as a
+    `text` block (`prompt_context/older.rs`, applied in the event and
+    conversation projections).
   - Transports: the local socket (Unix socket 0600, or a named pipe on
     Windows) whose first frame is the token or an agent's credential;
     `--bind none`; `vesseld attach`, the byte-pumping proxy SSH runs,

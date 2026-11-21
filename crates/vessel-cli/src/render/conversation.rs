@@ -60,7 +60,10 @@ fn prompt(entry: &QueuedPrompt) -> String {
                     .unwrap_or_default()
                     .clone_into(&mut words);
             }
-            ContentBlock::Attachment { .. } => files = files.saturating_add(1),
+            // Attached context and reviews count with the files (ADR 0124).
+            ContentBlock::Attachment { .. } | ContentBlock::Context(_) | ContentBlock::Review(_) => {
+                files = files.saturating_add(1);
+            }
             ContentBlock::Text { .. }
             | ContentBlock::ResourceLink { .. }
             | ContentBlock::Opaque { .. } => {}

@@ -2,6 +2,7 @@
 //! offer yet, and the requests the driver itself sends (the session
 //! loop's other half is `agent`).
 
+use vessel_proto::prompt_context::agent_text;
 use vessel_proto::{AgentEvent, ContentBlock, OptionChoice};
 
 use super::super::wire::{HostAnswer, HostRequest, Outgoing, OutgoingBlock, OutgoingMessage};
@@ -192,6 +193,10 @@ fn prompt_blocks(content: &[ContentBlock]) -> Result<Vec<OutgoingBlock>, InputEr
             ContentBlock::Opaque { .. } => Err(InputError::InvalidContent(
                 serde::de::Error::custom("Claude Code's driver takes text and links"),
             )),
+            // A person's context or review, as its text (ADR 0124).
+            ContentBlock::Context(_) | ContentBlock::Review(_) => Ok(OutgoingBlock::Text {
+                text: agent_text(block).unwrap_or_default(),
+            }),
         })
         .collect()
 }

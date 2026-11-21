@@ -53,6 +53,7 @@ use crate::model::ModelCall;
 use crate::name::ProfileName;
 use crate::node::ProtocolVersion;
 use crate::options::SessionOption;
+use crate::prompt_context::{block_for_protocol, content_protocol};
 use crate::session::SessionStatus;
 use crate::terminal::TerminalOutput;
 use crate::title::SessionTitle;
@@ -216,6 +217,14 @@ impl SessionEvent {
         {
             return Some(Self::UsageChanged { usage });
         }
+        // A queued prompt's context or review reaches a peer before ADR
+        // 0124's protocol as the text the agent will read.
+        if readable
+            && let Self::QueueChanged { queue } = self
+            && let Some(queue) = queue.context_for_protocol(protocol)
+        {
+            return Some(Self::QueueChanged { queue });
+        }
         if readable {
             return self.origin_for_protocol(protocol, crate::GENERATED_NAMES);
         }
@@ -296,18 +305,14 @@ impl AgentEvent {
     #[must_use]
     pub fn required_protocol(&self) -> Option<ProtocolVersion> {
         match self {
-            Self::Steered { .. } | Self::QuestionAsked(_) | Self::QuestionResolved { .. } => {
+            Self::Steered { content } => content_protocol(content)
+                .map(|since| since.max(ProtocolVersion::new(10))),
+            Self::QuestionAsked(_) | Self::QuestionResolved { .. } => {
                 Some(ProtocolVersion::new(10))
             }
-            Self::TurnStarted { content } if content.iter().any(is_attachment) => {
-                Some(ProtocolVersion::new(10))
-            }
-            Self::UserMessageChunk { content } if is_attachment(content) => {
-                Some(ProtocolVersion::new(10))
-            }
+            Self::TurnStarted { content } => content_protocol(content),
+            Self::UserMessageChunk { content } => content_protocol(std::slice::from_ref(content)),
             Self::Ready { .. }
-            | Self::TurnStarted { .. }
-            | Self::UserMessageChunk { .. }
             | Self::MessageChunk { .. }
             | Self::ThoughtChunk { .. }
             | Self::ToolCall(_)
@@ -332,7 +337,18 @@ impl AgentEvent {
             return None;
         }
         let log = |line: String| Some(Self::HarnessLog { line });
+        let blocks = |content: &[ContentBlock]| {
+            content
+                .iter()
+                .map(|block| block_for_protocol(block, protocol))
+                .collect()
+        };
         match self {
+            Self::Steered { content } if protocol >= ProtocolVersion::new(10) => {
+                Some(Self::Steered {
+                    content: blocks(content),
+                })
+            }
             Self::Steered { content } => log(match first_line(content) {
                 Some(line) => format!("vessel: steered: {line}"),
                 None => "vessel: steered".to_owned(),
@@ -348,10 +364,10 @@ impl AgentEvent {
             }
             .to_owned()),
             Self::TurnStarted { content } => Some(Self::TurnStarted {
-                content: content.iter().map(link_for_attachment).collect(),
+                content: blocks(content),
             }),
             Self::UserMessageChunk { content } => Some(Self::UserMessageChunk {
-                content: link_for_attachment(content),
+                content: block_for_protocol(content, protocol),
             }),
             Self::Ready { .. }
             | Self::MessageChunk { .. }
@@ -368,31 +384,15 @@ impl AgentEvent {
     }
 }
 
-const fn is_attachment(block: &ContentBlock) -> bool {
-    matches!(block, ContentBlock::Attachment { .. })
-}
-
-/// An attachment as a version 2-9 client can decode it: a link to
-/// `attachment:<id>`, named after its file. Other blocks as they are.
-fn link_for_attachment(block: &ContentBlock) -> ContentBlock {
-    match block {
-        ContentBlock::Attachment { attachment } => ContentBlock::ResourceLink {
-            uri: format!("attachment:{}", attachment.id),
-            name: attachment.name.to_string(),
-        },
-        ContentBlock::Text { .. }
-        | ContentBlock::ResourceLink { .. }
-        | ContentBlock::Opaque { .. } => block.clone(),
-    }
-}
-
 /// The first line of a message's first text, for a log line.
 fn first_line(content: &[ContentBlock]) -> Option<&str> {
     content.iter().find_map(|block| match block {
         ContentBlock::Text { text } => text.lines().map(str::trim).find(|line| !line.is_empty()),
         ContentBlock::ResourceLink { .. }
         | ContentBlock::Opaque { .. }
-        | ContentBlock::Attachment { .. } => None,
+        | ContentBlock::Attachment { .. }
+        | ContentBlock::Context(_)
+        | ContentBlock::Review(_) => None,
     })
 }
 

@@ -438,6 +438,11 @@ pub const PROTOCOLS: &[(&str, Option<crate::ProtocolVersion>, &str)] = &[
         crate::plugins::PLUGIN_SURFACES_PROTOCOL,
         "a catalog entry using `card`, the settings controls or `open_settings` (ADR 0115, \"Surfaces\").",
     ),
+    (
+        "PROMPT_CONTEXT_PROTOCOL",
+        crate::prompt_context::PROMPT_CONTEXT_PROTOCOL,
+        "A prompt's `context` and `review` blocks (ADR 0124).",
+    ),
 ];
 
 /// The constants of [`PROTOCOLS`], as the end of the declarations file.

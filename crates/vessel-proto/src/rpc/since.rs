@@ -112,7 +112,20 @@ impl Call {
             }
             // `notify` came in 11: an older node would deliver the prompt
             // and never tell anyone.
-            Self::PromptSession(request) => request.notify.then_some(11),
+            // A context or review block came with ADR 0124's protocol.
+            Self::PromptSession(request) => request
+                .notify
+                .then_some(11)
+                .max(context_since(&request.content)?),
+            Self::ChangeQueue(request) => match &request.change {
+                crate::conversation::QueueChange::Edit { content, .. } => context_since(content)?,
+                crate::conversation::QueueChange::Move { .. }
+                | crate::conversation::QueueChange::Remove { .. }
+                | crate::conversation::QueueChange::SendNow { .. }
+                | crate::conversation::QueueChange::Hold
+                | crate::conversation::QueueChange::Resume
+                | crate::conversation::QueueChange::Clear => None,
+            },
             // An answer to a question, and a prompt naming an attachment,
             // came in 10: an older node cannot decode either.
             Self::SendInput(request) => match &request.input {
@@ -120,7 +133,8 @@ impl Call {
                 SessionInput::Prompt { content } => content
                     .iter()
                     .any(|block| matches!(block, ContentBlock::Attachment { .. }))
-                    .then_some(10),
+                    .then_some(10)
+                    .max(context_since(content)?),
                 // A cancel naming its turn: an older node would cancel
                 // whatever runs, the next queued prompt included.
                 SessionInput::CancelTurn { turn } => turn.map(|_| 10),
@@ -267,7 +281,6 @@ impl Call {
             | Self::SessionOptions(_)
             | Self::SetSessionOption(_)
             | Self::RenameSession(_)
-            | Self::ChangeQueue(_)
             | Self::GetConversation(_)
             | Self::ResumeSession(_)
             | Self::MarkSession(_)
@@ -475,6 +488,20 @@ fn target_since(target: &crate::automation::ScheduleTarget) -> Option<u32> {
         crate::automation::ScheduleTarget::Session { .. }
         | crate::automation::ScheduleTarget::Unknown => None,
     }
+}
+
+
+/// `Some(Some(n))` when `content` holds a `context` or `review` block of
+/// protocol n (ADR 0124), `Some(None)` when it holds none, `None` while
+/// that protocol awaits its number.
+fn context_since(content: &[ContentBlock]) -> Option<Option<u32>> {
+    if content
+        .iter()
+        .any(|block| matches!(block, ContentBlock::Context(_) | ContentBlock::Review(_)))
+    {
+        return crate::prompt_context::PROMPT_CONTEXT_PROTOCOL.map(|since| Some(since.get()));
+    }
+    Some(None)
 }
 
 #[cfg(test)]

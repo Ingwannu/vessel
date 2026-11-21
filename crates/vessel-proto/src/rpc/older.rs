@@ -148,9 +148,19 @@ impl Reply {
                 profiles_for(profiles, protocol).map(Self::ReloadProfiles)
             }
             Self::GetSession(session) => info(session).map(Self::GetSession),
-            Self::GetConversation(conversation) => conversation
-                .composer_for_protocol(protocol)
-                .map(Self::GetConversation),
+            Self::GetConversation(conversation) => {
+                let composer = conversation.composer_for_protocol(protocol);
+                let base = composer.as_ref().unwrap_or(conversation);
+                // A queued prompt's context or review as its text (ADR 0124).
+                match base.queue.context_for_protocol(protocol) {
+                    Some(queue) => Some(crate::conversation::Conversation {
+                        queue,
+                        ..base.clone()
+                    }),
+                    None => composer,
+                }
+                .map(Self::GetConversation)
+            }
             Self::CreateSession(session) => info(session).map(Self::CreateSession),
             Self::MoveProfile(session) => info(session).map(Self::MoveProfile),
             Self::RenameSession(session) => info(session).map(Self::RenameSession),
