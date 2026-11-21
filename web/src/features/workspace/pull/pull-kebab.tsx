@@ -31,6 +31,7 @@ export function Kebab({
     <span className="pull-kebab">
       <Menu
         align="end"
+        width="compact"
         trigger={<IconButton label={label} icon="more" size="xs" />}
       >
         {acts.map((act) => {

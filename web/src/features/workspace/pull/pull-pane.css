@@ -257,3 +257,20 @@
     opacity: 1;
   }
 }
+
+/* A comment's markdown, compact (Paseo's pane renders it smaller than the
+   conversation's): the session's `.md` rules, tighter, full width. */
+.pull-md {
+  max-width: none;
+}
+
+.pull-md p,
+.pull-md ul,
+.pull-md pre,
+.pull-md blockquote {
+  margin: 0 0 4px;
+}
+
+.pull-md :last-child {
+  margin-bottom: 0;
+}

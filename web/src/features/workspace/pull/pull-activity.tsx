@@ -10,8 +10,9 @@
 // - Choice: a card's header is the fold's button; the kebab is the kit's
 //   Menu (shown on hover with a fine pointer, always on touch); Add to
 //   chat writes Paseo's context text into the session's draft.
-// - Differences: bodies are plain text kept as written (Paseo renders
-//   markdown); Add to chat writes text, not a pill (TRACKER 833).
+// - Bodies are the page's Markdown, compact, links only over https
+//   (Paseo's pane renders markdown; coordinator, P5b verdict).
+// - Differences: Add to chat writes text, not a pill (TRACKER 833).
 
 import { type ReactNode, useState } from "react";
 
@@ -41,6 +42,7 @@ import {
 import type { PullWords } from "../../../data/workspace/pull/words";
 import { Button, Icon } from "../../../ui/kit";
 import type { TimelineItem } from "../../../wire/proto";
+import { Markdown } from "../../../data/markdown";
 import { Kebab } from "./pull-kebab";
 
 export interface ActivityProps {
@@ -164,9 +166,7 @@ function ItemCard({
           }}
         />
       </div>
-      {open && text !== "" ? (
-        <p className="pull-card-body">{item.body}</p>
-      ) : null}
+      {open && text !== "" ? <Body text={item.body} /> : null}
       {open ? children : null}
     </article>
   );
@@ -226,10 +226,20 @@ function ThreadCard({ thread, ...props }: ActivityProps & { thread: Thread }) {
                   {ageWords(itemAge(comment, now), words)}
                 </span>
               </div>
-              <p className="pull-card-body">{comment.body}</p>
+              <Body text={comment.body} />
             </div>
           ))
         : null}
     </article>
+  );
+}
+
+/** A comment's or review's words as Paseo's pane draws them: markdown,
+ * compact, links only over https (pane.tsx 879, 990, 1187). */
+function Body({ text }: { text: string }) {
+  return (
+    <div className="md pull-md">
+      <Markdown httpsOnly>{text}</Markdown>
+    </div>
   );
 }

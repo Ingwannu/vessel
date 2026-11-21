@@ -91,7 +91,7 @@ describe("the pull request pane's sections (TRACKER 430)", () => {
         kind: "comment",
         id: "RC_1",
         author: "mkim",
-        body: "Should this cap at 30 seconds?",
+        body: "Should this cap at 30 seconds? `max_delay` is unbounded.",
         created_at: "2026-11-20T09:00:00Z",
         url: `${base}/pull/128#d1`,
         review: "PRR_1",
@@ -132,6 +132,8 @@ describe("the pull request pane's sections (TRACKER 430)", () => {
     expect(html).toContain("Add all to chat");
     expect(html).toContain("This retries uploads.");
     expect(html).toContain("Should this cap at 30 seconds?");
+    // Bodies are markdown: the inline code is code.
+    expect(html).toContain("<code>max_delay</code>");
     // The resolved thread starts folded: its place shows, its words do not.
     expect(html).toContain("src/upload/client.rs");
     expect(html).not.toContain("Nit: log the attempt.");

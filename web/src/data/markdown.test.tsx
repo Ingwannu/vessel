@@ -15,3 +15,14 @@ test("agent links cannot navigate the UI tab", () => {
   expect(html).toContain('rel="noopener noreferrer"');
   expect(html.match(/<a /g)).toHaveLength(1);
 });
+
+// A forge comment (the pull request pane, TRACKER 430) follows https only.
+test("a forge comment links over https only", () => {
+  const html = renderToStaticMarkup(
+    <Markdown httpsOnly>
+      {"[secure](https://example.com) [plain](http://example.com)"}
+    </Markdown>,
+  );
+  expect(html.match(/<a /g)).toHaveLength(1);
+  expect(html).toContain('href="https://example.com"');
+});
