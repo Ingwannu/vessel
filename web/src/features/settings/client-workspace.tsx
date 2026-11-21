@@ -129,7 +129,7 @@ export function OpenLocationSection() {
           {SOURCES.map(({ source, label }) => (
             <Row
               key={source}
-              title={label}
+              title={<span className="open-location-label">{label}</span>}
               control={
                 <Select
                   aria-label={label}
