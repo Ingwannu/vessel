@@ -269,7 +269,7 @@ fn a_window_that_does_not_notify_tells_at_once_without_asking(cx: &mut TestAppCo
         }
         shell.prefs.settings.notifications.alerts = Alerts::System;
         shell.areas.notify.reaches_system(true);
-        let assigned = vessel_proto::notifications::ATTENTION_NOTIFICATIONS_PROTOCOL.is_some();
+        let assigned = ATTENTION_NOTIFICATIONS_PROTOCOL.is_some();
         assert_eq!(
             shell.ask_before_telling(vec![told("one")]).is_empty(),
             assigned,
