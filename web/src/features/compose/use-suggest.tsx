@@ -89,6 +89,14 @@ export function useSuggest(props: SuggestProps): Suggest {
         command.hint === undefined || command.hint === null
           ? command.description
           : `${command.description} · ${command.hint}`,
+      // Paseo's card over the list for the selected command (TRACKER 834).
+      card: {
+        title: `/${command.name}`,
+        description: command.description,
+        ...(command.hint === undefined || command.hint === null
+          ? {}
+          : { hint: command.hint }),
+      },
     }));
     note =
       commands === null

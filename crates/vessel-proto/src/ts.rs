@@ -419,6 +419,11 @@ pub const PROTOCOLS: &[(&str, Option<crate::ProtocolVersion>, &str)] = &[
         "`plugin.catalog` and `plugin.invoke` (ADR 0115, catalog and invoke).",
     ),
     (
+        "ORIGIN_LINK_PROTOCOL",
+        crate::workspace::ORIGIN_LINK_PROTOCOL,
+        "`origin` on `git.status`, `git.stage`, `git.unstage` and `git.discard` (ADR 0123 step B).",
+    ),
+    (
         "PLUGIN_SETTINGS_PROTOCOL",
         crate::plugins::PLUGIN_SETTINGS_PROTOCOL,
         "`plugin.settings.read`, `.write` and `.reset` (ADR 0115, \"Settings\").",

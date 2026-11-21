@@ -1831,7 +1831,13 @@ merge and filter models) and `web/src/features/workspace-labels/` (chips,
 the row menu's Labels submenu, the create and delete dialogs, the manager),
 with the sidebar's "Workspace" grouping in `features/shell/sidebar-workspaces.tsx`
 and the filter kept in the bridge's `SidebarView.labels` (ADR 0086, "Page
-consumer"). CLI and native consumers are separate packages.
+consumer"). CLI and native consumers are separate packages. The line under a
+workspace's name (TRACKER 426) is Paseo's meta row: the machine in a fleet of
+several, the pull request (state glyph and number, a link), its checks (the
+`kit/check-indicator.tsx` ring, a pie filled by quarters from the summary's
+tally) and the label chips; its rules are `web/src/data/workspace/meta-row.ts`,
+its markup `features/shell/workspace-meta.tsx`, and the row is a group named as
+Paseo's row (title, machine, "Pull request #N").
 
 ### Settings writer lifetime
 

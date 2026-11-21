@@ -316,7 +316,7 @@ docs/plugins.md:739-753.
   Reinstalling the id starts from defaults.
 - **No UI yet.** Settings screens come with P3b's declarative surfaces, which
   bind a document by id.
-- **Protocol.** Drafted 42 (`PLUGIN_SETTINGS_PROTOCOL`), assigned at merge.
+- **Protocol.** Drafted 43 (`PLUGIN_SETTINGS_PROTOCOL`), after the origin link's 42; assigned at merge.
 
 ## Alternatives
 

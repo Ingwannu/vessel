@@ -69,7 +69,7 @@ pub const PLUGIN_CATALOG_PROTOCOL: Option<crate::ProtocolVersion> =
 /// The protocol that has plugin settings documents (`plugin.settings.*`,
 /// ADR 0115 "Settings"); drafted, assigned at merge.
 pub const PLUGIN_SETTINGS_PROTOCOL: Option<crate::ProtocolVersion> =
-    Some(crate::ProtocolVersion::new(42));
+    Some(crate::ProtocolVersion::new(43));
 
 pub use declarations::{
     Action, Availability, Button, ButtonBehavior, ChoiceOption, CommandContext, Contribution,
