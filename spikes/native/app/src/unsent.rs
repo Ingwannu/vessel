@@ -73,6 +73,7 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
     let why = unsent.why;
     let event = match *unsent.command {
         Command::Usage(ask) => usage_refused(ask, why),
+        Command::Schedules(request) => crate::areas::schedules::refuse(request, why),
         Command::SessionAccess(access) => access.refused(ActFailed {
             code: None,
             message: words.to_owned(),
