@@ -35,7 +35,7 @@ fn a_comment_is_added_then_edited_in_place_with_a_new_time() {
     assert_eq!(drafts.comments(&review).len(), 1);
     assert_eq!(drafts.comments(&review)[0].body, "Cap this.");
     assert_eq!(
-        let _done = drafts.save(&review, Some(id), target(48), "Cap this at 30 s.", at(5)),
+        drafts.save(&review, Some(id), target(48), "Cap this at 30 s.", at(5)),
         Saved::Edited(id)
     );
     let comment = &drafts.comments(&review)[0];
@@ -44,7 +44,7 @@ fn a_comment_is_added_then_edited_in_place_with_a_new_time() {
     // An identity no longer kept (sent meanwhile) saves a new comment.
     let _done = drafts.delete(&review, id);
     assert!(matches!(
-        let _done = drafts.save(&review, Some(id), target(48), "Again.", at(6)),
+        drafts.save(&review, Some(id), target(48), "Again.", at(6)),
         Saved::Added(other) if other != id
     ));
 }
@@ -54,12 +54,12 @@ fn a_blank_or_too_long_body_is_not_saved() {
     let mut drafts = ReviewDrafts::default();
     let review = key("laptop");
     assert_eq!(
-        let _done = drafts.save(&review, None, target(1), " \n ", at(0)),
+        drafts.save(&review, None, target(1), " \n ", at(0)),
         Saved::Blank
     );
     let long = "w".repeat(BODY_BYTES.saturating_add(1));
     assert_eq!(
-        let _done = drafts.save(&review, None, target(1), &long, at(0)),
+        drafts.save(&review, None, target(1), &long, at(0)),
         Saved::TooLong
     );
     assert!(!can_save(&long));
