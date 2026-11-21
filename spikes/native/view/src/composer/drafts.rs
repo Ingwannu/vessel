@@ -23,6 +23,8 @@ use chrono::{DateTime, TimeDelta, Utc};
 use serde::{Deserialize, Serialize};
 use vessel_proto::SessionId;
 
+use crate::workspace::review::ReviewDrafts;
+
 /// Whose composer a draft is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
@@ -71,6 +73,10 @@ pub enum Kept {
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Drafts {
     drafts: Vec<Draft>,
+    /// The review comments written on the Changes diff and not sent
+    /// (ADR 0124); a document from before them reads with none.
+    #[serde(default, skip_serializing_if = "ReviewDrafts::is_empty")]
+    reviews: ReviewDrafts,
 }
 
 impl Drafts {
@@ -128,6 +134,18 @@ impl Drafts {
             let dropped = self.drafts.remove(0);
             total = total.saturating_sub(dropped.text.len());
         }
+        self.reviews.prune();
+    }
+
+    /// The review comments not sent.
+    #[must_use]
+    pub const fn reviews(&self) -> &ReviewDrafts {
+        &self.reviews
+    }
+
+    /// The review comments, to change.
+    pub const fn reviews_mut(&mut self) -> &mut ReviewDrafts {
+        &mut self.reviews
     }
 
     /// How many drafts are kept.

@@ -37,7 +37,7 @@ pub(super) fn row(
     shell: &mut Shell,
     index: usize,
     tokens: &Tokens,
-    _window: &mut Window,
+    window: &mut Window,
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let changes = &shell.areas.workspace.code.changes;
@@ -54,7 +54,10 @@ pub(super) fn row(
             |change| file_header(shell, index, &change, open, tokens, cx),
         ),
         ChangeRow::Diff { file, row, .. } => {
-            let line = file_of(file).and_then(|change| match changes.states.get(&change.path) {
+            let Some(change) = file_of(file) else {
+                return div().into_any_element();
+            };
+            let line = match changes.states.get(&change.path) {
                 Some(
                     FileState::Read(DiffBody::Rows { rows, .. })
                     | FileState::Loading(Some(DiffBody::Rows { rows, .. })),
@@ -66,8 +69,11 @@ pub(super) fn row(
                     | FileState::Failed(_),
                 )
                 | None => None,
-            });
-            line.map_or_else(|| div().into_any_element(), |line| diff_row(&line, tokens))
+            };
+            line.map_or_else(
+                || div().into_any_element(),
+                |line| super::review_rows::line(shell, index, &change.path, &line, tokens, window, cx),
+            )
         }
         ChangeRow::Note {
             file,
@@ -218,7 +224,7 @@ fn file_header(
 
 /// A row of a file's diff: a hunk's header, or a line as the kit draws a
 /// diff's line (its bar, its number, its wash), wrapped.
-fn diff_row(line: &DiffRow, tokens: &Tokens) -> AnyElement {
+pub(super) fn diff_row(line: &DiffRow, tokens: &Tokens) -> AnyElement {
     let neutral = tokens.neutral;
     match line {
         DiffRow::Hunk {

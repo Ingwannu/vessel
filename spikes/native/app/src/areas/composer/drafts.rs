@@ -153,7 +153,7 @@ impl Shell {
     }
 
     /// The drafts changed: written a second after the last change.
-    fn drafts_changed(&mut self, cx: &mut Context<'_, Self>) {
+    pub(crate) fn drafts_changed(&mut self, cx: &mut Context<'_, Self>) {
         if self.areas.composer.saving {
             return;
         }

@@ -38,6 +38,8 @@ mod found;
 mod frame;
 mod image_view;
 mod line_syntax;
+mod review;
+mod review_rows;
 mod panels;
 mod panels_view;
 mod pull_tab;
@@ -127,6 +129,10 @@ struct Changes {
     list: VirtualList,
     picker: ComboboxState,
     sources: shown_source::Sources,
+    /// The review comment being written (ADR 0124, `review.rs`).
+    review: Option<review::Editor>,
+    /// The phone's sheet for it.
+    review_dialog: vessel_app_kit::dialog::DialogState,
 }
 
 /// A file shown in the Files tab.
@@ -223,6 +229,8 @@ impl CodePanel {
                 list: VirtualList::new(false),
                 picker: ComboboxState::new(window, cx),
                 sources: shown_source::Sources::default(),
+                review: None,
+                review_dialog: vessel_app_kit::dialog::DialogState::new(cx),
             },
             files: Files {
                 listings: HashMap::new(),

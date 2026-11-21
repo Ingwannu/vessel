@@ -133,3 +133,36 @@ fn workspace_draft_keys_isolate_tabs_workspaces_and_nodes_and_round_trip() {
     assert_eq!(drafts.text(key), "first");
     assert_eq!(drafts.text(other), "second");
 }
+
+#[test]
+fn review_comments_ride_in_the_same_document_and_an_older_one_reads_without_them() {
+    use crate::workspace::review::{ReviewKey, ReviewMode, ReviewSide, ReviewTarget};
+    let older = serde_json::json!({ "drafts": [] });
+    let read: Drafts = serde_json::from_value(older).unwrap();
+    assert!(read.reviews().is_empty());
+    let mut drafts = Drafts::default();
+    let _kept = drafts.keep(session(), "kept", at(0));
+    // None kept: the field is not written, as before.
+    assert!(serde_json::to_value(&drafts).unwrap().get("reviews").is_none());
+    let key = ReviewKey {
+        machine: "laptop".to_owned(),
+        root: vessel_proto::workspace::WorkspaceRoot::Project {
+            project: vessel_proto::ProjectId::random(),
+        },
+        mode: ReviewMode::Base,
+        base: None,
+        ignore_whitespace: false,
+    };
+    let target = ReviewTarget {
+        path: "src/lib.rs".parse().unwrap(),
+        side: ReviewSide::Old,
+        line: std::num::NonZeroU32::new(3).unwrap(),
+    };
+    let _saved = drafts
+        .reviews_mut()
+        .save(&key, None, target, "Why removed?", at(0));
+    let text = serde_json::to_string(&drafts).unwrap();
+    let back: Drafts = serde_json::from_str(&text).unwrap();
+    assert_eq!(back, drafts);
+    assert_eq!(back.reviews().comments(&key).len(), 1);
+}
