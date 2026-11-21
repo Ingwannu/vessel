@@ -29,15 +29,14 @@ use std::sync::Arc;
 
 use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::menu::{Content, LeadingSize, MenuHandlers, MenuItem, MenuState, menu_with};
-use vessel_app_kit::theme::{radius, spacing};
+use vessel_app_kit::theme::spacing;
 use vessel_app_kit::ui::{
-    AnyElement, Bounds, ClickEvent, Context, Div, FluentBuilder as _, InteractiveElement as _,
-    IntoElement, ParentElement as _, Pixels, Point, StatefulInteractiveElement as _, Styled as _,
-    Window, div, px,
+    AnyElement, Bounds, ClickEvent, Context, IntoElement, ParentElement as _, Pixels, Point,
+    StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{
-    ButtonContent, ButtonIcon, ButtonKind, ButtonState, ControlSizing, Tokens, Type, TypeExt as _,
-    anchor_probe, breakpoint, glyph,
+    ButtonContent, ButtonIcon, ButtonKind, ButtonState, ControlSizing, Tokens, anchor_probe,
+    breakpoint,
 };
 use vessel_app_link::Command;
 use vessel_app_link::attachments::{Files, SubmitFailure, WithFiles};
@@ -47,27 +46,15 @@ use vessel_app_view::localization::Number;
 use vessel_app_view::machine_book::Name;
 use vessel_app_view::prefs::TurnDelivery;
 use vessel_app_view::toasts::ToastTone;
-use vessel_app_view::workspace::review::feedback::{FeedbackFacts, Press, Unavailable};
+use vessel_app_view::workspace::review::feedback::{FeedbackFacts, Press};
 use vessel_app_view::workspace::review::{DraftComment, Offer, ReviewKey};
 use vessel_proto::workspace::WorkspaceRoot;
 use vessel_proto::{Delivered, Delivery, SessionId};
 
 use crate::shell::Shell;
 
-/// The notice's bottom: the button's 16 below, its 32, and 8 between
-/// (Paseo's `controlHeightForLayout("md") + SPACING[4] + SPACING[2]`).
-const NOTICE_BOTTOM: f32 = 56.0;
 /// The chooser's width.
 const CHOOSER: f32 = 240.0;
-/// Paseo's floating action button (`floating-action-layout.ts`): 56 high,
-/// its icon `ICON_SIZE.lg`.
-const FAB: f32 = 56.0;
-const FAB_ICON: f32 = 20.0;
-/// The list's clearance under the button (`use-feedback.ts`): a phone's
-/// button and its inset, or the md control and its 16, plus 44.
-pub(in super::super) const CLEARANCE_PHONE: f32 = 116.0;
-pub(in super::super) const CLEARANCE: f32 = 92.0;
-
 /// An agent the review can go to.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(in super::super) struct Recipient {
@@ -93,7 +80,7 @@ pub(in super::super) struct Feedback {
     place: Rc<Cell<Option<Bounds<Pixels>>>>,
     choices: Vec<Recipient>,
     sending: Option<Sending>,
-    failed: bool,
+    pub(super) failed: bool,
 }
 
 impl Feedback {
@@ -124,7 +111,7 @@ fn in_root(card: &vessel_app_view::board::Card, root: &WorkspaceRoot) -> bool {
 }
 
 impl Shell {
-    fn review_feedback(&self) -> &Feedback {
+    pub(super) fn review_feedback(&self) -> &Feedback {
         &self.areas.workspace.code.changes.review.feedback
     }
 
@@ -304,39 +291,6 @@ impl Shell {
     }
 }
 
-/// The notice over the button: why it is off, or that the send failed.
-fn notice(shell: &Shell, unavailable: Option<Unavailable>, tokens: &Tokens) -> Option<Div> {
-    let words = shell.words.review();
-    let (text, colour) = if shell.review_feedback().failed {
-        (words.feedback_failed(), tokens.neutral.destructive)
-    } else {
-        let text = match unavailable? {
-            Unavailable::NoAgents => words.feedback_no_agents(),
-            Unavailable::Disconnected => words.feedback_disconnected(),
-            Unavailable::NoContext => words.feedback_no_context(),
-        };
-        (text, tokens.neutral.foreground)
-    };
-    Some(
-        div()
-            .absolute()
-            .bottom(px(NOTICE_BOTTOM))
-            .left(px(spacing::S4))
-            .right(px(spacing::S4))
-            .flex()
-            .justify_center()
-            .child(
-                div()
-                    .p(px(spacing::S2))
-                    .rounded(px(radius::MD))
-                    .bg(tokens.neutral.surface1)
-                    .type_(Type::Meta)
-                    .text_color(colour)
-                    .child(text.to_owned()),
-            ),
-    )
-}
-
 /// The button, its notice and its chooser, over the Changes list; nothing
 /// while no comment is kept.
 pub(in super::super) fn surface(
@@ -361,7 +315,7 @@ pub(in super::super) fn surface(
     let narrow = breakpoint::phone(window);
     let place = Rc::clone(&shell.review_feedback().place);
     let button = if narrow {
-        fab(label, state.can_send, tokens)
+        super::feedback_draw::fab(label, state.can_send, tokens)
     } else {
         vessel_app_kit::button_with_content(
             "review-feedback",
@@ -406,7 +360,7 @@ pub(in super::super) fn surface(
         }
         .into_any_element(),
     ];
-    drawn.extend(notice(shell, state.unavailable, tokens).map(IntoElement::into_any_element));
+    drawn.extend(super::feedback_draw::notice(shell, state.unavailable, tokens).map(IntoElement::into_any_element));
     drawn.extend(chooser(shell, tokens, window, cx));
     drawn
 }
@@ -460,46 +414,4 @@ fn chooser(
         breakpoint::phone(window),
         cx,
     )
-}
-
-/// The list's last row: room under the button while it shows (Paseo's
-/// `contentInsetBottom`), nothing otherwise.
-pub(in super::super) fn spacer(shell: &Shell, window: &Window) -> AnyElement {
-    let shows = shell.review_key().is_some_and(|key| {
-        !shell
-            .areas
-            .composer
-            .drafts
-            .reviews()
-            .comments(&key)
-            .is_empty()
-    });
-    let room = match (shows, breakpoint::phone(window)) {
-        (false, _) => 0.0,
-        (true, true) => CLEARANCE_PHONE,
-        (true, false) => CLEARANCE,
-    };
-    div().w_full().h(px(room)).into_any_element()
-}
-
-/// Paseo's `FloatingActionButton` on a phone: fully round, 56 high, the
-/// send mark at its large size, then the words.
-fn fab(label: String, enabled: bool, tokens: &Tokens) -> vessel_app_kit::ui::Stateful<Div> {
-    div()
-        .id("review-feedback")
-        .h(px(FAB))
-        .px(px(spacing::S4))
-        .rounded_full()
-        .flex()
-        .items_center()
-        .gap(px(spacing::S2))
-        .bg(tokens.btn_primary_bg)
-        .text_color(tokens.btn_primary_fg)
-        .type_(Type::Body)
-        .role(gpui::Role::Button)
-        .aria_label(vessel_app_kit::ui::SharedString::from(label.clone()))
-        .when(enabled, vessel_app_kit::ui::Styled::cursor_pointer)
-        .when(!enabled, |fab| fab.opacity(0.5))
-        .child(glyph(Glyph::Send, FAB_ICON, tokens.btn_primary_fg))
-        .child(label)
 }

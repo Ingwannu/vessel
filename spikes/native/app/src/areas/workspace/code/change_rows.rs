@@ -45,7 +45,7 @@ pub(super) fn row(
     let changes = &shell.areas.workspace.code.changes;
     // `relist` counts one row past the rows: the room under "Send feedback".
     if index == changes.rows.len() {
-        return super::review::feedback::spacer(shell, window);
+        return super::review::feedback_draw::spacer(shell, window);
     }
     let Summary::Ready(summary) = &changes.summary else {
         return div().into_any_element();

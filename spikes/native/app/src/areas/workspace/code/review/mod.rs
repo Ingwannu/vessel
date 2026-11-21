@@ -32,6 +32,7 @@ use vessel_proto::workspace::{LineKind, RelPath};
 use crate::shell::Shell;
 
 pub(super) mod feedback;
+pub(super) mod feedback_draw;
 mod offer;
 pub(super) mod rows;
 #[cfg(test)]
