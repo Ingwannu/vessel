@@ -407,6 +407,18 @@ pub(in super::super) fn surface(
         .into_any_element(),
     ];
     drawn.extend(notice(shell, state.unavailable, tokens).map(IntoElement::into_any_element));
+    drawn.extend(chooser(shell, tokens, window, cx));
+    drawn
+}
+
+/// The chooser of agents (Paseo's `DropdownMenu`, a sheet titled
+/// "Choose an agent" on a phone), each with its provider's mark.
+fn chooser(
+    shell: &Shell,
+    tokens: &Tokens,
+    window: &Window,
+    cx: &mut Context<'_, Shell>,
+) -> Option<AnyElement> {
     let feedback = shell.review_feedback();
     let items: Vec<MenuItem> = feedback
         .choices
@@ -438,17 +450,16 @@ pub(in super::super) fn surface(
         }),
     };
     let content = Content::new("review-feedback-chooser", &items)
-        .with_sheet(words.feedback_choose().to_owned())
+        .with_sheet(shell.words.review().feedback_choose().to_owned())
         .with_width(px(CHOOSER));
-    drawn.extend(menu_with(
+    menu_with(
         content,
         &feedback.menu,
         &handlers,
         tokens,
         breakpoint::phone(window),
         cx,
-    ));
-    drawn
+    )
 }
 
 /// The list's last row: room under the button while it shows (Paseo's
