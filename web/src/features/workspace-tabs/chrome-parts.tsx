@@ -5,6 +5,7 @@ import {
   type WorkspaceTab,
 } from "../../data/workspace/tab-layout";
 import { Icon, type IconName, MenuItem, MenuSeparator } from "../../ui/kit";
+import type { ProfileGroup } from "./profile-rows";
 import type { TabWords } from "./words";
 
 export interface TabItem {
@@ -30,6 +31,8 @@ export interface TabChromeProps {
   active: string | null;
   words: TabWords;
   launch: readonly TabAction[];
+  /** The machine's terminal profiles, after the built-ins (ADR 0117). */
+  profiles: ProfileGroup | null;
   actions: (item: TabItem) => readonly TabAction[];
   select: (tab: WorkspaceTab) => void;
   close: (item: TabItem) => void;

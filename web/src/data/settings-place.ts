@@ -23,6 +23,8 @@ export interface SettingsPlace {
   exact: boolean;
   machine: NodeKey | undefined;
   agent: string | undefined;
+  /** The plugin settings screen open in Settings › Plugins, if any. */
+  pluginScreen: { plugin: string; screen: string } | undefined;
 }
 
 /** The place `where` names, if it is under `/settings`. */
@@ -36,6 +38,10 @@ export function settingsPlace(where: Where): SettingsPlace | null {
     exact: section !== null && where.segments.length === 2,
     machine: where.machine,
     agent: where.agent,
+    pluginScreen:
+      where.plugin === undefined || where.screen === undefined
+        ? undefined
+        : { plugin: where.plugin, screen: where.screen },
   };
 }
 

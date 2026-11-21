@@ -68,10 +68,10 @@ no runtime to compile. The package that serves the method changes `staged`
 to `pending` in the commit that adds its handler; from then on the guard
 requires the handler, as for every assigned or pending row.
 
-## Version 46 (draft, 2026-11-21, milestone 12): a prompt's context and review blocks (implementer G, ADR 0124)
+## Version 46 (2026-11-21, milestone 12): a prompt's context and review blocks (implementer G, ADR 0124)
 
-Drafted as 46 (`PROMPT_CONTEXT_PROTOCOL`, `PROTOCOL_VERSION` 46); the integrator assigns the number at the node-line
-merge. No method is added; `ContentBlock` gains two blocks for what a client sends (a prompt, a steer, a queued
+Assigned 46 (`PROMPT_CONTEXT_PROTOCOL`, `PROTOCOL_VERSION` 46) at its node-line merge, the next after the terminal
+profiles' 45. No method is added; `ContentBlock` gains two blocks for what a client sends (a prompt, a steer, a queued
 prompt's edit):
 
 - `context { kind, title, subtitle?, text, url? }`: a pull request's comment, review or check logs, a workspace

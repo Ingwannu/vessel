@@ -13,13 +13,20 @@ import {
   type TabChromeProps,
 } from "./chrome-parts";
 import { DesktopTabs } from "./desktop-tabs";
+import {
+  type ProfileGroup,
+  ProfileMenuGroup,
+  ProfilePanelGroup,
+} from "./profile-rows";
 import type { TabWords } from "./words";
 
 export function Launcher({
   actions,
+  profiles,
   words,
 }: {
   actions: readonly TabAction[];
+  profiles: ProfileGroup | null;
   words: TabWords;
 }) {
   return (
@@ -35,6 +42,7 @@ export function Launcher({
           {action.label}
         </Button>
       ))}
+      <ProfilePanelGroup group={profiles} words={words} />
     </div>
   );
 }
@@ -76,6 +84,7 @@ function CompactTabs(props: TabChromeProps) {
           align="end"
         >
           {menuRows(props.launch)}
+          <ProfileMenuGroup group={props.profiles} words={words} />
         </Menu>
       </div>
       {open ? (

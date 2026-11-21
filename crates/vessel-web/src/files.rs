@@ -115,9 +115,10 @@ include!(concat!(env!("OUT_DIR"), "/files.rs"));
 /// The first segments of the app's routes (`web/src/app.tsx`, and `/kit`
 /// in `web/src/main.tsx`; keep the two in step). Later segments are node
 /// names and session ids, which may hold dots, so the extension rule
-/// cannot tell them from files.
-const APP_ROUTES: [&str; 7] = [
-    "fleet", "new", "sessions", "sync", "devices", "settings", "kit",
+/// cannot tell them from files. `plugin` is a plugin's screen
+/// (`/plugin/<node>/<plugin>/<screen>`, ADR 0115 "Surfaces").
+const APP_ROUTES: [&str; 8] = [
+    "fleet", "new", "sessions", "sync", "devices", "settings", "kit", "plugin",
 ];
 
 /// Whether `path` lies under one of the app's routes.

@@ -219,3 +219,24 @@
   color: var(--danger);
   font: var(--t-meta);
 }
+
+/* The terminal profiles on an empty pane (profile-rows.tsx, ADR 0117): a
+   line of their own under the built-ins, headed by their label and the
+   Edit profiles pencil. */
+.workspace-launcher-group {
+  display: flex;
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--s-2);
+}
+
+.workspace-launcher-label {
+  display: flex;
+  flex-basis: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-1);
+  color: var(--text-tertiary);
+  font: var(--t-label);
+}
