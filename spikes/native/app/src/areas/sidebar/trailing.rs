@@ -59,7 +59,8 @@ pub(super) fn slot(card: &Card, shell: &Shell, tokens: &Tokens) -> Option<AnyEle
     }
 }
 
-/// `+N −N`, the page's card colours.
+/// `+N -N`, the page's card colours. The minus is ASCII, as Paseo's
+/// `DiffStat` writes it (`components/diff-stat.tsx`).
 fn counts(stat: DiffStat, tokens: &Tokens) -> AnyElement {
     div()
         .flex_none()
@@ -77,7 +78,7 @@ fn counts(stat: DiffStat, tokens: &Tokens) -> AnyElement {
         .child(
             div()
                 .text_color(tokens.danger)
-                .child(format!("\u{2212}{}", format_diff_count(stat.deletions))),
+                .child(format!("-{}", format_diff_count(stat.deletions))),
         )
         .into_any_element()
 }

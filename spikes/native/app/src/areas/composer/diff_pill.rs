@@ -91,7 +91,7 @@ fn counts(
         .child(
             div()
                 .text_color(status.error.foreground)
-                .child(format!("\u{2212}{}", format_diff_count(stat.deletions))),
+                .child(format!("-{}", format_diff_count(stat.deletions))),
         )
         .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
         .on_click(cx.listener(|shell, _: &ClickEvent, window, cx| {
