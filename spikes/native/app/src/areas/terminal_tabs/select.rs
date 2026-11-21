@@ -88,6 +88,24 @@ impl Shell {
         self.terminal_tab_draw(key, cx);
     }
 
+    /// The pointer moved while a press selects. With the button still
+    /// down the selection follows it; with it up, the release was missed
+    /// and the press ends here (TRACKER 836: a release outside the screen
+    /// before the frame that listens window-wide left the drag open, and
+    /// the next press elsewhere extended it).
+    pub(super) fn terminal_tab_pointer_moved(
+        &mut self,
+        key: &PaneKey,
+        event: &gpui::MouseMoveEvent,
+        cx: &mut gpui::Context<'_, Self>,
+    ) {
+        if event.pressed_button == Some(gpui::MouseButton::Left) {
+            self.terminal_tab_drag(key, event.position, cx);
+        } else {
+            self.terminal_tab_release(key, cx);
+        }
+    }
+
     /// The pointer moved while a press selects: the free end follows it,
     /// and past the top or bottom edge the view scrolls a line toward it.
     pub(super) fn terminal_tab_drag(

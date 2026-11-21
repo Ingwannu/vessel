@@ -17,7 +17,9 @@
 //!   not shown.
 //! - Cost: one row of buttons more under the shell when compact. The rows
 //!   are picked from the window's width, the bar's own width at compact
-//!   sizes, less its padding.
+//!   sizes, less its padding. A compact layout that ever puts something
+//!   beside the terminal (a split, a side sheet) must measure the bar
+//!   instead (P4n app review note 2).
 
 use gpui::FontWeight;
 use vessel_app_kit::theme::radius;
