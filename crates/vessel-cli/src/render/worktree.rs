@@ -19,7 +19,7 @@ pub(crate) fn removal(outcome: &RemoveWorktreeOutcome) -> String {
             "removed; its work is kept as snapshot {} (vessel worktree snapshots)\n",
             snapshot.commit
         ),
-        RemoveWorktreeOutcome::Kept { reasons } => format!(
+        RemoveWorktreeOutcome::Kept { reasons, .. } => format!(
             "kept: {}\n(--snapshot keeps a snapshot first; --discard removes it anyway)\n",
             kept(reasons)
         ),
@@ -36,7 +36,7 @@ pub(crate) fn deleted(deleted: &SessionDeleted) -> String {
         RemoveWorktreeOutcome::Removed { .. } => {
             format!("its worktree {} was removed\n", tidied.worktree)
         }
-        RemoveWorktreeOutcome::Kept { reasons } => format!(
+        RemoveWorktreeOutcome::Kept { reasons, .. } => format!(
             "its worktree {id} was kept: {why}\n(vessel worktree remove {id} --snapshot or \
              --discard removes it)\n",
             id = tidied.worktree,

@@ -37,7 +37,7 @@ import type { Timeline } from "../../data/timeline-model";
 import type { Tray } from "../../data/tray";
 import { toast } from "../../ui/toasts";
 import type { NodeKey } from "../../wire/bridge";
-import type { ContentBlock, Delivery, SessionInfo } from "../../wire/proto";
+import type { Delivery, SessionInfo } from "../../wire/proto";
 import type { DraftState } from "../compose/use-draft";
 import { usePluginSlash } from "./use-plugin-slash";
 
@@ -74,7 +74,6 @@ export function useComposerSend({
   tray,
   editing,
   setEditing,
-  rows,
   onSent,
 }: {
   node: NodeKey;
@@ -85,8 +84,6 @@ export function useComposerSend({
   tray: Tray;
   editing: Editing | null;
   setEditing: (editing: Editing | null) => void;
-  /** The queue as the node last said, for an edit's revision. */
-  rows: readonly QueueRow[];
   onSent: () => void;
 }): ComposerSend {
   const fleet = useFleet();
@@ -118,7 +115,7 @@ export function useComposerSend({
   const plan = sendPlan(state);
 
   const send = (other: boolean) => {
-    if (blocked) {
+    if (blocked || editing !== null) {
       return;
     }
     // A plugin's `/name args` runs its method instead (use-plugin-slash.ts).
@@ -198,23 +195,27 @@ export function useComposerSend({
     if (editing === null || sending) {
       return;
     }
-    const current = rows.find((row) => row.id === editing.row.id);
+    const current = timeline.conversation.queue?.entries.find(
+      (entry) => entry.id === editing.row.id,
+    );
     if (current === undefined) {
       toast("That message was already sent or removed.", "default");
       draft.setText(editing.text);
       setEditing(null);
       return;
     }
+    // A local command doesn't replace the queued entry or consume either
+    // draft. An edit with attachments or context still updates the queue.
+    const hasAttachments = current.content.some((block) => block.type !== "text");
+    if (slash.run(editing.text, hasAttachments)) {
+      return;
+    }
     setSending(true);
-    const files: ContentBlock[] = current.attachments.map((attachment) => ({
-      type: "attachment",
-      attachment,
-    }));
     void changeQueue(fleet, node, session.id, {
       change: "edit",
       entry: current.id,
       revision: current.revision,
-      content: withText(files, editing.text.trim()),
+      content: withText(current.content, editing.text.trim()),
     }).then((outcome) => {
       setSending(false);
       if (outcome.ok) {

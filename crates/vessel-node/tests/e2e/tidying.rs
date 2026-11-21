@@ -147,6 +147,7 @@ async fn deleting_a_session_tidies_its_worktree_and_never_loses_work() {
         let deleted = owner.delete_session(keep).await.unwrap();
         let kept = RemoveWorktreeOutcome::Kept {
             reasons: vec![KeptReason::Uncommitted { files: 1 }],
+            diff_stat: None,
         };
         assert_eq!(
             deleted.worktree,
