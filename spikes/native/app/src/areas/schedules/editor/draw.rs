@@ -11,8 +11,8 @@ use vessel_app_kit::{
     sheet::snap::Percentage,
     theme::spacing::{S2, S4},
     ui::{
-        AnyElement, Context, Div, InteractiveElement as _, IntoElement as _, ParentElement as _,
-        SharedString, StatefulInteractiveElement as _, Styled as _, Window, div, px,
+        AnyElement, Context, Div, IntoElement as _, ParentElement as _, SharedString,
+        StatefulInteractiveElement as _, Styled as _, Window, div, px,
     },
 };
 use vessel_app_view::schedules::{
@@ -449,6 +449,7 @@ fn status(
 }
 
 pub(super) fn hint(text: impl Into<SharedString>, error: bool, tokens: &Tokens) -> Div {
+    let text: SharedString = text.into();
     div()
         .type_(Type::Meta)
         .text_color(if error {

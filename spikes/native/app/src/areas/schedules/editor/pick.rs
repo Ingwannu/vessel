@@ -7,8 +7,8 @@ use std::rc::Rc;
 use vessel_app_kit::{
     self as kit, ComboHandlers, ComboHeader, Tokens,
     ui::{
-        AnyElement, Context, InteractiveElement as _, IntoElement as _, SharedString,
-        StatefulInteractiveElement as _, Styled as _, Window,
+        AnyElement, Context, IntoElement as _, SharedString, StatefulInteractiveElement as _,
+        Styled as _, Window,
     },
 };
 use vessel_app_view::schedules::editor::{Draft, io::Ask};
@@ -145,7 +145,7 @@ pub(super) fn popup(
                 apply(shell, change.clone(), window, cx);
             }
         }),
-        back: back.then(|| Rc::new(go_back) as kit::picker::Back<Shell>),
+        back: back.then(|| -> kit::picker::Back<Shell> { Rc::new(go_back) }),
     };
     kit::combobox(
         "schedule-form-picker",

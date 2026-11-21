@@ -274,8 +274,7 @@ impl Shell {
             && (result.is_ok()
                 || matches!(
                     result,
-                    Err(Failure::Unconfirmed)
-                        | Err(Failure::Node(vessel_proto::ErrorCode::Conflict))
+                    Err(Failure::Unconfirmed | Failure::Node(vessel_proto::ErrorCode::Conflict))
                 ));
         let editor = &mut self.areas.schedules.editor;
         if let Some(form) = &mut editor.model
