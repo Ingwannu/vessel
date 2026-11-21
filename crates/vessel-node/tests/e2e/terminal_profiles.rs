@@ -12,7 +12,9 @@ use vessel_proto::terminal_profiles::{
     Argument, Id, Name, Profile, ProfileLaunch, Profiles, Program, TERMINAL_PROFILES_PROTOCOL,
 };
 use vessel_proto::terminals::{CreateTerminal, TerminalPlace};
-use vessel_proto::{Call, ErrorCode, EventSeq, Outcome, ProtocolVersion, Reply, Request as _, SessionEvent};
+use vessel_proto::{
+    Call, ErrorCode, EventSeq, Outcome, ProtocolVersion, Reply, Request as _, SessionEvent,
+};
 use vessel_testkit::Fake;
 
 use crate::support::{Fixture, step, within};
@@ -64,7 +66,14 @@ async fn a_kept_profile_is_shown_and_launched_over_the_wire() {
         assert_eq!(TERMINAL_PROFILES_PROTOCOL, Some(ProtocolVersion::new(45)));
         let fixture = Fixture::new();
         let (node, owner) = node_with_claude(&fixture, fixture.cwd().join("bin")).await;
-        assert_eq!(owner.call(GetNodeSettings {}).await.unwrap().terminal_profiles, None);
+        assert_eq!(
+            owner
+                .call(GetNodeSettings {})
+                .await
+                .unwrap()
+                .terminal_profiles,
+            None
+        );
         let set = owner
             .call(SetNodeSettings {
                 terminal_profiles: Some(kept()),
@@ -80,7 +89,10 @@ async fn a_kept_profile_is_shown_and_launched_over_the_wire() {
             terminal.title.as_ref().map(ToString::to_string).as_deref(),
             Some("Fake Claude")
         );
-        let mut stream = owner.follow_terminal(terminal.id, EventSeq::ZERO).await.unwrap();
+        let mut stream = owner
+            .follow_terminal(terminal.id, EventSeq::ZERO)
+            .await
+            .unwrap();
         let mut seen = String::new();
         step("the profile's program prints ready", async {
             while !seen.contains("ready") {
