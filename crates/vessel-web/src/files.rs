@@ -118,7 +118,15 @@ include!(concat!(env!("OUT_DIR"), "/files.rs"));
 /// cannot tell them from files. `plugin` is a plugin's screen
 /// (`/plugin/<node>/<plugin>/<screen>`, ADR 0115 "Surfaces").
 const APP_ROUTES: [&str; 9] = [
-    "fleet", "new", "sessions", "schedules", "sync", "devices", "settings", "kit", "plugin",
+    "fleet",
+    "new",
+    "sessions",
+    "schedules",
+    "sync",
+    "devices",
+    "settings",
+    "kit",
+    "plugin",
 ];
 
 /// Whether `path` lies under one of the app's routes.
