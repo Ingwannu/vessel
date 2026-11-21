@@ -244,6 +244,26 @@ policy is already Paseo's. Each difference is stated below.
   - both run the node's 180 s rule over the reports: a window that goes stale lets push resume, a hidden
     tab is present but never suppresses, and the latest input wins.
 
+### Notifies (2026-11-21, ADR 0089 "Turned on", item 5, app part)
+
+Paseo elects a claim's recipient only among clients subscribed with `notifications: true`
+(`websocket-server.ts:2884-2894,2987-2989`; `session.ts:2336-2345`; the app's `session-context.tsx:492`). A window
+that only sounds could otherwise be elected and take the notice from one that shows it.
+
+- A window notifies when Settings' alerts include the system's notifications and the system can show one (the
+  build shows them here, and on Linux a session bus is reachable): `Shell::window_notifies`
+  (`app/src/areas/notify.rs`), the page's `windowNotifies`. It is read at each render, and a change sends a
+  report at once (`Presence::notify`, `app/src/areas/presence.rs`).
+- The report carries `notifies: false` only to a machine that admits claims (`Told::report`). Any other machine
+  hears the field's absent value, which reads true, as every window did before.
+- A window that does not notify still counts as present, so it suppresses and holds push back. It never claims:
+  `ask_before_telling` tells every session notice at once, and `terminal_notices_found` tells terminal notices
+  itself (the title's count and the sound) without asking.
+- Tests:
+  - `view/src/presence/tests.rs`, `a_window_that_does_not_notify_says_so_only_to_a_machine_that_admits_claims`;
+  - `app/src/areas/notify/claims/tests.rs`, `a_window_that_does_not_notify_tells_at_once_without_asking`;
+  - `app/src/areas/notify/terminals/tests.rs`, `a_window_that_does_not_notify_never_claims`.
+
 ## Claims (2026-11-21, the claims follow-up's second row)
 
 Both clients ask a machine before they show a session's notice: `notification.claim`, ADR 0089 "The

@@ -10,6 +10,9 @@
 //!   Paseo reads the document's (`:69-75`);
 //! - the shown session, read at each render (`:115-118`), or the terminal
 //!   whose tab has the focused pane there (claims row 3);
+//! - whether the window notifies, read at each render, as the page reads
+//!   Settings' alerts and the browser's permission (ADR 0089, "Turned on",
+//!   item 5);
 //! - a heartbeat at once and then every 15 s (`:125-148`): the first one
 //!   goes as soon as the shell exists, so opening reaches the link before
 //!   the first machine connects, and a machine that connects hears that
@@ -132,15 +135,20 @@ impl Shell {
                 });
             (machine, terminal.map_or(session, Shown::Terminal))
         });
+        let notifies = self.window_notifies();
         let area = &mut self.areas.presence;
         let now = area.now();
         let visible = area.presence.visible();
-        if area.presence.show(
+        let moved = area.presence.show(
             shown
                 .as_ref()
                 .map(|(machine, what)| (machine.as_str(), *what)),
             now,
-        ) {
+        );
+        // Settings' alerts or the system's service changed whether the
+        // window notifies: the machines hear it at once (ADR 0089, "Turned
+        // on", item 5).
+        if area.presence.notify(notifies) || moved {
             self.presence_send();
         }
         if let Some((machine, Shown::Terminal(terminal))) = shown.filter(|_| visible) {

@@ -33,7 +33,7 @@ impl Shell {
             Event::Sync(answer) => self.sync_answer(answer),
             Event::Claims(answer) => self.notices_claimed(answer, cx),
             Event::TerminalNotices { machine, notices } => {
-                self.terminal_notices_found(machine, notices);
+                self.terminal_notices_found(machine, notices, cx);
             }
             Event::TerminalClaims(answer) => self.terminal_notices_claimed(answer, cx),
             Event::NodeSettings(answer) => self.node_settings_answer(answer),
