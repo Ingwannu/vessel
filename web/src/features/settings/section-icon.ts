@@ -16,6 +16,12 @@ export function sectionIcon(section: SettingsSection): IconName {
       return "keyboard";
     case "notifications":
       return "bell";
+    case "terminal":
+      return "terminal";
+    case "files":
+      return "folder";
+    case "open-location":
+      return "sidebar";
     case "agents":
       return "terminal";
     case "models":

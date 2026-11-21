@@ -11,6 +11,8 @@ import type { TabWords } from "./words";
 export interface LaunchFacts {
   words: TabWords;
   select: (tab: WorkspaceTab) => void;
+  openChanges: (kind: "changes" | "diff") => void;
+  openPull: () => void;
   newAgent: () => void;
   newTerminal: () => void;
   canCreateTerminal: boolean;
@@ -25,6 +27,8 @@ export interface LaunchFacts {
 export function launchActions({
   words,
   select,
+  openChanges,
+  openPull,
   newAgent,
   newTerminal,
   canCreateTerminal,
@@ -53,7 +57,7 @@ export function launchActions({
       label: words.changes,
       icon: "git-compare",
       run: () => {
-        select({ kind: "changes" });
+        openChanges("changes");
       },
     },
     // Paseo's pane sits after Changes; offered while the session has a
@@ -64,16 +68,14 @@ export function launchActions({
           {
             label: words.pullRequest,
             icon: "git-pull-request" as const,
-            run: () => {
-              select({ kind: "pull" });
-            },
+            run: openPull,
           },
         ]),
     {
       label: words.diff,
       icon: "git-compare",
       run: () => {
-        select({ kind: "diff" });
+        openChanges("diff");
       },
     },
     {

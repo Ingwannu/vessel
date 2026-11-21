@@ -246,3 +246,63 @@
   color: var(--text-tertiary);
   font: var(--t-label);
 }
+
+/* Both panes are laid out under the same tab registry so an editor can
+   move between them without losing its buffer or change guard. */
+.workspace-views {
+  display: grid;
+  flex: 1;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+}
+
+.workspace-views[data-support="side"] {
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 42%);
+}
+
+.workspace-views[data-support="explorer"] {
+  grid-template-columns: minmax(300px, 37%) minmax(0, 1fr);
+}
+
+.workspace-views > [data-placement="main"],
+.workspace-views > [data-placement="explorer"] {
+  grid-area: 1 / 1;
+}
+
+.workspace-views > [data-placement="side"],
+.workspace-views[data-support="explorer"] > [data-placement="main"] {
+  grid-area: 1 / 2;
+}
+
+.workspace-pane[data-placement="side"] {
+  border-inline-start: 1px solid var(--border-faint);
+}
+
+.workspace-pane[data-placement="explorer"] {
+  border-inline-end: 1px solid var(--border-faint);
+}
+
+.workspace-support-header {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 32px;
+  padding-inline: var(--s-2);
+  border-bottom: 1px solid var(--border-faint);
+  font: var(--t-meta);
+}
+
+.workspace-support-header > span {
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.workspace-support-header + .pull-pane {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+}

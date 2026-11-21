@@ -1211,7 +1211,10 @@ browser on Unix (on Windows, open the printed address).
   worktrees, removed only after saying what would be lost and offering a
   snapshot; its snapshots), Agents (what each agent on a machine
   offers: model, effort, permissions), Models, Devices (pairing a phone with a QR code), Sync
-  and About. A machine in the sidebar opens it there. The page follows
+  and About. Terminal sets the built-in terminal's scrollback. Files shows
+  file-panel preferences, and Open location directs workspace files,
+  changes and pull requests to their configured panels.
+  A machine in the sidebar opens it there. The page follows
   the system's light or dark theme until you choose one.
 - **What you choose is kept by `vessel ui`, not the browser** (ADR
   0028): each launch opens at a new address, which would start a

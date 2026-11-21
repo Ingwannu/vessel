@@ -1,5 +1,5 @@
 import { useBlocker, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useFleetState } from "../../context";
 import { type LinkedFile, linkedFileOf } from "../../data/forge-links";
@@ -22,7 +22,6 @@ import { TERMINAL_PROTOCOL } from "../../data/workspace/terminals";
 import { toast } from "../../ui/toasts";
 import type { NodeKey } from "../../wire/bridge";
 import type {
-  RelPath,
   SessionId,
   SessionInfo,
   TerminalInfo,
@@ -35,6 +34,7 @@ import { useTabLifecycle } from "./lifecycle";
 import { useLaunchShortcuts } from "./launch-shortcuts";
 import { useLayout } from "./use-layout";
 import type { ProfileGroup } from "./profile-rows";
+import { useOpenLocation } from "./use-open-location";
 import { useTerminalPlace, useTerminals } from "./use-terminals";
 import { useTerminalProfiles } from "./use-terminal-profiles";
 import type { TabWords } from "./words";
@@ -59,7 +59,7 @@ interface WorkspaceState {
   protocol: number | null;
   visited: ReadonlySet<string>;
   dirty: ReadonlySet<string>;
-  lines: ReadonlyMap<RelPath, { line: number; seq: number }>;
+  location: ReturnType<typeof useOpenLocation>;
   session: (id: SessionId) => SessionInfo | undefined;
   select: (tab: WorkspaceTab) => void;
   completeDraft: (id: SessionId) => void;
@@ -70,7 +70,6 @@ interface WorkspaceState {
   /** The machine's terminal profiles for New tab (ADR 0117). */
   profiles: ProfileGroup;
   terminals: readonly TerminalInfo[];
-  openFile: (path: RelPath, line: number | null) => void;
   move: (source: string, target: string, side: "before" | "after") => void;
   /** The session the bar names: the active agent tab's, else the anchor. */
   heading: SessionInfo;
@@ -140,12 +139,15 @@ export function useWorkspace(
   const routed = active?.kind === "agent" ? active.id : null;
   const [dirty, setDirty] = useState<ReadonlySet<string>>(() => new Set());
   const [visited, setVisited] = useState<ReadonlySet<string>>(() => new Set());
-  const [lines, setLines] = useState<
-    ReadonlyMap<RelPath, { line: number; seq: number }>
-  >(() => new Map());
-  const nextLine = useRef(0);
-  if (layout.active !== null && !visited.has(layout.active)) {
-    setVisited(new Set([...visited, layout.active]));
+  const select = (tab: WorkspaceTab) => {
+    update((current) => showTab(current, tab));
+  };
+  const location = useOpenLocation(layout, update, select);
+  const visible = [layout.active, location.supporting?.key].filter(
+    (key): key is string => typeof key === "string" && !visited.has(key),
+  );
+  if (visible.length > 0) {
+    setVisited(new Set([...visited, ...visible]));
   }
 
   useEffect(() => {
@@ -159,9 +161,6 @@ export function useWorkspace(
 
   const leave = useLeaveWorkspace(node, sessionIds, dirty.size > 0);
 
-  const select = (tab: WorkspaceTab) => {
-    update((current) => showTab(current, tab));
-  };
   const session = (id: SessionId) =>
     listed.find((item) => item.id === id) ??
     (anchor.id === id ? anchor : undefined);
@@ -182,6 +181,7 @@ export function useWorkspace(
   const remove = (tab: WorkspaceTab) => {
     const key = tabKey(tab);
     markDirty(key, false);
+    location.forget(key);
     update((current) => removeTab(current, key));
     setVisited(
       (current) => new Set([...current].filter((item) => item !== key)),
@@ -227,6 +227,8 @@ export function useWorkspace(
   const actions = launchActions({
     words,
     select,
+    openChanges: location.openChanges,
+    openPull: location.openPull,
     newAgent,
     newTerminal,
     canCreateTerminal,
@@ -235,23 +237,15 @@ export function useWorkspace(
     pullOffered:
       anchor.pull_request?.summary != null && pullPaneServed(protocol),
   });
-  const openFile = (path: RelPath, line: number | null) => {
-    if (line !== null) {
-      nextLine.current += 1;
-      const seek = { line, seq: nextLine.current };
-      setLines((current) => new Map(current).set(path, seek));
-    }
-    select({ kind: "file", path });
-  };
   return {
     layout,
     active,
     heading: active?.kind === "agent" ? (session(active.id) ?? anchor) : anchor,
-    shownFile: linkedFileOf(active, lines),
+    shownFile: linkedFileOf(active, location.lines),
     protocol,
     visited,
     dirty,
-    lines,
+    location,
     session,
     select,
     completeDraft: (id) => {
@@ -264,7 +258,6 @@ export function useWorkspace(
     actions,
     profiles,
     terminals: terminals.rows,
-    openFile,
     move: (source: string, target: string, side: "before" | "after") => {
       update((current) => moveTab(current, source, target, side));
     },
