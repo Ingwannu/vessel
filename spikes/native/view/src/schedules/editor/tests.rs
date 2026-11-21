@@ -1,5 +1,5 @@
 use super::{Draft, Save};
-use crate::schedules::tests::info;
+use crate::schedules::tests::{info, visible};
 use vessel_proto::{
     Creator, HarnessKind,
     automation::{Cadence, CatchUp, ScheduleTarget},
@@ -19,11 +19,10 @@ fn edit_keeps_opened_revision_expiry_ownership_input_and_elapsed_phase() {
     draft.cadence.set_expression(String::new());
     assert!(draft.cadence.is_elapsed());
     let locale = crate::localization::Translator::get(crate::localization::ENGLISH).unwrap();
-    assert_eq!(
-        super::cadence::description(draft.cadence.checked().unwrap(), locale).unwrap(),
-        "Every 90 seconds"
-    );
-    let Some(Save::Update(save)) = draft.save(draft.cadence.checked().unwrap()) else {
+    let rule = draft.cadence.checked().unwrap();
+    let label = super::cadence::description(rule, locale).unwrap();
+    assert_eq!(visible(&label), "Every 90 seconds");
+    let Some(Save::Update(save)) = draft.save(rule) else {
         panic!("expected revision-bound replacement");
     };
     assert_eq!(save.schedule, info.id);
