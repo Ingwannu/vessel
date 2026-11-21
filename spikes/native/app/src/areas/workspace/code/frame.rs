@@ -333,6 +333,33 @@ pub(super) fn note(text: impl Into<vessel_app_kit::ui::SharedString>, tokens: &T
 }
 
 impl Shell {
+    /// The composer's diff count opens this session's Changes tab (Paseo's
+    /// pill). The panel comes out on Changes; a panel already there stays,
+    /// and nothing else is added beside it.
+    pub(crate) fn open_code_changes(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
+        if self.areas.session.open.is_none() {
+            return;
+        }
+        let panel = &mut self.areas.workspace.code;
+        if panel.open && panel.tab == Tab::Changes {
+            return;
+        }
+        let opening = !panel.open;
+        if panel.tab != Tab::Changes {
+            panel.changes.sources.invalidate();
+        }
+        panel.tab = Tab::Changes;
+        panel.open = true;
+        if opening {
+            self.search_words(window, cx);
+            self.code_follow();
+            let _asked = self.code_reread_shown();
+        } else {
+            self.code_read_tab();
+        }
+        cx.notify();
+    }
+
     pub(super) fn code_tab(&mut self, tab: Tab, cx: &mut Context<'_, Self>) {
         if self.areas.workspace.code.tab != tab {
             self.areas.workspace.code.changes.sources.invalidate();

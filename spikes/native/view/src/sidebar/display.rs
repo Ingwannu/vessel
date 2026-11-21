@@ -2,8 +2,9 @@
 //! display-preferences/menu.tsx`): a root of decisions, each with its value
 //! at the right, opening a page of its choices; choosing one sets it and
 //! closes the menu. The decisions are the page's (`features/shell/
-//! sidebar-view-menu.tsx`): grouping, order, and whether ended sessions are
-//! listed, kept in the preferences (`prefs::SidebarView`).
+//! sidebar-view-menu.tsx`): grouping, order, what a row shows after its
+//! name, and whether ended sessions are listed, kept in the preferences
+//! (`prefs::SidebarView`).
 //!
 //! [Decision Log]
 //! - Purpose: the person chooses how the sidebar lists sessions from the
@@ -21,7 +22,7 @@
 //! - Here, not in the app: what each row is and what choosing it does,
 //!   so it is tested without a window.
 
-use crate::prefs::{Grouping, PreferenceChange, SessionSort, SidebarView};
+use crate::prefs::{Grouping, PreferenceChange, SessionSort, SidebarTrailing, SidebarView};
 use crate::text::SidebarWords;
 
 /// Which page of the menu shows.
@@ -34,6 +35,8 @@ pub enum DisplayPage {
     Grouping,
     /// The order within a group.
     Sort,
+    /// What a row shows after its name: diff stats or last activity.
+    Trailing,
 }
 
 /// What leads an option (Paseo's option icons; the app picks the glyph).
@@ -97,6 +100,7 @@ impl DisplayPage {
             Self::Root => None,
             Self::Grouping => Some(words.grouping),
             Self::Sort => Some(words.sort),
+            Self::Trailing => Some(words.show),
         }
     }
 
@@ -115,6 +119,12 @@ impl DisplayPage {
                     label: words.sort,
                     kind: RowKind::Opens {
                         value: words.sort_by(view.sort),
+                    },
+                },
+                DisplayRow {
+                    label: words.show,
+                    kind: RowKind::Opens {
+                        value: words.trailing(view.trailing),
                     },
                 },
                 DisplayRow {
@@ -142,6 +152,16 @@ impl DisplayPage {
                     },
                 })
                 .collect(),
+            Self::Trailing => TRAILING
+                .iter()
+                .map(|&trailing| DisplayRow {
+                    label: words.trailing(trailing),
+                    kind: RowKind::Choice {
+                        checked: view.trailing == trailing,
+                        mark: None,
+                    },
+                })
+                .collect(),
         }
     }
 
@@ -152,7 +172,8 @@ impl DisplayPage {
             Self::Root => match index {
                 0 => Some(DisplayAct::Open(Self::Grouping)),
                 1 => Some(DisplayAct::Open(Self::Sort)),
-                2 => Some(DisplayAct::Flip(PreferenceChange::SidebarEnded(
+                2 => Some(DisplayAct::Open(Self::Trailing)),
+                3 => Some(DisplayAct::Flip(PreferenceChange::SidebarEnded(
                     !view.ended,
                 ))),
                 _ => None,
@@ -163,6 +184,9 @@ impl DisplayPage {
             Self::Sort => SORTS
                 .get(index)
                 .map(|&sort| DisplayAct::Choose(PreferenceChange::SidebarSort(sort))),
+            Self::Trailing => TRAILING
+                .get(index)
+                .map(|&trailing| DisplayAct::Choose(PreferenceChange::SidebarTrailing(trailing))),
         }
     }
 }
@@ -176,3 +200,7 @@ const GROUPINGS: [(Grouping, OptionMark); 3] = [
 
 /// The orders, in the menu's order.
 const SORTS: [SessionSort; 2] = [SessionSort::Created, SessionSort::Activity];
+
+/// What a row can show after its name. `none` is stored and draws nothing;
+/// the menu offers these two.
+const TRAILING: [SidebarTrailing; 2] = [SidebarTrailing::Diff, SidebarTrailing::Timestamp];

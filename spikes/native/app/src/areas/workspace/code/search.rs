@@ -171,7 +171,7 @@ impl Shell {
     }
 
     /// The field's placeholder for its search, in the person's language.
-    pub(super) fn search_words(&self, window: &mut Window, cx: &mut Context<'_, Self>) {
+    pub(crate) fn search_words(&self, window: &mut Window, cx: &mut Context<'_, Self>) {
         let labels = self.words().labels();
         let search = &self.areas.workspace.code.files.search;
         search.field.set_placeholder(

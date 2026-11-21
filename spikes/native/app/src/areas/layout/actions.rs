@@ -25,6 +25,7 @@ impl Shell {
             cx,
         )
     }
+
     /// Feature owners can apply only validated local operations, bound to their
     /// captured workspace. No panel receives the underlying book or raw fields.
     pub(crate) fn update_layout<T>(
