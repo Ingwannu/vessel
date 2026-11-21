@@ -48,6 +48,7 @@ impl State {
             Command::ClearTerminalAttention { machine, clear } => {
                 self.clear_terminal_attention(&machine, clear);
             }
+            Command::LocateTerminal(locate) => self.locate_terminal(locate),
             Command::NodeSettings(ask) => self.node_settings(ask).await,
             Command::Diagnostics(ask) => self.diagnostics(ask).await,
             Command::Plugins(ask) => self.plugins(ask, Event::Plugins).await,

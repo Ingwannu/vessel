@@ -93,6 +93,7 @@ pub mod sound {
     pub const fn play(_kind: vessel_app_view::notices::NoticeKind) {}
 }
 pub mod sync;
+pub mod terminal_holder;
 pub mod terminals;
 pub mod usage;
 #[cfg(target_arch = "wasm32")]

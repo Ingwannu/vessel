@@ -306,6 +306,7 @@ impl Shell {
         self.settle_settings(window);
         self.settle_plugins(window, cx);
         self.settle_sessions(window, cx);
+        self.settle_terminal_notice(window, cx);
         self.settle_import(window, cx);
         self.settle_session_lifecycle(window, cx);
         self.settle_labels(cx);

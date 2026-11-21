@@ -1,6 +1,7 @@
 //! A terminal notice is claimed only by a window that would tell it, and
 //! shown only when the machine admits it: titled in Paseo's words, with the
-//! terminal's title (never its command) as the body.
+//! terminal's title (never its command) as the body. A click on a folder
+//! terminal that no session names as a path asks the node.
 
 use std::path::PathBuf;
 
@@ -8,6 +9,7 @@ use gpui::TestAppContext;
 use vessel_app_link::Command;
 use vessel_app_link::Link;
 use vessel_app_link::claims::TerminalAnswer;
+use vessel_app_link::terminal_holder::Located;
 use vessel_app_view::notices::NoticeKind;
 use vessel_app_view::notices::claims::Asked;
 use vessel_app_view::notices::terminals::{TerminalAnnounce, TerminalNotice};
@@ -186,4 +188,101 @@ fn a_viewed_terminal_clears_its_attention_once_on_a_machine_that_admits_claims(
     } else {
         assert!(clears.is_empty(), "no machine admits claims yet");
     }
+}
+
+/// The lab, online at this protocol, listing `sessions`.
+fn lab(sessions: Vec<vessel_app_view::Card>) -> Machine {
+    Machine {
+        connection_epoch: None,
+        node: None,
+        name: "lab".to_owned(),
+        reach: Reach::Online,
+        sessions,
+        agents: Vec::new(),
+        protocol: Some(vessel_proto::PROTOCOL_VERSION),
+        version: None,
+    }
+}
+
+/// A session of the lab's whose workspace is the folder `cwd`.
+fn in_folder(session: SessionId, cwd: &str) -> vessel_app_view::Card {
+    vessel_app_view::Card {
+        session,
+        structured: true,
+        live: true,
+        title: "notes".to_owned(),
+        machine: "lab".to_owned(),
+        agent: "Claude".to_owned(),
+        lane: None,
+        phrase: vessel_app_view::board::Phrase::Starting,
+        attention: vessel_app_view::board::Attention::AtRest,
+        at: chrono::Utc::now(),
+        detail: vessel_app_view::board::CardDetail {
+            cwd: Some(cwd.to_owned()),
+            ..vessel_app_view::board::CardDetail::default()
+        },
+    }
+}
+
+/// Whether the session shown is `session`.
+fn shows(shell: &Shell, session: SessionId) -> bool {
+    matches!(
+        crate::areas::layout::current_key(shell),
+        Ok(vessel_app_view::layout::LayoutKey::Session { session: at, .. }) if at == session
+    )
+}
+
+/// A folder terminal that no session's folder names as a path (the node
+/// keeps it canonical; the session keeps it as given, here through a link)
+/// is asked of the node. The session it names opens on the next frame; a
+/// find for another click is dropped.
+#[gpui::test]
+fn a_folder_terminal_no_session_names_as_a_path_is_located_by_the_node(cx: &mut TestAppContext) {
+    language_tests::init(cx);
+    let (link, mut sent) = Link::detached(8).unwrap();
+    let (shell, cx) = cx.add_window_view(move |window, cx| Shell::with_test_link(window, cx, link));
+    cx.run_until_parked();
+    while sent.try_recv().is_ok() {}
+    let (session, terminal) = (SessionId::random(), TerminalId::random());
+    let place = TerminalPlace::Folder {
+        path: PathBuf::from("/real/notes"),
+    };
+    shell.update_in(cx, |shell, window, cx| {
+        shell.fleet = Fleet {
+            machines: vec![lab(vec![in_folder(session, "/home/me/notes")])],
+            read_at: None,
+        };
+        shell.terminal_notice_clicked("lab", terminal, &place, window, cx);
+        assert!(
+            !shows(shell, session),
+            "nothing opens before the node answers"
+        );
+    });
+    let mut asked = Vec::new();
+    while let Ok(command) = sent.try_recv() {
+        if let Command::LocateTerminal(locate) = command {
+            asked.push((locate.machine, locate.terminal, locate.candidates));
+        }
+    }
+    assert_eq!(
+        asked,
+        vec![(
+            "lab".to_owned(),
+            terminal,
+            vec![(session, PathBuf::from("/home/me/notes"))]
+        )]
+    );
+    shell.update_in(cx, |shell, window, cx| {
+        let found = |terminal| Located {
+            machine: "lab".to_owned(),
+            terminal,
+            session,
+        };
+        shell.terminal_located(found(TerminalId::random()));
+        shell.settle_terminal_notice(window, cx);
+        assert!(!shows(shell, session), "another click's find is dropped");
+        shell.terminal_located(found(terminal));
+        shell.settle_terminal_notice(window, cx);
+        assert!(shows(shell, session));
+    });
 }

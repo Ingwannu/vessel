@@ -140,6 +140,7 @@ impl Link {
             // The demo has no machine whose terminals ask for anyone, and
             // no inbox.
             | Command::ClearTerminalAttention { .. }
+            | Command::LocateTerminal(_)
             | Command::ReadInbox(_) => {}
             Command::CodeSource(request) => self.emit(refuse::code_source(request)),
             Command::Usage(ask) => self.emit(refuse::usage(ask)),

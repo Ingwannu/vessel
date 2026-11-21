@@ -228,4 +228,7 @@ pub enum Command {
     /// A workspace's shell terminals (ADR 0031); answered by
     /// `Event::Terminals`.
     Terminals(crate::terminals::Ask),
+    /// Find the folder session that holds a notice's terminal; a find is
+    /// answered by [`crate::Event::TerminalLocated`], none by nothing.
+    LocateTerminal(crate::terminal_holder::Locate),
 }

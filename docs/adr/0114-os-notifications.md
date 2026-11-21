@@ -284,7 +284,9 @@ terminal's attention, and no machine admits claims, so nothing here runs.
   (`terminal.list` with no place), waiting on its revision (ADR 0116). Once the feature is assigned, the
   node moves that revision when a terminal's attention changes (`terminals/registry/listed.rs`).
   - One follower per connection (`link/src/terminal_notices.rs`).
-  - A newer connection replaces it, and a failed call ends it.
+  - A newer connection replaces it, and a closed connection ends it. A failed call on a connection that stays
+    open rests 15 s, then asks for the whole list again, keeping what was told (app review note 3; the page's
+    `RETRY_MS`). Before, a failed call ended the follower until the next connection.
   - A list whose revision did not move is asked again only after a quiet second. A node that answers without
     waiting (its wait slots full, a delegated caller) would otherwise be asked at round-trip speed (app review
     note).
@@ -301,6 +303,16 @@ terminal's attention, and no machine admits claims, so nothing here runs.
   - Admitted notices share one sound and count in the window's title, as session notices do.
 - **Click** (`app/src/areas/notify/terminals.rs`): opens the session whose workspace holds the terminal's
   place, then the terminal's tab there. Nothing opens when the fleet lists no such session.
+  - A session holds a place as the page's `holds` reads it (`view::terminal_tabs::holds`): its own shell, its
+    worktree's, any folder of its project, or its folder as a path. Before, the click compared the whole
+    place with `place_for(card)`, so a shell in a project's subfolder, or beside a session of a workspace,
+    opened nothing.
+  - A folder that is no session's as a path is asked of the node (app review note 2): the node keeps a folder
+    place canonical, and a session keeps its folder as given, so through a link or a `..` the two differ. The
+    link lists each folder session's folder (`Command::LocateTerminal`, `link/src/terminal_holder.rs`, with the
+    Decision Log), and the session the node names opens on the next frame (`Event::TerminalLocated`,
+    `settle_terminal_notice`). A find for an earlier click is dropped. Paseo's daemon names the workspace in
+    the notification itself (`session-context.tsx:658-677`, `workspaceId`).
 - **Presence.** A terminal tab with the focused pane in the shown workspace is reported as
   `Terminal{terminal}` focus (`view/src/presence.rs`, `Shown::Terminal`), as Paseo's focus target is an agent
   or a terminal (`agent-attention-policy.ts:12`). The machine then suppresses that terminal's notice and
@@ -321,10 +333,15 @@ terminal's attention, and no machine admits claims, so nothing here runs.
   - `view/src/notices/terminals/tests.rs`: the first list, a new revision told once, the kinds, a failed
     terminal, alerts off;
   - `link/src/terminal_notices/tests.rs`, through the real framed actor: the whole list, then from its
-    revision, and only the new attention told; a fresh connection follows only while the constant is
-    assigned;
+    revision, and only the new attention told; a failed call rests, asks for the whole list again and tells
+    only what is new, and a closed connection ends the follower; a fresh connection follows only while the
+    constant is assigned;
+  - `link/src/terminal_holder/tests.rs`: the folders are listed in turn, a failed or empty one is passed
+    over, and the first that lists the terminal names its session;
+  - `view/src/terminal_tabs/places_tests.rs`, `a_session_holds_its_own_shells_its_workspaces_and_its_folder_as_a_path`;
   - `app/src/areas/notify/terminals/tests.rs`: only admitted notices are shown, with their titles; alerts
-    off never claims; a viewed terminal's attention is cleared once, only on a machine that admits claims;
+    off never claims; a viewed terminal's attention is cleared once, only on a machine that admits claims; a
+    folder terminal no session names as a path is asked of the node, and the session it names opens;
   - `view/src/presence/tests.rs` and `link/src/presence/tests.rs`: a shown terminal is `Terminal` focus only
     to a machine that admits claims.
 
@@ -346,7 +363,13 @@ unchanged (ADR 0026, `view::session::read_through`).
   the session unread, and the next view sends it again.
 - Not changed: the person's own "Mark as read" in a row's menu stays `session.mark`. Below the constant every
   read stays as it is.
-- Test: `view/src/notices/claims/tests.rs`, `a_read_is_marked_by_inbox_read_only_on_a_machine_that_admits_the_protocol`.
+- The inbox path never sets the read-only stop on `Forbidden`: `inbox.read` takes the `Read` scope, which
+  every paired device has, so a refusal there is not the scope's (app review note 2 of row 4). Revisit it if
+  `inbox.read` ever asks for more.
+- Tests:
+  - `view/src/notices/claims/tests.rs`, `a_read_is_marked_by_inbox_read_only_on_a_machine_that_admits_the_protocol`;
+  - `app/src/areas/conversation/read/tests.rs`, `a_read_on_a_claiming_machine_is_one_inbox_read_and_no_mark`:
+    one `ReadInbox` and no `Act::Mark` once the constant is assigned, the read mark before it.
 
 ## Badges (2026-11-21, the claims follow-up's fifth row)
 

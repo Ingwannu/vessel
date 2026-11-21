@@ -78,6 +78,10 @@ pub(crate) struct NotifyArea {
     /// The last terminal attention a view cleared, so a render does not
     /// clear it again (`notify/terminals.rs`).
     cleared: Option<(TerminalId, TerminalAttentionRevision)>,
+    /// A terminal notice's click whose holder the node is asked for, then
+    /// the holder it named, opened on the next frame (`notify/terminals.rs`).
+    locating: Option<(String, TerminalId)>,
+    located: Option<vessel_app_link::terminal_holder::Located>,
     _activation: Subscription,
 }
 
@@ -130,6 +134,8 @@ impl NotifyArea {
             turns: 0,
             tested: None,
             cleared: None,
+            locating: None,
+            located: None,
             _activation: activation,
         }
     }
