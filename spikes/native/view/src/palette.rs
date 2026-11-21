@@ -80,6 +80,8 @@ pub enum PaletteTarget<S, T> {
     AddMachine,
     /// Go to the board.
     Board,
+    /// Go to the fleet schedules.
+    Schedules,
     /// Go to a section of Settings.
     Settings(S),
     /// Open a machine's detail in Settings › Machines.
@@ -125,6 +127,19 @@ pub struct PaletteEntry<S, T> {
 }
 
 impl<S, T> PaletteEntry<S, T> {
+    /// The Schedule destination uses the same words as its sidebar row.
+    #[must_use]
+    pub fn schedules(words: &crate::localization::Translator) -> Self {
+        let mut entry = Self::new(
+            "schedules".to_owned(),
+            words.sidebar().schedules().to_owned(),
+            PaletteGroup::GoTo,
+            PaletteTarget::Schedules,
+        );
+        entry.keywords = Some(words.schedules().search_keywords().to_owned());
+        entry
+    }
+
     /// A plugin's Command Center item, in its plugin's `section`.
     #[must_use]
     pub fn plugin(command: &crate::plugins::PluginCommand, section: u16) -> Self {

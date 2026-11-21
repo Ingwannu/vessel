@@ -18,8 +18,8 @@ use crate::connection::{ConnectionEpoch, ConnectionEpochs};
 use crate::devices::MachineKey;
 use crate::palette::{PaletteEntry, PaletteGroup, PaletteTarget, palette_groups};
 use crate::plugins::{
-    CatalogAnswered, Catalogs, Place, Problem, QUIET_AFTER, RETRY_AFTER, Reply, Request,
-    context_at, speaks_catalog,
+    CatalogAnswered, Catalogs, Place, PluginCall, PluginCommand, PluginRun, Problem, QUIET_AFTER,
+    RETRY_AFTER, Reply, Request, context_at, speaks_catalog,
 };
 
 fn key(name: &str) -> MachineKey {
@@ -264,15 +264,15 @@ fn items_need_may_invoke_and_the_context_they_declare() {
     assert_eq!(ids, ["plugin:laptop:notes:open"]);
     assert_eq!(global[0].title, "Open notes");
     assert_eq!(global[0].keywords, "memo");
-    assert_eq!(global[0].call.invoke.context, InvokeContext::Global);
-    assert_eq!(global[0].call.invoke.method.as_str(), "notes.open");
+    assert_eq!(invoked(&global[0]).invoke.context, InvokeContext::Global);
+    assert_eq!(invoked(&global[0]).invoke.method.as_str(), "notes.open");
     // A session with a project offers the workspace item too; a session
     // the node placed in no project does not.
     let project = ProjectId::random();
     let here = catalogs.commands(&session_at("laptop", Some(project)));
     assert_eq!(here.len(), 2);
     assert_eq!(
-        here[1].call.invoke.context,
+        invoked(&here[1]).invoke.context,
         InvokeContext::Workspace {
             project,
             worktree: None
@@ -336,7 +336,7 @@ fn a_slash_command_runs_its_method_with_the_arguments_in_the_session() {
 fn a_method_calls_answer_is_its_own_and_not_the_watchers() {
     let mut catalogs = holding(catalog("notes", true, 1));
     let laptop = key("laptop");
-    let call = catalogs.commands(&Place::Global).remove(0).call;
+    let call = invoked(&catalogs.commands(&Place::Global)[0]).clone();
     let (machine, asked) = catalogs.invoke(call.clone()).unwrap();
     assert_eq!(machine, laptop);
     assert_eq!(asked.request, Request::Invoke(call.invoke));
@@ -369,4 +369,195 @@ fn plugin_items_are_a_section_per_plugin_after_the_apps_own_groups() {
     assert_eq!(plugin.as_str(), "notes");
     // The keywords are searched.
     assert_eq!(palette_groups(&entries, "memo").len(), 2);
+}
+
+/// The call an invoking item runs.
+fn invoked(command: &PluginCommand) -> &PluginCall {
+    let PluginRun::Invoke(call) = &command.run else {
+        panic!("an invoking item: {command:?}");
+    };
+    call
+}
+
+/// A catalog whose plugin declares a screen, a sidebar row opening it, an
+/// item opening it and an item calling a method (ADR 0115, "Surfaces").
+fn screens(may_invoke: bool) -> PluginCatalog {
+    use vessel_proto::plugins::{ControlContent, SidebarPlacement, Surface};
+
+    let node = NodeId::random();
+    let text = |id: &str| vessel_proto::plugins::Control {
+        id: id.parse().unwrap(),
+        content: ControlContent::Text {
+            text: "Notes".parse().unwrap(),
+        },
+    };
+    let opening = ContributionContent::Command {
+        keywords: Vec::new(),
+        context: CommandContext::Global,
+        action: Action::OpenScreen {
+            screen: "main".parse().unwrap(),
+        },
+    };
+    let document = ClientDocument::new(
+        vec!["notes.open".parse().unwrap()],
+        vec![
+            item(
+                "main",
+                "Notes",
+                ContributionContent::Screen {
+                    surface: Surface {
+                        controls: vec![text("intro")],
+                    },
+                },
+            ),
+            item(
+                "main",
+                "Notes",
+                ContributionContent::Sidebar {
+                    placement: SidebarPlacement::Header,
+                    screen: "main".parse().unwrap(),
+                },
+            ),
+            item("show", "Show notes", opening),
+            item("open", "Open notes", command(CommandContext::Global)),
+        ],
+        Vec::new(),
+    )
+    .unwrap();
+    let installation = ClientInstallation::new(
+        PluginAddress {
+            node,
+            plugin: "notes".parse().unwrap(),
+            generation: RuntimeGeneration::random(),
+        },
+        document.required_client(),
+        document,
+    )
+    .unwrap();
+    PluginCatalog {
+        generation: PluginGeneration::new(1),
+        catalog: ClientCatalog::new(node, vec![installation]).unwrap(),
+        may_invoke,
+    }
+}
+
+/// Catalogs holding `held` for each of `machines`.
+fn holding_on(machines: &[&str], held: &PluginCatalog) -> Catalogs {
+    let mut catalogs = Catalogs::default();
+    let book = machines.iter().map(|name| online(name, epoch(1))).collect();
+    for (machine, read) in catalogs.sync(&fleet(book)) {
+        let _asked = catalogs.answered(&machine, read.ticket, Ok(Reply::Catalog(held.clone())));
+    }
+    catalogs
+}
+
+#[test]
+fn a_screen_is_found_and_opened_by_any_device_that_reads_the_catalog() {
+    use crate::plugins::{ScreenAddress, needs_admin};
+
+    let catalogs = holding_on(&["laptop"], &screens(false));
+    let at = ScreenAddress {
+        machine: key("laptop"),
+        plugin: "notes".parse().unwrap(),
+        screen: "main".parse().unwrap(),
+    };
+    let found = catalogs.screen(&at).unwrap();
+    assert_eq!(found.title, "Notes");
+    assert!(!found.may_invoke);
+    assert!(!needs_admin(found.surface));
+    let other = ScreenAddress {
+        screen: "elsewhere".parse().unwrap(),
+        ..at.clone()
+    };
+    assert!(catalogs.screen(&other).is_none());
+    // Without admin: the item opening the screen, not the one calling a
+    // method; with admin both, in declaration order.
+    let read = catalogs.commands(&Place::Global);
+    assert_eq!(read.len(), 1);
+    assert_eq!(read[0].run, PluginRun::Open(at));
+    let admin = holding_on(&["laptop"], &screens(true)).commands(&Place::Global);
+    let ids: Vec<&str> = admin.iter().map(|item| item.id.as_str()).collect();
+    assert_eq!(
+        ids,
+        ["plugin:laptop:notes:show", "plugin:laptop:notes:open"]
+    );
+}
+
+#[test]
+fn a_sidebar_row_is_drawn_once_across_machines_and_opens_the_right_one() {
+    use std::collections::HashMap;
+
+    use vessel_proto::plugins::SidebarPlacement;
+
+    use crate::plugins::{ScreenAddress, SidebarChoice};
+
+    let catalogs = holding_on(&["laptop", "server"], &screens(false));
+    let both = [key("laptop"), key("server")];
+    let remembered = HashMap::new();
+    let choice = SidebarChoice {
+        online: &both,
+        current: None,
+        remembered: &remembered,
+    };
+    let rows = catalogs.sidebar_rows(SidebarPlacement::Header, &choice);
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0].title, "Notes");
+    assert_eq!(rows[0].target.machine, key("laptop"));
+    assert!(
+        catalogs
+            .sidebar_rows(SidebarPlacement::Footer, &choice)
+            .is_empty()
+    );
+    // The screen open now wins, then the machine last shown.
+    let open = ScreenAddress {
+        machine: key("server"),
+        plugin: "notes".parse().unwrap(),
+        screen: "main".parse().unwrap(),
+    };
+    let now = SidebarChoice {
+        current: Some(&open),
+        ..choice
+    };
+    assert_eq!(
+        catalogs.sidebar_rows(SidebarPlacement::Header, &now)[0]
+            .target
+            .machine,
+        key("server")
+    );
+    let last = HashMap::from([(
+        ("notes".parse().unwrap(), "main".parse().unwrap()),
+        key("server"),
+    )]);
+    let shown = SidebarChoice {
+        remembered: &last,
+        ..choice
+    };
+    assert_eq!(
+        catalogs.sidebar_rows(SidebarPlacement::Header, &shown)[0]
+            .target
+            .machine,
+        key("server")
+    );
+    // An away machine's rows are left out.
+    let away = [key("server")];
+    let only = SidebarChoice {
+        online: &away,
+        ..choice
+    };
+    assert_eq!(
+        catalogs.sidebar_rows(SidebarPlacement::Header, &only)[0]
+            .target
+            .machine,
+        key("server")
+    );
+    // The screen header's host filter lists the connected machines that
+    // declare the screen, in book order.
+    let (notes, main) = (open.plugin.clone(), open.screen.clone());
+    assert_eq!(catalogs.screen_machines(&notes, &main, &both), both);
+    assert_eq!(catalogs.screen_machines(&notes, &main, &away), away);
+    assert!(
+        catalogs
+            .screen_machines(&notes, &"other".parse().unwrap(), &both)
+            .is_empty()
+    );
 }

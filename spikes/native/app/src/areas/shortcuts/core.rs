@@ -120,7 +120,12 @@ impl Shell {
                 .as_ref()
                 .map(|open| open.machine.clone()),
             Route::Board | Route::Archive => self.board_scope().map(str::to_owned),
-            Route::Draft | Route::Sessions | Route::Pair | Route::Settings => None,
+            Route::Draft
+            | Route::Sessions
+            | Route::Schedules
+            | Route::Pair
+            | Route::Settings
+            | Route::Plugin => None,
         }
     }
 }

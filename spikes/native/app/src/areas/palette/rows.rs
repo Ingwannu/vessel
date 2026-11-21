@@ -47,6 +47,7 @@ pub(super) const fn glyph_of(target: &Target) -> Glyph {
         PaletteTarget::NewSession(_) => Glyph::CommandPlus,
         PaletteTarget::AddMachine | PaletteTarget::Machine(_) => Glyph::Machine,
         PaletteTarget::Board => Glyph::Board,
+        PaletteTarget::Schedules => Glyph::CommandSchedules,
         PaletteTarget::Settings(Section::General) => Glyph::CommandSettings,
         PaletteTarget::Settings(section) => settings::section_glyph(*section),
         PaletteTarget::Session { structured, .. } => {
@@ -135,6 +136,7 @@ const fn action_of(target: &Target) -> Option<Action> {
             | Section::Models => None,
         },
         PaletteTarget::AddMachine
+        | PaletteTarget::Schedules
         | PaletteTarget::Machine(_)
         | PaletteTarget::Session { .. }
         | PaletteTarget::Theme(_)

@@ -22,13 +22,13 @@
 //!   shows it (the page's `/sessions/<machine>/<id>`), else nowhere (a
 //!   global item only).
 
-use vessel_app_kit::ui::Context;
+use vessel_app_kit::ui::{Context, Window};
 use vessel_app_link::Command;
 use vessel_app_link::plugins::{Answer, Ask};
 use vessel_app_view::board::RunsIn;
 use vessel_app_view::devices::MachineKey;
 use vessel_app_view::plugins::{
-    Call, CatalogAnswered, Place, PluginCall, PluginSlash, problem_words,
+    Call, CatalogAnswered, Place, PluginCall, PluginRun, PluginSlash, problem_words,
 };
 use vessel_app_view::toasts::ToastTone;
 
@@ -43,7 +43,7 @@ impl Shell {
     }
 
     /// Send the watchers' or a method's calls.
-    fn plugin_catalog_calls(&self, calls: Vec<(MachineKey, Call)>) {
+    pub(crate) fn plugin_catalog_calls(&self, calls: Vec<(MachineKey, Call)>) {
         for (machine, Call { ticket, request }) in calls {
             self.command(Command::PluginCatalog(Ask {
                 machine,
@@ -60,6 +60,8 @@ impl Shell {
             ticket,
             result,
         } = answer;
+        // A screen's pending toggle or choice ends with its call's answer.
+        self.plugin_screen_settled(ticket);
         match self
             .areas
             .plugin_catalogs
@@ -135,18 +137,26 @@ impl Shell {
     }
 
     /// Run the palette's plugin item `command` as the catalog has it now
-    /// (an item gone since the palette drew it does nothing).
-    pub(crate) fn run_plugin_command(&mut self, command: &str) {
+    /// (an item gone since the palette drew it does nothing): call its
+    /// method, or open its screen (ADR 0115, "Surfaces").
+    pub(crate) fn run_plugin_command(
+        &mut self,
+        command: &str,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
         let place = self.plugin_place();
-        let call = self
+        let run = self
             .areas
             .plugin_catalogs
             .commands(&place)
             .into_iter()
             .find(|item| item.id == command)
-            .map(|item| item.call);
-        if let Some(call) = call {
-            self.run_plugin_call(call);
+            .map(|item| item.run);
+        match run {
+            Some(PluginRun::Invoke(call)) => self.run_plugin_call(call),
+            Some(PluginRun::Open(at)) => self.open_plugin_screen(at, window, cx),
+            None => {}
         }
     }
 }

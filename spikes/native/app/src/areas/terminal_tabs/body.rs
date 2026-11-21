@@ -91,6 +91,7 @@ pub(crate) fn panel(
     .absolute()
     .size_full();
     let pressed = key.clone();
+    let lifted = key.clone();
     let typed = key.clone();
     let scrolled = key.clone();
     let screen = surface(background)
@@ -107,6 +108,15 @@ pub(crate) fn panel(
             cx.listener(move |shell, event: &gpui::MouseDownEvent, window, cx| {
                 shell.terminal_tab_focus(&pressed, window, cx);
                 shell.terminal_tab_press(&pressed, event, cx);
+            }),
+        )
+        // TRACKER 836: the window-wide listener is installed by the frame
+        // after the press; a release before that frame (a slow relayout
+        // after a resize) reaches only this one.
+        .on_mouse_up(
+            MouseButton::Left,
+            cx.listener(move |shell, _event: &gpui::MouseUpEvent, _window, cx| {
+                shell.terminal_tab_release(&lifted, cx);
             }),
         )
         .on_key_down(
@@ -175,7 +185,7 @@ fn listen_drag(window: &mut Window, shell: gpui::WeakEntity<Shell>, key: PaneKey
     window.on_mouse_event(move |event: &gpui::MouseMoveEvent, phase, _window, cx| {
         if phase == gpui::DispatchPhase::Bubble {
             drop(moved.update(cx, |shell, cx| {
-                shell.terminal_tab_drag(&key, event.position, cx);
+                shell.terminal_tab_pointer_moved(&key, event, cx);
             }));
         }
     });

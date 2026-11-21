@@ -49,8 +49,10 @@ mod page;
 mod words;
 
 pub use catalog::{
-    Answered as CatalogAnswered, CATALOG_PROTOCOL, Catalogs, Pause as CatalogPause, Place,
-    PluginCall, PluginCommand, PluginSlash, QUIET_AFTER, RETRY_AFTER, context_at, speaks_catalog,
+    Answered as CatalogAnswered, CATALOG_PROTOCOL, Catalogs, ControlValue, FoundScreen,
+    Pause as CatalogPause, Place, PluginCall, PluginCommand, PluginRun, PluginSlash, QUIET_AFTER,
+    RETRY_AFTER, ScreenAddress, SidebarChoice, SidebarRow, action_needs_admin, context_at,
+    control_input, needs_admin, screen_call, speaks_catalog,
 };
 pub use logs::{Logs, LogsView, log_head};
 pub use page::{Answered, Page, RowLook};

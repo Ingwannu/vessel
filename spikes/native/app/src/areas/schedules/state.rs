@@ -1,0 +1,133 @@
+//! Comparable draw inputs prepared at data/language/clock updates, not in Render.
+use super::{Area, Popup, RowControl};
+use vessel_app_kit::{select::Anchor, ui::SharedString};
+use vessel_app_view::{
+    Fleet,
+    localization::Translator,
+    schedules::{
+        locale,
+        presentation::{self, Notice},
+    },
+};
+impl Area {
+    pub(super) fn rebuild(&mut self, fleet: &Fleet, catalog: &Translator) -> bool {
+        let rows = presentation::rows(
+            &self.data.page,
+            fleet,
+            chrono::Utc::now(),
+            local_date,
+            catalog,
+        );
+        let body = self.data.page.body();
+        let mut host_errors: Vec<SharedString> = self
+            .data
+            .page
+            .problems()
+            .into_iter()
+            .map(|(key, failure)| {
+                catalog
+                    .schedules()
+                    .host_error(key.as_str(), locale::failure(failure, catalog))
+                    .unwrap_or_else(|_| catalog.schedules().display_unavailable().to_owned())
+                    .into()
+            })
+            .collect();
+        host_errors.extend(self.data.page.capped_machines().map(|key| {
+            catalog
+                .schedules()
+                .list_limit(
+                    vessel_app_view::localization::Number::count(
+                        vessel_app_view::schedules::page::Page::PERSON_LIMIT,
+                    ),
+                    key.as_str(),
+                )
+                .unwrap_or_else(|_| catalog.schedules().display_unavailable().to_owned())
+                .into()
+        }));
+        let blocking = self
+            .data
+            .page
+            .blocking_explanations()
+            .into_iter()
+            .map(|(key, failure)| Notice {
+                label: catalog
+                    .schedules()
+                    .host_error(key.as_str(), locale::failure(failure, catalog))
+                    .unwrap_or_else(|_| catalog.schedules().display_unavailable().to_owned())
+                    .into(),
+                variant: failure.variant(),
+            })
+            .collect::<Vec<_>>();
+        let local = self.data.page.local_failure.as_ref().map(|failure| Notice {
+            label: locale::failure(failure, catalog).into(),
+            variant: failure.variant(),
+        });
+        let changed = self.data.rows != rows
+            || self.data.body != body
+            || self.data.host_errors != host_errors
+            || self.data.blocking != blocking
+            || self.data.local != local;
+        self.data.rows = rows;
+        self.data.body = body;
+        self.data.host_errors = host_errors;
+        self.data.blocking = blocking;
+        self.data.local = local;
+        self.reconcile_controls();
+        changed
+    }
+    fn reconcile_controls(&mut self) {
+        let ui = &mut self.ui;
+        if ui.selected.as_ref().is_some_and(|intent| {
+            !intent.is_current(&self.data.page)
+                || !self
+                    .data
+                    .rows
+                    .iter()
+                    .any(|row| row.key == *intent.key() && row.has_menu())
+        }) {
+            ui.selected = None;
+            if ui.menu.is_open() {
+                ui.menu.close();
+                let _new = ui.pending_focus.insert(Popup::Actions);
+            }
+        }
+        if ui
+            .deleting
+            .as_ref()
+            .is_some_and(|prompt| !prompt.intent.is_current(&self.data.page))
+        {
+            ui.deleting = None;
+            let _new = ui.pending_focus.insert(Popup::Delete);
+        }
+        if ui.picker.is_open()
+            && (!self.data.page.filters_visible() || !self.data.page.multiple_machines())
+        {
+            ui.picker.close();
+            let _new = ui.pending_focus.insert(Popup::Hosts);
+        }
+        ui.anchors
+            .retain(|key, _| self.data.rows.iter().any(|row| row.key == *key));
+        for row in &self.data.rows {
+            let _existing = ui
+                .anchors
+                .entry(row.key.clone())
+                .or_insert_with(|| RowControl {
+                    anchor: Anchor::default(),
+                    id: format!(
+                        "schedule-actions-{}-{}",
+                        row.key.machine.as_str(),
+                        row.key.schedule
+                    )
+                    .into(),
+                });
+        }
+    }
+}
+
+// Same platform calendar as the sidebar's History, read off the paint path.
+fn local_date(at: chrono::DateTime<chrono::Utc>) -> Option<chrono::NaiveDate> {
+    let local = at.with_timezone(&chrono::Local);
+    at.naive_utc()
+        .checked_add_offset(*local.offset())
+        .map(|value| value.date())
+}

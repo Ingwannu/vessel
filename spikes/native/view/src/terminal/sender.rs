@@ -29,7 +29,12 @@
 //!   note 2: splitting the rest off moved it again on every send, about
 //!   8 GiB for a 32 MiB paste, on the window's thread).
 //! - Failures: a send that fails is not repeated (it may have been
-//!   applied); later items still go, in order.
+//!   applied); later items still go, in order. The rest of a paste whose
+//!   part failed is dropped, so a paste never lands with a hole in it
+//!   (P4w node review note 1): what got through is its start, and keys
+//!   typed after it still go. A bracketed paste's end marker is kept and
+//!   goes next, so the program leaves paste mode before those keys (app
+//!   review R1: else Enter would not run the line and ^C would be text).
 //! - Sizes (ADR 0116): each names a claim or an update. A size replacing a
 //!   queued claim keeps the claim, so a focus followed at once by a fit
 //!   still takes the terminal.
@@ -90,6 +95,18 @@ enum Item {
     },
 }
 
+/// What send is in flight.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+enum InFlight {
+    /// None: the next may go.
+    #[default]
+    Nothing,
+    /// A send whose failure drops nothing more.
+    Send,
+    /// A part of a paste with more to go: its failure drops the rest.
+    PastePart,
+}
+
 /// The sender's queue.
 #[derive(Debug, Default)]
 pub struct TerminalSender {
@@ -98,7 +115,7 @@ pub struct TerminalSender {
     chars: usize,
     /// Bytes of pastes queued.
     pasted: usize,
-    busy: bool,
+    in_flight: InFlight,
     closed: bool,
     overflowing: bool,
 }
@@ -172,7 +189,7 @@ impl TerminalSender {
     /// The next send, when none is in flight: it is then in flight until
     /// `answered`. Keys longer than one send's bound go a part at a time.
     pub fn take(&mut self) -> Option<Outgoing> {
-        if self.busy || self.closed {
+        if self.in_flight != InFlight::Nothing || self.closed {
             return None;
         }
         let outgoing = match self.items.front_mut()? {
@@ -196,17 +213,40 @@ impl TerminalSender {
             Some(Item::Typed(queued) | Item::Pasted(queued)) => queued.is_spent(),
             Some(Item::Resize { .. }) | None => true,
         };
+        let part = !spent && matches!(self.items.front(), Some(Item::Pasted(_)));
         if spent {
             let _sent = self.items.pop_front();
         }
-        self.busy = true;
+        self.in_flight = if part {
+            InFlight::PastePart
+        } else {
+            InFlight::Send
+        };
         Some(outgoing)
     }
 
-    /// The send in flight answered, well or not (a failed send is not
-    /// repeated). The next one may go.
+    /// The send in flight was taken. The next one may go.
     pub const fn answered(&mut self) {
-        self.busy = false;
+        self.in_flight = InFlight::Nothing;
+    }
+
+    /// The send in flight was refused or lost: it is not repeated, and the
+    /// rest of a paste it was a part of is dropped, all but the unsent
+    /// part of a bracketed paste's end marker. The next one may go.
+    pub fn failed(&mut self) {
+        if std::mem::take(&mut self.in_flight) != InFlight::PastePart {
+            return;
+        }
+        let Some(Item::Pasted(queued)) = self.items.front_mut() else {
+            return;
+        };
+        let keep = queued.marker_tail();
+        self.pasted = self.pasted.saturating_sub(keep.saturating_sub(queued.at));
+        if keep >= queued.text.len() {
+            let _dropped = self.items.pop_front();
+        } else {
+            queued.at = keep;
+        }
     }
 
     /// Drop what has not been sent; send nothing more.
@@ -220,7 +260,7 @@ impl TerminalSender {
     /// Whether a send is in flight.
     #[must_use]
     pub const fn busy(&self) -> bool {
-        self.busy
+        !matches!(self.in_flight, InFlight::Nothing)
     }
 }
 
@@ -256,5 +296,19 @@ impl Queued {
     /// Whether every part went out.
     const fn is_spent(&self) -> bool {
         self.at >= self.text.len()
+    }
+
+    /// Where the unsent part of a bracketed paste's end marker starts (past
+    /// what was sent); the text's end when it is not one.
+    fn marker_tail(&self) -> usize {
+        let bracketed =
+            self.text.starts_with(super::paste::START) && self.text.ends_with(super::paste::END);
+        if !bracketed {
+            return self.text.len();
+        }
+        self.text
+            .len()
+            .saturating_sub(super::paste::END.len())
+            .max(self.at)
     }
 }

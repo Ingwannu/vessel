@@ -9587,7 +9587,16 @@ activity: PushActivity,
 /**
  * Optional desktop OS evidence; absent on older/native backends.
  */
-idle_age?: PushIdleAge | null, };
+idle_age?: PushIdleAge | null, 
+/**
+ * Whether this window tells notices as the system's notifications.
+ * Only a notifying window can be elected a claim's local recipient,
+ * as only Paseo's clients subscribed with `notifications: true` are
+ * (`websocket-server.ts:2884-2886`). Suppression and push still count
+ * every present window. Absent reads `true`, the meaning before the
+ * field; `false` is versioned to ADR 0089's protocol.
+ */
+notifies?: boolean, };
 
 /**
  *Cache-only source metadata is bounded and refuses duplicate identities.
@@ -14956,9 +14965,9 @@ export const ORIGIN_LINK_PROTOCOL = 42;
 export const PLUGIN_SETTINGS_PROTOCOL = 43;
 
 /**
- * `notification.claim`, terminal attention and `Terminal` presence focus (ADR 0089); `null` until assigned.
+ * `notification.claim`, terminal attention, `Terminal` presence focus and a window's `notifies` (ADR 0089).
  */
-export const ATTENTION_NOTIFICATIONS_PROTOCOL = null;
+export const ATTENTION_NOTIFICATIONS_PROTOCOL = 47;
 
 /**
  * a catalog entry using `card`, the settings controls or `open_settings` (ADR 0115, "Surfaces").
