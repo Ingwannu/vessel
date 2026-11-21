@@ -26,11 +26,13 @@ import type {
 import type { Fleet } from "./fleet";
 import type { Outcome } from "./outcome";
 import {
+  followSave,
   readSettings,
   resetSettings,
   type SettingsAddress,
   writeSettings,
 } from "./plugin-settings";
+import { SURFACE_WORDS } from "./plugin-surfaces";
 import { problemWords } from "./plugins";
 import { Store } from "./store";
 
@@ -87,12 +89,28 @@ function change(
   );
 }
 
-/** Read `at` again; the last values stay until the answer. */
+/** The last call issued per document, by `docKey` (node review R1): an
+ * answer is applied only if no read, save or reset was issued after it, as
+ * Paseo's query keeps only its latest fetch (use-settings.ts:25-30). */
+const issued = new Map<string, number>();
+
+/** A new call for `at`; every earlier read's answer is now stale. */
+function issue(at: SettingsAddress): number {
+  const key = docKey(at);
+  const next = (issued.get(key) ?? 0) + 1;
+  issued.set(key, next);
+  return next;
+}
+
+/** Read `at` again; the last values stay until the answer, which is
+ * dropped if a newer call was issued meanwhile. */
 export async function loadDoc(
   fleet: Fleet,
   at: SettingsAddress,
 ): Promise<void> {
+  const ticket = issue(at);
   const read = await readSettings(fleet, at);
+  if (issued.get(docKey(at)) !== ticket) return;
   change(at, (entry) => ({
     ...entry,
     state: read.ok
@@ -101,12 +119,18 @@ export async function loadDoc(
   }));
 }
 
-/** What a write or reset answered, applied to the entry; whether it saved. */
+/** What a write or reset over `from` answered, applied to the entry;
+ * whether it saved. A save's answer is the newest state, so reads issued
+ * before it are dropped, and the drafts that began from `from` follow it. */
 function settle(
   at: SettingsAddress,
   key: string | null,
+  from: SettingsRevision,
   answer: Outcome<PluginSettingsWrite>,
 ): boolean {
+  issue(at);
+  if (answer.ok && answer.value.status === "saved")
+    followSave(at, from, answer.value.revision);
   change(at, (entry) => {
     const done = { ...entry, saving: null };
     if (!answer.ok)
@@ -143,8 +167,14 @@ export async function saveDoc(
   revision: SettingsRevision,
   values: RawJson,
 ): Promise<boolean> {
+  issue(at);
   change(at, (entry) => ({ ...entry, saving: key, error: null }));
-  return settle(at, key, await writeSettings(fleet, at, revision, values));
+  return settle(
+    at,
+    key,
+    revision,
+    await writeSettings(fleet, at, revision, values),
+  );
 }
 
 /** Replace `at` with its defaults over the revision last read. */
@@ -154,8 +184,31 @@ export async function resetDoc(
 ): Promise<boolean> {
   const state = docEntry(settingsDocs.get(), at).state;
   if (state.status !== "ready" && state.status !== "invalid") return false;
+  issue(at);
   change(at, (entry) => ({ ...entry, saving: "", error: null }));
-  return settle(at, null, await resetSettings(fleet, at, state.revision));
+  return settle(
+    at,
+    null,
+    state.revision,
+    await resetSettings(fleet, at, state.revision),
+  );
+}
+
+/** A draft that began from another revision than the one on screen: the
+ * page refuses it as the node would, without sending (node review R1). */
+export function refuseStale(at: SettingsAddress, key: string): void {
+  change(at, (entry) => ({
+    ...entry,
+    error: { key, words: SURFACE_WORDS.conflict, conflict: true },
+  }));
+}
+
+/** Clear the refusal shown on `key`'s row (Escape, or the screen closing
+ * when `key` is `null`: every refusal of the document). */
+export function clearRefusal(at: SettingsAddress, key: string | null): void {
+  const entry = docEntry(settingsDocs.get(), at);
+  if (entry.error === null || (key !== null && entry.error.key !== key)) return;
+  change(at, (current) => ({ ...current, error: null }));
 }
 
 /** Clear the last save's words and read again (Paseo's `reload()`). */

@@ -139,21 +139,55 @@ export function draftKey(at: SettingsAddress, key: string): string {
   return `${draftPrefix(at)}${key}`;
 }
 
-/** Move every draft of the document at `at` to `revision`, keeping its
- * text: after a conflict and Reload, Enter saves over the values just read
- * (only the draft's own property changes). */
+/** Move the drafts of the document at `at` that `moves` picks to
+ * `revision`, keeping their text. */
+function moveDrafts(
+  at: SettingsAddress,
+  revision: SettingsRevision,
+  moves: (draft: Draft) => boolean,
+): void {
+  const prefix = draftPrefix(at);
+  const picked = (id: string, draft: Draft) =>
+    id.startsWith(prefix) && draft.revision !== revision && moves(draft);
+  settingsDrafts.update((all) => {
+    if (![...all].some(([id, draft]) => picked(id, draft))) return all;
+    return new Map(
+      [...all].map(([id, draft]) =>
+        picked(id, draft) ? [id, { ...draft, revision }] : [id, draft],
+      ),
+    );
+  });
+}
+
+/** After a conflict and Reload: every draft of the document moves to the
+ * revision just read, so Enter saves over those values (only the draft's
+ * own property changes). */
 export function rebaseDrafts(
   at: SettingsAddress,
   revision: SettingsRevision,
 ): void {
-  const prefix = draftPrefix(at);
+  moveDrafts(at, revision, () => true);
+}
+
+/** After this page saved the document from `from` to `to`: the drafts that
+ * began from `from` follow it, so the page's own save is not taken for
+ * another client's (node review R2). A draft from an older revision stays
+ * a conflict. */
+export function followSave(
+  at: SettingsAddress,
+  from: SettingsRevision,
+  to: SettingsRevision,
+): void {
+  moveDrafts(at, to, (draft) => draft.revision === from);
+}
+
+/** Drop the drafts of `keys` in the document at `at` (a secret input's
+ * text when its screen closes). */
+export function dropDrafts(at: SettingsAddress, keys: readonly string[]): void {
+  const ids = new Set(keys.map((key) => draftKey(at, key)));
   settingsDrafts.update((all) => {
-    if (![...all.keys()].some((id) => id.startsWith(prefix))) return all;
-    return new Map(
-      [...all].map(([id, draft]) =>
-        id.startsWith(prefix) ? [id, { ...draft, revision }] : [id, draft],
-      ),
-    );
+    if (![...all.keys()].some((id) => ids.has(id))) return all;
+    return new Map([...all].filter(([id]) => !ids.has(id)));
   });
 }
 

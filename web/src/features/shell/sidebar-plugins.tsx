@@ -16,22 +16,48 @@ import "./sidebar-plugins.css";
 
 import { Link } from "@tanstack/react-router";
 
+import { nodeKeyOf } from "../../bridge/ids";
+import { useFleetState } from "../../context";
 import { pluginCatalogs } from "../../data/plugin-catalog";
-import { type SidebarItem, sidebarItems } from "../../data/plugin-surfaces";
+import {
+  rememberedScreens,
+  type SidebarItem,
+  sidebarItems,
+} from "../../data/plugin-surfaces";
 import { useStore } from "../../data/store";
 import { useWhere } from "../../data/where";
 import type { SidebarPlacement } from "../../wire/proto";
 import { Icon } from "../../ui/kit";
 import { rowClass } from "./sidebar";
 
+/** The rows of `placement`, merged across the connected machines. */
+function usePluginRows(placement: SidebarPlacement): SidebarItem[] {
+  const catalogs = useStore(pluginCatalogs, (all) => all);
+  const remembered = useStore(rememberedScreens, (all) => all);
+  const statuses = useFleetState((state) => state.statuses);
+  const [first, shown, plugin, screen] = useWhere().segments;
+  const node = nodeKeyOf(shown ?? "");
+  const current =
+    first === "plugin" &&
+    node !== null &&
+    plugin !== undefined &&
+    screen !== undefined
+      ? { node, plugin, screen }
+      : null;
+  return sidebarItems(catalogs, placement, {
+    online: (key) => statuses[key]?.state === "connected",
+    current,
+    remembered,
+  });
+}
+
 function Rows({ items }: { items: readonly SidebarItem[] }) {
-  const where = useWhere();
-  const [first, node, plugin, screen] = where.segments;
+  const [first, , plugin, screen] = useWhere().segments;
   return items.map((item) => {
     const target = item.target;
+    // A merged row is active on its screen from any machine.
     const active =
       first === "plugin" &&
-      node === target.node &&
       plugin === target.plugin &&
       screen === target.screen;
     return (
@@ -58,15 +84,13 @@ export function SidebarPluginItems({
 }: {
   placement: SidebarPlacement;
 }) {
-  const catalogs = useStore(pluginCatalogs, (all) => all);
-  return <Rows items={sidebarItems(catalogs, placement)} />;
+  return <Rows items={usePluginRows(placement)} />;
 }
 
 /** The footer rows, in their own block above Settings; nothing when there
  * are none, so the foot keeps its place at the bottom. */
 export function SidebarPluginFoot() {
-  const catalogs = useStore(pluginCatalogs, (all) => all);
-  const items = sidebarItems(catalogs, "footer");
+  const items = usePluginRows("footer");
   if (items.length === 0) return null;
   return (
     <div className="side-plugin-foot">

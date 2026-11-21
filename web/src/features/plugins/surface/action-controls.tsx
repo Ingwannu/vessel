@@ -48,14 +48,15 @@ function allowed(scope: SurfaceScope, action: Action): boolean {
   return action.kind === "open_screen" || scope.mayInvoke;
 }
 
-/** Call `method` with `input`; a failure becomes a toast. */
+/** Call `method` with `input`; a failure becomes a toast. Resolves when
+ * the call has an outcome, either way. */
 function call(
   fleet: Fleet,
   scope: SurfaceScope,
   method: string,
   input: RawJson,
-) {
-  void invokePlugin(fleet, {
+): Promise<void> {
+  return invokePlugin(fleet, {
     node: scope.node,
     installation: scope.installation,
     method,
@@ -71,7 +72,7 @@ function take(fleet: Fleet, scope: SurfaceScope, action: Action) {
   const plugin = scope.installation.address.plugin;
   switch (action.kind) {
     case "invoke":
-      call(fleet, scope, action.method, action.input);
+      void call(fleet, scope, action.method, action.input);
       return;
     case "open_screen":
       scope.open({
@@ -203,7 +204,7 @@ export function PluginTextField({
         onKeyDown={(event) => {
           if (event.key !== "Enter") return;
           event.preventDefault();
-          call(fleet, scope, submit, { value: text });
+          void call(fleet, scope, submit, { value: text });
         }}
       />
     </Field>
@@ -225,7 +226,11 @@ export function PluginChoice({
   submit: string;
 }) {
   const fleet = useFleet();
-  const [value, setValue] = useState(selected);
+  // The declared value is drawn; a pick shows until its call has an
+  // outcome, then the declaration (which the helper may send again) wins
+  // (node review R3).
+  const [pending, setPending] = useState<string | null>(null);
+  const value = pending ?? selected;
   return (
     <Field label={label} disabled={!scope.mayInvoke}>
       <Select
@@ -237,8 +242,10 @@ export function PluginChoice({
           label: option.title,
         }))}
         onChange={(next: string) => {
-          setValue(next);
-          call(fleet, scope, submit, { value: next });
+          setPending(next);
+          void call(fleet, scope, submit, { value: next }).then(() => {
+            setPending(null);
+          });
         }}
       />
     </Field>
@@ -258,7 +265,10 @@ export function PluginToggle({
   submit: string;
 }) {
   const fleet = useFleet();
-  const [on, setOn] = useState(state === "on");
+  // As the choice: the declared state, with a change shown only until its
+  // call has an outcome (node review R3).
+  const [pending, setPending] = useState<boolean | null>(null);
+  const on = pending ?? state === "on";
   return (
     <Switch
       label={label}
@@ -266,8 +276,10 @@ export function PluginToggle({
       checked={on}
       disabled={!scope.mayInvoke}
       onChange={(next) => {
-        setOn(next);
-        call(fleet, scope, submit, { value: next });
+        setPending(next);
+        void call(fleet, scope, submit, { value: next }).then(() => {
+          setPending(null);
+        });
       }}
     />
   );

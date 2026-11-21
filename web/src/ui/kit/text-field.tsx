@@ -102,7 +102,8 @@ export function TextField({
         readOnly={readOnly}
         autoFocus={autoFocus}
         spellCheck={spellCheck}
-        autoComplete="off"
+        // A secret is never offered to the browser's saved logins.
+        autoComplete={type === "password" ? "new-password" : "off"}
         onKeyDown={onKeyDown}
         onBlur={onBlur}
         role={role}

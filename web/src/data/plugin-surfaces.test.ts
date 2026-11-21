@@ -11,6 +11,7 @@ import {
   declarationOrder,
   findSurface,
   readOnlyLine,
+  screenKey,
   settingsScreens,
   sidebarItems,
   surfaceCommands,
@@ -125,11 +126,21 @@ describe("a plugin's surfaces", () => {
     expect(settingsScreens(undefined, "notes")).toEqual([]);
   });
 
-  it("puts sidebar rows in their place, opening their screen", () => {
-    const catalogs = new Map([[laptop, held(false)]]);
-    expect(sidebarItems(catalogs, "header")).toEqual([
+  it("merges a row across connected machines and opens the right one", () => {
+    const server = fixtureId("NodeKey", "server");
+    const catalogs = new Map([
+      [laptop, held(false)],
+      [server, held(false)],
+    ]);
+    const choice = {
+      online: () => true,
+      current: null,
+      remembered: new Map<string, typeof laptop>(),
+    };
+    const rows = sidebarItems(catalogs, "header", choice);
+    expect(rows).toEqual([
       {
-        key: "laptop:notes:header:main",
+        key: JSON.stringify(["notes", "header", "main"]),
         title: "Notes",
         target: {
           kind: "screen",
@@ -139,9 +150,30 @@ describe("a plugin's surfaces", () => {
         },
       },
     ]);
-    expect(sidebarItems(catalogs, "footer").map((item) => item.title)).toEqual([
-      "Notes below",
-    ]);
+    expect(
+      sidebarItems(catalogs, "footer", choice).map((item) => item.title),
+    ).toEqual(["Notes below"]);
+    // The screen open now wins, then the machine last shown, then the first.
+    const open = { node: server, plugin: "notes", screen: "main" };
+    expect(
+      sidebarItems(catalogs, "header", { ...choice, current: open })[0]?.target
+        .node,
+    ).toBe(server);
+    const remembered = new Map([[screenKey("notes", "main"), server]]);
+    expect(
+      sidebarItems(catalogs, "header", { ...choice, remembered })[0]?.target
+        .node,
+    ).toBe(server);
+    // An away machine's rows are left out.
+    expect(
+      sidebarItems(catalogs, "header", {
+        ...choice,
+        online: (node) => node === server,
+      })[0]?.target.node,
+    ).toBe(server);
+    expect(
+      sidebarItems(catalogs, "header", { ...choice, online: () => false }),
+    ).toEqual([]);
   });
 
   it("offers opening items, settings only with admin, in declaration order", () => {

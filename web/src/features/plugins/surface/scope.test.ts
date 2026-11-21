@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import type { PluginControl, Surface } from "../../../wire/proto";
-import { boundDocuments, everyControl, needsAdmin, toneOf } from "./scope";
+import {
+  boundDocuments,
+  everyControl,
+  needsAdmin,
+  secretInputs,
+  toneOf,
+} from "./scope";
 
 const text = (id: string): PluginControl => ({
   id,
@@ -86,5 +92,55 @@ describe("a declared surface", () => {
       toneOf("warning"),
       toneOf("danger"),
     ]).toEqual(["neutral", "ok", "warn", "danger"]);
+  });
+
+  it("needs no admin for a menu that only opens screens", () => {
+    const menu = (kind: "open_screen" | "open_settings"): PluginControl => ({
+      id: "menu",
+      content: {
+        kind: "button",
+        button: {
+          title: "More",
+          availability: "enabled",
+          behavior: {
+            kind: "menu",
+            items: [
+              {
+                kind: "item",
+                id: "go",
+                title: "Go",
+                availability: "enabled",
+                behavior: {
+                  kind: "action",
+                  action: { kind, screen: "main" },
+                },
+              },
+            ],
+          },
+        },
+      },
+    });
+    expect(needsAdmin({ controls: [menu("open_screen")] })).toBe(false);
+    expect(needsAdmin({ controls: [menu("open_settings")] })).toBe(true);
+  });
+
+  it("lists its secret inputs", () => {
+    const input = (key: string, mode: "plain" | "secret"): PluginControl => ({
+      id: key,
+      content: {
+        kind: "settings_input",
+        settings: "display",
+        key,
+        label: key,
+        hint: null,
+        placeholder: null,
+        mode,
+      },
+    });
+    expect(
+      secretInputs({
+        controls: [input("name", "plain"), input("token", "secret")],
+      }),
+    ).toEqual(["display\u0000token"]);
   });
 });

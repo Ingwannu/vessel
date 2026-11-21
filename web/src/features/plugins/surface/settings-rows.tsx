@@ -34,6 +34,8 @@ import {
 import {
   type DocEntry,
   docEntry,
+  clearRefusal,
+  refuseStale,
   saveDoc,
   settingsDocs,
 } from "../../../data/plugin-settings-docs";
@@ -82,7 +84,13 @@ function SettingRow({
   control: ReactNode;
 }) {
   const description =
-    error === null ? hint : <span className="plugin-row-error">{error}</span>;
+    error === null ? (
+      hint
+    ) : (
+      <span className="plugin-row-error" role="alert">
+        {error}
+      </span>
+    );
   return (
     <Row
       title={label}
@@ -151,10 +159,11 @@ export function SettingsSelectRow({
     value: option.id,
     label: option.title,
   }));
-  const value =
-    bound?.ok === true && options.some((option) => option.value === bound.value)
-      ? bound.value
-      : null;
+  // A stored value no option names is shown as itself, as Paseo's select
+  // shows the value it was given (node review note 4).
+  const value = bound?.ok === true ? bound.value : null;
+  if (value !== null && !options.some((option) => option.value === value))
+    options.push({ value, label: value });
   return (
     <SettingRow
       label={control.label}
@@ -232,6 +241,7 @@ export function SettingsInputRow({
               if (event.key === "Escape" && draft !== null) {
                 event.preventDefault();
                 dropDraft(id);
+                clearRefusal(at, control.key);
                 return;
               }
               if (
@@ -241,6 +251,13 @@ export function SettingsInputRow({
               )
                 return;
               event.preventDefault();
+              // A draft from another revision than the values on screen
+              // would save them over its own base: refused here, as the
+              // node refuses a stale revision (node review R1).
+              if (draft.revision !== state.revision) {
+                refuseStale(at, control.key);
+                return;
+              }
               void saveDoc(
                 fleet,
                 at,

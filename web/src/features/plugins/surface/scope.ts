@@ -14,6 +14,7 @@ import type { NodeKey } from "../../../wire/bridge";
 import type {
   ClientInstallation,
   InvokeContext,
+  MenuEntry,
   PluginControl,
   StatusTone,
   Surface,
@@ -29,6 +30,9 @@ export interface SurfaceScope {
   context: InvokeContext;
   /** Open another surface of the same plugin. */
   open: (target: SurfaceTarget) => void;
+  /** The contribution's title: the name of its cards' lists for a screen
+   * reader (node review note 9). */
+  title: string;
 }
 
 /** The kit tone of a declared status tone. */
@@ -95,6 +99,18 @@ export function boundDocuments(surface: Surface): string[] {
   return [...documents];
 }
 
+/** Whether any entry of a menu, nested menus included, needs admin:
+ * opening a screen does not (node review note 7). */
+function menuNeedsAdmin(items: readonly MenuEntry[]): boolean {
+  return items.some((entry) => {
+    if (entry.kind === "separator") return false;
+    const behavior = entry.behavior;
+    if (behavior.kind === "menu") return menuNeedsAdmin(behavior.items);
+    if (behavior.kind === "popover") return false;
+    return behavior.action.kind !== "open_screen";
+  });
+}
+
 /** Whether a device without admin would find something it cannot use:
  * a control that calls a method or a bound settings control. */
 export function needsAdmin(surface: Surface): boolean {
@@ -111,9 +127,9 @@ export function needsAdmin(surface: Surface): boolean {
         const behavior = content.button.behavior;
         // A popover's own controls are walked; opening a screen needs none.
         if (behavior.kind === "popover") return false;
-        return (
-          behavior.kind === "menu" || behavior.action.kind !== "open_screen"
-        );
+        return behavior.kind === "menu"
+          ? menuNeedsAdmin(behavior.items)
+          : behavior.action.kind !== "open_screen";
       }
       case "text":
       case "markdown":
@@ -125,4 +141,13 @@ export function needsAdmin(surface: Surface): boolean {
         return false;
     }
   });
+}
+
+/** The secret inputs of `surface`, each as `<settings>\u0000<key>`. */
+export function secretInputs(surface: Surface): string[] {
+  return everyControl(surface).flatMap(({ content }) =>
+    content.kind === "settings_input" && content.mode === "secret"
+      ? [`${content.settings}\u0000${content.key}`]
+      : [],
+  );
 }

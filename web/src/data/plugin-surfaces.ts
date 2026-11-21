@@ -29,20 +29,25 @@ import {
   type MachineCatalog,
   type PluginPlace,
 } from "./plugin-catalog";
+import { Store } from "./store";
 
 /** The words of plugin surfaces, Paseo's. */
 export const SURFACE_WORDS = {
   close: "Close plugin",
-  offline: "This plugin's machine is offline.",
+  // Paseo's "Plugin host is offline.", with "host" read as "machine".
+  offline: "Plugin machine is offline.",
   unavailable: "This plugin surface is unavailable.",
   settingsOffline: "Connect to this machine to open plugin settings.",
   settingsUpdate: "Update this machine to use plugin settings.",
   settingsUnavailable: "This plugin settings screen is unavailable.",
   backToPlugins: "Back to plugins",
+  // Paseo's detail title when the screen is gone: `<plugin> · Settings`.
+  settingsTitle: "Settings",
   reset: "Reset to defaults",
   reload: "Reload",
   retry: "Retry",
   loading: "Loading settings…",
+  conflict: "Settings changed on another client. Reload before saving again.",
 } as const;
 
 /** The muted line on a surface drawn for a device without admin. */
@@ -122,35 +127,102 @@ export type SurfaceTarget =
 
 /** A sidebar row a plugin declared, opening one of its screens. */
 export interface SidebarItem {
-  /** Unique across machines and plugins. */
+  /** One per plugin and item, across machines. */
   key: string;
   title: string;
   target: SurfaceTarget;
 }
 
-/** Every machine's `placement` rows, in machine, plugin and declaration
- * order; a row whose screen is not declared is left out. */
+/** How a row declared on several machines picks the one it opens. */
+export interface SidebarChoice {
+  /** Whether a machine is connected; an away machine's rows are left out. */
+  online: (node: NodeKey) => boolean;
+  /** The plugin screen open now, if any. */
+  current: { node: NodeKey; plugin: string; screen: string } | null;
+  /** The machine each plugin screen was last shown from, by
+   * `screenKey`. */
+  remembered: ReadonlyMap<string, NodeKey>;
+}
+
+/** The key of a plugin's screen for `SidebarChoice.remembered`. */
+export function screenKey(plugin: string, screen: string): string {
+  return JSON.stringify([plugin, screen]);
+}
+
+/** The machines last shown for each plugin screen, by `screenKey`. */
+export const rememberedScreens = new Store<ReadonlyMap<string, NodeKey>>(
+  new Map(),
+);
+
+/** Remember that `plugin`'s `screen` was shown from `node`. */
+export function rememberScreen(node: NodeKey, plugin: string, screen: string) {
+  const key = screenKey(plugin, screen);
+  rememberedScreens.update((all) =>
+    all.get(key) === node ? all : new Map(all).set(key, node),
+  );
+}
+
+/** The connected machines' `placement` rows, one per plugin and item (Paseo
+ * merges an item across hosts, sidebar-groups.ts:33-37, 97-110): it opens
+ * the machine whose screen is open now, else the one last shown, else the
+ * first in machine order (reference.md:727-729; node review R4). */
 export function sidebarItems(
   catalogs: ReadonlyMap<NodeKey, MachineCatalog>,
   placement: SidebarPlacement,
+  choice: SidebarChoice,
 ): SidebarItem[] {
-  const items: SidebarItem[] = [];
+  const merged = new Map<
+    string,
+    { title: string; plugin: string; screen: string; nodes: NodeKey[] }
+  >();
   for (const [node, { catalog }] of catalogs) {
+    if (!choice.online(node)) continue;
     for (const installation of catalog.catalog.installations) {
       const plugin = installation.address.plugin;
       for (const item of installation.document.contributions) {
         const content = item.content;
         if (content.kind !== "sidebar" || content.placement !== placement)
           continue;
-        items.push({
-          key: `${node}:${plugin}:${placement}:${item.id}`,
-          title: item.title,
-          target: { kind: "screen", node, plugin, screen: content.screen },
-        });
+        const key = JSON.stringify([plugin, placement, item.id]);
+        const held = merged.get(key);
+        if (held === undefined)
+          merged.set(key, {
+            title: item.title,
+            plugin,
+            screen: content.screen,
+            nodes: [node],
+          });
+        else held.nodes.push(node);
       }
     }
   }
-  return items;
+  return [...merged].flatMap(([key, item]) => {
+    const now = choice.current;
+    const last = choice.remembered.get(screenKey(item.plugin, item.screen));
+    const node =
+      now !== null &&
+      now.plugin === item.plugin &&
+      now.screen === item.screen &&
+      item.nodes.includes(now.node)
+        ? now.node
+        : last !== undefined && item.nodes.includes(last)
+          ? last
+          : item.nodes[0];
+    return node === undefined
+      ? []
+      : [
+          {
+            key,
+            title: item.title,
+            target: {
+              kind: "screen" as const,
+              node,
+              plugin: item.plugin,
+              screen: item.screen,
+            },
+          },
+        ];
+  });
 }
 
 /** A Command Center item that opens a plugin's screen or settings screen. */
@@ -207,9 +279,10 @@ export function declarationOrder(
   for (const [node, { catalog }] of catalogs)
     for (const installation of catalog.catalog.installations)
       for (const item of installation.document.contributions)
-        order.set(
-          `plugin:${node}:${installation.address.plugin}:${item.id}`,
-          order.size,
-        );
+        if (item.content.kind === "command")
+          order.set(
+            `plugin:${node}:${installation.address.plugin}:${item.id}`,
+            order.size,
+          );
   return order;
 }

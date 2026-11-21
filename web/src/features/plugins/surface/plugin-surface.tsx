@@ -21,10 +21,11 @@ import "./surface.css";
 
 import { useEffect } from "react";
 
-import { useFleet } from "../../../context";
+import { useFleet, useFleetState } from "../../../context";
 import { Markdown } from "../../../data/markdown";
 import { pluginCatalogs } from "../../../data/plugin-catalog";
-import { loadDoc } from "../../../data/plugin-settings-docs";
+import { dropDrafts } from "../../../data/plugin-settings";
+import { clearRefusal, loadDoc } from "../../../data/plugin-settings-docs";
 import { readOnlyLine } from "../../../data/plugin-surfaces";
 import { useStore } from "../../../data/store";
 import type { PluginControl, Surface } from "../../../wire/proto";
@@ -36,7 +37,13 @@ import {
   PluginTextField,
   PluginToggle,
 } from "./action-controls";
-import { boundDocuments, needsAdmin, type SurfaceScope, toneOf } from "./scope";
+import {
+  boundDocuments,
+  needsAdmin,
+  secretInputs,
+  type SurfaceScope,
+  toneOf,
+} from "./scope";
 import { DocStatus } from "./doc-status";
 import {
   SettingsInputRow,
@@ -84,7 +91,7 @@ function ControlView({
     case "card":
       // Paseo's SettingsCard: the page's row list, a divider between rows.
       return (
-        <RowList label="Group">
+        <RowList label={scope.title}>
           {content.surface.controls.map((child) => (
             <CardItem key={child.id} scope={scope} control={child} />
           ))}
@@ -191,13 +198,46 @@ function useBoundDocuments(scope: SurfaceScope, surface: Surface) {
     pluginCatalogs,
     (all) => all.get(scope.node)?.catalog.generation ?? null,
   );
+  // A node restart starts its watch count again, so a reconnect is a
+  // reason to read again on its own (node review note 5).
+  const connected = useFleetState(
+    (state) => state.statuses[scope.node]?.state === "connected",
+  );
   const plugin = scope.installation.address.plugin;
   const documents = boundDocuments(surface).join("\n");
+  // Strings, so a catalog re-read (a new surface object) does not count
+  // as leaving the surface.
+  const secrets = secretInputs(surface).join("\n");
   useEffect(() => {
-    if (!scope.mayInvoke || documents === "") return;
+    if (!scope.mayInvoke || documents === "" || !connected) return;
     for (const settings of documents.split("\n"))
       void loadDoc(fleet, { node: scope.node, plugin, settings });
-  }, [fleet, scope.node, scope.mayInvoke, plugin, documents, generation]);
+  }, [
+    fleet,
+    scope.node,
+    scope.mayInvoke,
+    plugin,
+    documents,
+    generation,
+    connected,
+  ]);
+  // Leaving the surface clears its refusals and drops a secret input's
+  // text (node review notes 1 and 8); other drafts stay (ADR 0115).
+  useEffect(
+    () => () => {
+      for (const settings of documents.split("\n")) {
+        if (settings === "") continue;
+        const at = { node: scope.node, plugin, settings };
+        clearRefusal(at, null);
+        const keys = secrets
+          .split("\n")
+          .filter((pair) => pair.startsWith(`${settings}\u0000`))
+          .map((pair) => pair.slice(settings.length + 1));
+        dropDrafts(at, keys);
+      }
+    },
+    [scope.node, plugin, documents, secrets],
+  );
 }
 
 /** A whole declared surface. `machine` names the machine in the muted line

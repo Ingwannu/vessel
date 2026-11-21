@@ -157,3 +157,53 @@ describe("a settings document on the page", () => {
     });
   });
 });
+
+describe("the page's reads and saves of one document (node review R1, R2)", () => {
+  it("drops a read that answers after a newer save", async () => {
+    const page = fleet();
+    const doc = { ...at, settings: "ordered" };
+    const call = vi.spyOn(page.bridge, "call");
+    let answerRead: (value: unknown) => void = () => undefined;
+    call.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          answerRead = resolve;
+        }),
+    );
+    const reading = loadDoc(page, doc);
+    call.mockResolvedValueOnce({
+      status: "saved",
+      revision: second,
+      values: { on: true },
+    });
+    expect(await saveDoc(page, doc, "on", first, { on: true })).toBe(true);
+    answerRead({ status: "ready", revision: first, values: { on: false } });
+    await reading;
+    expect(docEntry(settingsDocs.get(), doc).state).toEqual({
+      status: "ready",
+      revision: second,
+      values: { on: true },
+    });
+  });
+
+  it("moves the drafts begun from the saved revision to the new one", async () => {
+    const page = fleet();
+    const doc = { ...at, settings: "drafts" };
+    const third = fixtureId("SettingsRevision", "c".repeat(64));
+    keepDraft(draftKey(doc, "name"), { text: "Ada", revision: first });
+    keepDraft(draftKey(doc, "older"), { text: "Bea", revision: third });
+    vi.spyOn(page.bridge, "call").mockResolvedValueOnce({
+      status: "saved",
+      revision: second,
+      values: { on: true, name: "", older: "" },
+    });
+    expect(await saveDoc(page, doc, "on", first, { on: true })).toBe(true);
+    expect(settingsDrafts.get().get(draftKey(doc, "name"))?.revision).toBe(
+      second,
+    );
+    // A draft from another revision is still a conflict.
+    expect(settingsDrafts.get().get(draftKey(doc, "older"))?.revision).toBe(
+      third,
+    );
+  });
+});

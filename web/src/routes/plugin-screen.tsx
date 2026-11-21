@@ -16,14 +16,15 @@
 
 import "../features/plugins/surface/surface.css";
 
-import { useNavigate } from "@tanstack/react-router";
-import { type ReactElement, useMemo } from "react";
+import { useCanGoBack, useNavigate, useRouter } from "@tanstack/react-router";
+import { type ReactElement, useEffect, useMemo } from "react";
 
 import { nodeKeyOf } from "../bridge/ids";
 import { useCrumbs, useFleetState } from "../context";
 import { pluginCatalogs } from "../data/plugin-catalog";
 import {
   findSurface,
+  rememberScreen,
   SURFACE_WORDS,
   type SurfaceTarget,
 } from "../data/plugin-surfaces";
@@ -59,9 +60,17 @@ export function PluginScreenPage(): ReactElement {
     [node, plugin],
   );
   useCrumbs(crumbs);
+  // The sidebar's merged row opens this machine next (node review R4).
+  useEffect(() => {
+    if (node !== null && found !== null) rememberScreen(node, plugin, screen);
+  }, [node, plugin, screen, found]);
+  // Paseo's close: back when there is a page to go back to, else replace
+  // (surface-screen.tsx:161-164; node review note 3).
+  const canGoBack = useCanGoBack();
+  const router = useRouter();
   const close = () => {
-    if (window.history.length > 1) window.history.back();
-    else void navigate({ to: "/sessions" });
+    if (canGoBack) router.history.back();
+    else void navigate({ to: "/sessions", replace: true });
   };
   let body: ReactElement;
   if (node === null || found === null) {
@@ -73,6 +82,7 @@ export function PluginScreenPage(): ReactElement {
       node,
       installation: found.installation,
       mayInvoke: found.mayInvoke,
+      title: found.item.title,
       context: { kind: "global" } as const,
       open: (target: SurfaceTarget) => {
         open(target);

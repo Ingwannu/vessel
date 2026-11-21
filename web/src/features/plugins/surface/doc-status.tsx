@@ -66,7 +66,13 @@ export function DocStatus({
     );
   if (state.status === "invalid")
     return (
-      <Alert variant="error" size="sm" description={state.error}>
+      // A failed reset says why in place of the stored data's words
+      // (node review note 2).
+      <Alert
+        variant="error"
+        size="sm"
+        description={entry.error?.words ?? state.error}
+      >
         <Button
           size="sm"
           variant="outline"

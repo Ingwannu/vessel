@@ -72,6 +72,7 @@ export function PluginSettingsDetail({
       node: machine,
       installation: found.installation,
       mayInvoke: found.mayInvoke,
+      title: found.item.title,
       context: { kind: "global" } as const,
       open,
     };
@@ -86,7 +87,9 @@ export function PluginSettingsDetail({
           {SURFACE_WORDS.backToPlugins}
         </Button>
       </div>
-      <SettingsSection title={`${plugin} · ${found?.item.title ?? screen}`}>
+      <SettingsSection
+        title={`${plugin} · ${found?.item.title ?? SURFACE_WORDS.settingsTitle}`}
+      >
         {body}
       </SettingsSection>
     </SettingsPage>
