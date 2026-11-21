@@ -14,7 +14,7 @@ pub(crate) fn spawn_backend(
         .spawn_command(crate::command::command_builder(spec))
         .map_err(|error| crate::PtyError::Spawn {
             program: spec.program.display().to_string(),
-            message: error.to_string(),
+            source: std::io::Error::other(error),
         })
 }
 

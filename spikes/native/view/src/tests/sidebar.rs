@@ -81,6 +81,7 @@ fn lists_ended_sessions_when_asked_and_sorts_by_activity() {
         group: Grouping::Machine,
         sort: SessionSort::Activity,
         ended: true,
+        ..SidebarView::default()
     };
     let machines = fleet.sidebar_machines(view, SIDEBAR_SESSIONS);
     let seen: Vec<(String, SessionMark)> = machines[0]

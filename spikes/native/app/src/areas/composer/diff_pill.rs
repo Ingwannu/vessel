@@ -1,0 +1,106 @@
+//! The composer's diff count (Paseo's `composer/diff-stat-pill.tsx`). It
+//! shows when a side is greater than zero, and a press opens the session's
+//! existing Changes tab. There is no second diff pane. The session card
+//! draws it in the rail above the card, not inside the card.
+
+use gpui::ClickEvent;
+use vessel_app_kit::theme::{radius, spacing};
+use vessel_app_kit::ui::{
+    AnyElement, Context, InteractiveElement as _, IntoElement as _, MouseButton,
+    ParentElement as _, StatefulInteractiveElement as _, Styled as _, Window, div, px,
+};
+use vessel_app_kit::{Tokens, Type, TypeExt as _};
+use vessel_app_view::diff_count::format_diff_count;
+use vessel_proto::registry::DiffStat;
+
+use crate::shell::Shell;
+
+/// The rail's gap above the card on a wide window: Paseo's
+/// `COMPOSER_PILL_CLEARANCE.wide` (`composer/pill-styles.ts`), which is not
+/// a step of the spacing scale. A compact window uses the 8 step, as Paseo's
+/// `compact` clearance does.
+pub(super) const CLEARANCE_WIDE: f32 = 10.0;
+
+/// The pill, when the open session's workspace has a line to show.
+#[must_use]
+pub(super) fn pill(
+    shell: &Shell,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> Option<AnyElement> {
+    let (machine, session) = {
+        let open = shell.areas.session.open.as_ref()?;
+        (open.machine.clone(), open.session)
+    };
+    let project = shell
+        .fleet
+        .machines
+        .iter()
+        .find(|item| item.name == machine)?
+        .sessions
+        .iter()
+        .find(|card| card.session == session)?
+        .member_project();
+    let workspace = shell
+        .areas
+        .labels
+        .workspace_of(&machine, session, project)?;
+    let stat = shell.diff_stat_of(&machine, workspace)?;
+    if stat.additions == 0 && stat.deletions == 0 {
+        return None;
+    }
+    let words = shell.t.lang.sidebar();
+    Some(counts(stat, words.open_changes, tokens, cx))
+}
+
+fn counts(
+    stat: DiffStat,
+    label: &'static str,
+    tokens: &Tokens,
+    cx: &mut Context<'_, Shell>,
+) -> AnyElement {
+    // Paseo's `DiffStat`: statusSuccess and statusDanger.
+    let status = tokens.status();
+    let neutral = tokens.neutral;
+    div()
+        .id("composer-diff-pill")
+        .self_start()
+        .flex_none()
+        .flex()
+        .flex_row()
+        .items_center()
+        .gap(px(spacing::S1))
+        .min_h(px(spacing::S8))
+        .px(px(spacing::S3))
+        .py(px(spacing::S1))
+        // Paseo's `composerPillStyles.body` and `bodyActive`.
+        .rounded(px(radius::XL2))
+        .border_1()
+        .border_color(neutral.border_accent)
+        .bg(neutral.surface1)
+        .hover(move |style| style.bg(neutral.surface2))
+        .cursor_pointer()
+        .type_(Type::Meta)
+        .role(gpui::Role::Button)
+        .aria_label(label)
+        .child(
+            div()
+                .text_color(status.success.foreground)
+                .child(format!("+{}", format_diff_count(stat.additions))),
+        )
+        .child(
+            div()
+                .text_color(status.error.foreground)
+                .child(format!("-{}", format_diff_count(stat.deletions))),
+        )
+        .on_mouse_down(MouseButton::Left, |_, _, cx| cx.stop_propagation())
+        .on_click(cx.listener(|shell, _: &ClickEvent, window, cx| {
+            press(shell, window, cx);
+        }))
+        .into_any_element()
+}
+
+fn press(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>) {
+    cx.stop_propagation();
+    shell.open_code_changes(window, cx);
+}
