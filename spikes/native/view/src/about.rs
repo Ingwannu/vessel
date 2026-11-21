@@ -142,6 +142,7 @@ pub const BUNDLED: &[Bundled] = &[
     krate("qrcode", "MIT OR Apache-2.0", Role::QrCodes),
     krate("ashpd", "MIT", Role::Desktop),
     krate("futures-lite", "Apache-2.0 OR MIT", Role::Tasks),
+    krate("iana-time-zone", "MIT OR Apache-2.0", Role::Dates),
     krate("image", "MIT OR Apache-2.0", Role::Images),
     krate("resvg", "Apache-2.0 OR MIT", Role::Images),
     face("Geist", Role::Face),
