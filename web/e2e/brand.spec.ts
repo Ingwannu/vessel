@@ -15,9 +15,12 @@ test("the owner's mark is the sidebar's logo and the page's icon", async ({
     .getByRole("navigation", { name: "Sidebar" })
     .getByRole("link", { name: "Vessel" });
   await expect(brand.locator("svg.mark path")).toHaveCount(2);
+  // The icon follows the sessions (ADR 0089, "The page's badge and
+  // favicon"): plain, running or attention, by what the fixture machines'
+  // sessions are doing.
   await expect(page.locator('link[rel="icon"]')).toHaveAttribute(
     "href",
-    "/favicon.svg",
+    /^\/favicon(-running|-attention)?\.svg$/,
   );
   const icon = await page.request.get(`${origin}/favicon.svg`);
   expect(icon.status()).toBe(200);
@@ -25,4 +28,17 @@ test("the owner's mark is the sidebar's logo and the page's icon", async ({
   const body = await icon.text();
   expect(body).toContain('fill="#1a5868"');
   expect(body).toContain('fill="#fff"');
+  // Paseo's running and attention favicons: the same tile and one dot.
+  for (const [state, dot] of [
+    ["running", "#3b82f6"],
+    ["attention", "#22c55e"],
+  ] as const) {
+    const variant = await page.request.get(`${origin}/favicon-${state}.svg`);
+    expect(variant.status()).toBe(200);
+    const drawn = await variant.text();
+    expect(drawn).toContain('fill="#1a5868"');
+    expect(drawn).toContain(
+      `<circle cx="52.11" cy="52.11" r="11.89" fill="${dot}"/>`,
+    );
+  }
 });
