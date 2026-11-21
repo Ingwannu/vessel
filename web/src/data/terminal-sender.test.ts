@@ -2,8 +2,10 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import type { TerminalInput } from "../wire/proto";
 import {
+  cutAt,
   MAX_ANSWERS_PENDING,
   MAX_PENDING,
+  MAX_SEND_BYTES,
   TerminalSender,
 } from "./terminal-sender";
 
@@ -83,7 +85,7 @@ describe("terminal input", () => {
   });
 
   it("drops keys past its bound and says so once", async () => {
-    const { sent, send, answer } = sends();
+    const { sent, send, answer, inFlight } = sends();
     let dropped = 0;
     const sender = new TerminalSender(send, () => {
       dropped += 1;
@@ -94,11 +96,13 @@ describe("terminal input", () => {
     sender.keys("w");
     expect(dropped).toBe(1);
     await answer();
-    expect(sent[1]?.length).toBe(MAX_PENDING);
-    // Room again: keys are taken.
+    // Room again as parts go: keys are taken, after the whole of it.
     sender.keys("v");
-    await answer();
-    expect(sent.slice(2)).toEqual(["v"]);
+    while (inFlight() > 0) {
+      await answer();
+    }
+    expect(sent.slice(1).join("")).toBe(`${"y".repeat(MAX_PENDING)}v`);
+    expect(sent.every((one) => one.length <= MAX_SEND_BYTES)).toBe(true);
   });
 
   it("keeps answers in order with keys, dropping only answers past their bound", async () => {
@@ -110,14 +114,39 @@ describe("terminal input", () => {
     sender.keys("a");
     sender.answer("\x1b[0n");
     sender.keys("b");
-    sender.keys("k".repeat(MAX_ANSWERS_PENDING));
+    // Room for the keys within one send, but not for another answer.
+    const keys = "k".repeat(MAX_ANSWERS_PENDING - 10);
+    sender.keys(keys);
     // Past the answers' bound: dropped, unsaid, while keys still fit.
     sender.answer("\x1b[?62;4;22c");
     sender.keys("c");
     expect(dropped).toBe(0);
     await answer();
     await answer();
-    expect(sent).toEqual(["a", `\x1b[0nb${"k".repeat(MAX_ANSWERS_PENDING)}c`]);
+    expect(sent).toEqual(["a", `\x1b[0nb${keys}c`]);
+  });
+
+  it("cuts a send at the node's bound, at a character boundary", () => {
+    const [part, rest] = cutAt("ab한cd", 4);
+    expect(part).toBe("ab");
+    expect(rest).toBe("한cd");
+    expect(cutAt("😀x", 4)).toEqual(["😀", "x"]);
+    expect(cutAt("short", MAX_SEND_BYTES)).toEqual(["short", ""]);
+  });
+
+  it("sends a long paste in parts the node takes, in order, keys after it", async () => {
+    const { sent, send, answer } = sends();
+    const sender = new TerminalSender(send);
+    const paste = "p".repeat(MAX_SEND_BYTES + 10);
+    sender.keys(paste);
+    sender.resize(80, 24);
+    sender.keys("\r");
+    await answer();
+    await answer();
+    await answer();
+    await answer();
+    expect(sent.map((one) => one.length)).toEqual([MAX_SEND_BYTES, 10, 7, 1]);
+    expect(sent.slice(2)).toEqual(["<80x24>", "\r"]);
   });
 
   it("sends nothing after close", async () => {
