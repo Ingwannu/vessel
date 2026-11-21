@@ -68,6 +68,20 @@ no runtime to compile. The package that serves the method changes `staged`
 to `pending` in the commit that adds its handler; from then on the guard
 requires the handler, as for every assigned or pending row.
 
+## Version 44 (drafted 2026-11-21, milestone 12): plugin surfaces' declaration kinds (impl P, ADR 0115 "Surfaces")
+
+Drafted 44 (`PLUGIN_SURFACES_PROTOCOL`, `PROTOCOL_VERSION` 44), the next after the settings' 43; the number is
+assigned at the node-line merge. No method is added; `plugin.catalog` may hold new kinds.
+
+- Control kinds: `card {surface}`; `settings_switch`, `settings_select {.., options}` and `settings_input {..,
+  placeholder?, mode: "plain" | "secret"}`, each with `settings`, `key` (a top-level property, an ASCII identifier
+  of at most 64 bytes), `label` and `hint?`. Action kind: `open_settings {screen}`, naming a declared settings
+  screen.
+- A bound document is one the same helper declared in `ready`; a client-only plugin binds none.
+- Each catalog entry's `required_client` is the oldest protocol that decodes its document: 41 for the first kinds,
+  44 for a document using any of the above. `plugin.catalog` leaves out entries above the caller's negotiated
+  protocol, so an older client's reply decodes and lacks only those plugins.
+
 ## Version 43 (2026-11-21, milestone 12): plugin settings documents (impl P, ADR 0115 "Settings")
 
 Assigned 43 (`PLUGIN_SETTINGS_PROTOCOL`, `PROTOCOL_VERSION` 43) at its node-line merge, the next after the origin link's
