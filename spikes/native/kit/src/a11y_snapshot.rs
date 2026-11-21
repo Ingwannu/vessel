@@ -11,6 +11,7 @@ struct Aria {
     label: Option<String>,
     toggled: Option<String>,
     expanded: Option<bool>,
+    selected: Option<bool>,
     #[serde(default)]
     on_action: Vec<String>,
 }
@@ -22,6 +23,7 @@ pub(crate) struct A11yNode {
     /// "True" or "False" when it says a checked state.
     pub(crate) toggled: Option<String>,
     pub(crate) expanded: Option<bool>,
+    pub(crate) selected: Option<bool>,
     /// The actions it takes ("Click", "Focus").
     pub(crate) actions: Vec<String>,
 }
@@ -69,6 +71,7 @@ pub(crate) fn nodes(window: &Window, role: &str) -> Option<Vec<A11yNode>> {
             label: node.aria.label,
             toggled: node.aria.toggled,
             expanded: node.aria.expanded,
+            selected: node.aria.selected,
             actions: node.aria.on_action,
         })
         .collect();

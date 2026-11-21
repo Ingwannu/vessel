@@ -1,7 +1,7 @@
 //! A session row's hover card (TRACKER 810), as Paseo's
 //! `WorkspaceHoverCard` (`components/workspace-hover-card.tsx`) on the
-//! kit's [`HoverCards`]: the session's name, its pull request, its machine,
-//! its branch and its folder (each copyable), and its checks.
+//! kit's [`HoverCards`]: the session's name, its pull request, its diff stat,
+//! its machine, its branch and its folder (each copyable), and its checks.
 //!
 //! [Decision Log]
 //! - Purpose: what a row's one line leaves out, a hover away, as Paseo's
@@ -22,8 +22,6 @@
 //! - Differences, named:
 //!   - The card is a group named "Session details" (the coordinator's
 //!     ruling); Paseo's role `menu` named "Workspace scripts" is left over.
-//!   - No diff stat: Paseo's is a server field the node does not send yet
-//!     (TRACKER 819 adds its row after the pull request's).
 //!   - The checks row (TRACKER 824) leads with the forge's mark tinted
 //!     muted, as Paseo's (GitHub's is single-colour; a forge whose official
 //!     mark has several colours would keep them), a forge this app does
@@ -52,6 +50,7 @@ use vessel_app_view::workspace::pull::CardChecks;
 use vessel_app_view::workspace::pull::checks::Presentation;
 use vessel_proto::forge::ForgeKind;
 
+use super::trailing;
 use crate::shell::Shell;
 
 /// The card's width (Paseo's `HOVER_CARD_WIDTH`).
@@ -128,7 +127,13 @@ fn content(card: &Card, shell: &Shell, tokens: &Tokens, cx: &mut Context<'_, She
     if let Some(pull) = details.pull {
         body = body.child(pull_row(pull, shell, tokens, cx));
     }
-    // TRACKER 819: the diff stat's row goes here, after the pull request's.
+    if let Some(stat) = trailing::workspace_stat(card, shell) {
+        body = body.child(
+            row()
+                .child(glyph(Glyph::FileDiff, GLYPH, neutral.foreground_muted))
+                .child(trailing::counts(stat, tokens)),
+        );
+    }
     body = body.child(
         row()
             .child(glyph(Glyph::Server, GLYPH, neutral.foreground_muted))

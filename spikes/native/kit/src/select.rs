@@ -54,8 +54,12 @@ pub fn trigger(
     tokens: &Tokens,
 ) -> Stateful<Div> {
     let neutral = tokens.neutral;
+    let label = label.into();
     div()
         .id(id)
+        .role(gpui::Role::Button)
+        .aria_label(label.clone())
+        .aria_expanded(open)
         .relative()
         .flex()
         .flex_row()
@@ -82,7 +86,7 @@ pub fn trigger(
                 .overflow_hidden()
                 .whitespace_nowrap()
                 .text_ellipsis()
-                .child(label.into()),
+                .child(label),
         )
         .child(glyph(Glyph::ChevronDown, 14.0, neutral.foreground_muted))
 }

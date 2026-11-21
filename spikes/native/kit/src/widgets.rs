@@ -145,8 +145,12 @@ pub fn choice(
         )
     };
     let hover = if chosen { bg } else { tokens.bg_hover };
+    let label = label.into();
     div()
         .id(id)
+        .role(gpui::Role::Button)
+        .aria_label(label.clone())
+        .aria_selected(chosen)
         .px(px(12.0))
         .py(px(5.0))
         .rounded(px(radius::R2))
@@ -157,7 +161,7 @@ pub fn choice(
         .type_(Type::Label)
         .cursor_pointer()
         .hover(move |style| style.bg(hover))
-        .child(label.into())
+        .child(label)
 }
 
 /// Vessel's mark, `size` points square: in the brand colour on the light

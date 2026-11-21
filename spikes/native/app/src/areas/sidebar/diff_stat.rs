@@ -1,6 +1,6 @@
 //! Each connected machine's diff stats (`workspace.list`, ADR 0120), for a
-//! sidebar row and the composer's count. One list is outstanding per
-//! machine. The first read omits `changed_from`; later reads send the
+//! sidebar row, its hover card and the composer's count. One list is
+//! outstanding per machine. The first read omits `changed_from`; later reads send the
 //! generation they hold. An empty answer keeps that generation. A machine
 //! below protocol 38 is not asked. `Problem::Older` stops that machine;
 //! any other failure waits and tries again.

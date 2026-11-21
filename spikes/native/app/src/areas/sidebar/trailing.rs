@@ -47,22 +47,24 @@ pub(super) fn slot(card: &Card, shell: &Shell, tokens: &Tokens) -> Option<AnyEle
     match shell.prefs.settings.sidebar.trailing {
         SidebarTrailing::None => None,
         SidebarTrailing::Timestamp => Some(stamp(card, tokens)),
-        SidebarTrailing::Diff => {
-            let workspace = shell.areas.labels.workspace_of(
-                &card.machine,
-                card.session,
-                card.member_project(),
-            )?;
-            let stat = shell.diff_stat_of(&card.machine, workspace)?;
-            Some(counts(stat, tokens))
-        }
+        SidebarTrailing::Diff => workspace_stat(card, shell).map(|stat| counts(stat, tokens)),
     }
+}
+
+/// Resolve the shared stat for the row and its hover card.
+pub(super) fn workspace_stat(card: &Card, shell: &Shell) -> Option<DiffStat> {
+    let workspace =
+        shell
+            .areas
+            .labels
+            .workspace_of(&card.machine, card.session, card.member_project())?;
+    shell.diff_stat_of(&card.machine, workspace)
 }
 
 /// `+N -N` as Paseo's `DiffStat` draws it on every surface
 /// (`components/diff-stat.tsx`): an ASCII minus, statusSuccess and
 /// statusDanger, the same as the composer's pill.
-fn counts(stat: DiffStat, tokens: &Tokens) -> AnyElement {
+pub(super) fn counts(stat: DiffStat, tokens: &Tokens) -> AnyElement {
     let status = tokens.status();
     div()
         .flex_none()
