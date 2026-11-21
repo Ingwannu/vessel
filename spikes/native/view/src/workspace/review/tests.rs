@@ -35,16 +35,16 @@ fn a_comment_is_added_then_edited_in_place_with_a_new_time() {
     assert_eq!(drafts.comments(&review).len(), 1);
     assert_eq!(drafts.comments(&review)[0].body, "Cap this.");
     assert_eq!(
-        drafts.save(&review, Some(id), target(48), "Cap this at 30 s.", at(5)),
+        let _done = drafts.save(&review, Some(id), target(48), "Cap this at 30 s.", at(5)),
         Saved::Edited(id)
     );
     let comment = &drafts.comments(&review)[0];
     assert_eq!(comment.body, "Cap this at 30 s.");
     assert_eq!((comment.created_at, comment.updated_at), (at(0), at(5)));
     // An identity no longer kept (sent meanwhile) saves a new comment.
-    drafts.delete(&review, id);
+    let _done = drafts.delete(&review, id);
     assert!(matches!(
-        drafts.save(&review, Some(id), target(48), "Again.", at(6)),
+        let _done = drafts.save(&review, Some(id), target(48), "Again.", at(6)),
         Saved::Added(other) if other != id
     ));
 }
@@ -54,12 +54,12 @@ fn a_blank_or_too_long_body_is_not_saved() {
     let mut drafts = ReviewDrafts::default();
     let review = key("laptop");
     assert_eq!(
-        drafts.save(&review, None, target(1), " \n ", at(0)),
+        let _done = drafts.save(&review, None, target(1), " \n ", at(0)),
         Saved::Blank
     );
     let long = "w".repeat(BODY_BYTES.saturating_add(1));
     assert_eq!(
-        drafts.save(&review, None, target(1), &long, at(0)),
+        let _done = drafts.save(&review, None, target(1), &long, at(0)),
         Saved::TooLong
     );
     assert!(!can_save(&long));
@@ -71,10 +71,10 @@ fn a_blank_or_too_long_body_is_not_saved() {
 fn comments_are_kept_per_key_and_per_line() {
     let mut drafts = ReviewDrafts::default();
     let (one, two) = (key("laptop"), key("build-server"));
-    drafts.save(&one, None, target(48), "first", at(0));
-    drafts.save(&one, None, target(48), "second", at(1));
-    drafts.save(&one, None, target(50), "elsewhere", at(2));
-    drafts.save(&two, None, target(48), "other machine", at(3));
+    let _done = drafts.save(&one, None, target(48), "first", at(0));
+    let _done = drafts.save(&one, None, target(48), "second", at(1));
+    let _done = drafts.save(&one, None, target(50), "elsewhere", at(2));
+    let _done = drafts.save(&two, None, target(48), "other machine", at(3));
     let on: Vec<&str> = drafts
         .on(&one, &target(48))
         .map(|comment| comment.body.as_str())
@@ -90,14 +90,14 @@ fn comments_are_kept_per_key_and_per_line() {
 fn only_the_sent_versions_are_cleared() {
     let mut drafts = ReviewDrafts::default();
     let review = key("laptop");
-    drafts.save(&review, None, target(48), "kept as sent", at(0));
+    let _done = drafts.save(&review, None, target(48), "kept as sent", at(0));
     let Saved::Added(edited) = drafts.save(&review, None, target(49), "before", at(1)) else {
         panic!("added");
     };
     let sent = drafts.comments(&review).to_vec();
     // Edited while the review was on its way: that version stays.
-    drafts.save(&review, Some(edited), target(49), "after", at(2));
-    drafts.save(&review, None, target(50), "written after", at(3));
+    let _done = drafts.save(&review, Some(edited), target(49), "after", at(2));
+    let _done = drafts.save(&review, None, target(50), "written after", at(3));
     assert_eq!(drafts.clear_sent(&review, &sent), 1);
     let left: Vec<&str> = drafts
         .comments(&review)
@@ -114,15 +114,15 @@ fn the_bounds_drop_the_oldest_first() {
     let mut drafts = ReviewDrafts::default();
     let review = key("laptop");
     for n in 0..=ReviewDrafts::MAX_COMMENTS {
-        drafts.save(&review, None, target(1), &format!("c{n}"), at(0));
+        let _done = drafts.save(&review, None, target(1), &format!("c{n}"), at(0));
     }
     let comments = drafts.comments(&review);
     assert_eq!(comments.len(), ReviewDrafts::MAX_COMMENTS);
     assert_eq!(comments[0].body, "c1");
     let first = key("first");
-    drafts.save(&first, None, target(1), "oldest key", at(0));
+    let _done = drafts.save(&first, None, target(1), "oldest key", at(0));
     for n in 0..ReviewDrafts::MAX_KEYS {
-        drafts.save(&key(&format!("m{n}")), None, target(1), "x", at(1));
+        let _done = drafts.save(&key(&format!("m{n}")), None, target(1), "x", at(1));
     }
     assert!(drafts.comments(&first).is_empty());
     assert!(drafts.comments(&review).is_empty());
@@ -130,11 +130,11 @@ fn the_bounds_drop_the_oldest_first() {
     // The bytes in all: the key changed longest ago goes.
     let mut big = ReviewDrafts::default();
     let body = "b".repeat(BODY_BYTES);
-    let count = ReviewDrafts::MAX_BYTES / BODY_BYTES;
+    let count = ReviewDrafts::MAX_BYTES.checked_div(BODY_BYTES).unwrap();
     let early = key("early");
-    big.save(&early, None, target(1), &body, at(0));
+    let _done = big.save(&early, None, target(1), &body, at(0));
     for n in 0..count {
-        big.save(&key(&format!("k{n}")), None, target(1), &body, at(1));
+        let _done = big.save(&key(&format!("k{n}")), None, target(1), &body, at(1));
     }
     assert!(big.comments(&early).is_empty());
     assert_eq!(big.reviews.len(), count);
@@ -144,7 +144,7 @@ fn the_bounds_drop_the_oldest_first() {
 fn the_document_keeps_its_shape_and_prunes_what_it_reads() {
     let mut drafts = ReviewDrafts::default();
     let review = key("laptop");
-    drafts.save(&review, None, target(48), "Cap this.", at(0));
+    let _done = drafts.save(&review, None, target(48), "Cap this.", at(0));
     let json = serde_json::to_value(&drafts).unwrap();
     let comment = &json[0]["comments"][0];
     assert_eq!(comment["path"], "src/upload/retry.rs");

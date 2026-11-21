@@ -30,23 +30,26 @@ use crate::shell::Shell;
 
 /// geometry.ts: a comment's height, the editor's, the gap between blocks
 /// and the thread's padding above and below.
-const COMMENT: f32 = 72.0;
-const EDITOR: f32 = 132.0;
-const GAP: f32 = 6.0;
-const PADDING: f32 = 8.0;
+const COMMENT: u16 = 72;
+const EDITOR: u16 = 132;
+const GAP: u16 = 6;
+const PADDING: u16 = 8;
 /// The "+": its side, and its left edge (the number's right edge, 34, plus
 /// 10, less its side).
 const ADD: f32 = 22.0;
 const ADD_LEFT: f32 = 22.0;
 
-/// geometry.ts `getInlineReviewThreadState`: the thread's least height.
+/// geometry.ts `getInlineReviewThreadState`: the thread's least height,
+/// in whole points (counted in integers: the lints forbid float sums).
 fn thread_height(comments: usize, editor: bool) -> f32 {
+    let count = |n: usize| u16::try_from(n).unwrap_or(u16::MAX);
     let blocks = comments.saturating_add(usize::from(editor));
-    let count = |n: usize| f32::from(u16::try_from(n).unwrap_or(u16::MAX));
-    count(comments) * COMMENT
-        + if editor { EDITOR } else { 0.0 }
-        + count(blocks.saturating_sub(1)) * GAP
-        + PADDING * 2.0
+    let height = count(comments)
+        .saturating_mul(COMMENT)
+        .saturating_add(if editor { EDITOR } else { 0 })
+        .saturating_add(count(blocks.saturating_sub(1)).saturating_mul(GAP))
+        .saturating_add(PADDING.saturating_mul(2));
+    f32::from(height)
 }
 
 /// Row `index`: diff line `line` of `path`, with its review.
@@ -152,8 +155,8 @@ fn thread(
         .w_full()
         .flex()
         .flex_col()
-        .gap(px(GAP))
-        .py(px(PADDING))
+        .gap(px(f32::from(GAP)))
+        .py(px(f32::from(PADDING)))
         .px(px(spacing::S3))
         .min_h(px(thread_height(shown, editor.is_some())))
         .children(blocks)
@@ -290,7 +293,7 @@ fn editor_block(
     .aria_label(SharedString::from(words.cancel_accessibility().to_owned()))
     .on_click(cx.listener(|shell, _event, _window, cx| shell.review_cancel(cx)));
     card(tokens)
-        .min_h(px(EDITOR))
+        .min_h(px(f32::from(EDITOR)))
         .p(px(spacing::S3))
         .flex()
         .flex_col()
