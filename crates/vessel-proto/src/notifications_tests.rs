@@ -184,3 +184,13 @@ fn passive_reads_are_narrow_person_operations_and_idle_age_is_versioned() {
         assert_eq!(serde_json::from_slice::<Call>(&encoded).unwrap(), call);
     }
 }
+
+#[test]
+fn the_attention_protocol_is_assigned_and_the_newest() {
+    // Drafted 47 (ADR 0089, "Turned on"); the integrator renumbers it at
+    // the node-line merge, and a later protocol relaxes this to `<=`.
+    assert_eq!(
+        ATTENTION_NOTIFICATIONS_PROTOCOL,
+        Some(crate::PROTOCOL_VERSION)
+    );
+}
