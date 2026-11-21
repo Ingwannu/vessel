@@ -7,8 +7,8 @@ use super::entry::{
     EntryKey, EntryKind, Permission, Prompt, TextKind, ToolView, block_text, prompt_parts,
 };
 use super::fold::Timeline;
-use super::sent_context::sent_context;
 use super::plan::{PlanActivity, all_pending, plan_activities};
+use super::sent_context::sent_context;
 
 impl Timeline {
     pub(super) fn agent(&mut self, record: &EventRecord, event: &AgentEvent) {

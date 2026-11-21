@@ -188,7 +188,11 @@ fn a_pill_goes_as_a_context_block_to_a_node_that_speaks_it_and_as_text_otherwise
     use vessel_proto::ContentBlock;
     use vessel_proto::prompt_context::ContextKind as WireKind;
 
-    let check = snapshot(ContextKind::PullCheck, "check:106", "GitHub pull request check");
+    let check = snapshot(
+        ContextKind::PullCheck,
+        "check:106",
+        "GitHub pull request check",
+    );
     assert_eq!(
         check.block(false),
         ContentBlock::Text {

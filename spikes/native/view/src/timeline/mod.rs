@@ -66,7 +66,6 @@ pub use entry::{
     first_reply, plan_progress, prompt_parts,
 };
 pub use failure::{FailureKind, TurnFailure, repeats_failure, turn_failure};
-pub use sent_context::{SentContext, sent_context};
 pub use find::{
     FindCache, Finder, MAX_QUERY, Match, SLICE, Stepped, find_all, fold, is_space, occurrences,
     query_of, readable_text, searchable, spans_of, start_at, step,
@@ -90,6 +89,7 @@ pub use question_step::{
 pub use rewind::rewind_point;
 pub use rows::Rows;
 pub use runs::{Folds, RunSummary, Tally, ToolRun};
+pub use sent_context::{SentContext, sent_context};
 pub use tool_sections::{ToolSection, ToolSectionLabel, tool_sections};
 pub use usage::ModelUsage;
 pub use window::{

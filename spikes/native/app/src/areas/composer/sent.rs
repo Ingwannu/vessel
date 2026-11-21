@@ -311,9 +311,7 @@ fn sent_pill(shell: &Shell, sent: &SentContext) -> Body {
             title: SharedString::from(words.sent_review().to_owned()),
             subtitle: SharedString::from(
                 words
-                    .sent_comments(Number::count(
-                        u32::try_from(*comments).unwrap_or(u32::MAX),
-                    ))
+                    .sent_comments(Number::count(u32::try_from(*comments).unwrap_or(u32::MAX)))
                     .unwrap_or_default(),
             ),
         },

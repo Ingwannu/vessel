@@ -135,7 +135,10 @@ impl CardMenu {
 
     /// How many kebabs' places are kept.
     pub(super) fn kept(&self) -> usize {
-        self.places.borrow().len().saturating_add(self.previous.borrow().len())
+        self.places
+            .borrow()
+            .len()
+            .saturating_add(self.previous.borrow().len())
     }
 }
 

@@ -19,7 +19,11 @@ impl State {
             let speaks = vessel_proto::prompt_context::PROMPT_CONTEXT_PROTOCOL
                 .is_some_and(|since| client.protocol() >= since);
             if let Some(context) = &prompt.context {
-                content.extend(context.attachments().map(|attachment| attachment.block(speaks)));
+                content.extend(
+                    context
+                        .attachments()
+                        .map(|attachment| attachment.block(speaks)),
+                );
             }
             tokio::time::timeout(
                 DEADLINE,
