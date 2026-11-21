@@ -48,8 +48,8 @@ test("terminal scrollback saves bounded lines and Files shows the real empty sta
 test("explorer files open beside their tree and keep one dirty editor when the pane changes", async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
   const origin = await openUi(page);
+  await page.setViewportSize({ width: 390, height: 844 });
   const settings = `${origin}/settings/general`;
   await page.goto(settings);
   await expect(page.getByRole("heading", { name: "Composer" })).toBeVisible();
