@@ -117,6 +117,10 @@ Paseo 0.15.4 paths are relative to `packages/`.
     argument, which includes every prompt with a space in it, is refused as `unsupported` with that reason.
   - A Windows profile that takes prompts names the program's `.exe`, or a person opens a shell and types the
     command.
+- **Two editors, last write wins**, as Paseo's `patchConfig`: every change saves the whole list. When two windows or
+  devices edit one machine's list, the later save wins. A move made from a stale list after another device's edit
+  overwrites that edit; a page or window reads the list again when it is shown or comes back to the front (P5w node
+  review note 2, P5n app review note).
 - **Not here:**
   - the "Terminal agents" hooks card (ADR 0089, P6);
   - the New-workspace launch picker (TRACKER 493 and 14), for which `ProfileLaunch.prompt` is the wire.

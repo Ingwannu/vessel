@@ -149,9 +149,25 @@ function altPrefixed(sequence: string, mods: Sticky): string {
   return mods.alt ? `\x1b${sequence}` : sequence;
 }
 
+/** `text` with its ASCII letters upper-cased and nothing else changed (Rust's
+ * `to_ascii_uppercase`): `toUpperCase` would make "ß" "SS" (P4w node review
+ * note 2). */
+function asciiUpper(text: string): string {
+  return text.replace(/[a-z]/g, (letter) =>
+    String.fromCharCode(letter.charCodeAt(0) - 32),
+  );
+}
+
+/** A character's upper form's first character, as native's `printable`
+ * (`to_uppercase().next()`): one character in, one out. */
+function shifted(character: string): string {
+  const [first] = character.toUpperCase();
+  return first ?? character;
+}
+
 /** Control with a character, as xterm's (native `keys.rs` `control`). */
 function control(character: string): string {
-  const upper = character.toUpperCase();
+  const upper = asciiUpper(character);
   const code = upper.codePointAt(0) ?? 0;
   if (upper.length === 1 && upper >= "A" && upper <= "Z") {
     return String.fromCharCode(code - 64);
@@ -199,7 +215,7 @@ export function encodeKey(
   applicationCursor: boolean,
 ): string {
   if ("char" in pressed) {
-    const shown = mods.shift ? pressed.char.toUpperCase() : pressed.char;
+    const shown = mods.shift ? shifted(pressed.char) : pressed.char;
     return mods.ctrl
       ? altPrefixed(control(shown), mods)
       : altPrefixed(shown, mods);
