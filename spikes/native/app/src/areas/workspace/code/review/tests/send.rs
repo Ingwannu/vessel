@@ -133,8 +133,7 @@ fn feedback_to_the_one_agent_sends_one_review_and_clears_it_once_delivered(
     assert_eq!(prompt.delivery, Delivery::Queue);
     assert_eq!(prompt.text, "Please address this code review.");
     // One pill, the review, sent as its block to a node at protocol 46.
-    let pills: Vec<&ContextAttachment> =
-        prompt.context.as_ref().unwrap().attachments().collect();
+    let pills: Vec<&ContextAttachment> = prompt.context.as_ref().unwrap().attachments().collect();
     assert!(matches!(
         pills.as_slice(),
         [pill @ ContextAttachment::Review(_)]
