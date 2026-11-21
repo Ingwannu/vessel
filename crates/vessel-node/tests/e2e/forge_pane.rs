@@ -6,11 +6,11 @@
 use chrono::Utc;
 use vessel_forge::Timeline;
 use vessel_forge::fake::FakeForge;
+use vessel_proto::ErrorCode;
 use vessel_proto::forge::{
     CheckName, CheckReport, CheckRun, CheckState, ForgeAccess, GetCheckDetails, GetPullRequest,
     GetPullTimeline, PullBody, ReviewState, RunId, TimelineItem,
 };
-use vessel_proto::ErrorCode;
 use vessel_proto::workspace::CommitId;
 
 use crate::agents::{as_agent, code, credential, structured};

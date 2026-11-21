@@ -286,7 +286,9 @@ mod tests {
     #[test]
     fn a_log_address_on_a_private_or_local_host_is_refused() {
         let public = |address: &str| public_host(&address.parse().unwrap());
-        assert!(public("https://productionresultssa1.blob.core.windows.net/log"));
+        assert!(public(
+            "https://productionresultssa1.blob.core.windows.net/log"
+        ));
         assert!(public("https://93.184.216.34/log"));
         assert!(public("https://[2606:4700::1111]/log"));
         for refused in [
