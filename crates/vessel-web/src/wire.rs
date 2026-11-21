@@ -33,15 +33,15 @@ pub use node::{BookName, InvalidBookName, InvalidNodeKey, NodeKey};
 pub use prefs::{
     ActionId, AgentDefaults, AgentKind, Alerts, Appearance, Bindings, Bounded, ChoiceKey,
     ChoiceKeyTooLong, Choices, ChoicesError, CodeSize, Composer, ContentWidth, ConversationDisplay,
-    Draft, DraftKey, DraftText, DraftTooLong, DraftsState, EditorPreferences, ExplorerSort, Grouping,
-    InterfaceSize, InvalidActionId, InvalidKeyBinding, Kept, KeyBinding, LabelPick, LabelPicks,
-    LaunchOnly, Layout, MAX_ACTIONS, MAX_BINDINGS, MAX_CHOICE_TEXT, MAX_CHOICES, MAX_DRAFT, MAX_EDITS,
-    MAX_MACHINES, MAX_USAGE_PINS, MachineDefaults, Notifications, OpenLocationDestination,
-    OpenLocationPreferences, OpenLocationSource, OutOfRange, Panel, PreferenceChange, Preferences,
-    PreferencesState, PullRequestLocation, Revision, ScrollbackOutOfRange, SendKey, SessionSort,
-    ShortcutEdit, ShortcutEdits, ShortcutTarget, SidebarTrailing, SidebarView, TerminalPreferences,
-    TerminalScrollback, Theme, TooMany, TurnDelivery, UsageDisplay, UsagePin, UsagePins,
-    UsagePreferences,
+    Draft, DraftKey, DraftText, DraftTooLong, DraftsState, EditorPreferences, ExplorerSort,
+    Grouping, InterfaceSize, InvalidActionId, InvalidKeyBinding, Kept, KeyBinding, LabelPick,
+    LabelPicks, LaunchOnly, Layout, MAX_ACTIONS, MAX_BINDINGS, MAX_CHOICE_TEXT, MAX_CHOICES,
+    MAX_DRAFT, MAX_EDITS, MAX_MACHINES, MAX_USAGE_PINS, MachineDefaults, Notifications,
+    OpenLocationDestination, OpenLocationPreferences, OpenLocationSource, OutOfRange, Panel,
+    PreferenceChange, Preferences, PreferencesState, PullRequestLocation, Revision,
+    ScrollbackOutOfRange, SendKey, SessionSort, ShortcutEdit, ShortcutEdits, ShortcutTarget,
+    SidebarTrailing, SidebarView, TerminalPreferences, TerminalScrollback, Theme, TooMany,
+    TurnDelivery, UsageDisplay, UsagePin, UsagePins, UsagePreferences,
 };
 
 use std::sync::Arc;

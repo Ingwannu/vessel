@@ -44,7 +44,9 @@ fn the_editor_choice_defaults_off_and_keeps_other_fields() {
         panic!("current preferences");
     };
     assert!(!doc.values().editor.vim_keybindings);
-    let changed = doc.changed(&PreferenceChange::VimKeybindings(true)).unwrap();
+    let changed = doc
+        .changed(&PreferenceChange::VimKeybindings(true))
+        .unwrap();
     assert!(changed.values().editor.vim_keybindings);
     let written: serde_json::Value = serde_json::from_slice(&changed.encode().unwrap()).unwrap();
     assert_eq!(written["editor"]["vim_keybindings"], true);
