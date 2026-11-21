@@ -40,7 +40,7 @@ impl Capabilities {
     }
 }
 impl Shell {
-    pub(super) fn attachment_context(
+    pub(crate) fn attachment_context(
         &self,
         name: &Name,
     ) -> Option<vessel_app_view::connection::ConnectionContext> {

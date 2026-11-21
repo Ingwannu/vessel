@@ -11,7 +11,9 @@
 
 use gpui::ExternalPaths;
 use vessel_app_kit::assets::Glyph;
-use vessel_app_kit::attachment::{Body, Standing, attachment_pill_scoped, attachment_tray};
+use vessel_app_kit::attachment::{
+    Body, PillOpen, Standing, attachment_pill_scoped, attachment_tray,
+};
 use vessel_app_kit::breakpoint::TOUCH_TARGET;
 use vessel_app_kit::picker::glyph;
 use vessel_app_kit::theme::spacing;
@@ -334,7 +336,7 @@ pub(super) fn tray(
             index,
             &body,
             standing(item),
-            open,
+            open.map(PillOpen::from),
             remove,
             touch,
             tokens,

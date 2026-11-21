@@ -4,7 +4,9 @@
 mod intents;
 use crate::shell::Shell;
 use gpui::FocusHandle;
-use vessel_app_kit::attachment::{Body, Standing, attachment_pill_scoped, attachment_tray};
+use vessel_app_kit::attachment::{
+    Body, PillOpen, Standing, attachment_pill_scoped, attachment_tray,
+};
 use vessel_app_kit::dialog::{DialogContent, DialogSize, DialogState, dialog};
 use vessel_app_kit::ui::{
     AnyElement, Context, IntoElement as _, ParentElement as _, SharedString, Styled as _, Window,
@@ -15,6 +17,7 @@ use vessel_app_view::composer::{
     context::{ContextAttachment, ContextIntent, ContextKind, ContextProblem, ContextScope},
     drafts::DraftKey,
 };
+use vessel_app_view::localization::Number;
 
 #[derive(Debug)]
 pub(super) struct Preview {
@@ -268,6 +271,12 @@ impl Shell {
         if matches!(item, ContextAttachment::WorkspaceFile(_)) {
             return;
         }
+        // Paseo's `handleOpenWorkspaceAttachment`: a review opens the
+        // session workspace's Changes, where its comments are.
+        if matches!(item, ContextAttachment::Review(_)) {
+            self.open_code_changes(window, cx);
+            return;
+        }
         if let ContextAttachment::Snapshot {
             kind:
                 ContextKind::ForgeIssue | ContextKind::ForgeChangeRequest | ContextKind::PluginResource,
@@ -313,10 +322,24 @@ pub(super) fn tray(
         .map(|(index, (intent, item))| {
             let (open, remove) = intents::callbacks(target, item, intent);
             let words = shell.words.composer();
+            // Paseo names the review pill's press; the others stay unnamed.
+            let open = open.map(|click| PillOpen {
+                click,
+                label: matches!(item, ContextAttachment::Review(_))
+                    .then(|| SharedString::from(words.open_review().to_owned())),
+            });
             let (icon, subtitle) = match item {
                 ContextAttachment::WorkspaceFile(file) => {
                     (Glyph::FileText, file.path.as_str().to_owned())
                 }
+                ContextAttachment::Review(offer) => (
+                    Glyph::MessageCode,
+                    words
+                        .sent_comments(Number::count(
+                            u32::try_from(offer.snapshot.review.comments.len()).unwrap_or(u32::MAX),
+                        ))
+                        .unwrap_or_default(),
+                ),
                 ContextAttachment::Snapshot { kind, .. } => match kind {
                     ContextKind::BrowserElement => {
                         (Glyph::Monitor, words.context_browser().to_owned())
@@ -342,7 +365,11 @@ pub(super) fn tray(
                 index,
                 &Body::Label {
                     icon,
-                    title: SharedString::from(item.title().to_owned()),
+                    title: SharedString::from(match item {
+                        ContextAttachment::Review(_) => words.sent_review().to_owned(),
+                        ContextAttachment::WorkspaceFile(_)
+                        | ContextAttachment::Snapshot { .. } => item.title().to_owned(),
+                    }),
                     subtitle: subtitle.into(),
                 },
                 Standing::Quiet,

@@ -31,6 +31,9 @@ use vessel_proto::workspace::{LineKind, RelPath};
 
 use crate::shell::Shell;
 
+pub(super) mod feedback;
+pub(super) mod feedback_draw;
+mod offer;
 pub(super) mod rows;
 #[cfg(test)]
 #[cfg(not(target_arch = "wasm32"))]
@@ -42,6 +45,8 @@ pub(super) struct Review {
     pub(super) editor: Option<Editor>,
     /// The phone's sheet.
     pub(super) dialog: vessel_app_kit::dialog::DialogState,
+    /// "Send feedback (N)".
+    pub(super) feedback: feedback::Feedback,
 }
 
 impl Review {
@@ -49,6 +54,7 @@ impl Review {
         Self {
             editor: None,
             dialog: vessel_app_kit::dialog::DialogState::new(cx),
+            feedback: feedback::Feedback::new(cx),
         }
     }
 }
@@ -211,6 +217,7 @@ impl Shell {
                     self.review_measure(editor.row);
                 }
                 self.drafts_changed(cx);
+                self.review_offer_sync();
                 cx.notify();
             }
             Saved::Blank | Saved::TooLong => {}
@@ -236,6 +243,7 @@ impl Shell {
         }
         if self.areas.composer.drafts.reviews_mut().delete(&key, id) {
             self.drafts_changed(cx);
+            self.review_offer_sync();
         }
         self.review_measure(row);
         cx.notify();

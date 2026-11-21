@@ -132,6 +132,8 @@ pub enum ContextKind {
 pub enum ContextAttachment {
     /// File explorer and diff actions supply this pointer.
     WorkspaceFile(WorkspaceFile),
+    /// The review on the Changes diff (ADR 0124): sent as a `review` block.
+    Review(Box<crate::workspace::review::Offer>),
     /// Other panels provide an immutable text snapshot and its semantic kind.
     Snapshot {
         /// Preserve kind without string dispatch.
@@ -156,6 +158,7 @@ impl ContextAttachment {
                 ),
             },
             Self::Snapshot { payload, .. } => payload.text.as_str().to_owned(),
+            Self::Review(offer) => offer.snapshot.text(),
         }
     }
 
@@ -170,6 +173,8 @@ impl ContextAttachment {
                 .next()
                 .unwrap_or(file.path.as_str()),
             Self::Snapshot { payload, .. } => payload.title.as_str(),
+            // The screen names it in its own words ("Review", "N comments").
+            Self::Review(_) => "Review",
         }
     }
 
@@ -186,8 +191,10 @@ impl ContextAttachment {
                     payload: y,
                 },
             ) => a == b && x.id == y.id,
-            (Self::WorkspaceFile(_), Self::Snapshot { .. })
-            | (Self::Snapshot { .. }, Self::WorkspaceFile(_)) => false,
+            (Self::Review(a), Self::Review(b)) => a.key == b.key,
+            (Self::WorkspaceFile(_) | Self::Review(_), Self::Snapshot { .. })
+            | (Self::Snapshot { .. } | Self::Review(_), Self::WorkspaceFile(_))
+            | (Self::Snapshot { .. } | Self::WorkspaceFile(_), Self::Review(_)) => false,
         }
     }
 }

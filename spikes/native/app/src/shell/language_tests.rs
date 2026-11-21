@@ -44,6 +44,14 @@ impl Shell {
         shell
     }
 
+    /// Puts `link` in the shell's place and gives back the one it had: a
+    /// test set up through the framed fixture takes, on a detached link, a
+    /// command whose handling waits on a node's answer (the fixture serves
+    /// a call only between commands, so it cannot answer one).
+    pub(crate) fn swap_test_link(&mut self, link: Option<Link>) -> Option<Link> {
+        std::mem::replace(&mut self.link, link)
+    }
+
     pub(crate) fn without_io(window: &mut Window, cx: &mut Context<'_, Self>) -> Self {
         Self {
             link: None,
