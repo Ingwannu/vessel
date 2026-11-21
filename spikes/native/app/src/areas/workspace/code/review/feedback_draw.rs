@@ -7,7 +7,7 @@ use vessel_app_kit::assets::Glyph;
 use vessel_app_kit::theme::{radius, spacing};
 use vessel_app_kit::ui::{
     AnyElement, Div, FluentBuilder as _, InteractiveElement as _, IntoElement as _,
-    ParentElement as _, Stateful, Styled as _, Window, div, px,
+    ParentElement as _, Stateful, StatefulInteractiveElement as _, Styled as _, Window, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _, breakpoint, glyph};
 use vessel_app_view::workspace::review::feedback::Unavailable;
