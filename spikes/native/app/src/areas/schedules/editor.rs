@@ -3,6 +3,8 @@ mod draw;
 mod inputs;
 mod pick;
 mod preferences;
+#[cfg(test)]
+mod tests;
 
 use crate::{routes::Route, shell::Shell};
 pub(super) use draw::{new_button, render};

@@ -91,12 +91,19 @@ pub(super) fn control(
     let anchor = field.anchor(&editor.anchors);
     let open = editor.current_picker == Some(field) && editor.picker.is_open();
     let enabled = enabled && editor.available();
-    let trigger = kit::select::trigger(field.id(), value, anchor, open, enabled, touch, tokens)
-        .w_full()
-        .justify_between()
-        .role(gpui::Role::Button)
-        .aria_label(field.label(shell))
-        .aria_expanded(open);
+    let value = value.into();
+    let name = shell.words.select_field_name(field.label(shell), &value);
+    let trigger = kit::select::trigger(
+        field.id(),
+        kit::select::Label::new(value, name),
+        anchor,
+        open,
+        enabled,
+        touch,
+        tokens,
+    )
+    .w_full()
+    .justify_between();
     if !enabled {
         return trigger.into_any_element();
     }
