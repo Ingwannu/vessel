@@ -45,6 +45,8 @@ mod controls;
 mod header;
 mod inputs;
 mod menu;
+#[cfg(test)]
+mod tests;
 
 /// The open plugin screen, and what its controls keep.
 pub(crate) struct ScreenArea {
@@ -68,6 +70,8 @@ pub(crate) struct ScreenArea {
     pub(crate) menu: MenuState,
     /// Which button's menu is open.
     pub(crate) menu_for: Option<ContributionId>,
+    /// Where each menu button was drawn: its menu opens under it.
+    anchors: RefCell<HashMap<ContributionId, select::Anchor>>,
     /// The header's host list (`header.rs`) and where its filter was drawn.
     host_list: ComboboxState,
     host_anchor: select::Anchor,
@@ -97,6 +101,7 @@ impl ScreenArea {
             unfolded: RefCell::default(),
             menu: MenuState::new(cx),
             menu_for: None,
+            anchors: RefCell::default(),
             host_list: ComboboxState::new(window, cx),
             host_anchor: select::Anchor::default(),
             tips: Tooltips::new(),

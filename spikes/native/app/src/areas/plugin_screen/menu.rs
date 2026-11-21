@@ -9,15 +9,21 @@
 //! - Stated difference: a nested menu or a popover inside a menu is not
 //!   offered (a popover has no anchor once the menu closes), as on the
 //!   page.
+//! - The button opens its menu under it on a press, and on a click too, so
+//!   assistive technology's Click opens it; a click that ends a press
+//!   leaves the menu open rather than toggling it shut. It reports whether
+//!   its menu is open (app review R1 on P3b-1 N1, as the Settings ›
+//!   Plugins row menu's P2 R1).
 
 use std::rc::Rc;
 
 use vessel_app_kit::menu::{Content, MenuHandlers, MenuItem, menu_with};
 use vessel_app_kit::ui::{
-    AnyElement, Context, InteractiveElement as _, IntoElement as _, MouseButton, MouseDownEvent,
-    SharedString, Window, px,
+    AnyElement, ClickEvent, Context, InteractiveElement as _, IntoElement as _, MouseButton,
+    MouseDownEvent, ParentElement as _, Pixels, Point, SharedString,
+    StatefulInteractiveElement as _, Styled as _, Window, px,
 };
-use vessel_app_kit::{ButtonKind, ButtonState, Tokens, button_with_kind_at};
+use vessel_app_kit::{ButtonKind, ButtonState, Tokens, anchor_probe, button_with_kind_at};
 use vessel_proto::plugins::{
     Action, Availability, ButtonBehavior, ContributionId, Control, ControlContent, MenuEntry,
 };
@@ -60,7 +66,12 @@ fn entries(items: &[MenuEntry], may_invoke: bool) -> Vec<(SharedString, Action, 
 }
 
 /// The menu button `id`, opening its menu where it is pressed.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "a menu button draws from the shell, the scope and its declaration together"
+)]
 pub(super) fn trigger(
+    shell: &Shell,
     scope: &Scope<'_>,
     id: &ContributionId,
     title: SharedString,
@@ -87,20 +98,27 @@ pub(super) fn trigger(
         },
         tokens,
     );
+    let area = &shell.areas.plugin_screen;
+    let open = area.menu.is_open() && area.menu_for.as_ref() == Some(id);
+    let anchor = Rc::clone(area.anchors.borrow_mut().entry(id.clone()).or_default());
+    let element = element
+        .relative()
+        .aria_expanded(open)
+        .child(anchor_probe(&anchor));
     if !enabled {
         return element.into_any_element();
     }
-    let opened = id.clone();
+    let (pressed, clicked) = (id.clone(), id.clone());
     element
         .on_mouse_down(
             MouseButton::Left,
             cx.listener(move |shell, event: &MouseDownEvent, window, cx| {
-                let area = &mut shell.areas.plugin_screen;
-                area.menu_for = Some(opened.clone());
-                area.menu.open(event.position, window, cx);
-                cx.notify();
+                shell.plugin_screen_menu_activate(&pressed, event.position, window, cx);
             }),
         )
+        .on_click(cx.listener(move |shell, event: &ClickEvent, window, cx| {
+            shell.plugin_screen_menu_activate(&clicked, event.position(), window, cx);
+        }))
         .into_any_element()
 }
 
@@ -158,6 +176,32 @@ fn find_menu<'a>(controls: &'a [Control], id: &ContributionId) -> Option<&'a [Me
 }
 
 impl Shell {
+    /// Open menu button `id`'s menu under the button (at `at` before the
+    /// button was first drawn), unless it is open for it already.
+    pub(super) fn plugin_screen_menu_activate(
+        &mut self,
+        id: &ContributionId,
+        at: Point<Pixels>,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) {
+        let area = &mut self.areas.plugin_screen;
+        if area.menu.is_open() && area.menu_for.as_ref() == Some(id) {
+            return;
+        }
+        let bounds = area
+            .anchors
+            .borrow()
+            .get(id)
+            .and_then(|anchor| anchor.get());
+        area.menu_for = Some(id.clone());
+        match bounds {
+            Some(bounds) => area.menu.open_start(bounds, window, cx),
+            None => area.menu.open(at, window, cx),
+        }
+        cx.notify();
+    }
+
     /// Entry `index` of the open menu was chosen.
     fn plugin_screen_menu_chose(
         &mut self,

@@ -340,7 +340,7 @@ fn button_element(
             Some(element.into_any_element())
         }
         ButtonBehavior::Menu { items } => Some(super::menu::trigger(
-            scope, id, title, items, shown, tokens, cx,
+            shell, scope, id, title, items, shown, tokens, cx,
         )),
         ButtonBehavior::Popover { surface } => {
             let open = shell.areas.plugin_screen.unfolded.borrow().contains(id);
@@ -352,6 +352,8 @@ fn button_element(
                 scope.sizing(),
                 tokens,
             );
+            // Unfolded in place: say so (app review R2 on P3b-1 N1).
+            element = element.aria_expanded(open);
             if shown {
                 let toggled = id.clone();
                 element = element.on_click(cx.listener(move |shell, _event, _window, cx| {

@@ -4,7 +4,7 @@
 use vessel_app_kit::theme::{radius, spacing};
 use vessel_app_kit::ui::{
     Div, ElementId, FluentBuilder as _, InteractiveElement as _, ParentElement as _, SharedString,
-    Stateful, Styled as _, div, px,
+    Stateful, StatefulInteractiveElement as _, Styled as _, div, px,
 };
 use vessel_app_kit::{Tokens, Type, TypeExt as _};
 
@@ -46,8 +46,13 @@ pub(crate) fn nav_row(
         tokens.text_secondary
     };
     let glyph_size = if touch { 18.0 } else { 14.0 };
+    let label: SharedString = label.into();
     div()
         .id(id)
+        // A pressable row: a Button named by its words for assistive
+        // technology (app review R3 on P3b-1 N1).
+        .role(gpui::Role::Button)
+        .aria_label(label.clone())
         .when(leading.is_some(), |row| {
             row.flex().flex_row().items_center().gap(px(spacing::S2))
         })
@@ -66,5 +71,5 @@ pub(crate) fn nav_row(
                 .flex_none()
                 .text_color(color)
         }))
-        .child(label.into())
+        .child(label)
 }
