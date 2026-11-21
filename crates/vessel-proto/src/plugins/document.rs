@@ -4,11 +4,12 @@ use std::collections::BTreeSet;
 
 use serde::{Deserialize, Serialize};
 
-use super::declarations::{
-    Action, Button, ButtonBehavior, Contribution, ContributionContent, ControlContent, MenuEntry,
-    Surface,
-};
-use super::{ContributionId, PluginJsonError, RpcName, ThemeContribution};
+use super::declarations::{Contribution, ContributionContent};
+use super::{PluginJsonError, RpcName, SettingsDeclarations, SettingsId, ThemeContribution};
+use crate::ProtocolVersion;
+
+#[path = "document_validator.rs"]
+mod validator;
 
 /// Maximum encoded document before allocating a parsed graph (Vessel resource limit).
 pub const MAX_DOCUMENT_BYTES: usize = 1024 * 1024;
@@ -31,6 +32,15 @@ pub struct ClientDocument {
     methods: Vec<RpcName>,
     contributions: Vec<Contribution>,
     themes: Vec<ThemeContribution>,
+    /// Settings documents its controls bind; found by the check, not sent.
+    #[serde(skip)]
+    #[cfg_attr(feature = "ts", ts(skip))]
+    bindings: BTreeSet<SettingsId>,
+    /// The oldest client protocol that decodes every kind it uses; found by
+    /// the check, not sent (the catalog entry carries it).
+    #[serde(skip)]
+    #[cfg_attr(feature = "ts", ts(skip))]
+    required_client: ProtocolVersion,
 }
 
 #[derive(Debug, Deserialize)]
@@ -88,6 +98,10 @@ pub enum DocumentError {
     /// Argument payloads have their own cap within the document budget.
     #[error("plugin action input exceeds {MAX_ACTION_INPUT_BYTES} bytes")]
     ActionInput,
+    /// A control binds a settings document its helper did not declare in
+    /// `ready` (a client-only plugin declares none).
+    #[error("plugin declarations bind a settings document the helper did not declare")]
+    UndeclaredSettings,
 }
 
 impl ClientDocument {
@@ -113,14 +127,48 @@ impl ClientDocument {
         contributions: Vec<Contribution>,
         themes: Vec<ThemeContribution>,
     ) -> Result<Self, DocumentError> {
-        let graph = Self {
+        let mut graph = Self {
             methods,
             contributions,
             themes,
+            bindings: BTreeSet::new(),
+            required_client: validator::base_protocol(),
         };
-        graph.validate()?;
+        let (bindings, required_client) = graph.validate()?;
+        graph.bindings = bindings;
+        graph.required_client = required_client;
         graph.validate_encoded_budget()?;
         Ok(graph)
+    }
+
+    /// The settings documents its controls bind.
+    pub fn bound_settings(&self) -> impl Iterator<Item = &SettingsId> {
+        self.bindings.iter()
+    }
+
+    /// Whether every bound document is one `declared` names (the same
+    /// helper's `ready`; empty for a client-only plugin).
+    ///
+    /// # Errors
+    /// `UndeclaredSettings` names no document, so a log line stays safe.
+    pub fn check_settings(&self, declared: &SettingsDeclarations) -> Result<(), DocumentError> {
+        if self
+            .bindings
+            .iter()
+            .all(|settings| declared.version_of(settings).is_some())
+        {
+            Ok(())
+        } else {
+            Err(DocumentError::UndeclaredSettings)
+        }
+    }
+
+    /// The oldest client protocol whose decoder knows every kind this
+    /// document uses; the catalog omits it for an older caller (ADR 0115,
+    /// "Surfaces").
+    #[must_use]
+    pub const fn required_client(&self) -> ProtocolVersion {
+        self.required_client
     }
 
     /// Registered method identities advertised by this document's helper.
@@ -141,7 +189,7 @@ impl ClientDocument {
         &self.themes
     }
 
-    fn validate(&self) -> Result<(), DocumentError> {
+    fn validate(&self) -> Result<(BTreeSet<SettingsId>, ProtocolVersion), DocumentError> {
         if self.contributions.len().saturating_add(self.themes.len()) > MAX_CONTRIBUTIONS {
             return Err(DocumentError::Contributions);
         }
@@ -159,10 +207,21 @@ impl ClientDocument {
                 matches!(item.content, ContributionContent::Screen { .. }).then_some(&item.id)
             })
             .collect();
-        let mut validator = Validator {
+        let settings_screens = self
+            .contributions
+            .iter()
+            .filter_map(|item| {
+                matches!(item.content, ContributionContent::SettingsScreen { .. })
+                    .then_some(&item.id)
+            })
+            .collect();
+        let mut validator = validator::Validator {
             methods,
             screens,
+            settings_screens,
             count: 0,
+            bindings: BTreeSet::new(),
+            required_client: validator::base_protocol(),
         };
         let mut identities = BTreeSet::new();
         let mut slash_names = BTreeSet::new();
@@ -187,7 +246,7 @@ impl ClientDocument {
                 return Err(DocumentError::Duplicate);
             }
         }
-        Ok(())
+        Ok((validator.bindings, validator.required_client))
     }
 
     fn validate_encoded_budget(&self) -> Result<(), DocumentError> {
@@ -216,227 +275,6 @@ impl TryFrom<DocumentInput> for ClientDocument {
     type Error = DocumentError;
     fn try_from(value: DocumentInput) -> Result<Self, Self::Error> {
         Self::new(value.methods, value.contributions, value.themes)
-    }
-}
-
-struct Validator<'a> {
-    methods: BTreeSet<&'a RpcName>,
-    screens: BTreeSet<&'a ContributionId>,
-    count: usize,
-}
-
-impl Validator<'_> {
-    fn contribution(&mut self, content: &ContributionContent) -> Result<(), DocumentError> {
-        let mut ids = BTreeSet::new();
-        match content {
-            ContributionContent::Screen { surface }
-            | ContributionContent::SettingsScreen { surface }
-            | ContributionContent::TimelineRenderer { surface, .. } => {
-                self.surface(surface, 0, &mut ids)
-            }
-            ContributionContent::Panel {
-                locations, surface, ..
-            } => {
-                Self::panel_locations(locations)?;
-                self.surface(surface, 0, &mut ids)
-            }
-            ContributionContent::FilePanel {
-                extensions,
-                filenames,
-                surface,
-            } => {
-                self.file_selectors(extensions, filenames)?;
-                self.surface(surface, 0, &mut ids)
-            }
-            ContributionContent::Sidebar { screen, .. } => self.screen(screen),
-            ContributionContent::Command {
-                action, keywords, ..
-            } => {
-                self.add_count(keywords.len())?;
-                self.action(action)
-            }
-            ContributionContent::SlashCommand { method, .. }
-            | ContributionContent::AttachmentSource { search: method } => self.method(method),
-            ContributionContent::HeaderButton { button, .. }
-            | ContributionContent::ComposerPill { button, .. } => self.button(button, 0, &mut ids),
-        }
-    }
-
-    fn panel_locations(locations: &[super::PanelLocation]) -> Result<(), DocumentError> {
-        if locations.is_empty() {
-            return Err(DocumentError::EmptyOptions);
-        }
-        if locations.iter().collect::<BTreeSet<_>>().len() != locations.len() {
-            return Err(DocumentError::Duplicate);
-        }
-        Ok(())
-    }
-
-    fn file_selectors(
-        &mut self,
-        extensions: &[super::FileExtension],
-        filenames: &[super::FileNamePattern],
-    ) -> Result<(), DocumentError> {
-        if extensions.is_empty() && filenames.is_empty() {
-            return Err(DocumentError::EmptyOptions);
-        }
-        self.add_count(extensions.len().saturating_add(filenames.len()))?;
-        let distinct_extensions = extensions
-            .iter()
-            .map(|e| e.as_str().to_lowercase())
-            .collect::<BTreeSet<_>>();
-        let distinct_names = filenames
-            .iter()
-            .map(super::FileNamePattern::as_str)
-            .collect::<BTreeSet<_>>();
-        if distinct_extensions.len() != extensions.len() || distinct_names.len() != filenames.len()
-        {
-            return Err(DocumentError::Duplicate);
-        }
-        Ok(())
-    }
-
-    fn add_count(&mut self, count: usize) -> Result<(), DocumentError> {
-        // Saturation makes a theoretical counter overflow fail the same bound.
-        self.count = self.count.saturating_add(count);
-        if self.count > MAX_CONTROLS {
-            return Err(DocumentError::Controls);
-        }
-        Ok(())
-    }
-
-    fn surface<'a>(
-        &mut self,
-        surface: &'a Surface,
-        depth: usize,
-        ids: &mut BTreeSet<&'a ContributionId>,
-    ) -> Result<(), DocumentError> {
-        if depth > MAX_DEPTH {
-            return Err(DocumentError::Depth);
-        }
-        self.add_count(surface.controls.len())?;
-        for control in &surface.controls {
-            if !ids.insert(&control.id) {
-                return Err(DocumentError::Duplicate);
-            }
-            self.control(&control.content, depth, ids)?;
-        }
-        Ok(())
-    }
-
-    fn control<'a>(
-        &mut self,
-        content: &'a ControlContent,
-        depth: usize,
-        ids: &mut BTreeSet<&'a ContributionId>,
-    ) -> Result<(), DocumentError> {
-        match content {
-            ControlContent::Text { .. }
-            | ControlContent::Markdown { .. }
-            | ControlContent::Status { .. } => Ok(()),
-            ControlContent::Stack { surface }
-            | ControlContent::Row { surface }
-            | ControlContent::Section { surface, .. } => {
-                self.surface(surface, depth.saturating_add(1), ids)
-            }
-            ControlContent::Button { button } => self.button(button, depth, ids),
-            ControlContent::TextField { submit, .. } | ControlContent::Toggle { submit, .. } => {
-                self.method(submit)
-            }
-            ControlContent::Choice {
-                options,
-                selected,
-                submit,
-                ..
-            } => {
-                self.add_count(options.len())?;
-                if options.is_empty() {
-                    return Err(DocumentError::EmptyOptions);
-                }
-                let values: BTreeSet<_> = options.iter().map(|option| &option.id).collect();
-                if values.len() != options.len() {
-                    return Err(DocumentError::Duplicate);
-                }
-                if selected.as_ref().is_some_and(|id| !values.contains(id)) {
-                    return Err(DocumentError::MissingChoice);
-                }
-                self.method(submit)
-            }
-        }
-    }
-
-    fn button<'a>(
-        &mut self,
-        button: &'a Button,
-        depth: usize,
-        ids: &mut BTreeSet<&'a ContributionId>,
-    ) -> Result<(), DocumentError> {
-        self.behavior(&button.behavior, depth, ids)
-    }
-
-    fn behavior<'a>(
-        &mut self,
-        behavior: &'a ButtonBehavior,
-        depth: usize,
-        ids: &mut BTreeSet<&'a ContributionId>,
-    ) -> Result<(), DocumentError> {
-        if depth > MAX_DEPTH {
-            return Err(DocumentError::Depth);
-        }
-        match behavior {
-            ButtonBehavior::Action { action } => self.action(action),
-            ButtonBehavior::Menu { items } => {
-                if items.is_empty() {
-                    return Err(DocumentError::EmptyOptions);
-                }
-                self.add_count(items.len())?;
-                let mut entries = BTreeSet::new();
-                for item in items {
-                    let id = match item {
-                        MenuEntry::Separator { id } => id,
-                        MenuEntry::Item { id, behavior, .. } => {
-                            self.behavior(behavior, depth.saturating_add(1), ids)?;
-                            id
-                        }
-                    };
-                    if !entries.insert(id) {
-                        return Err(DocumentError::Duplicate);
-                    }
-                }
-                Ok(())
-            }
-            ButtonBehavior::Popover { surface } => {
-                self.surface(surface, depth.saturating_add(1), ids)
-            }
-        }
-    }
-
-    fn action(&self, action: &Action) -> Result<(), DocumentError> {
-        match action {
-            Action::OpenScreen { screen } => self.screen(screen),
-            Action::Invoke { method, input } => {
-                if input.as_text().len() > MAX_ACTION_INPUT_BYTES {
-                    return Err(DocumentError::ActionInput);
-                }
-                self.method(method)
-            }
-        }
-    }
-
-    fn screen(&self, screen: &ContributionId) -> Result<(), DocumentError> {
-        if self.screens.contains(screen) {
-            Ok(())
-        } else {
-            Err(DocumentError::MissingScreen)
-        }
-    }
-
-    fn method(&self, method: &RpcName) -> Result<(), DocumentError> {
-        if self.methods.contains(method) {
-            Ok(())
-        } else {
-            Err(DocumentError::MissingMethod)
-        }
     }
 }
 

@@ -433,6 +433,11 @@ pub const PROTOCOLS: &[(&str, Option<crate::ProtocolVersion>, &str)] = &[
         crate::notifications::ATTENTION_NOTIFICATIONS_PROTOCOL,
         "`notification.claim`, terminal attention and `Terminal` presence focus (ADR 0089); `null` until assigned.",
     ),
+    (
+        "PLUGIN_SURFACES_PROTOCOL",
+        crate::plugins::PLUGIN_SURFACES_PROTOCOL,
+        "a catalog entry using `card`, the settings controls or `open_settings` (ADR 0115, \"Surfaces\").",
+    ),
 ];
 
 /// The constants of [`PROTOCOLS`], as the end of the declarations file.
