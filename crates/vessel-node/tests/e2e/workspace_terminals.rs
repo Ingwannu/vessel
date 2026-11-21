@@ -235,7 +235,7 @@ async fn removing_a_worktree_ends_its_shells_only_when_asked() {
 }
 
 /// `calls` answered to a raw peer that speaks only `version`.
-async fn as_older(
+pub(crate) async fn as_older(
     fixture: &Fixture,
     node: &Node,
     version: ProtocolVersion,

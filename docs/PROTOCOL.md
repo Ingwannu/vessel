@@ -68,6 +68,18 @@ no runtime to compile. The package that serves the method changes `staged`
 to `pending` in the commit that adds its handler; from then on the guard
 requires the handler, as for every assigned or pending row.
 
+## Version 45 (2026-11-21, milestone 12): terminal profiles (implementer T2, ADR 0117)
+
+Drafted 45 (`TERMINAL_PROFILES_PROTOCOL`, `PROTOCOL_VERSION` 45) at the node integrator's word, after 44; confirmed
+at its node-line merge.
+
+- `node.settings` gains `terminal_profiles` (Paseo's `terminalProfiles`): absent when never set, which clients show
+  as the shipped four (Claude Code, Codex, OpenCode, Pi); an empty list when a person removed them all. The list is
+  answered as kept; adoption of the prompt placeholder happens at launch.
+- `node.set_settings` takes `terminal_profiles` (`admin`), the whole list, replacing it.
+- `terminal.create` gains `profile {id, prompt?}`: see the terminal methods above. A prompt is at most 16 KiB.
+- Both fields are refused to, and the list hidden from, a peer below 45.
+
 ## Version 44 (2026-11-21, milestone 12): plugin surfaces' declaration kinds (impl P, ADR 0115 "Surfaces")
 
 Assigned 44 (`PLUGIN_SURFACES_PROTOCOL`, `PROTOCOL_VERSION` 44) at its node-line merge, the next after the settings'
@@ -2388,18 +2400,6 @@ server dispatch refused it through required_protocol.
 The report adds explicit own-process numeric observations, source states and
 closed resource-refusal detail; it never carries raw logs or environment.
 
-
-## Terminal profiles before their number (ADR 0117)
-
-`TERMINAL_PROFILES_PROTOCOL` is `None` until the integrator assigns it at the merge. It covers three things:
-- `node.settings` gains `terminal_profiles` (Paseo's `terminalProfiles`): absent when never set, which clients
-  show as the shipped four; an empty list when a person removed them all.
-- `node.set_settings` takes the whole list (`admin`), replacing it.
-- `terminal.create` gains `profile { id, prompt? }`: the node runs that profile's program, adopted and
-  substituted, without a shell (see the terminal methods above).
-
-While the number is unassigned, every client send and server dispatch refuses both fields through
-`required_protocol`, and every reply leaves the list out.
 
 ## Unassigned command-kind metadata values (ADR0085)
 

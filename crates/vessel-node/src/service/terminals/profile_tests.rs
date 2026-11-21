@@ -1,7 +1,7 @@
-//! ADR 0117 below the server's protocol gate (the number is the integrator's
-//! to assign, so the server refuses the fields until then), and the gate
-//! itself. The profiles run the testkit's `fake-tui`, never a real agent or
-//! a login shell; `args` makes it print its arguments.
+//! ADR 0117 on the guarded service: what a launch runs and how it is refused
+//! (`tests/e2e/terminal_profiles.rs` has the wire and an older peer). The
+//! profiles run the testkit's `fake-tui`, never a real agent or a login
+//! shell; `args` makes it print its arguments.
 #![cfg(unix)]
 
 use std::num::NonZeroUsize;
@@ -13,10 +13,9 @@ use tokio::sync::oneshot;
 use tokio_util::sync::CancellationToken;
 use vessel_client::NodeClient;
 use vessel_harness::{HarnessEnv, Lookup};
-use vessel_proto::settings::{GetNodeSettings, SetNodeSettings};
+use vessel_proto::settings::SetNodeSettings;
 use vessel_proto::terminal_profiles::{
     Argument, Id, Name, Profile, ProfileLaunch, Profiles, Program, Prompt,
-    TERMINAL_PROFILES_PROTOCOL,
 };
 use vessel_proto::terminals::{
     CreateTerminal, KillTerminal, SendTerminal, TerminalInfo, TerminalKind, TerminalPlace,
@@ -238,36 +237,5 @@ async fn a_kept_list_replaces_the_shipped_one_and_refusals_say_why() {
     let tui_run = fixture.launch("tui", Some("x")).await.unwrap();
     assert_eq!(tui_run.kind, TerminalKind::Shell { program: tui });
     fixture.args_of(&tui_run, r#"args ["one two","x"]"#).await;
-    fixture.node.stop().await.unwrap();
-}
-
-#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn the_server_refuses_and_hides_the_fields_while_their_number_is_pending() {
-    if TERMINAL_PROFILES_PROTOCOL.is_some() {
-        return;
-    }
-    let fixture = Fixture::open().await;
-    let kept = Profiles::new(Vec::new()).unwrap();
-    let change = SetNodeSettings {
-        terminal_profiles: Some(kept),
-        ..SetNodeSettings::default()
-    };
-    // Kept below the gate, so the reply over the wire has something to hide.
-    drop(fixture.direct(change.clone()).await.unwrap());
-    assert!(fixture.client.call(change).await.is_err());
-    let read = fixture.client.call(GetNodeSettings {}).await.unwrap();
-    assert_eq!(read.terminal_profiles, None);
-    let launch = CreateTerminal {
-        place: TerminalPlace::Folder {
-            path: fixture.work.clone(),
-        },
-        size: None,
-        title: None,
-        profile: Some(ProfileLaunch {
-            id: Id::parse("claude").unwrap(),
-            prompt: None,
-        }),
-    };
-    assert!(fixture.client.call(launch).await.is_err());
     fixture.node.stop().await.unwrap();
 }

@@ -6,7 +6,8 @@ Status: accepted by the coordinator on 2026-11-21 with four rulings:
 - The native menu groups are part of the native packet.
 - The node resolves profiles by id.
 
-Implementer T2. Protocol: `TERMINAL_PROFILES_PROTOCOL`, a placeholder (`None`) until the integrator assigns it.
+Implementer T2. Protocol 45 (`TERMINAL_PROFILES_PROTOCOL`): a placeholder until the node integrator gave 45 after 44
+(plugin surfaces), confirmed at its node-line merge.
 Rows: catalogue G12, G58; TRACKER 490, 275, 336 (the profile part).
 This ADR takes terminal profiles out of ADR 0091. That ADR's value types (`vessel_proto::terminal_profiles`) were
 ported earlier and nothing used them.
@@ -86,10 +87,8 @@ Paseo 0.15.4 paths are relative to `packages/`.
      picker) asks `Profile::adopted()` first, as Paseo's `resolveTerminalProfiles` does. When the appended
      arguments would pass a bound, `adopted()` keeps the profile as it is, and its launch then has no prompt.
    - Harness marks keep their exact-identity rule.
-4. **One protocol constant.** `TERMINAL_PROFILES_PROTOCOL` covers the settings field, its set, and
-   `CreateTerminal.profile` (`Call::since`).
-   - While it is `None`, the server refuses both fields and no peer is shown the list.
-   - Positive tests run below the server's gate.
+4. **One protocol constant.** `TERMINAL_PROFILES_PROTOCOL` (45) covers the settings field, its set, and
+   `CreateTerminal.profile` (`Call::since`). A peer below it is refused both fields and never shown the list.
 5. **CLI.** `vessel shell --profile ID` opens a profile's terminal.
 
 ## Stated differences
