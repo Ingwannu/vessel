@@ -420,8 +420,11 @@ impl Plugins {
         }
         // A settings write that already found the row holds this lock: wait
         // for it, so it cannot write into a folder deleted under it.
-        let lock = self.settings_lock(plugin);
-        let held = lock.lock().await;
+        let lock = self.settings_lock_held(plugin);
+        let held = match &lock {
+            Some(lock) => Some(lock.lock().await),
+            None => None,
+        };
         let data = self.inner.data.clone();
         let id = plugin.clone();
         if let Ok(Err(error)) = rows::blocking(move || data.remove_plugin_settings(&id)).await {

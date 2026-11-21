@@ -112,8 +112,9 @@ mod tests {
     }
 
     #[test]
-    fn the_field_is_served_from_the_newest_protocol() {
-        // Only the newest protocol asserts equality with `PROTOCOL_VERSION`.
+    fn the_field_is_served_from_its_protocol_on() {
+        // A later protocol (plugin settings, 43) took the newest pin; this
+        // one holds for every protocol from its own.
         assert!(ORIGIN_LINK_PROTOCOL <= Some(crate::PROTOCOL_VERSION));
         assert!(serves_origin(crate::PROTOCOL_VERSION));
         assert_eq!(

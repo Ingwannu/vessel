@@ -27,10 +27,8 @@
 //! - Cost: every read asks the helper to parse (Paseo parses on every read
 //!   too), one round trip within the actor's budget and deadline.
 
-use std::fmt::Write as _;
 use std::sync::{Arc, PoisonError};
 
-use sha2::{Digest as _, Sha256};
 use vessel_plugin::{CallError, RuntimeHandle, RuntimeState, SharedLogs};
 use vessel_proto::RawJson;
 use vessel_proto::plugins::{
@@ -39,8 +37,12 @@ use vessel_proto::plugins::{
     SettingsRevision, SettingsStep, SettingsVerdict, SettingsVersion, WritePluginSettings,
 };
 
-use super::rows::{blocking, host_line};
+use super::rows::host_line;
 use super::{CallFailure, PluginError, Plugins, Run};
+
+mod disk;
+
+use disk::Stored;
 
 /// Paseo's conflict words.
 const CONFLICT: &str = "Settings changed on another client. Reload before saving again.";
@@ -50,40 +52,6 @@ const NEWER: &str = "Settings were saved by a newer plugin version";
 const OTHER_VERSION: &str = "Reload or reset settings before saving a different schema version";
 /// Stored bytes that are not an envelope.
 const UNREADABLE: &str = "The stored settings are not readable. Reset them to start again.";
-
-/// The stored envelope (Paseo's `{version, values}`).
-#[derive(serde::Deserialize)]
-struct Envelope {
-    version: SettingsVersion,
-    values: RawJson,
-}
-
-/// The envelope as written.
-#[derive(serde::Serialize)]
-struct EnvelopeOut<'a> {
-    version: SettingsVersion,
-    values: &'a RawJson,
-}
-
-/// A document as it is on disk.
-enum Stored {
-    Missing,
-    Unreadable(SettingsRevision),
-    Saved {
-        revision: SettingsRevision,
-        version: SettingsVersion,
-        values: RawJson,
-    },
-}
-
-impl Stored {
-    fn revision(&self) -> SettingsRevision {
-        match self {
-            Self::Missing => SettingsRevision::missing(),
-            Self::Unreadable(revision) | Self::Saved { revision, .. } => revision.clone(),
-        }
-    }
-}
 
 /// The running helper a document belongs to.
 struct Target {
@@ -110,7 +78,7 @@ impl Plugins {
         plugin: &PluginId,
         settings: &SettingsId,
     ) -> Result<PluginSettingsRead, PluginError> {
-        let lock = self.settings_lock(plugin);
+        let lock = self.settings_lock(plugin)?;
         let _held = lock.lock().await;
         let target = self.settings_target(plugin, settings)?;
         self.settings_read_locked(&target, Migrated::Announce).await
@@ -127,7 +95,7 @@ impl Plugins {
             revision,
             values,
         } = request;
-        let lock = self.settings_lock(&plugin);
+        let lock = self.settings_lock(&plugin)?;
         let _held = lock.lock().await;
         let target = self.settings_target(&plugin, &settings)?;
         let stored = self.settings_stored(&target).await?;
@@ -159,7 +127,7 @@ impl Plugins {
             settings,
             revision,
         } = request;
-        let lock = self.settings_lock(&plugin);
+        let lock = self.settings_lock(&plugin)?;
         let _held = lock.lock().await;
         let target = self.settings_target(&plugin, &settings)?;
         if self.settings_stored(&target).await?.revision() != revision {
@@ -173,7 +141,9 @@ impl Plugins {
     /// After a helper's `ready`: tell it each declared document's state
     /// (its `read()`), migrating where needed. Failures go to the log.
     pub(super) async fn deliver_settings(&self, plugin: &PluginId, declared: &[SettingsId]) {
-        let lock = self.settings_lock(plugin);
+        let Ok(lock) = self.settings_lock(plugin) else {
+            return;
+        };
         let _held = lock.lock().await;
         for settings in declared {
             let Ok(target) = self.settings_target(plugin, settings) else {
@@ -183,7 +153,13 @@ impl Plugins {
                 Ok(PluginSettingsRead::Ready { revision, values }) => {
                     match HelperPayload::try_from(values) {
                         Ok(values) => SettingsNotice::Ready { revision, values },
-                        Err(_large) => continue,
+                        Err(_large) => {
+                            host_line(
+                                &target.logs,
+                                &format!("settings {settings}: too large to deliver"),
+                            );
+                            continue;
+                        }
                     }
                 }
                 Ok(PluginSettingsRead::Invalid { revision, .. }) => {
@@ -198,14 +174,31 @@ impl Plugins {
         }
     }
 
-    /// The per-installation lock.
-    pub(super) fn settings_lock(&self, plugin: &PluginId) -> Arc<tokio::sync::Mutex<()>> {
+    /// The per-installation lock of an installed plugin; no entry is made
+    /// for an id that is not installed.
+    fn settings_lock(&self, plugin: &PluginId) -> Result<Arc<tokio::sync::Mutex<()>>, PluginError> {
+        if !self.state().rows.contains_key(plugin) {
+            return Err(PluginError::NotInstalled(plugin.clone()));
+        }
         let mut locks = self
             .inner
             .settings_locks
             .lock()
             .unwrap_or_else(PoisonError::into_inner);
-        Arc::clone(locks.entry(plugin.clone()).or_default())
+        Ok(Arc::clone(locks.entry(plugin.clone()).or_default()))
+    }
+
+    /// The lock a settings call in flight holds for `plugin`, if any.
+    pub(super) fn settings_lock_held(
+        &self,
+        plugin: &PluginId,
+    ) -> Option<Arc<tokio::sync::Mutex<()>>> {
+        self.inner
+            .settings_locks
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .get(plugin)
+            .cloned()
     }
 
     /// The running helper that declares `settings`.
@@ -332,47 +325,6 @@ impl Plugins {
         }
     }
 
-    /// The document on disk.
-    async fn settings_stored(&self, target: &Target) -> Result<Stored, PluginError> {
-        let data = self.inner.data.clone();
-        let (plugin, settings) = (target.plugin.clone(), target.settings.clone());
-        let bytes = blocking(move || data.read_plugin_settings(&plugin, &settings))
-            .await?
-            .map_err(|error| PluginError::SettingsStore(error.to_string()))?;
-        let Some(bytes) = bytes else {
-            return Ok(Stored::Missing);
-        };
-        let revision = revision_of(&bytes);
-        Ok(match serde_json::from_slice::<Envelope>(&bytes) {
-            Ok(Envelope { version, values }) => Stored::Saved {
-                revision,
-                version,
-                values,
-            },
-            Err(_unreadable) => Stored::Unreadable(revision),
-        })
-    }
-
-    /// Write `values` at the declared version; its new revision.
-    async fn settings_persist(
-        &self,
-        target: &Target,
-        values: &RawJson,
-    ) -> Result<SettingsRevision, PluginError> {
-        let raw = serde_json::to_vec(&EnvelopeOut {
-            version: target.version,
-            values,
-        })
-        .map_err(|error| PluginError::SettingsStore(error.to_string()))?;
-        let revision = revision_of(&raw);
-        let data = self.inner.data.clone();
-        let (plugin, settings) = (target.plugin.clone(), target.settings.clone());
-        blocking(move || data.write_plugin_settings(&plugin, &settings, &raw))
-            .await?
-            .map_err(|error| PluginError::SettingsStore(error.to_string()))?;
-        Ok(revision)
-    }
-
     /// Ask the helper to parse or migrate: the values, or its refusal in
     /// bounded words (its full words go to its log).
     async fn settings_judge(
@@ -480,15 +432,6 @@ const fn failure_of(error: CallError) -> CallFailure {
         | CallError::Closed
         | CallError::Failed(HelperFailure::Cancelled) => CallFailure::Unavailable,
     }
-}
-
-/// The sha256 of `bytes` in lowercase hex.
-fn revision_of(bytes: &[u8]) -> SettingsRevision {
-    let mut hex = String::with_capacity(64);
-    for byte in Sha256::digest(bytes) {
-        let _infallible = write!(hex, "{byte:02x}");
-    }
-    SettingsRevision::from_sha256_hex(&hex).unwrap_or_else(SettingsRevision::missing)
 }
 
 #[cfg(test)]
