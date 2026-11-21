@@ -431,6 +431,36 @@ While the constant is unassigned, no machine admits claims, and a notice takes A
   - A claim is never retried.
   - Failed sessions never reach a claim: the diff drops them (the "Local error attention" section).
 
+## The page's terminal notices (2026-11-21, the claims follow-up's third row, page part)
+
+The page does what the app does (ADR 0114 "Terminal notices"), behind this feature's constant.
+
+- **The constant on the page.** `ts.rs` PROTOCOLS now exports `ATTENTION_NOTIFICATIONS_PROTOCOL` into
+  `wire/proto.ts` (`null` while unassigned). `data/claims.ts` imports it, typed `number | null`, so neither
+  value makes a guard look constant to strict lint. Assigning the number on the node line turns the page's
+  claims on with no page edit (node review note on row 2).
+- **Notices** (`data/terminal-notices.ts`, `features/notifications/use-terminal-notices.ts`):
+  - each connected machine that admits claims has its whole terminal list followed (`terminal.list` with no
+    place, waiting on `changed_from`);
+  - a connection's first list tells nothing; a Finished or Needs-input attention at a revision not told before
+    is a notice; a failed terminal never is;
+  - Settings' alerts decide first (alerts off claims nothing); the claim names the exact revision; only
+    `admitted` shows, titled "Terminal finished" or "Terminal needs input" with the terminal's title;
+  - a click opens a session whose workspace holds the terminal's place (`holds`) and asks that workspace for
+    the terminal's tab (`data/terminal-tab-request.ts`);
+  - when a list answers without its revision moving, the follower waits a quiet second before asking again,
+    so a node that cannot wait does not make it spin (app review note on row 3).
+- **Presence** (`data/presence.ts`, `data/shown-terminal.ts`): the workspace's active terminal tab is reported
+  as `terminal` focus to a machine that admits claims, and as `elsewhere` to any other. This changes push
+  today: before, the page reported the route's session, so that session's push was held back while a terminal
+  tab had the focus. Paseo sets the focused agent only for an agent tab (`workspace-screen.tsx:1436-1456`).
+- **Viewing clears** (`features/workspace-tabs/use-terminal-attention.ts`): while the page is visible and the
+  active terminal asks for the person, `terminal.attention_clear` goes with the exact revision its list shows,
+  once per revision, on a machine that admits claims.
+- **Tests:** `data/terminal-notices.test.ts` (the first list, a new revision once, the kinds, a failed terminal,
+  the exact clear, `holds` for each place kind, the tab request taken once) and `data/presence.test.ts` (a
+  shown terminal is `terminal` focus only to a machine that admits claims).
+
 ## Owed before the feature constant is assigned
 
 The node review of TRACKER 815 (2026-11-20, the staging line merged onto the
