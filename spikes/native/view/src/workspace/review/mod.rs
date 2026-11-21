@@ -60,18 +60,12 @@ pub struct ReviewTarget {
     pub line: NonZeroU32,
 }
 
-/// A comment's identity, kept across edits.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+/// A comment's identity, kept across edits: the microsecond it was
+/// written, moved past every identity the document holds, so it is never
+/// reused while a comment of that identity may still be on its way.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(transparent)]
-pub struct CommentId(uuid::Uuid);
-
-impl CommentId {
-    /// A new identity.
-    #[must_use]
-    pub fn random() -> Self {
-        Self(uuid::Uuid::new_v4())
-    }
-}
+pub struct CommentId(u64);
 
 /// One comment not sent yet.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -182,7 +176,7 @@ impl ReviewDrafts {
                 Saved::Edited(comment.id)
             }
             None => {
-                let id = CommentId::random();
+                let id = self.next_id(&review, now);
                 review.comments.push(DraftComment {
                     id,
                     target,
@@ -253,6 +247,20 @@ impl ReviewDrafts {
             let dropped = self.reviews.remove(0);
             bytes = bytes.saturating_sub(dropped.bytes());
         }
+    }
+
+    /// An identity past every one kept (`review` is out of the list while
+    /// it is changed), from `now`'s microsecond.
+    fn next_id(&self, review: &Review, now: DateTime<Utc>) -> CommentId {
+        let kept = self
+            .reviews
+            .iter()
+            .chain(std::iter::once(review))
+            .flat_map(|review| review.comments.iter().map(|comment| comment.id.0))
+            .max()
+            .map_or(0, |id| id.saturating_add(1));
+        let at = u64::try_from(now.timestamp_micros()).unwrap_or(0);
+        CommentId(at.max(kept))
     }
 
     /// The review of `key` taken out (a new one when none is kept), to be
