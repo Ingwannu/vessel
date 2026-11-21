@@ -20,8 +20,10 @@
 //!   a client (errors are made without their URL).
 //! - Trust boundary (ADR 0088): the address comes from the configured
 //!   forge host, which is trusted; a `localhost` name or a literal address
-//!   in a loopback, private, link-local, unique-local, shared or
-//!   unspecified range is refused before any request ([`public_host`]).
+//!   in a special-purpose range (RFC 6890: loopback, private, link-local,
+//!   unique-local, shared, benchmarking, multicast, reserved and the
+//!   like, IPv4 carried in IPv6 judged as IPv4) is refused before any
+//!   request ([`public_host`]).
 //!   A name that only resolves to such an address is not caught here (a
 //!   stated gap; DNS-level filtering would ride ADR 0104's resolver).
 
@@ -145,8 +147,6 @@ fn unreachable(error: reqwest::Error) -> ForgeError {
     ForgeError::Unreachable(error.without_url())
 }
 
-/// The last [`TAIL`] bytes of `bytes`; `cut` when anything before them is
-/// missing.
 /// Whether `url`'s host may be asked for a log: not `localhost` (or a
 /// name under it) and not a literal address outside the public internet.
 fn public_host(url: &reqwest::Url) -> bool {
@@ -156,9 +156,7 @@ fn public_host(url: &reqwest::Url) -> bool {
     let bare = host.trim_start_matches('[').trim_end_matches(']');
     match bare.parse::<IpAddr>() {
         Ok(IpAddr::V4(address)) => public_v4(address),
-        Ok(IpAddr::V6(address)) => address
-            .to_ipv4_mapped()
-            .map_or_else(|| public_v6(address), public_v4),
+        Ok(IpAddr::V6(address)) => public_v6(address),
         Err(_) => {
             let name = bare.trim_end_matches('.').to_ascii_lowercase();
             name != "localhost" && !name.ends_with(".localhost")
@@ -166,26 +164,70 @@ fn public_host(url: &reqwest::Url) -> bool {
     }
 }
 
+/// Not a special-purpose IPv4 range (RFC 6890): "this network" 0/8,
+/// private, shared 100.64/10, loopback, link local, IETF 192.0.0/24,
+/// benchmarking 198.18/15, multicast 224/4 and reserved 240/4 (with the
+/// broadcast address in it).
 fn public_v4(address: Ipv4Addr) -> bool {
-    let [first, second, ..] = address.octets();
-    // 100.64.0.0/10, carrier-grade shared space.
+    let [first, second, third, _] = address.octets();
+    let this_network = first == 0;
     let shared = first == 100 && (second & 0xc0) == 64;
-    !(address.is_loopback()
+    let ietf = first == 192 && second == 0 && third == 0;
+    let benchmarking = first == 198 && (second & 0xfe) == 18;
+    let reserved = first >= 240;
+    !(this_network
         || address.is_private()
+        || shared
+        || address.is_loopback()
         || address.is_link_local()
-        || address.is_unspecified()
-        || address.is_broadcast()
-        || shared)
+        || ietf
+        || benchmarking
+        || address.is_multicast()
+        || reserved)
 }
 
+/// Not loopback, unspecified, unique local `fc00::/7`, link local
+/// `fe80::/10` or multicast `ff00::/8`; an IPv4 address carried in an IPv6
+/// one (mapped `::ffff:a.b.c.d`, compatible `::a.b.c.d`, NAT64
+/// `64:ff9b::/96` and 6to4 `2002::/16`) is judged as that IPv4 address.
 fn public_v6(address: Ipv6Addr) -> bool {
+    if let Some(carried) = carried_v4(address) {
+        return public_v4(carried);
+    }
     let [first, ..] = address.segments();
-    // fc00::/7 unique local, fe80::/10 link local.
     let unique_local = (first & 0xfe00) == 0xfc00;
     let link_local = (first & 0xffc0) == 0xfe80;
-    !(address.is_loopback() || address.is_unspecified() || unique_local || link_local)
+    !(address.is_loopback()
+        || address.is_unspecified()
+        || unique_local
+        || link_local
+        || address.is_multicast())
 }
 
+/// The IPv4 address an IPv6 literal carries, when it is one of the forms
+/// that carry one.
+fn carried_v4(address: Ipv6Addr) -> Option<Ipv4Addr> {
+    if let Some(mapped) = address.to_ipv4_mapped() {
+        return Some(mapped);
+    }
+    match address.segments() {
+        // ::a.b.c.d, but not :: or ::1 (judged as IPv6).
+        [0, 0, 0, 0, 0, 0, high, low] if high != 0 || low > 1 => Some(joined(high, low)),
+        // NAT64 64:ff9b::a.b.c.d, and 6to4 2002:aabb:ccdd::.
+        [0x64, 0xff9b, 0, 0, 0, 0, high, low] | [0x2002, high, low, ..] => Some(joined(high, low)),
+        _ => None,
+    }
+}
+
+/// Two 16-bit halves as one IPv4 address.
+fn joined(high: u16, low: u16) -> Ipv4Addr {
+    let [a, b] = high.to_be_bytes();
+    let [c, d] = low.to_be_bytes();
+    Ipv4Addr::new(a, b, c, d)
+}
+
+/// The last [`TAIL`] bytes of `bytes`; `cut` when anything before them is
+/// missing.
 fn tail_of(bytes: &[u8], cut: bool) -> Tail {
     let start = bytes.len().saturating_sub(TAIL);
     Tail {
@@ -291,6 +333,10 @@ mod tests {
         ));
         assert!(public("https://93.184.216.34/log"));
         assert!(public("https://[2606:4700::1111]/log"));
+        // A public IPv4 address carried in NAT64 or 6to4 stays public.
+        assert!(public("https://[64:ff9b::5db8:d822]/log"));
+        assert!(public("https://[2002:5db8:d822::]/log"));
+        assert!(public("https://198.20.0.1/log"));
         for refused in [
             "https://localhost/log",
             "https://LOCALHOST./log",
@@ -306,6 +352,21 @@ mod tests {
             "https://[fd00::1]/log",
             "https://[fe80::1]/log",
             "https://[::ffff:127.0.0.1]/log",
+            // The node reviewer's second list: special-purpose IPv4 and
+            // IPv6 literals that carry one.
+            "https://0.1.2.3/log",
+            "https://192.0.0.8/log",
+            "https://198.18.0.1/log",
+            "https://198.19.255.1/log",
+            "https://224.0.0.1/log",
+            "https://240.0.0.1/log",
+            "https://255.255.255.255/log",
+            "https://[::127.0.0.1]/log",
+            "https://[::10.0.0.1]/log",
+            "https://[64:ff9b::10.0.0.1]/log",
+            "https://[2002:a00:1::]/log",
+            "https://[2002:7f00:1::]/log",
+            "https://[ff02::1]/log",
         ] {
             assert!(!public(refused), "{refused}");
         }

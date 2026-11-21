@@ -53,8 +53,9 @@ pub const fn speaks_generated_names() -> bool {
 }
 
 /// The oldest protocol this build still accepts. Versions 3 to 47 only add
-/// methods, events (with stand-ins for older peers), defaulted fields and
-/// plugin declaration kinds (withheld from older peers), so version 2 peers
+/// methods, events (with stand-ins for older peers), defaulted fields,
+/// plugin declaration kinds (withheld from older peers) and prompt blocks
+/// (read as text by older peers), so version 2 peers
 /// keep working.
 pub const MIN_PROTOCOL_VERSION: ProtocolVersion = ProtocolVersion(2);
 

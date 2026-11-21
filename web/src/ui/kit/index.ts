@@ -35,11 +35,11 @@ export { Kbd } from "./kbd";
 export {
   Menu,
   MenuCheckboxItem,
-  MenuGroup,
   MenuItem,
   MenuRadioGroup,
   MenuSeparator,
 } from "./menu";
+export { MenuGroup } from "./menu-group";
 export { MenuSubmenu } from "./menu-submenu";
 export { MenuNote, MenuSwitchItem } from "./menu-switch";
 export { type OptionRow, OptionList } from "./option-list";

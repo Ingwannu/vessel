@@ -57,6 +57,7 @@ pub mod parking;
 pub mod plugins;
 pub mod ports;
 mod profile;
+pub mod prompt_context;
 mod proxy;
 pub mod push;
 mod raw;

@@ -81,6 +81,29 @@ final number is set at the node-line merge, in merge order. What was pending on 
   revision, and mark a read session with `inbox.read`.
 - Older peers: each of the above is refused before the wire, or left out of a projection, below 47.
 
+## Version 46 (2026-11-21, milestone 12): a prompt's context and review blocks (implementer G, ADR 0124)
+
+Assigned 46 (`PROMPT_CONTEXT_PROTOCOL`, `PROTOCOL_VERSION` 46) at its node-line merge, the next after the terminal
+profiles' 45. No method is added; `ContentBlock` gains two blocks for what a client sends (a prompt, a steer, a queued
+prompt's edit):
+
+- `context { kind, title, subtitle?, text, url? }`: a pull request's comment, review or check logs, a workspace
+  file, a browser element, earlier conversation, a forge's issue or pull request, a plugin's resource. `kind` is
+  `pull_comment | pull_review | pull_check | workspace_file | browser_element | chat_history | forge_issue |
+  forge_change_request | plugin_resource`; `title` and `subtitle` one line of at most 200 characters, `text` at most
+  64 KiB (not blank, no NUL), `url` `https` or `http`.
+- `review { root, mode, base?, comments }`: a diff review. `mode` is `unstaged | staged | uncommitted | base |
+  commit`; each comment `{ path, side: old | new, line, body, hunk_header, target, lines }` with each line
+  `{ old?, new?, kind: add | remove | context, content }`. 1 to 100 comments, at most 7 lines each, a body at most
+  16 KiB, the review's text for the agent at most 64 KiB. A prompt carries at most 32 of these blocks; past any
+  bound it is refused (`invalid_request`).
+- The agent receives a `context`'s text, and a `review` as Paseo's review text under the heading "Vessel review
+  attachment (<mode>)" (`prompt_context::agent_text`). The session's log, its timeline and its queue keep the typed
+  blocks, so clients draw them as pills.
+- A peer below 46 reads each block as a `text` block of that same text: in `turn_started`, `user_message_chunk` and
+  `steered`, in the queue of `session.conversation` and of `queue_changed`. `Call::since` makes `session.prompt`,
+  `session.send`'s prompt and a queue `edit` holding one need 46, so a client sends `text` to an older node.
+
 ## Version 45 (2026-11-21, milestone 12): terminal profiles (implementer T2, ADR 0117)
 
 Assigned 45 (`TERMINAL_PROFILES_PROTOCOL`, `PROTOCOL_VERSION` 45) at its node-line merge, the next after the plugin

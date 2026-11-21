@@ -4,6 +4,7 @@
 use crate::agent::ContentBlock;
 use crate::agents::HarnessRef;
 use crate::node::ProtocolVersion;
+use crate::prompt_context::context_since;
 use crate::session::{SessionInput, SessionMode};
 use crate::terminal::TerminalInput;
 use crate::title::SessionTitle;
@@ -112,7 +113,12 @@ impl Call {
             }
             // `notify` came in 11: an older node would deliver the prompt
             // and never tell anyone.
-            Self::PromptSession(request) => request.notify.then_some(11),
+            // A context or review block came with ADR 0124's protocol.
+            Self::PromptSession(request) => request
+                .notify
+                .then_some(11)
+                .max(context_since(&request.content).ok()?),
+            Self::ChangeQueue(request) => context_since(request.change.content()).ok()?,
             // An answer to a question, and a prompt naming an attachment,
             // came in 10: an older node cannot decode either.
             Self::SendInput(request) => match &request.input {
@@ -120,7 +126,8 @@ impl Call {
                 SessionInput::Prompt { content } => content
                     .iter()
                     .any(|block| matches!(block, ContentBlock::Attachment { .. }))
-                    .then_some(10),
+                    .then_some(10)
+                    .max(context_since(content).ok()?),
                 // A cancel naming its turn: an older node would cancel
                 // whatever runs, the next queued prompt included.
                 SessionInput::CancelTurn { turn } => turn.map(|_| 10),
@@ -279,7 +286,6 @@ impl Call {
             | Self::SessionOptions(_)
             | Self::SetSessionOption(_)
             | Self::RenameSession(_)
-            | Self::ChangeQueue(_)
             | Self::GetConversation(_)
             | Self::ResumeSession(_)
             | Self::MarkSession(_)
