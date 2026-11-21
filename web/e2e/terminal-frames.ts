@@ -25,7 +25,17 @@ function typedText(frame: unknown, method: Method): string | null {
   if (typeof params !== "object" || params === null || !("input" in params)) {
     return null;
   }
-  const input = params.input;
+  // `session.send` wraps a terminal's input (`{ type: "terminal", input }`,
+  // data/calls.ts); `terminal.send` carries it as is.
+  const outer = params.input;
+  const input =
+    typeof outer === "object" &&
+    outer !== null &&
+    "type" in outer &&
+    outer.type === "terminal" &&
+    "input" in outer
+      ? outer.input
+      : outer;
   if (
     typeof input !== "object" ||
     input === null ||

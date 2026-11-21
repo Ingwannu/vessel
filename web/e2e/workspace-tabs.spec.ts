@@ -98,21 +98,32 @@ test("a shell this page opened answers a live cursor query after focus has left"
   const terminal = page.locator(".workspace-terminal .xterm-host");
   await expect(terminal).toBeVisible();
   await terminal.click();
-  await page.keyboard.insertText("sleep 2; printf '\\033[6n'; echo asked");
+  await page.keyboard.insertText("sleep 3; printf '\\033[6n'; echo asked");
   await page.keyboard.press("Enter");
   // Focus leaves the terminal before the shell asks.
-  const heading = page.getByRole("heading", {
-    name: "Answer a terminal query",
-    exact: true,
+  const workspaceTerminal = page.locator(".workspace-terminal");
+  await workspaceTerminal.locator("textarea").evaluate((node) => {
+    if (node instanceof HTMLElement) node.blur();
   });
-  await heading.click();
   await expect
-    .poll(() => page.evaluate(() => document.activeElement === document.body))
+    .poll(() =>
+      workspaceTerminal.evaluate(
+        (node) => !node.contains(document.activeElement),
+      ),
+    )
     .toBe(true);
   // The typed line, then exactly one answer, sent without focus.
   await expect
     .poll(() => shown(typed.join("")))
     .toMatch(/echo asked\rESC\[\d+;\d+R$/);
+  // The shell goes, so the shop's next terminal test counts its own.
+  await page.getByRole("button", { name: "Close · Terminal" }).click();
+  await page
+    .getByRole("dialog", { name: "Close terminal?" })
+    .getByRole("button", { name: "Close", exact: true })
+    .last()
+    .click();
+  await expect(panelTab(page, "Terminal")).toHaveCount(0);
 });
 
 test("a standalone terminal accepts input and closes through the compact switcher", async ({
