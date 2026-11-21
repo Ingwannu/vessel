@@ -35,6 +35,16 @@ use super::ForgeSetup;
 const KEEP_LOGIN: Duration = Duration::from_secs(300);
 /// GitHub's own hosts (Paseo's `forge-manifest.ts` `cloudHosts`).
 const GITHUB_HOSTS: [&str; 2] = ["github.com", "ssh.github.com"];
+/// The other forges' public hosts (the same manifest): Paseo matches them
+/// to their forge by name and never asks `gh` about them.
+const OTHER_FORGE_HOSTS: [&str; 3] = ["gitlab.com", "gitea.com", "codeberg.org"];
+/// How long a host `gh` has no token for is not asked again off a read
+/// (Paseo keeps a host probe's "no" this long, `forge-resolver.ts:47`);
+/// the credentials keep their own miss only 10 s, for pull requests.
+const KEEP_LINK_MISS: Duration = Duration::from_secs(60);
+/// The most link misses kept: remotes an agent controls can name any
+/// number of hosts.
+const MAX_LINK_MISSES: usize = 64;
 /// The most hosts `gh` is asked about at once off a status read: remotes
 /// an agent controls can name any number.
 const ASKING: usize = 4;
@@ -69,6 +79,8 @@ pub(crate) struct Hosts {
     known: Mutex<BTreeMap<ForgeHost, Host>>,
     /// Hosts `gh` is being asked about off a status read.
     asking: Arc<Mutex<BTreeSet<ForgeHost>>>,
+    /// Hosts `gh` had no token for, asked off a status read, and when.
+    misses: Arc<Mutex<BTreeMap<ForgeHost, Instant>>>,
 }
 
 impl Hosts {
@@ -103,6 +115,7 @@ impl Hosts {
             credentials,
             known: Mutex::new(hosts),
             asking: Arc::new(Mutex::new(BTreeSet::new())),
+            misses: Arc::new(Mutex::new(BTreeMap::new())),
         }
     }
 
@@ -110,23 +123,37 @@ impl Hosts {
     /// a status's `origin`): GitHub for GitHub's own hosts and for a host
     /// it holds a token for, where Paseo's daemon asks `gh auth status
     /// --hostname`; `None` otherwise. A host `gh` was not asked about yet
-    /// is asked off this read, so a later status knows. A test's in-memory
-    /// forge asks nothing.
+    /// is asked off this read, so a later status knows; a "no" is kept
+    /// [`KEEP_LINK_MISS`], so a non-GitHub origin costs one `gh` run a
+    /// minute while statuses are read. Another forge's public host and a
+    /// test's in-memory forge ask nothing.
     pub(crate) fn kind_of(&self, host: &ForgeHost) -> Option<ForgeKind> {
-        if GITHUB_HOSTS.contains(&host.as_str()) {
+        let name = host.as_str();
+        if GITHUB_HOSTS.contains(&name) {
             return Some(ForgeKind::Github);
         }
-        if self.custom {
+        if self.custom || OTHER_FORGE_HOSTS.contains(&name) {
             return None;
         }
         match self.credentials.known(host) {
             Some(true) => Some(ForgeKind::Github),
             Some(false) => None,
             None => {
-                self.ask_off_the_read(host);
+                if !self.missed_lately(host) {
+                    self.ask_off_the_read(host);
+                }
                 None
             }
         }
+    }
+
+    /// Whether `gh` had no token for `host` within [`KEEP_LINK_MISS`].
+    fn missed_lately(&self, host: &ForgeHost) -> bool {
+        self.misses
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .get(host)
+            .is_some_and(|at| at.elapsed() < KEEP_LINK_MISS)
     }
 
     /// Ask `gh` for `host`'s token in a task of its own (kept by the
@@ -140,9 +167,12 @@ impl Hosts {
         }
         let credentials = Arc::clone(&self.credentials);
         let asking = Arc::clone(&self.asking);
+        let misses = Arc::clone(&self.misses);
         let host = host.clone();
         drop(tokio::spawn(async move {
-            let _found = credentials.token(&host).await;
+            if let TokenFound::None(_) = credentials.token(&host).await {
+                note_miss(&misses, &host);
+            }
             let _done = asking
                 .lock()
                 .unwrap_or_else(PoisonError::into_inner)
@@ -314,3 +344,25 @@ pub(crate) fn denied(
         },
     }
 }
+
+/// Keep that `gh` had no token for `host`, within the bound: the stale
+/// first, else the oldest.
+fn note_miss(misses: &Mutex<BTreeMap<ForgeHost, Instant>>, host: &ForgeHost) {
+    let mut misses = misses.lock().unwrap_or_else(PoisonError::into_inner);
+    if !misses.contains_key(host) && misses.len() >= MAX_LINK_MISSES {
+        misses.retain(|_, at| at.elapsed() < KEEP_LINK_MISS);
+        if misses.len() >= MAX_LINK_MISSES
+            && let Some(oldest) = misses
+                .iter()
+                .min_by_key(|(_, at)| **at)
+                .map(|(host, _)| host.clone())
+        {
+            let _dropped = misses.remove(&oldest);
+        }
+    }
+    let _before = misses.insert(host.clone(), Instant::now());
+}
+
+#[cfg(test)]
+#[path = "hosts/kind_tests.rs"]
+mod kind_tests;

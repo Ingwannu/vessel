@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 
+import { withoutLine } from "../../data/forge-links";
 import { prefs } from "../../data/prefs";
 import {
   addDiscovered,
@@ -78,7 +79,11 @@ export function useOpenLocation(
     line: number | null,
     source?: OpenLocationSource,
   ) => {
-    if (line !== null) {
+    if (line === null) {
+      // Opened at no line: the tab's target has none any more (Paseo
+      // replaces it), so a forge link names no line (TRACKER 467).
+      setLines((current) => withoutLine(current, path));
+    } else {
       nextLine.current += 1;
       const seek = { line, seq: nextLine.current };
       setLines((current) => new Map(current).set(path, seek));
