@@ -93,8 +93,8 @@ fn tool_detail(text: &mut String, tool: &vessel_proto::ToolCall) {
                 ContentBlock::Attachment { attachment } => {
                     let _written = writeln!(text, "  file: {}", attachment.name);
                 }
-                ContentBlock::Context(context) => {
-                    let _written = writeln!(text, "  context: {}", context.title);
+                ContentBlock::Context(attached) => {
+                    let _written = writeln!(text, "  context: {}", attached.title);
                 }
                 ContentBlock::Review(review) => {
                     let _written = writeln!(text, "  review: {} comments", review.comments.len());

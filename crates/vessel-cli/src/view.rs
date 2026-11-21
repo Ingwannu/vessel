@@ -292,7 +292,7 @@ fn block(content: &ContentBlock) -> String {
         ContentBlock::ResourceLink { uri, name } => format!("[{name}]({uri})"),
         ContentBlock::Opaque { .. } => "[attachment]".to_owned(),
         ContentBlock::Attachment { attachment } => format!("[attachment: {}]", attachment.name),
-        ContentBlock::Context(context) => format!("[context: {}]", context.title),
+        ContentBlock::Context(attached) => format!("[context: {}]", attached.title),
         ContentBlock::Review(review) => format!("[review: {} comments]", review.comments.len()),
     }
 }
