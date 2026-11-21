@@ -201,6 +201,13 @@ async fn sessions_get_the_fleets_mcp_servers_with_this_nodes_secrets() {
         let agents = homes.path().join("sources/AGENTS.md");
         write(&agents, "instructions\n");
         let fixture = Fixture::new();
+        fixture
+            .data_dir()
+            .write_settings(&vessel_proto::settings::SetNodeSettings {
+                vessel_tools: Some(vessel_proto::mcp::Injection::Off),
+                ..vessel_proto::settings::SetNodeSettings::default()
+            })
+            .unwrap();
         let files = FleetFiles::new(&fixture.data_dir());
         let _toml = fleet::init(
             &files,
@@ -225,6 +232,7 @@ async fn sessions_get_the_fleets_mcp_servers_with_this_nodes_secrets() {
         fleet::set_secret(&files, &token, "value-of-the-secret").unwrap();
         let node = fixture
             .start_with(|config| {
+                config.vessel_mcp = Some(crate::agents::vessel_mcp(&fixture));
                 config.fleet = fleet_config(HarnessKind::ClaudeCode, homes.path().join("claude"));
             })
             .await;
@@ -235,6 +243,7 @@ async fn sessions_get_the_fleets_mcp_servers_with_this_nodes_secrets() {
         let owner = fixture.connect(&node).await;
 
         let (servers, _log) = servers_of(&owner, &fixture).await;
+        assert!(server(&servers, "vessel").is_none());
         let docs = server(&servers, "docs").unwrap_or_else(|| panic!("no docs: {servers}"));
         let variable = docs["env"]
             .as_array()

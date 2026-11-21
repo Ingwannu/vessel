@@ -7,6 +7,7 @@ mod creation;
 mod discovery;
 mod handover;
 mod mutation_time;
+mod replacement;
 mod subagents;
 
 use std::sync::Arc;

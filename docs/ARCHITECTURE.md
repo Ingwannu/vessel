@@ -2161,6 +2161,14 @@ queued writes; runtime kept metadata applies that known clock monotonically.
 The raw actor watch omits it and normal Info reads overlay it. Public protocol
 availability remains pending, and this does not establish label-map coverage.
 
+## The host's Vessel tools switch
+
+The node records `vessel_tools` in its ordinary saved settings. Launch reads
+pass the switch to the internal stdio credential and server path. Fleet MCP
+resolution runs through its existing profile and secret owners. The session
+task owner keeps replacement credentials through the actor's settlement.
+See [Host Vessel tools](plans/host-vessel-tools.md).
+
 ## Shared runtime preparation view
 
 Runtime executable preparation (`vessel-session::runtime::preparation`) shares

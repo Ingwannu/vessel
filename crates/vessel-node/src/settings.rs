@@ -195,6 +195,7 @@ impl Settings {
         let terminal_profiles = saved.terminal_profiles.clone();
         // Off unless a person turned them on (ADR 0089, Paseo's default).
         let terminal_agent_hooks = saved.terminal_agent_hooks.unwrap_or(false);
+        let saved_tools = Self::tools_for(saved);
         let saved = saved.drivers.unwrap_or_default();
         let driver = |kind, chosen: Option<AgentDriver>| match chosen {
             Some(AgentDriver::Direct) if offered(kind) => AgentDriver::Direct,
@@ -217,6 +218,7 @@ impl Settings {
             plugins_enabled,
             terminal_agent_hooks,
             terminal_profiles,
+            vessel_tools: Some(saved_tools),
         }
     }
 
@@ -238,6 +240,18 @@ impl Settings {
     /// starts it.
     pub(crate) fn apply_agent_hooks(&self, on: bool) {
         self.hooks.want(on, &self.writers);
+    }
+
+    fn tools_for(saved: &SetNodeSettings) -> vessel_proto::mcp::Injection {
+        saved
+            .vessel_tools
+            .unwrap_or(vessel_proto::mcp::Injection::On)
+    }
+
+    /// The launch policy uses kept values, including when an older peer's reply omits it.
+    pub(crate) async fn inject_vessel_tools(&self) -> bool {
+        let saved = self.saved.lock().await;
+        Self::tools_for(&saved).into()
     }
 
     /// The settings in force.
@@ -290,6 +304,9 @@ impl Settings {
         // The whole list, as Paseo's patch: Settings sends every row.
         if let Some(profiles) = change.terminal_profiles {
             next.terminal_profiles = Some(profiles);
+        }
+        if let Some(injection) = change.vessel_tools {
+            next.vessel_tools = Some(injection);
         }
         self.persist(saved, next).await
     }

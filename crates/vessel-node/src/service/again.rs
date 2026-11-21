@@ -67,9 +67,8 @@ impl NodeService {
             .starting_again(id)
             .await
             .map_err(|_stopped| ServiceError::Draining)?;
-        let secret = self
-            .agents
-            .reserve(id, &connection.principal, self.launcher.has_tools())?;
+        let inject = self.launcher.has_tools() && self.settings.inject_vessel_tools().await;
+        let secret = self.agents.reserve(id, &connection.principal, inject)?;
         let granted = async {
             if let Some(secret) = &secret {
                 self.launcher

@@ -180,9 +180,10 @@ impl NodeService {
             options.origin = origin;
         }
         let id = SessionId::random();
+        let inject = self.launcher.has_tools() && self.settings.inject_vessel_tools().await;
         let secret = self
             .agents
-            .reserve(id, principal, self.launcher.has_tools())
+            .reserve(id, principal, inject)
             .map_err(|error| wire(&error))?;
         options.id = Some(id);
         options.notices.extend(notices);
