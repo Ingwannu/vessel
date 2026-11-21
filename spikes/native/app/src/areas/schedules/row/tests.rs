@@ -41,6 +41,7 @@ fn listed(shell: &mut Shell, heartbeat: bool) {
     let mut machine = Machine::unreachable("laptop".into(), "fixture");
     machine.reach = Reach::Online;
     machine.node = Some(context.node());
+    machine.protocol = Some(vessel_proto::ProtocolVersion::new(47));
     machine.connection_epoch = Some(context.epoch());
     shell.fleet = Fleet {
         machines: vec![machine],

@@ -84,7 +84,7 @@ pub(in crate::areas::schedules) fn render(
     let words = shell.words.schedules();
     let heartbeat = form.draft.heartbeat();
     let body = if let Some(info) = heartbeat {
-        heartbeat::body(shell, form, info, tokens)
+        heartbeat::body(shell, form, info, tokens, touch)
             .children(status(shell, form, tokens, touch, cx))
     } else {
         schedule::body(shell, form, edit, tokens, touch, cx)
