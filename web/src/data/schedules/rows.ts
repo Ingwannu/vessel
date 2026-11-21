@@ -40,12 +40,10 @@ export function scheduleTitle(info: ScheduleInfo): string {
   );
 }
 
+// The UI follows Paseo's target-based label. The node still determines
+// ownership and what happens when a target session ends (ADR 0033).
 export function isHeartbeat(info: ScheduleInfo): boolean {
-  return (
-    info.defined_by.kind === "agent" &&
-    info.definition.target.kind === "session" &&
-    info.defined_by.session === info.definition.target.session
-  );
+  return info.definition.target.kind === "session";
 }
 
 export function bucket(state: ScheduleState): ScheduleBucket {

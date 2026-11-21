@@ -31,8 +31,11 @@ ADR 0072 records the native consumer decisions.
   Replies from a dropped connection are ignored and the
   machine is read again after reconnect. Node end states include
   Creator gone and Unknown. The bridge uses each book entry's own
-  connection, where the node authorizes every action. Agent-owned
-  heartbeats have a delete-only action menu. Vessel's Go to group and
+  connection, where the node authorizes every action. As in Paseo
+  (`utils/schedule-format.ts:31–33`, `components/schedules/schedule-row.tsx:196,275–277`),
+  the page labels every existing-session target Heartbeat and offers
+  deletion as its only mutation on the row. Ownership and session-end
+  cleanup use the node’s rules in ADR 0033 and ADR 0072. Vessel's Go to group and
   shell are preserved, and the English list copy follows Paseo while
   Korean localizes the route label. Vessel has no schedule docs URL.
 - Verification. Run the web gate and the Rust half for route registration

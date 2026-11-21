@@ -8,7 +8,7 @@ import { Fleet } from "../fleet";
 import { bookNode, connectedAs } from "../fixtures/machines";
 import { aggregate } from "./aggregate";
 import { MachineSchedules } from "./machine-schedules";
-import { rowActions, scheduleMeta } from "./rows";
+import { isHeartbeat, rowActions, scheduleMeta } from "./rows";
 
 const laptop = bookNode("laptop");
 const studio = bookNode("studio");
@@ -181,21 +181,26 @@ describe("machine schedules", () => {
     ]);
   });
 
-  it("shows only delete for an agent-owned schedule targeting itself", () => {
+  it("labels existing-session targets as heartbeats and offers only delete for either owner", () => {
     const id = fixtureId("SessionId", "target");
-    expect(
-      rowActions({
-        ...schedule,
-        defined_by: {
-          kind: "agent",
-          node: fixtureId("NodeId", "node"),
-          session: id,
-        },
-        definition: {
-          ...schedule.definition,
-          target: { kind: "session", session: id },
-        },
-      }),
-    ).toEqual(["delete"]);
+    const person: ScheduleInfo = {
+      ...schedule,
+      definition: {
+        ...schedule.definition,
+        target: { kind: "session", session: id },
+      },
+    };
+    const agent: ScheduleInfo = {
+      ...person,
+      defined_by: {
+        kind: "agent",
+        node: fixtureId("NodeId", "node"),
+        session: id,
+      },
+    };
+    for (const info of [person, agent]) {
+      expect(isHeartbeat(info)).toBe(true);
+      expect(rowActions(info)).toEqual(["delete"]);
+    }
   });
 });
