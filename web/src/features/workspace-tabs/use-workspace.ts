@@ -34,7 +34,6 @@ import { childAgent, isLiveTerminal } from "./close-tabs";
 import { useTabLifecycle } from "./lifecycle";
 import { useLaunchShortcuts } from "./launch-shortcuts";
 import { useLayout } from "./use-layout";
-import { useTerminalAttention } from "./use-terminal-attention";
 import { useTerminalPlace, useTerminals } from "./use-terminals";
 import type { TabWords } from "./words";
 
@@ -152,7 +151,6 @@ export function useWorkspace(
   const select = (tab: WorkspaceTab) => {
     update((current) => showTab(current, tab));
   };
-  useTerminalAttention(node, active, terminals.rows, select);
   const session = (id: SessionId) =>
     listed.find((item) => item.id === id) ??
     (anchor.id === id ? anchor : undefined);
