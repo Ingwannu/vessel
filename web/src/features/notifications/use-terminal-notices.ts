@@ -18,7 +18,6 @@ import { attempt } from "../../data/outcome";
 import { entriesOf } from "../../data/records";
 import { requestTerminalTab } from "../../data/terminal-tab-request";
 import {
-  holds,
   readTerminals,
   type TerminalNotice,
   terminalNoticeTitle,
@@ -28,6 +27,7 @@ import {
 import { prefs } from "../../data/prefs";
 import type { NodeKey } from "../../wire/bridge";
 import { windowNotifies } from "./notifies";
+import { holderOf } from "./terminal-holder";
 import { playNotice } from "./sound";
 
 /** How long a follower waits before asking again when the list's revision
@@ -36,12 +36,6 @@ const QUIET_MS = 1_000;
 
 /** How long a machine whose list failed rests before it is followed again. */
 const RETRY_MS = 15_000;
-
-/** A session on `notice.node` whose workspace holds the terminal's place. */
-function holder(fleet: Fleet, notice: TerminalNotice): string | null {
-  const sessions = fleet.store.get().sessions[notice.node] ?? [];
-  return sessions.find((session) => holds(session, notice.place))?.id ?? null;
-}
 
 /** Follow `node`'s terminals until `stopped` or a call fails, handing on
  * each list's notices. */
@@ -99,15 +93,16 @@ export function useTerminalNotices(): void {
         });
         shown.onclick = () => {
           window.focus();
-          const session = holder(fleet, notice);
-          if (session !== null) {
-            requestTerminalTab(notice.node, notice.terminal);
-            void navigate({
-              to: "/sessions/$node/$id",
-              params: { node: notice.node, id: session },
-            });
-          }
           shown.close();
+          void holderOf(fleet, notice).then((session) => {
+            if (session !== null) {
+              requestTerminalTab(notice.node, notice.terminal);
+              void navigate({
+                to: "/sessions/$node/$id",
+                params: { node: notice.node, id: session },
+              });
+            }
+          });
         };
       }
       if (playsSound(alerts)) {
