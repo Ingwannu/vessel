@@ -1141,6 +1141,9 @@ browser on Unix (on Windows, open the printed address).
   you switch tabs. Desktop tabs can be dragged to reorder them. At
   compact widths, the tab count opens the switcher. Tab order is kept
   for the current browser and launch.
+  The workspace's **Scripts** control lists scripts and services from its
+  checkout's `vessel.toml`. Run and Restart open the output terminal, and
+  Stop ends a running command. A changed command set requires approval.
   **Changes** and **Files** show the code
   of its worktree or project (the branch's chip in the title bar opens
   Changes, in a sheet on a phone): every changed file's diff, by
@@ -1152,6 +1155,9 @@ browser on Unix (on Windows, open the printed address).
   change made on disk since it read the file. Lines selected in a diff
   or a file go into the composer's draft as a reference ("Add to
   chat"). A session opened as a terminal is the agent's own TUI.
+  With a terminal focused, `Ctrl+F` (`⌘F` on a Mac) finds text in its
+  screen and scrollback. Enter and Shift+Enter cycle through the matches.
+  Escape returns focus to the terminal. The compact terminal has a Find button.
   What you type is the session's draft until you send it: it survives
   leaving the session, a reload and a new launch. In an empty composer
   Up and Down bring back the prompts you sent. Find in the session

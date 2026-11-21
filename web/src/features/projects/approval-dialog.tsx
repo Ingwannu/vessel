@@ -54,6 +54,7 @@ interface ApprovalDialogProps {
    * shop on laptop"). */
   where: string;
   busy: boolean;
+  error?: string | null;
   onApprove: () => void;
   /** Go on without them (a new worktree without setup); none when there
    * is nothing to go on to. */
@@ -67,6 +68,7 @@ export function ApprovalDialog({
   compared,
   where,
   busy,
+  error,
   onApprove,
   onSkip,
   onClose,
@@ -110,6 +112,9 @@ export function ApprovalDialog({
         <p className="dialog-copy">{comparedWords(refusal)}</p>
       ) : (
         <ApprovalContents shown={shown} compared={compared} where={where} />
+      )}
+      {error == null ? null : (
+        <Alert variant="error" size="sm" description={error} />
       )}
     </Dialog>
   );

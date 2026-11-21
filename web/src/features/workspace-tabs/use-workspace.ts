@@ -120,7 +120,14 @@ export function useWorkspace(
       .map((terminal) => ({ kind: "terminal" as const, id: terminal.id })),
   ];
   const ended = terminals.rows
-    .filter((terminal) => !isLiveTerminal(terminal))
+    // A short script can exit before its tab opens. Keep the selected
+    // script's output available from the node's retained terminal.
+    .filter(
+      (terminal) =>
+        terminal.kind.kind !== "script" &&
+        terminal.kind.kind !== "service" &&
+        !isLiveTerminal(terminal),
+    )
     .map((terminal) => ({ kind: "terminal" as const, id: terminal.id }));
   const { layout, update } = useLayout(
     scope,

@@ -149,6 +149,28 @@ test("a standalone terminal accepts input and closes through the compact switche
   await page.keyboard.insertText("printf '%s%s\\n' work- space-ready");
   await page.keyboard.press("Enter");
   await expect(terminal).toContainText("work-space-ready");
+  await page.keyboard.insertText(
+    "printf '%s%s\\n' sw- catalogue sw- catalogue",
+  );
+  await page.keyboard.press("Enter");
+  await expect(terminal).toContainText("sw-catalogue");
+  await page.keyboard.press("Control+f");
+  const find = page.getByRole("search", { name: "Find in terminal" });
+  const query = find.getByRole("textbox");
+  const result = find.getByRole("status");
+  await expect(query).toBeFocused();
+  await query.fill("sw-catalogue");
+  await expect(result).toHaveText(/^[12] of 2$/);
+  const initial = await result.textContent();
+  await query.press("Enter");
+  await expect(result).not.toHaveText(initial ?? "");
+  await query.press("Shift+Enter");
+  await expect(result).toHaveText(initial ?? "");
+  await query.fill("sw-no-such-match");
+  await expect(result).toHaveText("No matches");
+  await query.press("Escape");
+  await expect(find).toHaveCount(0);
+  await expect(terminal.locator("textarea")).toBeFocused();
   const heading = page.getByRole("heading", {
     name: "Use a terminal tab",
     exact: true,
