@@ -42,6 +42,7 @@ pub type Anchor = Rc<Cell<Option<Bounds<Pixels>>>>;
 
 /// The visible value and the field name spoken by assistive technology.
 /// The caller supplies both so a value shared by several fields is unambiguous.
+#[derive(Debug)]
 pub struct Label {
     value: SharedString,
     accessible: SharedString,
