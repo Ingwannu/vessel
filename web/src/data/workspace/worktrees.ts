@@ -31,6 +31,9 @@ import { attempt, type Outcome } from "../outcome";
  * node's own bound). */
 export const OUTPUT_WAIT_S = 30;
 
+/** The warning and its advisory count from a single removal attempt. */
+export type KeptRemoval = Extract<RemoveWorktreeOutcome, { outcome: "kept" }>;
+
 /** Every worktree of `node`, or of one project. */
 export function listWorktrees(
   fleet: Fleet,

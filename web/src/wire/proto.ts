@@ -9399,7 +9399,12 @@ snapshot?: Snapshot | null, } | { "outcome": "kept",
 /**
  * Every reason that applies.
  */
-reasons: Array<KeptReason>, };
+reasons: Array<KeptReason>, 
+/**
+ * For an uncommitted-changes warning, the nonempty line counts
+ * when the node could compare the worktree with its base.
+ */
+diff_stat?: DiffStat | null, };
 
 /**
  * `git.rename_branch`.
@@ -13248,7 +13253,12 @@ snapshot?: Snapshot | null, } | { "outcome": "kept",
 /**
  * Every reason that applies.
  */
-reasons: Array<KeptReason>, });
+reasons: Array<KeptReason>, 
+/**
+ * For an uncommitted-changes warning, the nonempty line counts
+ * when the node could compare the worktree with its base.
+ */
+diff_stat?: DiffStat | null, });
 
 /**
  * An IANA time zone's name, as a person chose it (`Asia/Seoul`).

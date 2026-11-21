@@ -74,7 +74,7 @@ export function ScopeMenu({
           end={
             <span className="scope-counts">
               <span className="d-add">+{String(added)}</span>
-              <span className="d-del">−{String(removed)}</span>
+              <span className="d-del">-{String(removed)}</span>
             </span>
           }
         >

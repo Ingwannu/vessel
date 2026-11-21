@@ -35,13 +35,13 @@ use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
 use vessel_proto::conversation::TidiedWorktree;
 use vessel_proto::workspace::{
-    IfLost, KeptReason, ProjectCommands, RemoveWorktreeOutcome, Snapshot, WorktreeInfo,
+    IfLost, KeptReason, ProjectCommands, RemoveWorktreeOutcome, WorktreeInfo,
 };
 use vessel_proto::{SessionId, WorktreeId};
 
 use crate::workspace::projects::Occupant;
 use crate::workspace::setup::Kind;
-use crate::workspace::{WorkspaceError, Workspaces};
+use crate::workspace::{WorkspaceError, Workspaces, diff_stat};
 
 /// Which worktrees made for sessions a tidying looks at.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -53,10 +53,18 @@ pub(crate) enum TidyScope {
     Kept,
 }
 
-/// How a removal ended, inside this module.
-enum Removal {
-    Done(Option<Snapshot>),
-    Kept(Vec<KeptReason>),
+/// Only a requested removal is asking for counts in its warning.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum RemovalPurpose {
+    Requested,
+    Tidy,
+}
+
+fn kept(reasons: Vec<KeptReason>) -> RemoveWorktreeOutcome {
+    RemoveWorktreeOutcome::Kept {
+        reasons,
+        diff_stat: None,
+    }
 }
 
 impl Workspaces {
@@ -71,10 +79,8 @@ impl Workspaces {
         if_lost: IfLost,
         live: impl FnOnce() -> Vec<(Occupant, PathBuf)>,
     ) -> Result<RemoveWorktreeOutcome, WorkspaceError> {
-        Ok(match self.remove(worktree, if_lost, live).await? {
-            Removal::Done(snapshot) => RemoveWorktreeOutcome::Removed { snapshot },
-            Removal::Kept(reasons) => RemoveWorktreeOutcome::Kept { reasons },
-        })
+        self.remove(worktree, if_lost, RemovalPurpose::Requested, live)
+            .await
     }
 
     /// Tidy the worktree made for `session` (now deleted or dropped by
@@ -97,17 +103,17 @@ impl Workspaces {
             live.retain(|(occupant, _)| *occupant != Occupant::Session(session));
             live
         };
-        let outcome = match self.remove(worktree, IfLost::Keep, others).await {
-            Ok(Removal::Done(snapshot)) => RemoveWorktreeOutcome::Removed { snapshot },
-            Ok(Removal::Kept(reasons)) => RemoveWorktreeOutcome::Kept { reasons },
+        let outcome = match self
+            .remove(worktree, IfLost::Keep, RemovalPurpose::Tidy, others)
+            .await
+        {
+            Ok(outcome) => outcome,
             Err(error) => {
                 tracing::warn!(%error, "a session's worktree could not be tidied");
-                RemoveWorktreeOutcome::Kept {
-                    reasons: vec![KeptReason::InspectionFailed],
-                }
+                kept(vec![KeptReason::InspectionFailed])
             }
         };
-        if let RemoveWorktreeOutcome::Kept { reasons } = &outcome {
+        if let RemoveWorktreeOutcome::Kept { reasons, .. } = &outcome {
             let kept = {
                 let mut state = self.state();
                 state.worktrees.get_mut(&worktree).map(|entry| {
@@ -167,8 +173,9 @@ impl Workspaces {
         self: &Arc<Self>,
         worktree: WorktreeId,
         if_lost: IfLost,
+        purpose: RemovalPurpose,
         live: impl FnOnce() -> Vec<(Occupant, PathBuf)>,
-    ) -> Result<Removal, WorkspaceError> {
+    ) -> Result<RemoveWorktreeOutcome, WorkspaceError> {
         let git = self.git()?.clone();
         let project = self
             .state()
@@ -204,7 +211,7 @@ impl Workspaces {
             // A session that passed its place's check and is not live yet
             // counts as one in it (ADR 0030).
             if entry.running.is_some() || entry.starting > 0 {
-                return Ok(Removal::Kept(vec![KeptReason::InUse]));
+                return Ok(kept(vec![KeptReason::InUse]));
             }
             entry.running = Some(claim.clone());
             (entry.info.clone(), root, Arc::clone(&entry.written))
@@ -214,15 +221,25 @@ impl Workspaces {
             if let Some(entry) = self.state().worktrees.get_mut(&worktree) {
                 entry.running = None;
             }
-            return Ok(Removal::Kept(vec![KeptReason::InUse]));
+            return Ok(kept(vec![KeptReason::InUse]));
         }
         let workspaces = Arc::clone(self);
         self.tasks
             .spawn(async move {
                 let _admission = admission;
-                let removal = workspaces
+                let mut removal = workspaces
                     .remove_claimed(&git, &info, &root, if_lost, claim, &written)
                     .await;
+                if purpose == RemovalPurpose::Requested
+                    && let Ok(RemoveWorktreeOutcome::Kept { reasons, diff_stat }) = &mut removal
+                    && reasons
+                        .iter()
+                        .any(|reason| matches!(reason, KeptReason::Uncommitted { .. }))
+                {
+                    // Count before releasing the claim so another removal cannot
+                    // replace the checkout between the risk check and recount.
+                    *diff_stat = diff_stat::removal_stat(&git, &info).await;
+                }
                 workspaces.settle(worktree, removal).await
             })
             .await
@@ -234,9 +251,9 @@ impl Workspaces {
     async fn settle(
         &self,
         worktree: WorktreeId,
-        removal: Result<Removal, WorkspaceError>,
-    ) -> Result<Removal, WorkspaceError> {
-        if !matches!(removal, Ok(Removal::Done(_))) {
+        removal: Result<RemoveWorktreeOutcome, WorkspaceError>,
+    ) -> Result<RemoveWorktreeOutcome, WorkspaceError> {
+        if !matches!(removal, Ok(RemoveWorktreeOutcome::Removed { .. })) {
             if let Some(entry) = self.state().worktrees.get_mut(&worktree) {
                 entry.running = None;
             }
@@ -260,13 +277,13 @@ impl Workspaces {
         if_lost: IfLost,
         claim: CancellationToken,
         written: &vessel_workspace::commands::Written,
-    ) -> Result<Removal, WorkspaceError> {
+    ) -> Result<RemoveWorktreeOutcome, WorkspaceError> {
         let path = &info.path;
         let created = info.created_branch.as_ref();
         if !tokio::fs::try_exists(path).await.unwrap_or(false) {
             // The folder went another way; git's record of it goes at its
             // next prune. Nothing is left to lose here.
-            return Ok(Removal::Done(None));
+            return Ok(RemoveWorktreeOutcome::Removed { snapshot: None });
         }
         // git inspects the worktree with its repository's configuration:
         // not when its `.git` names another (`gitfile::registered`). A
@@ -279,7 +296,7 @@ impl Workspaces {
         .unwrap_or(false);
         if !registered && if_lost != IfLost::Discard {
             tracing::warn!(worktree = %info.id, "a worktree's .git names another repository; kept");
-            return Ok(Removal::Kept(vec![KeptReason::InspectionFailed]));
+            return Ok(kept(vec![KeptReason::InspectionFailed]));
         }
         let mut snapshot = None;
         let mut force = false;
@@ -289,7 +306,7 @@ impl Workspaces {
                 let lost = git.would_lose(path, created).await?;
                 if !lost.is_empty() {
                     if if_lost == IfLost::Keep {
-                        return Ok(Removal::Kept(lost));
+                        return Ok(kept(lost));
                     }
                     match git.snapshot(path, info.id, &self.dirs.scratch).await? {
                         Ok(kept) => {
@@ -298,7 +315,7 @@ impl Workspaces {
                         }
                         Err(refusal) => {
                             tracing::info!(?refusal, "no snapshot: the worktree stays");
-                            return Ok(Removal::Kept(lost));
+                            return Ok(kept(lost));
                         }
                     }
                 }
@@ -323,14 +340,14 @@ impl Workspaces {
         if !force {
             let lost = git.would_lose(path, created).await?;
             if !lost.is_empty() {
-                return Ok(Removal::Kept(lost));
+                return Ok(kept(lost));
             }
         }
         match git.remove_worktree(root, path, created, force).await {
-            Ok(()) => Ok(Removal::Done(snapshot)),
+            Ok(()) => Ok(RemoveWorktreeOutcome::Removed { snapshot }),
             Err(vessel_workspace::GitError::Failed { message, .. }) if !force => {
                 tracing::info!(%message, "git kept the worktree");
-                Ok(Removal::Kept(vec![KeptReason::InspectionFailed]))
+                Ok(kept(vec![KeptReason::InspectionFailed]))
             }
             Err(error) => Err(error.into()),
         }
