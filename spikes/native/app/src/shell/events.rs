@@ -90,6 +90,7 @@ impl Shell {
             }
             Event::Searched(answer) => self.message_searched(answer, cx),
             Event::Terminals(answer) => self.terminal_tabs_answer(answer, cx),
+            Event::TerminalLocated(located) => self.terminal_located(located),
         }
         cx.notify();
     }

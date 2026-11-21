@@ -9,7 +9,10 @@ use vessel_proto::terminals::{
 use vessel_proto::workspace::RelPath;
 use vessel_proto::{ProjectId, ProtocolVersion, SessionId, TerminalId, WorktreeId};
 
-use super::{beside_sessions, in_place, place_for, workspace_places, workspace_sessions};
+use super::{
+    beside_sessions, folder_sessions, holds, in_place, place_for, workspace_places,
+    workspace_sessions,
+};
 use crate::board::{Attention, Card, CardDetail, Phrase, RunsIn};
 
 fn card(detail: CardDetail) -> Card {
@@ -207,5 +210,55 @@ fn the_strip_reads_the_shells_beside_the_workspaces_unarchived_sessions() {
     assert_eq!(
         read.iter().map(|info| info.id).collect::<Vec<_>>(),
         vec![beside_neighbour.id]
+    );
+}
+
+/// A notice's click finds the session that holds its terminal as the page
+/// does: its own shell, its worktree, any folder of its project, its folder
+/// as a path. A folder that matches no session's is asked of the node,
+/// once per folder.
+#[test]
+fn a_session_holds_its_own_shells_its_workspaces_and_its_folder_as_a_path() {
+    let (worktree, project) = (WorktreeId::random(), ProjectId::random());
+    let in_worktree = card(CardDetail {
+        worktree: Some(worktree),
+        runs_in: Some(RunsIn::Worktree(project)),
+        ..CardDetail::default()
+    });
+    let in_project = card(CardDetail {
+        runs_in: Some(RunsIn::Checkout(project)),
+        ..CardDetail::default()
+    });
+    let in_folder = card(CardDetail {
+        cwd: Some("/work/notes/".to_owned()),
+        ..CardDetail::default()
+    });
+    let beside = TerminalPlace::Session {
+        session: in_worktree.session,
+    };
+    assert!(holds(&in_worktree, &beside));
+    assert!(!holds(&in_project, &beside));
+    assert!(holds(&in_worktree, &TerminalPlace::Worktree { worktree }));
+    let below = TerminalPlace::Project {
+        project,
+        dir: Some("crates".parse::<RelPath>().unwrap()),
+    };
+    assert!(holds(&in_project, &below), "any folder of its project");
+    assert!(
+        !holds(&in_worktree, &below),
+        "a worktree is a workspace of its own"
+    );
+    let folder = |path: &str| TerminalPlace::Folder {
+        path: PathBuf::from(path),
+    };
+    assert!(holds(&in_folder, &folder("/work/./notes")));
+    assert!(!holds(&in_folder, &folder("/real/notes")));
+    let again = card(CardDetail {
+        cwd: Some("/work/notes/".to_owned()),
+        ..CardDetail::default()
+    });
+    assert_eq!(
+        folder_sessions([&in_worktree, &in_folder, &in_project, &again]),
+        vec![(in_folder.session, PathBuf::from("/work/notes/"))]
     );
 }

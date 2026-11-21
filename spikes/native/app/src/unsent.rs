@@ -100,8 +100,10 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
         Command::Labels(request) => Event::Labels(request.refused(labels_failure(why))),
         Command::RetireConnection(_tag) => return Settle::Ignore,
         // A viewed terminal's clear or a session's inbox read: the next view
-        // asks again, unseen.
+        // asks again, unseen. A notice's click that finds no holder opens
+        // nothing, as before it asked.
         Command::ClearTerminalAttention { .. } | Command::ReadInbox(_) => return Settle::Ignore,
+        Command::LocateTerminal(_locate) => return Settle::Ignore,
         Command::CodeSource(request) => {
             Event::CodeSource(Box::new(request.refused(Problem::Unsent)))
         }
@@ -146,13 +148,7 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
             machine,
             session,
             act,
-        } => Event::Acted(ActAnswer {
-            terminal: act.terminal_opening().cloned(),
-            machine,
-            session,
-            kind: act.kind(),
-            result: Err(act_error(Some(ErrorCode::Unavailable), words)),
-        }),
+        } => act_unsent(machine, session, &act, said()),
         Command::Pair { .. } => Event::PairFailed(vessel_app_view::pairing::PairProblem::Unsent),
         Command::Workspace { machine, ask } => Event::Workspace {
             machine,
@@ -175,6 +171,27 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
         | Command::SaveDrafts(_) => return Settle::Say,
     };
     Settle::Answer(Box::new(event))
+}
+
+/// An act that never left: answered as the machine's `unavailable`, with the
+/// app's sentence. Kept out of [`settle`] for its length (the match grows
+/// with every command).
+fn act_unsent(
+    machine: String,
+    session: SessionId,
+    act: &vessel_app_link::Act,
+    message: String,
+) -> Event {
+    Event::Acted(ActAnswer {
+        terminal: act.terminal_opening().cloned(),
+        machine,
+        session,
+        kind: act.kind(),
+        result: Err(ActFailed {
+            code: Some(ErrorCode::Unavailable),
+            message,
+        }),
+    })
 }
 
 /// A search never sent: said under the Messages group as that machine's

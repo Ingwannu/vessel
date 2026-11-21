@@ -171,6 +171,9 @@ pub enum Event {
     Searched(search::Answer),
     /// A machine answered about its terminals, or a followed one moved on.
     Terminals(crate::terminals::Answer),
+    /// The session that holds a notice's terminal, as
+    /// [`Command::LocateTerminal`] found it.
+    TerminalLocated(crate::terminal_holder::Located),
 }
 
 /// What an agent on a machine said last time, kept on this device

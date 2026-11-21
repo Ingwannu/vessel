@@ -12,7 +12,7 @@
 //! - Cost: one more file; no API, behaviour or dependency change.
 
 use super::{Command, Event, LinkError, Offer, State, drafts, nodes, pairing};
-use vessel_proto::{PermissionId, PermissionOptionId, PermissionOutcome, SessionInput};
+use vessel_proto::{PermissionOutcome, SessionInput};
 
 const CANCEL_TURN: SessionInput = SessionInput::CancelTurn { turn: None };
 
@@ -48,6 +48,7 @@ impl State {
             Command::ClearTerminalAttention { machine, clear } => {
                 self.clear_terminal_attention(&machine, clear);
             }
+            Command::LocateTerminal(locate) => self.locate_terminal(locate),
             Command::NodeSettings(ask) => self.node_settings(ask).await,
             Command::TerminalProfiles(ask) => self.terminal_profiles(ask).await,
             Command::Diagnostics(ask) => self.diagnostics(ask).await,
@@ -96,10 +97,7 @@ impl State {
                 session,
                 id,
                 option,
-            } => {
-                self.input(&machine, session, permission_input(id, option))
-                    .await;
-            }
+            } => self.answer_permission(&machine, session, id, option).await,
             Command::Pair {
                 offer,
                 name,
@@ -117,6 +115,22 @@ impl State {
         }
     }
 
+    /// Answer a permission the agent asked for with the option chosen; out
+    /// of `handle` so its arms stay within the function budget.
+    async fn answer_permission(
+        &self,
+        machine: &str,
+        session: vessel_proto::SessionId,
+        id: vessel_proto::PermissionId,
+        option: vessel_proto::PermissionOptionId,
+    ) {
+        let input = SessionInput::AnswerPermission {
+            id,
+            outcome: PermissionOutcome::Selected { option },
+        };
+        self.input(machine, session, input).await;
+    }
+
     /// Pair with an offer, then read the book again; out of `handle` so
     /// its arms stay within the function budget (the Decision Log below).
     async fn pair(&mut self, offer: &Offer, name: &str, prefer_node_name: bool) {
@@ -128,13 +142,6 @@ impl State {
             Err(LinkError::BookFault(fault)) => self.emit(Event::BookUnreadable(fault)).await,
             Err(error) => self.emit(Event::PairFailed(pairing::problem(&error))).await,
         }
-    }
-}
-
-fn permission_input(id: PermissionId, option: PermissionOptionId) -> SessionInput {
-    SessionInput::AnswerPermission {
-        id,
-        outcome: PermissionOutcome::Selected { option },
     }
 }
 

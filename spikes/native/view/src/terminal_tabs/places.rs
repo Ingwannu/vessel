@@ -25,7 +25,7 @@
 //! - Older nodes: below 40 everything stays beside the session, as before.
 
 use std::collections::BTreeSet;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use vessel_proto::terminals::{
     TerminalInfo, TerminalList, TerminalPlace, WORKSPACE_TERMINALS_PROTOCOL,
@@ -61,6 +61,46 @@ pub fn place_for(card: &Card, protocol: Option<ProtocolVersion>) -> TerminalPlac
         },
         Workspace::Alone(_) => beside,
     }
+}
+
+/// Whether opening `card`'s session shows a terminal kept at `place` among
+/// its tabs: its own shell, its worktree's, any of its project's, or its
+/// folder's when it has neither (the page's `holds`,
+/// `data/terminal-notices.ts`). A folder is compared as a path, part by
+/// part. The node keeps a folder canonical (ADR 0121), which the app
+/// cannot work out, so a folder reached through a link or a `..` is asked
+/// of the node with [`folder_sessions`].
+#[must_use]
+pub fn holds(card: &Card, place: &TerminalPlace) -> bool {
+    match place {
+        TerminalPlace::Session { session } => card.session == *session,
+        TerminalPlace::Worktree { worktree } => {
+            matches!(Workspace::of(card), Workspace::Worktree(at) if at == *worktree)
+        }
+        TerminalPlace::Project { project, .. } => {
+            matches!(Workspace::of(card), Workspace::Project(at) if at == *project)
+        }
+        TerminalPlace::Folder { path } => {
+            matches!(Workspace::of(card), Workspace::Folder(at) if Path::new(at) == path)
+        }
+    }
+}
+
+/// `cards`' sessions whose workspace is a folder of their own, one per
+/// folder in their order: the candidates the node is asked about when a
+/// folder terminal matches none of them as a path.
+#[must_use]
+pub fn folder_sessions<'a>(cards: impl IntoIterator<Item = &'a Card>) -> Vec<(SessionId, PathBuf)> {
+    let mut seen = BTreeSet::new();
+    cards
+        .into_iter()
+        .filter_map(|card| match Workspace::of(card) {
+            Workspace::Folder(path) => seen
+                .insert(path)
+                .then(|| (card.session, PathBuf::from(path))),
+            Workspace::Worktree(_) | Workspace::Project(_) | Workspace::Alone(_) => None,
+        })
+        .collect()
 }
 
 /// Whether `info`, from the node's list for `asked`, belongs in that
