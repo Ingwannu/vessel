@@ -5,7 +5,7 @@ use super::{Editor, Shell};
 use choices::{Change, Choice};
 use std::rc::Rc;
 use vessel_app_kit::{
-    self as kit, ComboHandlers, ComboHeader, Tokens,
+    self as kit, ComboHandlers, ComboHeader, Tokens, select::Anchor,
     ui::{
         AnyElement, Context, IntoElement as _, SharedString, StatefulInteractiveElement as _,
         Styled as _, Window,
@@ -23,8 +23,29 @@ pub(super) enum Field {
     Cadence,
     Unit,
 }
+#[derive(Default)]
+pub(super) struct Anchors {
+    host: Anchor,
+    project: Anchor,
+    model: Anchor,
+    thinking: Anchor,
+    mode: Anchor,
+    cadence: Anchor,
+    unit: Anchor,
+}
+
 impl Field {
-    pub(super) const COUNT: usize = 7;
+    fn anchor(self, anchors: &Anchors) -> &Anchor {
+        match self {
+            Self::Host => &anchors.host,
+            Self::Project => &anchors.project,
+            Self::Model => &anchors.model,
+            Self::Thinking => &anchors.thinking,
+            Self::Mode => &anchors.mode,
+            Self::Cadence => &anchors.cadence,
+            Self::Unit => &anchors.unit,
+        }
+    }
 
     fn id(self) -> &'static str {
         match self {
@@ -71,7 +92,7 @@ pub(super) fn control(
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let editor = &shell.areas.schedules.editor;
-    let anchor = &editor.anchors[field as usize];
+    let anchor = field.anchor(&editor.anchors);
     let open = editor.current_picker == Some(field) && editor.picker.is_open();
     let enabled = enabled && editor.available();
     let trigger = kit::select::trigger(field.id(), value, anchor, open, enabled, touch, tokens)
@@ -94,7 +115,7 @@ pub(super) fn control(
             editor.browsing = None;
             editor
                 .picker
-                .set_anchor(editor.anchors[field as usize].get());
+                .set_anchor(field.anchor(&editor.anchors).get());
             editor.picker.open(search, window, cx);
             cx.notify();
         }))
@@ -196,7 +217,8 @@ fn apply(shell: &mut Shell, change: Change, window: &mut Window, cx: &mut Contex
                 close_picker(editor, window, cx);
             }
         }
-        change => {
+        change @ (Change::None | Change::Project(_) | Change::SelectModel { .. }
+            | Change::Option(_) | Change::Cadence(_) | Change::Unit(_)) => {
             let project = matches!(change, Change::Project(_));
             let cadence = apply_value(&mut form.draft, change);
             close_picker(editor, window, cx);

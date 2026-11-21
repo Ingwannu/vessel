@@ -60,7 +60,7 @@ pub(super) fn render(
                 move |style| style.bg(wash)
             })
             .on_click(cx.listener(move |shell, _, window, cx| {
-                shell.schedule_edit_open(&intent, window, cx)
+                shell.schedule_edit_open(&intent, window, cx);
             }))
     } else {
         element

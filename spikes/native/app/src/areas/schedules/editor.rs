@@ -11,7 +11,6 @@ use pick::Field;
 use std::time::Duration;
 use vessel_app_kit::{
     ComboboxState, DialogState,
-    select::Anchor,
     ui::{Context, SharedString, Window},
 };
 use vessel_app_link::{Command, Event, Rejected, schedules::form::Answer};
@@ -23,7 +22,7 @@ use vessel_app_view::{
             Draft,
             io::{Ask, Form, Request},
         },
-        load::{Failure, Tickets},
+        load::{Failure, MachineKey, Tickets},
         page::Intent,
     },
 };
@@ -39,17 +38,23 @@ pub(super) struct Editor {
     inputs: Option<Inputs>,
     dialog: DialogState,
     picker: ComboboxState,
-    anchors: [Anchor; Field::COUNT],
+    anchors: pick::Anchors,
     current_picker: Option<Field>,
     browsing: Option<GetHarnessOptions>,
     preview_task: Option<gpui::Task<()>>,
     preview_labels: Vec<SharedString>,
     tickets: Tickets,
-    pub(super) sync_inputs: bool,
-    pub(super) dismiss: bool,
-    retired: bool,
+    sync_inputs: bool,
+    status: Status,
     archive_turn: u64,
     restore_prefs: bool,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Status {
+    Editing,
+    Retired,
+    Saved,
 }
 
 impl Editor {
@@ -59,22 +64,21 @@ impl Editor {
             inputs: None,
             dialog: DialogState::new(cx),
             picker: ComboboxState::new(window, cx),
-            anchors: std::array::from_fn(|_| Anchor::default()),
+            anchors: pick::Anchors::default(),
             current_picker: None,
             browsing: None,
             preview_task: None,
             preview_labels: Vec::new(),
             tickets: Tickets::default(),
             sync_inputs: false,
-            dismiss: false,
-            retired: false,
+            status: Status::Editing,
             archive_turn: 0,
             restore_prefs: false,
         }
     }
 
     fn available(&self) -> bool {
-        !self.retired && self.model.as_ref().is_some_and(|form| !form.saving())
+        self.status == Status::Editing && self.model.as_ref().is_some_and(|form| !form.saving())
     }
 
     pub(super) fn close(&mut self, window: &mut Window, cx: &mut Context<'_, Shell>) {
@@ -86,10 +90,17 @@ impl Editor {
         self.model = None;
         self.inputs = None;
         self.dialog.dismissed(window, cx);
-        self.dismiss = false;
         self.sync_inputs = false;
-        self.retired = false;
+        self.status = Status::Editing;
         self.restore_prefs = false;
+    }
+
+    fn is_retired(&self) -> bool {
+        self.status == Status::Retired
+    }
+
+    pub(super) fn frame_pending(&self) -> bool {
+        self.sync_inputs || self.status == Status::Saved
     }
 
     pub(super) fn retired(&mut self, tag: &vessel_app_view::connection::ConnectionTag) -> bool {
@@ -97,8 +108,8 @@ impl Editor {
             .model
             .as_ref()
             .is_some_and(|form| &form.connection().tag() == tag);
-        if found {
-            self.retired = true;
+        if found && self.status != Status::Saved {
+            self.status = Status::Retired;
             self.preview_task = None;
         }
         found
@@ -168,7 +179,7 @@ impl Shell {
             .data
             .page
             .selected_machine()
-            .map(|key| key.as_str())
+            .map(MachineKey::as_str)
             .or(self.prefs.machine.as_deref());
         let connection = online
             .clone()
@@ -230,7 +241,7 @@ impl Shell {
         form.invalidate_preview();
         editor.preview_task = Some(cx.spawn(async move |shell, cx| {
             cx.background_executor().timer(PREVIEW_DELAY).await;
-            let _closed = shell.update(cx, |shell, cx| shell.schedule_preview(cx));
+            let _closed = shell.update(cx, Shell::schedule_preview);
         }));
     }
 
@@ -292,12 +303,12 @@ impl Shell {
             } else {
                 if let Some(inputs) = &editor.inputs {
                     inputs.hold(
-                        editor.retired || matches!(form.saved(), Some(Err(Failure::Unconfirmed))),
+                        editor.is_retired() || matches!(form.saved(), Some(Err(Failure::Unconfirmed))),
                         cx,
                     );
                 }
                 if matches!(form.saved(), Some(Ok(_))) {
-                    editor.dismiss = true;
+                    editor.status = Status::Saved;
                     preferences::keep(self);
                 }
             }
@@ -311,7 +322,7 @@ impl Shell {
 
     pub(super) fn schedule_form_frame(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
         let editor = &mut self.areas.schedules.editor;
-        if editor.dismiss {
+        if editor.status == Status::Saved {
             editor.close(window, cx);
             cx.notify();
             return;

@@ -36,7 +36,7 @@ pub(crate) fn render(
         cx.defer_in(window, Shell::schedules_overlay_frame);
     }
     let touch = kit::breakpoint::phone(window);
-    if shell.areas.schedules.editor.dismiss || shell.areas.schedules.editor.sync_inputs {
+    if shell.areas.schedules.editor.frame_pending() {
         cx.defer_in(window, Shell::schedule_form_frame);
     }
     let title = shell.words.sidebar().schedules();

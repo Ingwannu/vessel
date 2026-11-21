@@ -110,7 +110,7 @@ pub(in crate::areas::schedules) fn render(
         |shell: &mut Shell, window, cx| {
             let editor = &mut shell.areas.schedules.editor;
             if editor.available()
-                || editor.retired && !editor.model.as_ref().is_some_and(Form::saving)
+                || editor.is_retired() && !editor.model.as_ref().is_some_and(Form::saving)
             {
                 editor.close(window, cx);
                 cx.notify();
@@ -411,7 +411,7 @@ fn status(
     if let Some(Err(error)) = form.saved() {
         return Some(hint(locale::failure(error, shell.words), true, tokens).into_any_element());
     }
-    if editor.retired {
+    if editor.is_retired() {
         return Some(
             hint(
                 locale::failure(&Failure::ConnectionChanged, shell.words),
