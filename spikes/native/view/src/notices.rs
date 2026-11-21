@@ -22,6 +22,7 @@ use crate::board::{Card, Fleet, Phrase};
 
 mod announce;
 pub mod claims;
+pub mod terminals;
 mod tone;
 
 pub use announce::{Announce, Seen, Unseen, announce};

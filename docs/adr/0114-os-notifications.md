@@ -269,3 +269,43 @@ assigned.
     unassigned.
 - Owed at assignment: an end-to-end claim against a node, with two windows of which one is admitted.
 
+## Terminal notices (2026-11-21, the claims follow-up's third row, app part)
+
+An agent in a terminal reports through Vessel's hooks (ADR 0089) that it finished or needs input. Paseo tells
+one client:
+- the server picks the client and titles it "Terminal finished" or "Terminal needs input", with the
+  terminal's name as the body (`websocket-server.ts:213-215,2955-3044`);
+- the app shows it, and a tap opens the terminal tab (`session-context.tsx:658-677`).
+
+The app now does the same behind ADR 0089's constant. Until the constant is assigned, the node fills no
+terminal's attention, and no machine admits claims, so nothing here runs.
+
+- **Source.** For each connected machine that admits claims, the link follows the whole terminal list
+  (`terminal.list` with no place), waiting on its revision (ADR 0116). Once the feature is assigned, the
+  node moves that revision when a terminal's attention changes (`terminals/registry/listed.rs`).
+  - One follower per connection (`link/src/terminal_notices.rs`).
+  - A newer connection replaces it, and a failed call ends it.
+  - Following each terminal instead would cost a long poll per terminal, up to 96 a machine.
+- **What is a notice** (`view/src/notices/terminals.rs`, with the Decision Log):
+  - a terminal at Finished or Needs input, at an attention revision the connection has not told of;
+  - never the connection's first list, as for sessions;
+  - never a failed terminal, as the node's push worker.
+- **Claim and show.**
+  - Settings' alerts decide first: a window that tells nothing never claims.
+  - The claim names the exact revision (`NotificationSource::Terminal`).
+  - Only `Admitted` shows. A terminal has no inbox, so there is no fallback.
+  - The title is Paseo's words; the body is the terminal's title, or "Terminal", never its command.
+  - Admitted notices share one sound and count in the window's title, as session notices do.
+- **Click** (`app/src/areas/notify/terminals.rs`): opens the session whose workspace holds the terminal's
+  place, then the terminal's tab there. Nothing opens when the fleet lists no such session.
+- **Not in this part.** Viewing a terminal does not yet send `terminal.attention_clear`, presence does not yet
+  report `Terminal` focus, and the page has none of it. These are the row's next parts.
+- **Tests:**
+  - `view/src/notices/terminals/tests.rs`: the first list, a new revision told once, the kinds, a failed
+    terminal, alerts off;
+  - `link/src/terminal_notices/tests.rs`, through the real framed actor: the whole list, then from its
+    revision, and only the new attention told; a fresh connection follows only while the constant is
+    assigned;
+  - `app/src/areas/notify/terminals/tests.rs`: only admitted notices are shown, with their titles; alerts
+    off never claims.
+

@@ -208,6 +208,10 @@ pub enum Command {
     /// Ask a machine before its notices are shown (ADR 0089
     /// `notification.claim`): answered as [`crate::Event::Claims`].
     Claims(crate::claims::Ask),
+    /// Ask a machine before its terminals' notices are shown (ADR 0089
+    /// `notification.claim`, a terminal's exact attention): answered as
+    /// [`crate::Event::TerminalClaims`].
+    TerminalClaims(crate::claims::TerminalAsk),
     /// A workspace's shell terminals (ADR 0031); answered by
     /// `Event::Terminals`.
     Terminals(crate::terminals::Ask),

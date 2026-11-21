@@ -60,6 +60,17 @@ pub enum Event {
     Sync(sync::Answer),
     /// What asking a machine about its notices came to (`claims`).
     Claims(crate::claims::Answer),
+    /// A machine's terminals that started to need the person or finished,
+    /// from its followed list (`terminal_notices`).
+    TerminalNotices {
+        /// The machine, by its book name.
+        machine: String,
+        /// What its list brought.
+        notices: Vec<vessel_app_view::notices::terminals::TerminalNotice>,
+    },
+    /// What asking a machine about its terminals' notices came to
+    /// (`claims`).
+    TerminalClaims(crate::claims::TerminalAnswer),
     /// A machine's settings in force, after a read or a change.
     NodeSettings(node_settings::Answer),
     /// A diagnostics call answered, with its identity.

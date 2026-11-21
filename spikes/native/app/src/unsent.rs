@@ -150,6 +150,7 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
         // that machine's failure, in the app's words.
         Command::Search(ask) => search_refused(ask, said()),
         Command::Claims(ask) => Event::Claims(ask.failed()),
+        Command::TerminalClaims(ask) => Event::TerminalClaims(ask.failed()),
         Command::Terminals(ask) => return settle_terminals(ask),
         Command::Prompt { session, text, .. } => return Settle::Prompt { session, text },
         Command::Files(command) => return settle_files(command, words),

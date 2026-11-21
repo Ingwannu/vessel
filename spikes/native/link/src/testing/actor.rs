@@ -57,6 +57,20 @@ impl Actor {
     pub(crate) fn presence(&mut self, snapshot: vessel_app_view::presence::Snapshot) {
         self.state.presence(snapshot);
     }
+    /// Follow `machine`'s terminals as a connection that admits claims
+    /// would, on this actor's events.
+    pub(crate) fn follow_terminals(&self, machine: &str) -> tokio::task::JoinHandle<()> {
+        tokio::spawn(crate::terminal_notices::follow(
+            self.peer.client.as_ref().unwrap().clone(),
+            machine.to_owned(),
+            self.state.events.clone(),
+        ))
+    }
+    /// `machine` connected afresh: whether a terminal follower started.
+    pub(crate) fn terminals_followed_on_connect(&mut self, machine: &str) -> bool {
+        self.state.terminal_notices_connected(machine);
+        self.state.terminal_notices.follows(machine)
+    }
     pub(crate) async fn request(&mut self) -> peer::Request {
         phase(
             "actual framed call",

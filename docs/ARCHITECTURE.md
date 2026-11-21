@@ -1669,7 +1669,10 @@ its own report. ADR 0114, "Presence".
 Behind ADR 0089's constant, both clients claim a session notice before showing it
 (`view::notices::claims` with `link::claims`, and the page's `data/claims.ts`):
 one first inbox page per machine and change, then a claim per notice found on it.
-ADR 0114, "Claims".
+ADR 0114, "Claims". The app also follows each such machine's terminal list
+(`link::terminal_notices`, `view::notices::terminals`) and claims a terminal's
+Finished or Needs-input attention by its exact revision. ADR 0114, "Terminal
+notices".
 Passive read callers acquire the same transferable marking lease before a task
 is retained; accepted work owns it through durable and live publication. Local
 final authority/source checks share one borrowed-connection read transaction.

@@ -156,6 +156,7 @@ impl Link {
             Command::Machines(ask) => self.emit(refuse::machines(ask)),
             Command::Sync { ticket, .. } => self.emit(refuse::sync(ticket)),
             Command::Claims(ask) => self.emit(Event::Claims(ask.failed())),
+            Command::TerminalClaims(ask) => self.emit(Event::TerminalClaims(ask.failed())),
             Command::NodeSettings(ask) => self.emit(refuse::node_settings(ask)),
             Command::Diagnostics(ask) => self.emit(refuse::diagnostics(ask)),
             Command::Plugins(ask) => self.emit(refuse::plugins(ask)),

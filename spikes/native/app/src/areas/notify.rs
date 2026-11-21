@@ -33,9 +33,9 @@
 //!     fail: a build without system notifications, or Linux without a
 //!     session bus.
 //! - Differences until ADR 0089's claims (TRACKER 815): every open app
-//!   decides for itself; no terminal notices; the body is the session's
-//!   name, not Paseo's last-message preview; no macOS banner (the GPUI
-//!   patches have none).
+//!   decides for itself; no terminal notices (behind the constant in
+//!   `notify/terminals.rs`); the body is the session's name, not Paseo's
+//!   last-message preview; no macOS banner (the GPUI patches have none).
 
 use std::collections::VecDeque;
 
@@ -48,7 +48,8 @@ use vessel_app_view::board::Fleet;
 use vessel_app_view::notices::{
     Announce, Notice, NoticeKind, Seen, Unseen, announce, notices, title_with,
 };
-use vessel_proto::SessionId;
+use vessel_proto::terminals::TerminalPlace;
+use vessel_proto::{SessionId, TerminalId};
 
 use crate::routes::Route;
 use crate::shell::Shell;
@@ -88,13 +89,24 @@ impl std::fmt::Debug for NotifyArea {
     }
 }
 
-/// A notification shown, and its session.
+/// A notification shown, and what it was about.
 #[derive(Debug)]
 struct Shown {
     tag: SharedString,
     machine: String,
-    session: SessionId,
+    about: About,
     kind: NoticeKind,
+}
+
+/// What a notification was shown for: a session, or a terminal and where
+/// it lives (claims row 3, `notify/terminals.rs`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum About {
+    Session(SessionId),
+    Terminal {
+        terminal: TerminalId,
+        place: TerminalPlace,
+    },
 }
 
 impl NotifyArea {
@@ -119,12 +131,11 @@ impl NotifyArea {
         }
     }
 
-    /// The tag for `notice`: its earlier one, or a new one.
-    fn tag(&mut self, notice: &Notice) -> SharedString {
+    /// The tag for a notice about `about` on `machine`: its earlier one, or
+    /// a new one.
+    fn tag(&mut self, machine: &str, about: About, kind: NoticeKind) -> SharedString {
         let earlier = self.shown.iter().position(|shown| {
-            shown.machine == notice.machine
-                && shown.session == notice.session
-                && shown.kind == notice.kind
+            shown.machine == machine && shown.about == about && shown.kind == kind
         });
         if let Some(kept) = earlier.and_then(|at| self.shown.remove(at)) {
             let tag = kept.tag.clone();
@@ -138,19 +149,19 @@ impl NotifyArea {
         }
         self.shown.push_back(Shown {
             tag: tag.clone(),
-            machine: notice.machine.clone(),
-            session: notice.session,
-            kind: notice.kind,
+            machine: machine.to_owned(),
+            about,
+            kind,
         });
         tag
     }
 
-    /// The session a tag was shown for.
-    fn target(&self, tag: &str) -> Option<(&str, SessionId)> {
+    /// What a tag was shown for, and on which machine.
+    fn target(&self, tag: &str) -> Option<(String, About)> {
         self.shown
             .iter()
             .find(|shown| shown.tag == tag)
-            .map(|shown| (shown.machine.as_str(), shown.session))
+            .map(|shown| (shown.machine.clone(), shown.about.clone()))
     }
 }
 
@@ -207,7 +218,7 @@ impl Shell {
                 notice.title.clone()
             };
             cx.show_system_notification(SystemNotification {
-                tag: area.tag(notice),
+                tag: area.tag(&notice.machine, About::Session(notice.session), notice.kind),
                 title: self.t.lang.notices().title(notice.kind).into(),
                 body: body.into(),
                 actions: Vec::new(),
@@ -259,10 +270,18 @@ impl Shell {
         }
     }
 
-    /// A click on one of this run's notifications: open its session.
+    /// A click on one of this run's notifications: open its session, or its
+    /// terminal.
     fn notice_clicked(&mut self, tag: &str, window: &mut Window, cx: &mut Context<'_, Self>) {
-        let Some((machine, session)) = self.areas.notify.target(tag) else {
+        let Some((machine, about)) = self.areas.notify.target(tag) else {
             return;
+        };
+        let session = match about {
+            About::Session(session) => session,
+            About::Terminal { terminal, place } => {
+                self.terminal_notice_clicked(&machine, terminal, &place, window, cx);
+                return;
+            }
         };
         let open = self
             .fleet
@@ -364,6 +383,7 @@ fn clicked(
 }
 
 mod claims;
+mod terminals;
 
 #[cfg(test)]
 mod tests;

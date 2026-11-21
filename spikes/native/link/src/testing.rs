@@ -52,6 +52,7 @@ fn make_state(
         session_navigation: crate::sessions::Hub::default(),
         terminal_hub: crate::terminals::Hub::default(),
         presence_hub: crate::presence::Hub::default(),
+        terminal_notices: crate::terminal_notices::Hub::default(),
         offers: std::sync::Arc::default(),
     }
 }

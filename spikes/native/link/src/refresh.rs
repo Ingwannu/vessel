@@ -66,6 +66,7 @@ impl State {
                     let machine = self.read_sessions(name, connected).await;
                     if fresh {
                         self.presence_connected(book_name.as_str());
+                        self.terminal_notices_connected(book_name.as_str());
                     }
                     machine
                 }

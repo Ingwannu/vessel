@@ -63,6 +63,8 @@ mod refresh;
 #[cfg(not(target_arch = "wasm32"))]
 mod sending;
 mod session;
+#[cfg(not(target_arch = "wasm32"))]
+mod terminal_notices;
 // A browser has no `vessel-client` yet (no tokio network, no files): the
 // same `Link`, `Command` and `Event`, answered from a demo fleet, so the
 // screens can be drawn and typed into from WebAssembly
@@ -235,6 +237,7 @@ impl Link {
             session_navigation: sessions::Hub::default(),
             terminal_hub: terminals::Hub::default(),
             presence_hub: presence::Hub::default(),
+            terminal_notices: terminal_notices::Hub::default(),
             offers: std::sync::Arc::default(),
         };
         drop(runtime.spawn(state.run(inbox, presence_inbox)));
@@ -320,6 +323,9 @@ struct State {
     terminal_hub: terminals::Hub,
     /// This window's presence to each machine (`presence`).
     presence_hub: presence::Hub,
+    /// Each machine's terminal list, followed for attention
+    /// (`terminal_notices`).
+    terminal_notices: terminal_notices::Hub,
     /// The agents' lists kept between runs, by node: read before the first
     /// connection, written when an answer differs (on the blocking pool;
     /// the lock is held only there and for a lookup at connect).

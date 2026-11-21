@@ -8,9 +8,13 @@
 //! ([`Answer`]). The app shows only those
 //! `vessel_app_view::notices::claims::shows` lets through. A claim is never
 //! retried.
+//!
+//! A terminal's notice ([`TerminalAsk`]) needs no page: it names its exact
+//! attention revision, so the link claims it at once.
 
 use vessel_app_view::notices::Announce;
 use vessel_app_view::notices::claims::Asked;
+use vessel_app_view::notices::terminals::TerminalAnnounce;
 
 /// One machine's notices to ask about, with how each would be told.
 #[derive(Debug)]
@@ -46,8 +50,57 @@ impl Ask {
     }
 }
 
+/// One machine's terminal notices to ask about.
+#[derive(Debug)]
+pub struct TerminalAsk {
+    /// The machine, by its book name.
+    pub machine: String,
+    /// The notices, as `announce_terminals` gave them.
+    pub told: Vec<TerminalAnnounce>,
+}
+
+/// What asking came to for each terminal notice, in the order asked. Only
+/// `Answered(Admitted)` shows: a terminal has no inbox to fall back on.
+#[derive(Debug)]
+pub struct TerminalAnswer {
+    /// The machine asked.
+    pub machine: String,
+    /// Each notice with its outcome.
+    pub asked: Vec<(TerminalAnnounce, Asked)>,
+}
+
+impl TerminalAsk {
+    /// Every notice failed, and nothing shows.
+    #[must_use]
+    pub fn failed(self) -> TerminalAnswer {
+        TerminalAnswer {
+            machine: self.machine,
+            asked: self
+                .told
+                .into_iter()
+                .map(|one| (one, Asked::Failed))
+                .collect(),
+        }
+    }
+}
+
 #[cfg(not(target_arch = "wasm32"))]
 impl crate::State {
+    /// Ask `ask.machine` about its terminals' notices, in the background;
+    /// the answer comes back as [`crate::Event::TerminalClaims`].
+    pub(crate) async fn terminal_claims(&self, ask: TerminalAsk) {
+        let Ok(client) = self.client(&ask.machine).cloned() else {
+            self.emit(crate::Event::TerminalClaims(ask.failed())).await;
+            return;
+        };
+        let events = self.events.clone();
+        drop(tokio::spawn(async move {
+            let answer = claim_terminals(&client, ask).await;
+            // The receiver is gone only when the app is closing.
+            let _closed = events.send(crate::Event::TerminalClaims(answer)).await;
+        }));
+    }
+
     /// Ask `ask.machine` about its notices, in the background; the answer
     /// comes back as [`crate::Event::Claims`].
     pub(crate) async fn claims(&self, ask: Ask) {
@@ -92,6 +145,26 @@ async fn ask_machine(client: &vessel_client::NodeClient, ask: Ask) -> Answer {
         asked.push((one, outcome));
     }
     Answer {
+        machine: ask.machine,
+        asked,
+    }
+}
+
+/// One claim per terminal notice, by its exact revision.
+#[cfg(not(target_arch = "wasm32"))]
+async fn claim_terminals(client: &vessel_client::NodeClient, ask: TerminalAsk) -> TerminalAnswer {
+    let mut asked = Vec::with_capacity(ask.told.len());
+    for one in ask.told {
+        let outcome = match client.claim_notification(one.notice.source()).await {
+            Ok(claim) => Asked::Answered(claim),
+            Err(error) => {
+                tracing::debug!(%error, "a terminal notice's claim was not answered");
+                Asked::Failed
+            }
+        };
+        asked.push((one, outcome));
+    }
+    TerminalAnswer {
         machine: ask.machine,
         asked,
     }
