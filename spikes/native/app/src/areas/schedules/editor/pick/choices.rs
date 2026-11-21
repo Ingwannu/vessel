@@ -7,7 +7,7 @@ use vessel_app_view::{
     controls_of,
     schedules::{
         cadence::IntervalUnit,
-        editor::{Draft, cadence, io::Form},
+        editor::{cadence, io::Form},
     },
     with_picks,
 };
@@ -51,7 +51,7 @@ pub(super) fn empty(shell: &Shell, field: Field) -> &'static str {
         Field::Model => words.form_empty_models(),
         Field::Thinking => words.form_empty_thinking(),
         Field::Mode => words.form_empty_modes(),
-        _ => words.form_empty_choices(),
+        Field::Host | Field::Cadence | Field::Unit => words.form_empty_choices(),
     }
 }
 
@@ -253,19 +253,18 @@ pub(in crate::areas::schedules::editor) fn control_for(
     }
 }
 
-pub(in crate::areas::schedules::editor) fn model_label(shell: &Shell, draft: &Draft) -> String {
-    let Some(spec) = draft.spec() else {
+pub(in crate::areas::schedules::editor) fn model_label(shell: &Shell, form: &Form) -> String {
+    let Some(spec) = form.draft.spec() else {
         return shell.words.schedules().form_model_placeholder().to_owned();
     };
     let provider = agent_name(&spec.harness);
-    if let SessionMode::Structured {
-        model: Some(model), ..
-    } = &spec.mode
-    {
-        format!("{provider} · {}", model.as_str())
-    } else {
-        provider
-    }
+    let SessionMode::Structured { model: Some(model), .. } = &spec.mode else { return provider };
+    let request = GetHarnessOptions { harness: spec.harness.clone(), profile: spec.profile.clone() };
+    let label = form.options(&request).and_then(|reply| reply.as_ref().ok())
+        .and_then(|received| controls_of(&received.options, &provider, vessel_app_view::Lang::from_tag(shell.words.locale().tag())).model)
+        .and_then(|group| group.values.into_iter().find(|value| value.id.as_str() == model.as_str()))
+        .map_or_else(|| model.as_str().to_owned(), |choice| choice.name);
+    format!("{provider} · {label}")
 }
 
 pub(in crate::areas::schedules::editor) fn project_label(shell: &Shell, form: &Form) -> String {

@@ -137,7 +137,7 @@ impl Draft {
         let mut draft = Self::create(zone);
         match cadence {
             Cadence::Cron { expr, zone } => {
-                draft.expression = expr.as_str().to_owned();
+                expr.as_str().clone_into(&mut draft.expression);
                 draft.zone = zone.to_string();
                 draft.explicit_zone = true;
                 draft.choice = Choice::ALL
@@ -216,7 +216,7 @@ impl Draft {
     pub fn select(&mut self, choice: Choice) {
         self.choice = choice;
         if let Some(expression) = choice.expression() {
-            self.expression = expression.to_owned();
+            expression.clone_into(&mut self.expression);
         }
         self.validate();
     }
@@ -224,6 +224,9 @@ impl Draft {
     /// Commit text from the advanced expression field.
     pub fn set_expression(&mut self, text: String) {
         self.expression = text;
+        self.choice = Choice::ALL.into_iter()
+            .find(|choice| choice.expression() == Some(self.expression.trim()))
+            .unwrap_or(Choice::Custom);
         self.validate();
     }
 

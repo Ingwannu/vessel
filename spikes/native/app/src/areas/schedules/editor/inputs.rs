@@ -1,6 +1,6 @@
 use super::Shell;
 use vessel_app_kit::{
-    FormMinimum, FormText, FormTextareaPresentation, TextField,
+    Editability, FormMinimum, FormText, FormTextareaPresentation, TextField,
     field::FieldId,
     ui::{Context, Window},
 };
@@ -67,6 +67,13 @@ impl Inputs {
             if field.text(cx) != value {
                 field.set_text(value, window, cx);
             }
+        }
+    }
+
+    pub(super) fn hold(&self, held: bool, cx: &mut Context<'_, Shell>) {
+        let editability = if held { Editability::ReadOnly } else { Editability::Editable };
+        for field in [&self.name, &self.prompt, &self.limit, &self.cron, &self.zone, &self.elapsed] {
+            field.set_editability(editability, cx);
         }
     }
 

@@ -60,14 +60,12 @@ pub(super) fn body(
                     ))),
             );
         } else {
-            if choice == Choice::Custom {
-                out = out.child(field(
-                    words.form_script(),
-                    inputs.cron.element(tokens, touch, cx),
-                    None,
-                    tokens,
-                ));
-            }
+            out = out.child(field(
+                words.form_script(),
+                inputs.cron.element(tokens, touch, cx),
+                None,
+                tokens,
+            ));
             out = out.child(field(
                 words.form_zone(),
                 inputs.zone.element(tokens, touch, cx),
@@ -101,8 +99,11 @@ fn preview(
     let editor = &shell.areas.schedules.editor;
     let body = div().flex().flex_col().gap(px(S2));
     match form.preview() {
+        Some(Ok(_)) if editor.preview_labels.is_empty() => body,
         Some(Ok(_)) => body
             .child(hint(words.form_next_runs(), false, tokens))
+            .children(form.targets().is_some_and(|facts| facts.as_ref().is_ok_and(|facts| facts.device_zone.is_none()))
+                .then(|| hint(words.form_viewer_display_utc(), false, tokens)))
             .children(
                 editor
                     .preview_labels

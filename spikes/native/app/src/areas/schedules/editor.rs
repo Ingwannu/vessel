@@ -162,10 +162,12 @@ impl Shell {
             .machines
             .iter()
             .filter_map(vessel_app_view::Machine::connection_context);
-        let selected = self.areas.schedules.data.page.selected_machine();
+        let selected = self.areas.schedules.data.page.selected_machine()
+            .map(|key| key.as_str())
+            .or(self.prefs.machine.as_deref());
         let connection = online
             .clone()
-            .find(|context| selected.is_some_and(|key| key.as_str() == context.machine().as_str()))
+            .find(|context| selected == Some(context.machine().as_str()))
             .or_else(|| online.into_iter().next());
         if let Some(connection) = connection {
             self.schedule_form_open(connection, Draft::create(None), window, cx);
@@ -248,8 +250,14 @@ impl Shell {
 
     fn schedule_form_save(&mut self, cx: &mut Context<'_, Self>) {
         let editor = &self.areas.schedules.editor;
+        if !editor.available() {
+            return;
+        }
         if let Some(write) = editor.model.as_ref().and_then(Form::save_request) {
             self.schedule_form_issue(Ask::Save(Box::new(write)));
+            if let Some(inputs) = &self.areas.schedules.editor.inputs {
+                inputs.hold(true, cx);
+            }
             cx.notify();
         }
     }
@@ -257,7 +265,7 @@ impl Shell {
     pub(crate) fn schedule_form_answer(&mut self, answer: Answer, cx: &mut Context<'_, Self>) {
         let (request, result) = answer.settle();
         let write = matches!(request.ask, Ask::Save(_));
-        let refresh = write && (result.is_ok() || matches!(result, Err(Failure::Unconfirmed)));
+        let refresh = write && (result.is_ok() || matches!(result, Err(Failure::Unconfirmed) | Err(Failure::Node(vessel_proto::ErrorCode::Conflict))));
         let editor = &mut self.areas.schedules.editor;
         if let Some(form) = &mut editor.model
             && form.accept(&request, result)
@@ -271,9 +279,14 @@ impl Shell {
                 }
             } else if matches!(request.ask, Ask::Preview(_)) {
                 editor.preview_labels = preview_labels(form, self.words);
-            } else if matches!(form.saved(), Some(Ok(_))) {
-                editor.dismiss = true;
-                preferences::keep(self);
+            } else {
+                if let Some(inputs) = &editor.inputs {
+                    inputs.hold(editor.retired || matches!(form.saved(), Some(Err(Failure::Unconfirmed))), cx);
+                }
+                if matches!(form.saved(), Some(Ok(_))) {
+                    editor.dismiss = true;
+                    preferences::keep(self);
+                }
             }
             cx.notify();
         }
@@ -304,6 +317,11 @@ fn preview_labels(
     catalog: &vessel_app_view::localization::Translator,
 ) -> Vec<SharedString> {
     use vessel_app_view::localization::Date;
+    if form.draft.opened().is_some_and(|opened| {
+        matches!(opened.state, vessel_proto::automation::ScheduleState::Ended { .. })
+    }) {
+        return Vec::new();
+    }
     let Some(Ok(preview)) = form.preview() else {
         return Vec::new();
     };

@@ -181,6 +181,13 @@ impl Draft {
         self.archive = archive;
     }
 
+    /// The renderer can check readiness without cloning the draft.
+    #[must_use]
+    pub fn ready(&self) -> bool {
+        self.spec.is_some() && (self.opened.is_some() || self.place.is_some())
+            && self.fields.error().is_none()
+    }
+
     /// Build the request from a current, verified preview cadence or an explicit
     /// older-node fallback. Any elapsed anchor comes from that cadence.
     #[must_use]
@@ -189,7 +196,7 @@ impl Draft {
         if self.opened.is_none() && self.place.is_none() {
             return None;
         }
-        spec.place = self.place.clone();
+        spec.place.clone_from(&self.place);
         let text = self.fields.values().ok()?;
         let definition = ScheduleDefinition {
             name: text.name,

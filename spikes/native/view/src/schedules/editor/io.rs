@@ -116,6 +116,7 @@ pub struct Form {
     targets: Slot<Box<Targets>>,
     options: Slot<Box<HarnessOptions>>,
     options_for: Option<GetHarnessOptions>,
+    retained_options: Option<(GetHarnessOptions, Result<Box<HarnessOptions>, Failure>)>,
     preview: Slot<Box<SchedulePreview>>,
     save: Slot<Box<ScheduleInfo>>,
 }
@@ -130,6 +131,7 @@ impl Form {
             targets: Slot::empty(),
             options: Slot::empty(),
             options_for: None,
+            retained_options: None,
             preview: Slot::empty(),
             save: Slot::empty(),
         }
@@ -154,6 +156,13 @@ impl Form {
         match &request.ask {
             Ask::Targets => self.targets.begin(&request),
             Ask::Options(options) => {
+                if self.options_for.as_ref().is_some_and(|current| {
+                    current.harness != options.harness && self.draft.spec().is_some_and(|spec| {
+                        spec.harness == current.harness && spec.profile == current.profile
+                    })
+                }) && let (Some(current), Some(Ok(report))) = (self.options_for.take(), self.options.result.take()) {
+                    self.retained_options = Some((current, Ok(report)));
+                }
                 self.options_for = Some(options.clone());
                 self.options.begin(&request);
             }
@@ -169,7 +178,7 @@ impl Form {
             Ask::Targets => {
                 let result = result.and_then(|value| match value {
                     Value::Targets(facts) => Ok(facts),
-                    _ => Err(Failure::Unexpected),
+                    Value::Options(_) | Value::Preview(_) | Value::Saved(_) => Err(Failure::Unexpected),
                 });
                 if !self.targets.settle(request, result) {
                     return false;
@@ -185,21 +194,21 @@ impl Form {
                 request,
                 result.and_then(|value| match value {
                     Value::Options(options) => Ok(options),
-                    _ => Err(Failure::Unexpected),
+                    Value::Targets(_) | Value::Preview(_) | Value::Saved(_) => Err(Failure::Unexpected),
                 }),
             ),
             Ask::Preview(input) => self.preview.settle(
                 request,
                 result.and_then(|value| match value {
                     Value::Preview(preview) if preview::valid_input(input, &preview) => Ok(preview),
-                    _ => Err(Failure::Unexpected),
+                    Value::Targets(_) | Value::Options(_) | Value::Preview(_) | Value::Saved(_) => Err(Failure::Unexpected),
                 }),
             ),
             Ask::Save(save) => self.save.settle(
                 request,
                 result.and_then(|value| match value {
                     Value::Saved(info) if valid_saved(save, &info) => Ok(info),
-                    _ => Err(Failure::Unconfirmed),
+                    Value::Targets(_) | Value::Options(_) | Value::Preview(_) | Value::Saved(_) => Err(Failure::Unconfirmed),
                 }),
             ),
         }
@@ -222,11 +231,11 @@ impl Form {
         &self,
         expected: &GetHarnessOptions,
     ) -> Option<&Result<Box<HarnessOptions>, Failure>> {
-        if self.options_for.as_ref()? == expected {
-            self.options.result.as_ref()
-        } else {
-            None
+        if self.options_for.as_ref() == Some(expected) && self.options.result.is_some() {
+            return self.options.result.as_ref();
         }
+        self.retained_options.as_ref().filter(|(ask, _)| ask == expected)
+            .map(|(_, result)| result)
     }
 
     /// Node-generated run times and effective schedule rule.
@@ -266,10 +275,20 @@ impl Form {
         })
     }
 
+    /// Whether the form may build and dispatch a save.
+    #[must_use]
+    pub fn can_save(&self) -> bool {
+        self.draft.ready() && self.cadence_for_save().is_some()
+    }
+
     /// Save reuses the verified preview's canonical interval anchor. Older
     /// protocol nodes can save the typed rule directly.
     #[must_use]
     pub fn save_request(&self) -> Option<Save> {
+        self.draft.save(self.cadence_for_save()?)
+    }
+
+    fn cadence_for_save(&self) -> Option<&Cadence> {
         if self.saving()
             || !self.can_operate()
             || matches!(self.save.result, Some(Err(Failure::Unconfirmed)))
@@ -278,10 +297,8 @@ impl Form {
         }
         let cadence = self.draft.cadence.checked().ok()?;
         match self.preview()? {
-            Ok(preview) if cadence_matches(cadence, &preview.cadence) => {
-                self.draft.save(&preview.cadence)
-            }
-            Err(Failure::Older) => self.draft.save(cadence),
+            Ok(preview) if cadence_matches(cadence, &preview.cadence) => Some(&preview.cadence),
+            Err(Failure::Older) => Some(cadence),
             Ok(_) | Err(_) => None,
         }
     }

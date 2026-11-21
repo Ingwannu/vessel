@@ -56,7 +56,7 @@ impl Field {
         match self {
             Self::Project => Some(words.form_search_projects()),
             Self::Model => Some(words.form_search_models()),
-            _ => None,
+            Self::Host | Self::Thinking | Self::Mode | Self::Cadence | Self::Unit => None,
         }
     }
 }
@@ -169,6 +169,7 @@ fn go_back(shell: &mut Shell, window: &mut Window, cx: &mut Context<'_, Shell>) 
 }
 
 fn apply(shell: &mut Shell, change: Change, window: &mut Window, cx: &mut Context<'_, Shell>) {
+    let search = Field::Model.search(shell);
     let editor = &mut shell.areas.schedules.editor;
     if !editor.available() {
         return;
@@ -180,7 +181,7 @@ fn apply(shell: &mut Shell, change: Change, window: &mut Window, cx: &mut Contex
         Change::OpenProvider(provider) => {
             editor.restore_prefs = false;
             editor.browsing = Some(provider.clone());
-            editor.picker.open(None, window, cx);
+            editor.picker.open(search, window, cx);
             shell.schedule_form_issue(Ask::Options(provider));
         }
         Change::Host(connection) => {

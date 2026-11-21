@@ -40,19 +40,18 @@ pub(crate) fn render(
         cx.defer_in(window, Shell::schedule_form_frame);
     }
     let title = shell.words.sidebar().schedules();
-    let actions = vec![super::editor::new_button(shell, tokens, touch, cx)];
     let header = if touch {
         let owner = cx.entity().downgrade();
         kit::compact_header(
             title,
-            actions,
+            Vec::new(),
             move |window, cx| {
                 let _closed = owner.update(cx, |shell, cx| shell.toggle_sidebar(window, cx));
             },
             tokens,
         )
     } else {
-        kit::screen_header(title, actions, tokens, false)
+        kit::screen_header(title, Vec::new(), tokens, false)
     };
     let mut root = div()
         .relative()
@@ -68,7 +67,12 @@ pub(crate) fn render(
             div()
                 .px(inset(touch))
                 .pt(px(spacing::S4))
-                .child(super::filters::toolbar(shell, tokens, touch, cx)),
+                .flex()
+                .items_center()
+                .justify_between()
+                .gap(px(spacing::S3))
+                .child(super::filters::toolbar(shell, tokens, touch, cx).min_w_0().flex_shrink_1())
+                .child(super::editor::new_button("schedules-new", shell, tokens, touch, cx)),
         );
     }
     root = root.child(body(shell, tokens, touch, cx));
@@ -99,7 +103,7 @@ fn body(shell: &Shell, tokens: &Tokens, touch: bool, cx: &mut Context<'_, Shell>
             .children(
                 (!data.host_errors.is_empty()).then(|| host_errors(&data.host_errors, tokens)),
             )
-            .child(empty(shell, tokens))
+            .child(empty(shell, tokens, touch, cx))
             .into_any_element(),
         Body::Empty | Body::Content => content(shell, tokens, touch, cx),
     }
@@ -170,7 +174,7 @@ fn content(shell: &Shell, tokens: &Tokens, touch: bool, cx: &mut Context<'_, She
         }
         content = content.child(div().px(inset(touch)).child(card));
     } else {
-        content = content.child(centered().child(empty(shell, tokens)));
+        content = content.child(centered().child(empty(shell, tokens, touch, cx)));
     }
     div()
         .id("schedules-scroll")
@@ -198,7 +202,7 @@ pub(super) fn notice(message: &Notice, tokens: &Tokens) -> Div {
         tokens,
     )
 }
-fn empty(shell: &Shell, tokens: &Tokens) -> Div {
+fn empty(shell: &Shell, tokens: &Tokens, touch: bool, cx: &mut Context<'_, Shell>) -> Div {
     let bucket = shell.areas.schedules.data.page.bucket;
     let hint = locale::empty_hint(bucket, shell.words);
     let mut words = div()
@@ -240,6 +244,9 @@ fn empty(shell: &Shell, tokens: &Tokens) -> Div {
             tokens.neutral.foreground_muted,
         ))
         .child(words)
+        .children((bucket == vessel_app_view::schedules::Bucket::Active).then(|| {
+            super::editor::new_button("schedules-empty-new", shell, tokens, touch, cx)
+        }))
 }
 
 pub(super) fn row_notice(message: &Notice, tokens: &Tokens) -> Div {

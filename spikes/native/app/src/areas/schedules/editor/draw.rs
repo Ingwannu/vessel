@@ -5,7 +5,7 @@ use super::{
     pick::{self, Field},
 };
 use vessel_app_kit::{
-    self as kit, ButtonKind, ButtonState, ControlSizing, DialogContent, DialogSize, Tokens, Type,
+    self as kit, ButtonContent, ButtonIcon, ButtonKind, ButtonState, ControlSizing, DialogContent, DialogSize, Tokens, Type,
     TypeExt as _,
     dialog::{CompactLayout, DesktopHeight, DialogLayout},
     sheet::snap::Percentage,
@@ -24,11 +24,13 @@ use vessel_app_view::schedules::{
     locale,
 };
 
-const WIDTH: u16 = 560;
+// AdaptiveModalSheet's default desktop maximum.
+const WIDTH: u16 = 520;
 const DESKTOP_CAP: u8 = 85;
 const COMPACT_CAP: u8 = 90;
 
 pub(in crate::areas::schedules) fn new_button(
+    id: &'static str,
     shell: &Shell,
     tokens: &Tokens,
     touch: bool,
@@ -40,14 +42,17 @@ pub(in crate::areas::schedules) fn new_button(
         .iter()
         .any(|machine| machine.connection_context().is_some());
     let words = shell.words.schedules();
-    let button = button(
-        "schedule-new",
-        words.form_new_title(),
-        ButtonKind::Primary,
-        available,
-        touch,
+    let button = kit::button_with_content(
+        id,
+        ButtonContent::IconAndLabel {
+            icon: ButtonIcon::new(kit::assets::Glyph::Plus),
+            label: words.form_new_title().into(),
+        },
+        ButtonKind::Outline,
+        if available { ButtonState::Enabled } else { ButtonState::Disabled },
+        ControlSizing::from_compact(touch),
         tokens,
-    );
+    ).flex_none();
     if available {
         button
             .on_click(cx.listener(|shell, _, window, cx| shell.schedule_create_open(window, cx)))
@@ -170,7 +175,7 @@ fn footer(
     } else {
         words.form_create()
     };
-    let ready = shell.areas.schedules.editor.available() && form.save_request().is_some();
+    let ready = shell.areas.schedules.editor.available() && form.can_save();
     let save = button(
         "schedule-form-save",
         text,
@@ -272,7 +277,7 @@ fn targets(
     rows.push(choose(
         shell,
         Field::Model,
-        pick::model_label(shell, &form.draft),
+        pick::model_label(shell, form),
         ready,
         tokens,
         touch,
@@ -398,6 +403,9 @@ fn status(
 ) -> Option<AnyElement> {
     let editor = &shell.areas.schedules.editor;
     let words = shell.words.schedules();
+    if let Some(Err(error)) = form.saved() {
+        return Some(hint(locale::failure(error, shell.words), true, tokens).into_any_element());
+    }
     if editor.retired {
         return Some(
             hint(
@@ -407,9 +415,6 @@ fn status(
             )
             .into_any_element(),
         );
-    }
-    if let Some(Err(error)) = form.saved() {
-        return Some(hint(locale::failure(error, shell.words), true, tokens).into_any_element());
     }
     match form.targets()? {
         Err(error) => Some(
