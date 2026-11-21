@@ -62,6 +62,17 @@ fn replace(
     })
 }
 
+/// Whether a terminal input is a standalone interrupt: exactly Ctrl-C or
+/// Esc. Paseo clears a terminal's working activity on either
+/// (`terminal/terminal.ts:180-182,1164-1166`), because Claude Code runs no
+/// `Stop` hook when interrupted, and the terminal would otherwise stay
+/// "working" (ADR 0089, owed at assignment). An Esc that starts a longer
+/// sequence (an arrow key, a paste) is not one.
+#[must_use]
+pub(crate) fn interrupts(data: &[u8]) -> bool {
+    data == b"\x03" || data == b"\x1b"
+}
+
 fn next_activity(current: TerminalActivity, signal: TerminalActivitySignal) -> TerminalActivity {
     match signal {
         TerminalActivitySignal::Working => TerminalActivity::Working,
