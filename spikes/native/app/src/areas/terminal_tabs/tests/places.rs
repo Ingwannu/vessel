@@ -8,6 +8,7 @@ use gpui::TestAppContext;
 use vessel_app_link::terminals::{Reply, Request};
 use vessel_app_view::Card;
 use vessel_app_view::board::{Attention, CardDetail, Phrase, RunsIn};
+use vessel_app_view::layout::{HostAlias, LayoutKey};
 use vessel_proto::terminals::{TerminalInfo, TerminalKind, TerminalList, TerminalPlace};
 use vessel_proto::workspace::RelPath;
 use vessel_proto::{ProjectId, ProtocolVersion, SessionId, TerminalId, WorktreeId};
@@ -247,4 +248,55 @@ fn below_40_a_shell_stays_beside_the_session_and_nothing_else_is_asked(cx: &mut 
         ),
         "{asked:?}"
     );
+}
+
+/// An app review note on 0121n: a beside read asked for an earlier
+/// workspace answers after another is shown. It is dropped, not handed to
+/// the place's own list.
+#[gpui::test]
+fn a_beside_reply_for_an_earlier_workspace_is_dropped(cx: &mut TestAppContext) {
+    let (probe, cx) = open(cx);
+    let session = probe.read_with(cx, |probe, _| probe.2);
+    let shell = probe.read_with(cx, |probe, _| probe.0.clone());
+    let worktree = WorktreeId::random();
+    let neighbour = SessionId::random();
+    let in_worktree = |session| {
+        card(
+            session,
+            CardDetail {
+                worktree: Some(worktree),
+                runs_in: Some(RunsIn::Worktree(ProjectId::random())),
+                ..CardDetail::default()
+            },
+        )
+    };
+    shell.update_in(cx, |shell, _window, _cx| {
+        fleet(
+            shell,
+            vec![in_worktree(session), in_worktree(neighbour)],
+            vessel_proto::PROTOCOL_VERSION,
+        );
+        shell.terminal_tabs_poll();
+    });
+    let beside = TerminalPlace::Session { session: neighbour };
+    assert!(listed_places(sent(&probe, cx)).contains(&beside));
+    shell.update_in(cx, |shell, _window, _cx| {
+        let elsewhere = LayoutKey::Session {
+            machine: HostAlias::parse("laptop").unwrap(),
+            session: SessionId::random(),
+        };
+        let other = TerminalPlace::Worktree {
+            worktree: WorktreeId::random(),
+        };
+        shell.terminal_tabs_poll_beside("laptop", &elsewhere, &other);
+        let late = TerminalList {
+            terminals: vec![shell_at(beside.clone())],
+            revision: 1,
+        };
+        assert!(
+            shell.terminal_tabs_beside_listed("laptop", &beside, Some(&late)),
+            "a stale beside reply is dropped here"
+        );
+        assert!(listed(shell).is_empty());
+    });
 }

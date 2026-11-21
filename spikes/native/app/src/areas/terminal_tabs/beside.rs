@@ -17,6 +17,10 @@
 //!   the place's own list stays the node's.
 //! - Cost: a request per workspace session each read, while the place is a
 //!   workspace place; none below 40, where the place is the session.
+//! - A read asked for an earlier workspace is answered after the shown
+//!   workspace changed: its reply is dropped here (`stale`), not handed to
+//!   the place's own list. If the shown place's own list asks that very
+//!   place, the reply goes on to it, as it is that place's list too.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -39,6 +43,9 @@ pub(crate) struct Beside {
     asked: BTreeSet<SessionId>,
     /// Each session's live shells as last answered.
     shells: BTreeMap<SessionId, Vec<TerminalInfo>>,
+    /// Reads asked for an earlier workspace and not yet answered, by
+    /// machine: their replies are dropped.
+    stale: BTreeSet<(String, SessionId)>,
 }
 
 impl Shell {
@@ -52,8 +59,19 @@ impl Shell {
     ) {
         let beside = &mut self.areas.terminal_tabs.beside;
         if beside.workspace.as_ref() != Some(workspace) {
+            let mut stale = std::mem::take(&mut beside.stale);
+            if let Some(LayoutKey::Session { machine: alias, .. }) = &beside.workspace {
+                let alias = alias.as_str();
+                stale.extend(
+                    beside
+                        .asked
+                        .iter()
+                        .map(|session| (alias.to_owned(), *session)),
+                );
+            }
             *beside = Beside {
                 workspace: Some(workspace.clone()),
+                stale,
                 ..Beside::default()
             };
         }
@@ -72,6 +90,10 @@ impl Shell {
             .into_iter()
             .filter(|session| beside.asked.insert(*session))
             .collect();
+        // Asked again: the next reply is taken as this workspace's.
+        for session in &asks {
+            let _was = beside.stale.remove(&(machine.to_owned(), *session));
+        }
         for session in asks {
             self.command(Command::Terminals(Ask {
                 machine: machine.to_owned(),
@@ -83,8 +105,9 @@ impl Shell {
         }
     }
 
-    /// A list answered: whether it was one of the beside-session reads
-    /// (kept and merged into the shown strip), not the place's own.
+    /// A list answered: whether it was one of the beside-session reads,
+    /// kept and merged into the shown strip, or dropped when it was asked
+    /// for an earlier workspace; not the place's own.
     pub(super) fn terminal_tabs_beside_listed(
         &mut self,
         machine: &str,
@@ -94,7 +117,15 @@ impl Shell {
         let TerminalPlace::Session { session } = place else {
             return false;
         };
-        let beside = &mut self.areas.terminal_tabs.beside;
+        let tabs = &mut self.areas.terminal_tabs;
+        if tabs.beside.stale.remove(&(machine.to_owned(), *session)) {
+            let place_asked = tabs
+                .listing
+                .as_ref()
+                .is_some_and(|asked| asked.machine == machine && asked.place == *place);
+            return !place_asked;
+        }
+        let beside = &mut tabs.beside;
         let ours = beside.workspace.as_ref().is_some_and(|workspace| {
             matches!(workspace, LayoutKey::Session { machine: alias, .. } if alias.as_str() == machine)
         });
