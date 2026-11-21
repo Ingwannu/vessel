@@ -303,7 +303,7 @@ impl Changes {
             Summary::Ready(summary) => change_rows(&summary.files, &self.closed, &self.states),
             Summary::Loading | Summary::Failed(_) => Vec::new(),
         };
-        self.list.reset(self.rows.len());
+        self.list.reset(self.rows.len().saturating_add(1));
     }
 }
 

@@ -262,14 +262,14 @@ impl Shell {
                     .map(|snapshot| snapshot.commit.as_str().chars().take(7).collect::<String>());
                 notice = Some(words.removed(&branch, short.as_deref()));
             }
-            Ok(RemoveWorktreeOutcome::Kept { reasons, .. }) => {
+            Ok(RemoveWorktreeOutcome::Kept { reasons, diff_stat }) => {
                 let error = match ask.if_lost {
                     IfLost::Keep => None,
                     IfLost::Snapshot => Some(labels.snapshot_refused.to_owned()),
                     IfLost::Discard => Some(labels.nothing_removed.to_owned()),
                 };
                 if let Some(worktree) = info {
-                    detail.removing = Some(Removing::new(worktree, reasons, error));
+                    detail.removing = Some(Removing::new(worktree, reasons, diff_stat, error));
                 }
             }
             Err(problem) => {

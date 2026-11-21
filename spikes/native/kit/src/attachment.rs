@@ -164,7 +164,7 @@ pub fn attachment_pill<V: 'static>(
         standing,
         handlers.on_open.map(|callback| {
             let callback: ScopedPillClick<V> = std::rc::Rc::new(callback);
-            callback
+            PillOpen::from(callback)
         }),
         std::rc::Rc::new(handlers.on_remove),
         touch,
@@ -177,6 +177,30 @@ pub fn attachment_pill<V: 'static>(
 /// whichever composer happens to be selected when a delayed click arrives.
 pub type ScopedPillClick<V> = std::rc::Rc<dyn Fn(&mut V, usize, &mut Window, &mut Context<'_, V>)>;
 
+/// A press on a composer's pill: what it does, and its name for assistive
+/// technology (Paseo's `openAccessibilityLabel`, such as "Open review
+/// attachment"); `None` leaves the pill unnamed.
+pub struct PillOpen<V> {
+    /// What the press does.
+    pub click: ScopedPillClick<V>,
+    /// Its name, read as a button's.
+    pub label: Option<SharedString>,
+}
+
+impl<V> From<ScopedPillClick<V>> for PillOpen<V> {
+    fn from(click: ScopedPillClick<V>) -> Self {
+        Self { click, label: None }
+    }
+}
+
+impl<V> std::fmt::Debug for PillOpen<V> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PillOpen")
+            .field("label", &self.label)
+            .finish_non_exhaustive()
+    }
+}
+
 /// Same pill and renderer, with explicitly scoped callback ownership.
 #[expect(
     clippy::too_many_arguments,
@@ -187,7 +211,7 @@ pub fn attachment_pill_scoped<V: 'static>(
     index: usize,
     body: &Body,
     standing: Standing,
-    open: Option<ScopedPillClick<V>>,
+    open: Option<PillOpen<V>>,
     remove: ScopedPillClick<V>,
     touch: bool,
     tokens: &Tokens,
@@ -198,10 +222,21 @@ pub fn attachment_pill_scoped<V: 'static>(
     let group: SharedString = format!("{id}-{number}").into();
     let frame = frame(body, standing, tokens)
         .id(ElementId::NamedInteger(id.clone(), number))
+        // Tests find a pill by its tray and place ("composer-context-0").
+        .debug_selector({
+            let group = group.clone();
+            move || group.to_string()
+        })
         .when_some(open, |frame, open| {
-            frame.cursor_pointer().on_click(cx.listener(
-                move |view, _event: &ClickEvent, window, cx| open(view, index, window, cx),
-            ))
+            let PillOpen { click, label } = open;
+            frame
+                .cursor_pointer()
+                .when_some(label, |frame, label| {
+                    frame.role(gpui::Role::Button).aria_label(label)
+                })
+                .on_click(cx.listener(move |view, _event: &ClickEvent, window, cx| {
+                    click(view, index, window, cx);
+                }))
         });
     let surfaces = Surfaces::of(tokens);
     let button = div()

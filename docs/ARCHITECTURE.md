@@ -2038,6 +2038,14 @@ injects `vessel-node::http_resolution`'s reqwest adapter into the one persistent
 both source owners end, before node stop completes. Without injection Harness
 builds no client (Unsupported), never reqwest's default resolver.
 
+## Page workspace preferences
+
+The UI bridge keeps terminal scrollback and per-action workspace destinations
+with its other client preferences (ADR 0028). Active xterm views apply the
+scrollback value as it changes. Workspace pane placement reuses tab keys and
+dirty-state ownership so an editor survives a move. For scope and Paseo
+parity see [Page client preferences](plans/page-client-preferences.md).
+
 ## Page feedback and modal ownership
 
 The existing Base UI dialog, command palette and sheet own their key and

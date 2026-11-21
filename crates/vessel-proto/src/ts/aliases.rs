@@ -315,6 +315,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("TerminalProfileName", Alias::Named),
     ("TerminalProgram", Alias::Named),
     ("TerminalPrompt", Alias::Content),
+    ("TerminalScrollback", Alias::Quantity),
     ("ThemeName", Alias::Named),
     ("TicketMac", Alias::Secret),
     ("TimeZoneName", Alias::Named),

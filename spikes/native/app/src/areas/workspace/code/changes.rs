@@ -193,6 +193,7 @@ impl Shell {
         };
         let _was = changes.states.insert(ask.path.clone(), state);
         changes.relist();
+        self.review_offer_sync();
     }
 
     /// Read a page of `path`'s diff (`from`: the next page's hunk).
@@ -293,7 +294,14 @@ pub(super) fn render(
         .flex()
         .flex_col()
         .child(toolbar(shell, tokens, window, cx))
-        .child(div().flex_1().min_h(px(0.0)).child(body))
+        .child(
+            div()
+                .relative()
+                .flex_1()
+                .min_h(px(0.0))
+                .child(body)
+                .children(super::review::feedback::surface(shell, tokens, window, cx)),
+        )
         .children(scope_list(shell, tokens, window, cx))
         .children(super::review::rows::sheet(shell, tokens, window, cx))
         .into_any_element()

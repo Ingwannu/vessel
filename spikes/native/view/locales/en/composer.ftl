@@ -183,6 +183,10 @@ composer-sent-history = Previous conversation
 # A sent message's review pill, its first line.
 composer-sent-review = Review
 
+# The composer's review pill, the name of its press: it opens the
+# workspace's Changes (Paseo's composer.attachments.openReview).
+composer-open-review = Open review attachment
+
 # A sent review's count of comments, its pill's second line. $count is a number.
 composer-sent-comments = { NUMBER($count) ->
     [one] { $count } comment

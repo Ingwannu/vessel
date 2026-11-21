@@ -10,6 +10,7 @@ import { useStore } from "../../data/store";
 import { type Choice, Row, RowList, Select } from "../../ui/kit";
 import { toast } from "../../ui/toasts";
 import type { SendKey, TurnDelivery } from "../../wire/bridge";
+import { OpenLocationSection } from "./client-workspace";
 import { KeptNote } from "./kept-note";
 import { FactValue, SettingsPage, SettingsSection } from "./settings-page";
 
@@ -139,6 +140,7 @@ export function GeneralSection() {
           />
         </RowList>
       </SettingsSection>
+      <OpenLocationSection />
     </SettingsPage>
   );
 }

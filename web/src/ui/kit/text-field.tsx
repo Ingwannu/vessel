@@ -43,6 +43,8 @@ export interface TextFieldProps {
   "aria-label"?: string;
   /** Marks a search box for assistive technology. */
   role?: "searchbox" | "combobox";
+  inputMode?: "numeric";
+  selectOnFocus?: boolean;
   disabled?: boolean;
   readOnly?: boolean;
   autoFocus?: boolean;
@@ -78,6 +80,8 @@ export function TextField({
   onKeyDown,
   onBlur,
   inputRef,
+  inputMode,
+  selectOnFocus = false,
   role,
   "aria-label": ariaLabel,
 }: TextFieldProps) {
@@ -106,6 +110,14 @@ export function TextField({
         autoComplete={type === "password" ? "new-password" : "off"}
         onKeyDown={onKeyDown}
         onBlur={onBlur}
+        inputMode={inputMode}
+        onFocus={
+          selectOnFocus
+            ? (event) => {
+                event.currentTarget.select();
+              }
+            : undefined
+        }
         role={role}
         aria-label={ariaLabel}
       />

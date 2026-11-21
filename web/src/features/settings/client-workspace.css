@@ -1,0 +1,21 @@
+.terminal-scrollback-field {
+  width: 112px;
+}
+
+.terminal-scrollback-field input {
+  text-align: end;
+}
+
+.file-associations-empty {
+  margin: 0;
+  padding: var(--s-4);
+  border: 1px solid var(--border-faint);
+  border-radius: var(--r-2);
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.open-location-label {
+  display: block;
+  white-space: normal;
+}

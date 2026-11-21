@@ -15,6 +15,10 @@ import { AboutSection } from "../features/settings/about";
 import { DiagnosticsSection } from "../features/diagnostics/diagnostics-section";
 import { AppearanceSection } from "../features/settings/appearance";
 import { DevicesSection } from "../features/settings/devices-section";
+import {
+  FilesSection,
+  TerminalSection,
+} from "../features/settings/client-workspace";
 import { GeneralSection } from "../features/settings/general";
 import { PluginSettingsDetail } from "../features/plugins/plugin-settings-detail";
 import { PluginsSection } from "../features/settings/plugins-section";
@@ -57,6 +61,10 @@ export function SettingsPage(): ReactElement | null {
       return <ShortcutsSection />;
     case "notifications":
       return <NotificationsSection />;
+    case "terminal":
+      return <TerminalSection />;
+    case "files":
+      return <FilesSection />;
     case "agents":
       return <AgentsSection machine={place.machine} agent={place.agent} />;
     case "models":

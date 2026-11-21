@@ -2,31 +2,21 @@
 
 import { type ReactNode, useCallback, useState } from "react";
 
-import { OpenChanges, WorkspaceChat } from "../workspace/workspace-chat";
 import type { ProjectsView } from "../../data/workspace/project-store";
-import { tabKey, type WorkspaceTab } from "../../data/workspace/tab-layout";
+import { tabKey } from "../../data/workspace/tab-layout";
 import { SCRIPT_PROTOCOL } from "../../data/workspace/scripts";
-import { Button, Dialog, Skeleton } from "../../ui/kit";
+import { Button, Dialog } from "../../ui/kit";
 import type { NodeKey } from "../../wire/bridge";
-import type {
-  SessionId,
-  SessionInfo,
-  SessionPlace,
-  WorkspaceRoot,
-} from "../../wire/proto";
+import type { SessionId, SessionInfo, WorkspaceRoot } from "../../wire/proto";
 import { SessionBar } from "../session/session-bar";
-import { NewSession } from "../compose/new-session";
 import { useMedia } from "../shell/use-media";
 import { Launcher, TabChrome } from "./chrome";
-import { CodePane } from "./file-pane";
-import { pullReach } from "../../data/workspace/pull/served";
-import { PullPane } from "../workspace/pull/pull-pane";
 import { RenameTab } from "./rename";
 import { ScriptsControl } from "./scripts-control";
-import { TerminalPane } from "./terminal-pane";
 import { tabItem } from "./tab-item";
 import { useTerminalAttention } from "./use-terminal-attention";
 import { useWorkspace } from "./use-workspace";
+import { WorkspaceViews } from "./workspace-views";
 import { tabWords } from "./words";
 
 export interface AgentPaneActions {
@@ -68,8 +58,7 @@ export function Workspace({
     );
   }, []);
   const state = useWorkspace(node, anchor, root, projects, scope, words);
-  const { active, actions, lifecycle, layout, markDirty, openFile, select } =
-    state;
+  const { active, actions, lifecycle, layout, location, select } = state;
   useTerminalAttention(node, active, state.terminals, select);
   const items = layout.tabs.map((tab) => tabItem(tab, state, words));
   const launch = compact
@@ -87,95 +76,7 @@ export function Workspace({
     setSummaryOpen(false);
   };
   const openChanges = () => {
-    select({ kind: "changes" });
-  };
-  const place: SessionPlace | null =
-    root === null
-      ? null
-      : root.kind === "worktree"
-        ? { kind: "worktree", worktree: root.worktree }
-        : { kind: "project", project: root.project };
-  const openChat = () => {
-    select({ kind: "agent", id: anchor.id });
-  };
-  const body = (tab: WorkspaceTab) => {
-    const key = tabKey(tab);
-    const selected = key === layout.active;
-    switch (tab.kind) {
-      case "agent": {
-        const session = state.session(tab.id);
-        return selected ? (
-          session === undefined ? (
-            <Skeleton />
-          ) : (
-            <OpenChanges value={openChanges}>
-              {agent(session, { summaryOpen, closeSummary, onTitle })}
-            </OpenChanges>
-          )
-        ) : null;
-      }
-      case "terminal":
-        return selected ? (
-          <TerminalPane
-            node={node}
-            terminal={tab.id}
-            connected={state.protocol !== null}
-            words={words}
-          />
-        ) : null;
-      case "draft":
-        return selected || state.visited.has(key) ? (
-          <NewSession
-            wanted={node}
-            workspace={{
-              place,
-              folder: anchor.spec.cwd ?? null,
-              tray: scope,
-              done: state.completeDraft,
-              onDirtyChange: (dirty) => {
-                markDirty(key, dirty);
-              },
-            }}
-          />
-        ) : null;
-      case "pull":
-        return selected ? (
-          <PullPane
-            node={node}
-            session={anchor}
-            reach={pullReach(state.protocol)}
-            openChat={openChat}
-          />
-        ) : null;
-      case "files":
-      case "changes":
-      case "diff":
-      case "file":
-        // File and Explorer panes keep editor/tree state across a switch.
-        // Diff has independent reads and is only mounted when visible.
-        return selected ||
-          ((tab.kind === "file" || tab.kind === "files") &&
-            state.visited.has(key)) ? (
-          <WorkspaceChat value={openChat}>
-            <CodePane
-              node={node}
-              session={anchor}
-              root={root}
-              projects={projects}
-              tab={tab}
-              active={selected}
-              goTo={
-                tab.kind === "file" ? (state.lines.get(tab.path) ?? null) : null
-              }
-              open={openFile}
-              back={() => {
-                select({ kind: "files" });
-              }}
-              markDirty={markDirty}
-            />
-          </WorkspaceChat>
-        ) : null;
-    }
+    location.openChanges("changes");
   };
 
   return (
@@ -211,7 +112,9 @@ export function Workspace({
           : {})}
       />
       <TabChrome
-        items={items}
+        items={items.filter(
+          (item) => tabKey(item.tab) !== location.supporting?.key,
+        )}
         active={layout.active}
         words={words}
         launch={launch}
@@ -225,24 +128,18 @@ export function Workspace({
       {active === undefined ? (
         <Launcher actions={launch} profiles={state.profiles} words={words} />
       ) : null}
-      {layout.tabs.map((tab) => {
-        const key = tabKey(tab);
-        const selected = key === layout.active;
-        return (
-          <div
-            key={key}
-            className="workspace-pane"
-            role="tabpanel"
-            aria-label={
-              items.find((item) => tabKey(item.tab) === key)?.label ??
-              words.workspace
-            }
-            hidden={!selected}
-          >
-            {body(tab)}
-          </div>
-        );
-      })}
+      <WorkspaceViews
+        node={node}
+        anchor={anchor}
+        root={root}
+        projects={projects}
+        scope={scope}
+        state={state}
+        words={words}
+        items={items}
+        renderAgent={agent}
+        agentActions={{ summaryOpen, closeSummary, onTitle }}
+      />
       {lifecycle.confirmation === null ? null : (
         <Dialog
           title={lifecycle.confirmation.title}

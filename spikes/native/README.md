@@ -190,6 +190,16 @@ the drafts document beside the text drafts; a document from before them
 reads with none. `app/areas/workspace/code/review/` holds the one open
 editor and the actions on the comments; its `rows.rs` draws a line's "+",
 its thread (edit, delete, the editor) and, on a phone, the sheet.
+`view::workspace::review::snapshot` builds ADR 0124's `PromptReview` from
+the comments and the diff rows read (Paseo's
+`buildReviewAttachmentSnapshot`); `review/offer.rs` keeps the open session
+composer's review pill (`ContextAttachment::Review`) in step (a press on
+it, named "Open review attachment" as Paseo's, opens the panel's Changes),
+and `review/feedback.rs` is "Send feedback (N)" (state rules in
+`view::workspace::review::feedback`), sent on the composer's context path
+so an older node reads the same text; `review/feedback_draw.rs` draws its
+notice (an alert to a screen reader, as Paseo's), the phone's floating
+button and the list's room under the button.
 
 ## Durable session history and lifecycle
 

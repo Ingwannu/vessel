@@ -303,4 +303,6 @@ glyph_inventory! {
     ChecksPie3 => "kit/checks-pie-3.svg",
     /// Every check done, the outcome not read yet: the pie full.
     ChecksPie4 => "kit/checks-pie-4.svg",
+    /// A paper plane (Paseo's lucide `Send`): the review's Send feedback.
+    Send => "kit/send.svg",
 }

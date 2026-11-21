@@ -26,8 +26,8 @@ use serde::{Deserialize, Serialize};
 use vessel_proto::{NodeId, RawJson};
 
 use self::sections::{
-    AppearanceFile, ComposerFile, LayoutFile, MachineFile, NotificationsFile, SidebarFile,
-    StoredAgent, UsageFile,
+    AppearanceFile, ComposerFile, LayoutFile, MachineFile, NotificationsFile, OpenLocationFile,
+    SidebarFile, StoredAgent, TerminalFile, UsageFile,
 };
 use super::lenient::{Blank, Entries, Field};
 use crate::wire::{
@@ -49,6 +49,10 @@ struct Body {
     appearance: Field<AppearanceFile>,
     #[serde(skip_serializing_if = "Field::is_blank")]
     layout: Field<LayoutFile>,
+    #[serde(skip_serializing_if = "Field::is_blank")]
+    terminal: Field<TerminalFile>,
+    #[serde(skip_serializing_if = "Field::is_blank")]
+    open_location: Field<OpenLocationFile>,
     #[serde(skip_serializing_if = "Field::is_blank")]
     composer: Field<ComposerFile>,
     #[serde(skip_serializing_if = "Field::is_blank")]
@@ -170,6 +174,16 @@ impl PrefsDoc {
                 .read()
                 .map(LayoutFile::values)
                 .unwrap_or_default(),
+            terminal: body
+                .terminal
+                .read()
+                .map(TerminalFile::values)
+                .unwrap_or_default(),
+            open_location: body
+                .open_location
+                .read()
+                .map(OpenLocationFile::values)
+                .unwrap_or_default(),
             composer: body
                 .composer
                 .read()
@@ -257,6 +271,21 @@ impl PrefsDoc {
             PreferenceChange::ExplorerSort(sort) => {
                 body.layout.make_read().explorer_sort.set(*sort);
             }
+            PreferenceChange::TerminalScrollback(lines) => {
+                body.terminal.make_read().scrollback.set(*lines);
+            }
+            PreferenceChange::OpenLocation {
+                source,
+                destination,
+            } => {
+                body.open_location.make_read().set(*source, *destination);
+            }
+            PreferenceChange::PullRequestLocation(destination) => {
+                body.open_location
+                    .make_read()
+                    .pull_requests
+                    .set(*destination);
+            }
             PreferenceChange::InspectorPanel(panel) => {
                 body.layout.make_read().inspector.set(*panel);
             }
@@ -331,3 +360,5 @@ mod sections;
 mod tests;
 #[cfg(test)]
 mod usage_tests;
+#[cfg(test)]
+mod workspace_tests;

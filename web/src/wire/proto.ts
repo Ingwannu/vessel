@@ -14996,7 +14996,7 @@ export const PLUGIN_SETTINGS_PROTOCOL = 43;
 /**
  * `schedule.update_cadence`, for editing a heartbeat while retaining its owner (ADR 0033).
  */
-export const HEARTBEAT_CADENCE_PROTOCOL = null;
+export const HEARTBEAT_CADENCE_PROTOCOL = 48;
 
 /**
  * `notification.claim`, terminal attention, `Terminal` presence focus and a window's `notifies` (ADR 0089).

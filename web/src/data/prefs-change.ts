@@ -21,6 +21,13 @@ export const DEFAULT_PREFERENCES: Preferences = {
     conversation: "full",
   },
   layout: { sidebar: "shown", inspector: "shown", explorer_sort: "name" },
+  terminal: { scrollback: 10_000 },
+  open_location: {
+    explorer_files: "main",
+    diffs: "main",
+    diff_files: "main",
+    pull_requests: "explorer",
+  },
   // Steer, as Paseo and the native app (ADR 0108); a stored choice wins.
   composer: { send: "enter", delivery: "steer" },
   shortcuts: {},
@@ -93,6 +100,21 @@ export function applyChange(
       return {
         ...prefs,
         layout: { ...prefs.layout, explorer_sort: change.value },
+      };
+    case "terminal_scrollback":
+      return { ...prefs, terminal: { scrollback: change.value } };
+    case "open_location":
+      return {
+        ...prefs,
+        open_location: {
+          ...prefs.open_location,
+          [change.value.source]: change.value.destination,
+        },
+      };
+    case "pull_request_location":
+      return {
+        ...prefs,
+        open_location: { ...prefs.open_location, pull_requests: change.value },
       };
     case "send":
       return { ...prefs, composer: { ...prefs.composer, send: change.value } };
@@ -185,6 +207,8 @@ export function keepSections(
   const kept: Preferences = {
     appearance: same(previous.appearance, next.appearance),
     layout: same(previous.layout, next.layout),
+    terminal: same(previous.terminal, next.terminal),
+    open_location: same(previous.open_location, next.open_location),
     composer: same(previous.composer, next.composer),
     shortcuts: same(previous.shortcuts, next.shortcuts),
     notifications: same(previous.notifications, next.notifications),
@@ -195,6 +219,8 @@ export function keepSections(
   const unchanged =
     kept.appearance === previous.appearance &&
     kept.layout === previous.layout &&
+    kept.terminal === previous.terminal &&
+    kept.open_location === previous.open_location &&
     kept.composer === previous.composer &&
     kept.shortcuts === previous.shortcuts &&
     kept.notifications === previous.notifications &&

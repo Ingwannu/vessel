@@ -33,8 +33,10 @@ use vessel_app_link::Command;
 use vessel_app_link::terminals::{Ask as TerminalAsk, Request as TerminalRequest};
 use vessel_app_link::workspace::{Ask, WorktreeAsk};
 use vessel_app_view::terminal_tabs::workspace_places;
+use vessel_app_view::workspace::words::removal_reason;
 use vessel_app_view::workspace::worktrees::{choices_ending_terminals, in_use, removal_choices};
 use vessel_proto::WorktreeId;
+use vessel_proto::registry::DiffStat;
 use vessel_proto::terminals::TerminalList;
 use vessel_proto::workspace::{IfLost, KeptReason, RemoveWorktree, WorktreeInfo};
 
@@ -47,6 +49,8 @@ pub(crate) struct Removing {
     pub(super) worktree: WorktreeInfo,
     /// What the node said would be lost.
     pub(super) reasons: Vec<KeptReason>,
+    /// The optional recount from the same reply as the reasons.
+    pub(super) diff_stat: Option<DiffStat>,
     /// The removal asked, while out.
     pub(super) busy: Option<IfLost>,
     /// Why the last try removed nothing.
@@ -64,11 +68,13 @@ impl Removing {
     pub(super) const fn new(
         worktree: WorktreeInfo,
         reasons: Vec<KeptReason>,
+        diff_stat: Option<DiffStat>,
         error: Option<String>,
     ) -> Self {
         Self {
             worktree,
             reasons,
+            diff_stat,
             busy: None,
             error,
             terminals: None,
@@ -277,11 +283,8 @@ pub(super) fn render(
     let snapshotable = choices.contains(&IfLost::Snapshot);
     let mut reasons = div().flex().flex_col().gap(px(2.0));
     for reason in &removing.reasons {
-        reasons = reasons.child(
-            div()
-                .type_(Type::Body)
-                .child(format!("\u{2022} {}", words.kept_reason(*reason))),
-        );
+        let warning = removal_reason(shell.t.lang, *reason, removing.diff_stat);
+        reasons = reasons.child(div().type_(Type::Body).child(format!("\u{2022} {warning}")));
     }
     let explain = if closing.is_none() && in_use(&removing.reasons) {
         labels.end_session_first.to_owned()

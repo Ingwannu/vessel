@@ -7,7 +7,11 @@ use vessel_app_link::{
     Command,
     attachments::{Attach, Files, SubmitFailure, WithFiles},
 };
-use vessel_app_view::composer::{context::SubmissionOutcome, drafts::DraftKey, tray::Readiness};
+use vessel_app_view::composer::{
+    context::{ContextAttachment, Submission, SubmissionOutcome},
+    drafts::DraftKey,
+    tray::Readiness,
+};
 use vessel_proto::{Delivered, SessionId};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -92,6 +96,9 @@ impl Shell {
         result: Result<Delivered, SubmitFailure>,
         cx: &mut Context<'_, Self>,
     ) {
+        if self.review_feedback_answered(&prompt, &result, cx) {
+            return;
+        }
         let session = prompt.session;
         let Some(waiting) = self.areas.composer.sends.get_mut(&session) else {
             return;
@@ -101,6 +108,18 @@ impl Shell {
         }
         match result {
             Ok(_delivered) => {
+                // Paseo's `clearSentAttachments`: a review sent from the
+                // composer clears its key's comments.
+                let reviews: Vec<_> = prompt
+                    .context
+                    .iter()
+                    .flat_map(Submission::attachments)
+                    .filter_map(|item| match item {
+                        ContextAttachment::Review(offer) => Some(offer.key.clone()),
+                        ContextAttachment::WorkspaceFile(_)
+                        | ContextAttachment::Snapshot { .. } => None,
+                    })
+                    .collect();
                 if let Some(context) = &prompt.context
                     && let Some(tray) = self
                         .areas
@@ -119,6 +138,13 @@ impl Shell {
                     tray.clear();
                 }
                 drop(self.areas.composer.sends.remove(&session));
+                if !reviews.is_empty() {
+                    for key in &reviews {
+                        self.areas.composer.drafts.reviews_mut().clear(key);
+                    }
+                    self.drafts_changed(cx);
+                    self.review_offer_sync();
+                }
             }
             Err(problem) => {
                 waiting.phase = Phase::Retained {

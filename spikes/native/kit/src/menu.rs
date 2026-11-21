@@ -186,6 +186,25 @@ impl MenuState {
         self.focus.focus(window, cx);
     }
 
+    /// Open above a measured trigger, centred on it, for a menu `width`
+    /// wide (Paseo's `side="top" align="center"`, the review's agent
+    /// chooser), taking the keys.
+    pub fn open_above(
+        &mut self,
+        bounds: Bounds<Pixels>,
+        width: Pixels,
+        window: &mut Window,
+        cx: &mut App,
+    ) {
+        self.capture_return_focus(window, cx);
+        self.cycle = Rc::new(());
+        self.tips.dismiss();
+        self.sheet = Rc::default();
+        self.at = Some(Placement::Above(bounds, width));
+        self.highlighted = None;
+        self.focus.focus(window, cx);
+    }
+
     /// Open under a measured trigger with its left edges aligned (Paseo's
     /// `side="bottom" align="start"`, the new-tab menu), taking the keys.
     pub fn open_start(&mut self, bounds: Bounds<Pixels>, window: &mut Window, cx: &mut App) {
@@ -224,11 +243,17 @@ impl<V> std::fmt::Debug for MenuHandlers<V> {
     }
 }
 
+/// Twice the gap above a trigger for [`Placement::Above`] (the panel sits
+/// half of it above, then the shared 4 down).
+const ABOVE_GAP: f32 = 24.0;
+
 #[derive(Debug, Clone, Copy)]
 enum Placement {
     Pointer(Point<Pixels>),
     End(Bounds<Pixels>),
     Start(Bounds<Pixels>),
+    /// Above a trigger, centred on it, for a menu `width` wide.
+    Above(Bounds<Pixels>, Pixels),
 }
 impl Placement {
     fn geometry(self, pointer_corner: gpui::Anchor) -> (Point<Pixels>, gpui::Anchor) {
@@ -242,6 +267,16 @@ impl Placement {
                 gpui::point(bounds.left(), bounds.bottom()),
                 gpui::Anchor::TopLeft,
             ),
+            // The panel's bottom-left corner, `width` centred on the
+            // trigger and 12 above it (the shared 4 down leaves 8 between;
+            // `centered_at` does the halving, so no layout pass is needed).
+            Self::Above(bounds, width) => {
+                let over = Bounds::centered_at(
+                    gpui::point(bounds.center().x, bounds.top()),
+                    gpui::size(width, gpui::px(ABOVE_GAP)),
+                );
+                (over.origin, gpui::Anchor::BottomLeft)
+            }
         }
     }
 }
