@@ -612,6 +612,37 @@ drafts: DraftsState, } | { "op": "draft",
 text: DraftText | null, } | { "op": "save_draft" };
 
 /**
+ * Where to open a workspace view.
+ */
+export type OpenLocationDestination = "main" | "side";
+
+/**
+ * Destinations for the workspace actions the page serves.
+ */
+export type OpenLocationPreferences = { 
+/**
+ * Files selected in the explorer.
+ */
+explorer_files: OpenLocationDestination, 
+/**
+ * Changes opened from the workspace or chat.
+ */
+diffs: OpenLocationDestination, 
+/**
+ * Source files selected in Changes or Diff.
+ */
+diff_files: OpenLocationDestination, 
+/**
+ * The workspace pull request.
+ */
+pull_requests: PullRequestLocation, };
+
+/**
+ * An action that opens workspace content.
+ */
+export type OpenLocationSource = "explorer_files" | "diffs" | "diff_files";
+
+/**
  * Whether a panel shows.
  */
 export type Panel = "shown" | "hidden";
@@ -619,7 +650,15 @@ export type Panel = "shown" | "hidden";
 /**
  * One change to the preferences: each replaces one setting.
  */
-export type PreferenceChange = { "set": "theme", "value": Theme } | { "set": "interface_size", "value": InterfaceSize } | { "set": "code_size", "value": CodeSize } | { "set": "content_width", "value": ContentWidth } | { "set": "conversation", "value": ConversationDisplay } | { "set": "sidebar_panel", "value": Panel } | { "set": "inspector_panel", "value": Panel } | { "set": "explorer_sort", "value": ExplorerSort } | { "set": "send", "value": SendKey } | { "set": "delivery", "value": TurnDelivery } | { "set": "alerts", "value": Alerts } | { "set": "title_count", "value": boolean } | { "set": "sidebar_group", "value": Grouping } | { "set": "sidebar_sort", "value": SessionSort } | { "set": "sidebar_ended", "value": boolean } | { "set": "sidebar_labels", "value": { 
+export type PreferenceChange = { "set": "theme", "value": Theme } | { "set": "interface_size", "value": InterfaceSize } | { "set": "code_size", "value": CodeSize } | { "set": "content_width", "value": ContentWidth } | { "set": "conversation", "value": ConversationDisplay } | { "set": "sidebar_panel", "value": Panel } | { "set": "inspector_panel", "value": Panel } | { "set": "explorer_sort", "value": ExplorerSort } | { "set": "terminal_scrollback", "value": TerminalScrollback } | { "set": "open_location", "value": { 
+/**
+ * The action whose destination is changing.
+ */
+source: OpenLocationSource, 
+/**
+ * Where that action opens.
+ */
+destination: OpenLocationDestination, } } | { "set": "pull_request_location", "value": PullRequestLocation } | { "set": "send", "value": SendKey } | { "set": "delivery", "value": TurnDelivery } | { "set": "alerts", "value": Alerts } | { "set": "title_count", "value": boolean } | { "set": "sidebar_group", "value": Grouping } | { "set": "sidebar_sort", "value": SessionSort } | { "set": "sidebar_ended", "value": boolean } | { "set": "sidebar_labels", "value": { 
 /**
  * The names picked; `""` is Unlabelled.
  */
@@ -672,6 +711,14 @@ appearance: Appearance,
  */
 layout: Layout, 
 /**
+ * The built-in terminal display.
+ */
+terminal: TerminalPreferences, 
+/**
+ * Where workspace actions open.
+ */
+open_location: OpenLocationPreferences, 
+/**
  * The composer.
  */
 composer: Composer, 
@@ -720,6 +767,11 @@ values: Preferences, };
  * A token as a browser presented it: not yet checked, never printed.
  */
 export type PresentedToken = string;
+
+/**
+ * Where to open a pull request.
+ */
+export type PullRequestLocation = "main" | "side" | "explorer";
 
 /**
  * The number of a published preferences state within one launch, from
@@ -942,6 +994,20 @@ reason: StreamStop, };
  * Why a followed session's stream stopped for good.
  */
 export type StreamStop = "removed" | "stopping" | "error";
+
+/**
+ * Settings shared by terminals on this page.
+ */
+export type TerminalPreferences = { 
+/**
+ * History lines in addition to the visible terminal rows.
+ */
+scrollback: TerminalScrollback, };
+
+/**
+ * Terminal history lines retained by the page.
+ */
+export type TerminalScrollback = number;
 
 /**
  * The page's colours.
