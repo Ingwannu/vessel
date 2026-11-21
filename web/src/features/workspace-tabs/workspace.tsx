@@ -23,6 +23,7 @@ import { PullPane } from "../workspace/pull/pull-pane";
 import { RenameTab } from "./rename";
 import { TerminalPane } from "./terminal-pane";
 import { tabItem } from "./tab-item";
+import { useTerminalAttention } from "./use-terminal-attention";
 import { useWorkspace } from "./use-workspace";
 import { tabWords } from "./words";
 
@@ -67,6 +68,7 @@ export function Workspace({
   const state = useWorkspace(node, anchor, root, projects, scope, words);
   const { active, actions, lifecycle, layout, markDirty, openFile, select } =
     state;
+  useTerminalAttention(node, active, state.terminals, select);
   const items = layout.tabs.map((tab) => tabItem(tab, state, words));
   const launch = compact
     ? actions.filter((action) => action.label !== words.diff)
