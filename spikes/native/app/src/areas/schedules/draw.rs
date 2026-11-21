@@ -71,8 +71,18 @@ pub(crate) fn render(
                 .items_center()
                 .justify_between()
                 .gap(px(spacing::S3))
-                .child(super::filters::toolbar(shell, tokens, touch, cx).min_w_0().flex_shrink_1())
-                .child(super::editor::new_button("schedules-new", shell, tokens, touch, cx)),
+                .child(
+                    super::filters::toolbar(shell, tokens, touch, cx)
+                        .min_w_0()
+                        .flex_shrink_1(),
+                )
+                .child(super::editor::new_button(
+                    "schedules-new",
+                    shell,
+                    tokens,
+                    touch,
+                    cx,
+                )),
         );
     }
     root = root.child(body(shell, tokens, touch, cx));
@@ -244,9 +254,11 @@ fn empty(shell: &Shell, tokens: &Tokens, touch: bool, cx: &mut Context<'_, Shell
             tokens.neutral.foreground_muted,
         ))
         .child(words)
-        .children((bucket == vessel_app_view::schedules::Bucket::Active).then(|| {
-            super::editor::new_button("schedules-empty-new", shell, tokens, touch, cx)
-        }))
+        .children(
+            (bucket == vessel_app_view::schedules::Bucket::Active).then(|| {
+                super::editor::new_button("schedules-empty-new", shell, tokens, touch, cx)
+            }),
+        )
 }
 
 pub(super) fn row_notice(message: &Notice, tokens: &Tokens) -> Div {

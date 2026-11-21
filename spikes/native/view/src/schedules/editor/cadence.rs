@@ -224,7 +224,8 @@ impl Draft {
     /// Commit text from the advanced expression field.
     pub fn set_expression(&mut self, text: String) {
         self.expression = text;
-        self.choice = Choice::ALL.into_iter()
+        self.choice = Choice::ALL
+            .into_iter()
             .find(|choice| choice.expression() == Some(self.expression.trim()))
             .unwrap_or(Choice::Custom);
         self.validate();

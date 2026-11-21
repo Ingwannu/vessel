@@ -258,11 +258,33 @@ pub(in crate::areas::schedules::editor) fn model_label(shell: &Shell, form: &For
         return shell.words.schedules().form_model_placeholder().to_owned();
     };
     let provider = agent_name(&spec.harness);
-    let SessionMode::Structured { model: Some(model), .. } = &spec.mode else { return provider };
-    let request = GetHarnessOptions { harness: spec.harness.clone(), profile: spec.profile.clone() };
-    let label = form.options(&request).and_then(|reply| reply.as_ref().ok())
-        .and_then(|received| controls_of(&received.options, &provider, vessel_app_view::Lang::from_tag(shell.words.locale().tag())).model)
-        .and_then(|group| group.values.into_iter().find(|value| value.id.as_str() == model.as_str()))
+    let SessionMode::Structured {
+        model: Some(model), ..
+    } = &spec.mode
+    else {
+        return provider;
+    };
+    let request = GetHarnessOptions {
+        harness: spec.harness.clone(),
+        profile: spec.profile.clone(),
+    };
+    let label = form
+        .options(&request)
+        .and_then(|reply| reply.as_ref().ok())
+        .and_then(|received| {
+            controls_of(
+                &received.options,
+                &provider,
+                vessel_app_view::Lang::from_tag(shell.words.locale().tag()),
+            )
+            .model
+        })
+        .and_then(|group| {
+            group
+                .values
+                .into_iter()
+                .find(|value| value.id.as_str() == model.as_str())
+        })
         .map_or_else(|| model.as_str().to_owned(), |choice| choice.name);
     format!("{provider} · {label}")
 }

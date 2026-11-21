@@ -162,7 +162,12 @@ impl Shell {
             .machines
             .iter()
             .filter_map(vessel_app_view::Machine::connection_context);
-        let selected = self.areas.schedules.data.page.selected_machine()
+        let selected = self
+            .areas
+            .schedules
+            .data
+            .page
+            .selected_machine()
             .map(|key| key.as_str())
             .or(self.prefs.machine.as_deref());
         let connection = online
@@ -265,7 +270,13 @@ impl Shell {
     pub(crate) fn schedule_form_answer(&mut self, answer: Answer, cx: &mut Context<'_, Self>) {
         let (request, result) = answer.settle();
         let write = matches!(request.ask, Ask::Save(_));
-        let refresh = write && (result.is_ok() || matches!(result, Err(Failure::Unconfirmed) | Err(Failure::Node(vessel_proto::ErrorCode::Conflict))));
+        let refresh = write
+            && (result.is_ok()
+                || matches!(
+                    result,
+                    Err(Failure::Unconfirmed)
+                        | Err(Failure::Node(vessel_proto::ErrorCode::Conflict))
+                ));
         let editor = &mut self.areas.schedules.editor;
         if let Some(form) = &mut editor.model
             && form.accept(&request, result)
@@ -281,7 +292,10 @@ impl Shell {
                 editor.preview_labels = preview_labels(form, self.words);
             } else {
                 if let Some(inputs) = &editor.inputs {
-                    inputs.hold(editor.retired || matches!(form.saved(), Some(Err(Failure::Unconfirmed))), cx);
+                    inputs.hold(
+                        editor.retired || matches!(form.saved(), Some(Err(Failure::Unconfirmed))),
+                        cx,
+                    );
                 }
                 if matches!(form.saved(), Some(Ok(_))) {
                     editor.dismiss = true;
@@ -318,7 +332,10 @@ fn preview_labels(
 ) -> Vec<SharedString> {
     use vessel_app_view::localization::Date;
     if form.draft.opened().is_some_and(|opened| {
-        matches!(opened.state, vessel_proto::automation::ScheduleState::Ended { .. })
+        matches!(
+            opened.state,
+            vessel_proto::automation::ScheduleState::Ended { .. }
+        )
     }) {
         return Vec::new();
     }

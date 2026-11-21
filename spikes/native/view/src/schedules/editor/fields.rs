@@ -197,7 +197,10 @@ impl Fields {
     /// Field validity is independent of project/model/cadence readiness.
     #[must_use]
     pub fn error(&self) -> Option<&FieldError> {
-        self.name.value.as_ref().err()
+        self.name
+            .value
+            .as_ref()
+            .err()
             .or_else(|| self.prompt.value.as_ref().err())
             .or_else(|| self.limit.value.as_ref().err())
     }

@@ -5,8 +5,8 @@ use super::{
     pick::{self, Field},
 };
 use vessel_app_kit::{
-    self as kit, ButtonContent, ButtonIcon, ButtonKind, ButtonState, ControlSizing, DialogContent, DialogSize, Tokens, Type,
-    TypeExt as _,
+    self as kit, ButtonContent, ButtonIcon, ButtonKind, ButtonState, ControlSizing, DialogContent,
+    DialogSize, Tokens, Type, TypeExt as _,
     dialog::{CompactLayout, DesktopHeight, DialogLayout},
     sheet::snap::Percentage,
     theme::spacing::{S2, S4},
@@ -49,10 +49,15 @@ pub(in crate::areas::schedules) fn new_button(
             label: words.form_new_title().into(),
         },
         ButtonKind::Outline,
-        if available { ButtonState::Enabled } else { ButtonState::Disabled },
+        if available {
+            ButtonState::Enabled
+        } else {
+            ButtonState::Disabled
+        },
         ControlSizing::from_compact(touch),
         tokens,
-    ).flex_none();
+    )
+    .flex_none();
     if available {
         button
             .on_click(cx.listener(|shell, _, window, cx| shell.schedule_create_open(window, cx)))

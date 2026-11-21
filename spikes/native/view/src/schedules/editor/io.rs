@@ -157,10 +157,13 @@ impl Form {
             Ask::Targets => self.targets.begin(&request),
             Ask::Options(options) => {
                 if self.options_for.as_ref().is_some_and(|current| {
-                    current.harness != options.harness && self.draft.spec().is_some_and(|spec| {
-                        spec.harness == current.harness && spec.profile == current.profile
-                    })
-                }) && let (Some(current), Some(Ok(report))) = (self.options_for.take(), self.options.result.take()) {
+                    current.harness != options.harness
+                        && self.draft.spec().is_some_and(|spec| {
+                            spec.harness == current.harness && spec.profile == current.profile
+                        })
+                }) && let (Some(current), Some(Ok(report))) =
+                    (self.options_for.take(), self.options.result.take())
+                {
                     self.retained_options = Some((current, Ok(report)));
                 }
                 self.options_for = Some(options.clone());
@@ -178,7 +181,9 @@ impl Form {
             Ask::Targets => {
                 let result = result.and_then(|value| match value {
                     Value::Targets(facts) => Ok(facts),
-                    Value::Options(_) | Value::Preview(_) | Value::Saved(_) => Err(Failure::Unexpected),
+                    Value::Options(_) | Value::Preview(_) | Value::Saved(_) => {
+                        Err(Failure::Unexpected)
+                    }
                 });
                 if !self.targets.settle(request, result) {
                     return false;
@@ -194,21 +199,27 @@ impl Form {
                 request,
                 result.and_then(|value| match value {
                     Value::Options(options) => Ok(options),
-                    Value::Targets(_) | Value::Preview(_) | Value::Saved(_) => Err(Failure::Unexpected),
+                    Value::Targets(_) | Value::Preview(_) | Value::Saved(_) => {
+                        Err(Failure::Unexpected)
+                    }
                 }),
             ),
             Ask::Preview(input) => self.preview.settle(
                 request,
                 result.and_then(|value| match value {
                     Value::Preview(preview) if preview::valid_input(input, &preview) => Ok(preview),
-                    Value::Targets(_) | Value::Options(_) | Value::Preview(_) | Value::Saved(_) => Err(Failure::Unexpected),
+                    Value::Targets(_) | Value::Options(_) | Value::Preview(_) | Value::Saved(_) => {
+                        Err(Failure::Unexpected)
+                    }
                 }),
             ),
             Ask::Save(save) => self.save.settle(
                 request,
                 result.and_then(|value| match value {
                     Value::Saved(info) if valid_saved(save, &info) => Ok(info),
-                    Value::Targets(_) | Value::Options(_) | Value::Preview(_) | Value::Saved(_) => Err(Failure::Unconfirmed),
+                    Value::Targets(_) | Value::Options(_) | Value::Preview(_) | Value::Saved(_) => {
+                        Err(Failure::Unconfirmed)
+                    }
                 }),
             ),
         }
@@ -234,7 +245,9 @@ impl Form {
         if self.options_for.as_ref() == Some(expected) && self.options.result.is_some() {
             return self.options.result.as_ref();
         }
-        self.retained_options.as_ref().filter(|(ask, _)| ask == expected)
+        self.retained_options
+            .as_ref()
+            .filter(|(ask, _)| ask == expected)
             .map(|(_, result)| result)
     }
 

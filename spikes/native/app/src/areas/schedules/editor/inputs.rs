@@ -71,8 +71,19 @@ impl Inputs {
     }
 
     pub(super) fn hold(&self, held: bool, cx: &mut Context<'_, Shell>) {
-        let editability = if held { Editability::ReadOnly } else { Editability::Editable };
-        for field in [&self.name, &self.prompt, &self.limit, &self.cron, &self.zone, &self.elapsed] {
+        let editability = if held {
+            Editability::ReadOnly
+        } else {
+            Editability::Editable
+        };
+        for field in [
+            &self.name,
+            &self.prompt,
+            &self.limit,
+            &self.cron,
+            &self.zone,
+            &self.elapsed,
+        ] {
             field.set_editability(editability, cx);
         }
     }

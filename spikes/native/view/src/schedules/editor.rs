@@ -184,7 +184,8 @@ impl Draft {
     /// The renderer can check readiness without cloning the draft.
     #[must_use]
     pub fn ready(&self) -> bool {
-        self.spec.is_some() && (self.opened.is_some() || self.place.is_some())
+        self.spec.is_some()
+            && (self.opened.is_some() || self.place.is_some())
             && self.fields.error().is_none()
     }
 
