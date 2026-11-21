@@ -68,6 +68,19 @@ no runtime to compile. The package that serves the method changes `staged`
 to `pending` in the commit that adds its handler; from then on the guard
 requires the handler, as for every assigned or pending row.
 
+## Version 45 (2026-11-21, milestone 12): notification claims and terminal attention (impl U, ADR 0089)
+
+Assigned 45 (`ATTENTION_NOTIFICATIONS_PROTOCOL`, `PROTOCOL_VERSION` 45) at its node-line merge, the next after 44;
+the integrator renumbers it if another packet takes 45 first. What was pending on the constant goes live:
+
+- Methods: `notification.claim`, `terminal.attention_clear`, `terminal.activity`, `inbox.attention`, `inbox.read`.
+- Fields: `TerminalInfo.attention`; `push.presence`'s `terminal` focus, `idle_age` and `notifies` (absent reads
+  true; only a notifying window is elected a claim's local recipient); `NodeSettings.terminal_agent_hooks`.
+- Clients: both claim a session's or a terminal's notice before showing it, follow each machine's terminal list
+  for attention, report a shown terminal as `terminal` focus, clear a viewed terminal's attention by its exact
+  revision, and mark a read session with `inbox.read`.
+- Older peers: each of the above is refused before the wire, or left out of a projection, below 45.
+
 ## Version 44 (2026-11-21, milestone 12): plugin surfaces' declaration kinds (impl P, ADR 0115 "Surfaces")
 
 Assigned 44 (`PLUGIN_SURFACES_PROTOCOL`, `PROTOCOL_VERSION` 44) at its node-line merge, the next after the settings'

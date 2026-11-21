@@ -29,9 +29,12 @@ pub const TERMINAL_ACTIVITY_SECRET_ENV: &str = "VESSEL_TERMINAL_ACTIVITY_SECRET"
 /// Local socket or named-pipe endpoint; never a newly opened hook listener.
 pub const TERMINAL_ACTIVITY_SOCKET_ENV: &str = "VESSEL_TERMINAL_ACTIVITY_SOCKET";
 
-/// Unassigned until node admission, terminal producers, native rendering and
-/// exact-source older-peer refusal are available together at integration.
-pub const ATTENTION_NOTIFICATIONS_PROTOCOL: Option<ProtocolVersion> = None;
+/// Assigned at its node-line merge (ADR 0089, "Turned on"): node admission,
+/// terminal producers, both clients' claims and older-peer refusal are in
+/// place together. 45 is this packet's number, the next after 44; the
+/// integrator gives the real one at merge (T2's P5a also drafted 45).
+pub const ATTENTION_NOTIFICATIONS_PROTOCOL: Option<ProtocolVersion> =
+    Some(ProtocolVersion::new(45));
 
 /// A non-reused revision of explicit activity on one terminal.
 #[derive(
