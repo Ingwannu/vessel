@@ -3,9 +3,12 @@
 //! check its last read did not name is not read; an agent reads only its
 //! own session's (and its subagents').
 
+use std::sync::Arc;
+
 use chrono::Utc;
 use vessel_forge::Timeline;
 use vessel_forge::fake::FakeForge;
+use vessel_node::ForgeSetup;
 use vessel_proto::ErrorCode;
 use vessel_proto::forge::{
     CheckName, CheckReport, CheckRun, CheckState, ForgeAccess, GetCheckDetails, GetPullRequest,
@@ -13,10 +16,10 @@ use vessel_proto::forge::{
 };
 use vessel_proto::workspace::CommitId;
 
-use crate::agents::{as_agent, code, credential, structured};
+use crate::agents::{as_agent, code, credential, structured, vessel_mcp};
 use crate::forge::{git, project, pull, running_in, start};
 use crate::support::{Fixture, within};
-use crate::workspace::new_worktree;
+use crate::workspace::{lookup, new_worktree};
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn the_pane_reads_a_session_s_pull_request_activity_and_checks() {
@@ -104,7 +107,17 @@ async fn an_agent_reads_no_other_session_s_pull_request() {
     within(async {
         let forge = FakeForge::new();
         let fixture = Fixture::new();
-        let node = start(&fixture, &forge).await;
+        // The forge's node, with the `vessel` server its agents are given.
+        let node = fixture
+            .start_with(|config| {
+                config.harness_lookup = lookup(&fixture);
+                config.forge = ForgeSetup {
+                    custom: Some(Arc::clone(&forge)),
+                    ..ForgeSetup::default()
+                };
+                config.vessel_mcp = Some(vessel_mcp(&fixture));
+            })
+            .await;
         let owner = fixture.connect(&node).await;
         let (_folder, project) = project(&owner).await;
         let worktree = new_worktree(&owner, project.id).await;
