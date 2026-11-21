@@ -37,6 +37,15 @@ test("the key bar sends Esc, Enter and the arrows, a set modifier with the next 
   await expect
     .poll(() => shown(typed.slice(from).join("")))
     .toBe("ESC[1;5AESCxESC\r");
+  await page
+    .getByRole("button", { name: "Find in terminal", exact: true })
+    .click();
+  const find = page.getByRole("search", { name: "Find in terminal" });
+  await find.getByRole("textbox").fill("ready");
+  await expect(find.getByRole("status")).toHaveText(/\d+ of \d+/);
+  await find.getByRole("button", { name: "Close find" }).click();
+  await expect(find).toHaveCount(0);
+  expect(shown(typed.slice(from).join(""))).toBe("ESC[1;5AESCxESC\r");
   // The soft keyboard's toggle: the terminal holds the focus, so it hides.
   const toggle = bar.getByTestId("terminal-keyboard-toggle");
   await expect(toggle).toHaveAttribute("aria-label", "Hide keyboard");

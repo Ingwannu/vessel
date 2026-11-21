@@ -387,6 +387,11 @@ that may only shrink; the list is empty since milestone 11). Milestone
 10's plan has the rules. `src/testing/` may be imported only by tests
 and `src/data/fixtures/`, which lint also holds.
 
+The shared terminal mount uses xterm.js for the rendered buffer. Its
+search adapter loads the MIT-licensed `@xterm/addon-search` only while
+a query is active. The session PTY and workspace terminal use the same
+pane and keyboard handling. See `docs/plans/page-terminal-find.md`.
+
 **Branded handles.** The generated declarations brand every handle a
 node, the bridge, a harness or the page's bridge client mints:
 `SessionId` is `string & { readonly __brand: "SessionId" }`, so a

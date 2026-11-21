@@ -1152,6 +1152,9 @@ browser on Unix (on Windows, open the printed address).
   change made on disk since it read the file. Lines selected in a diff
   or a file go into the composer's draft as a reference ("Add to
   chat"). A session opened as a terminal is the agent's own TUI.
+  With a terminal focused, `Ctrl+F` (`⌘F` on a Mac) finds text in its
+  screen and scrollback. Enter and Shift+Enter cycle through the matches.
+  Escape returns focus to the terminal. The compact terminal has a Find button.
   What you type is the session's draft until you send it: it survives
   leaving the session, a reload and a new launch. In an empty composer
   Up and Down bring back the prompts you sent. Find in the session
