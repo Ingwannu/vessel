@@ -37,9 +37,14 @@ fn a_read_on_a_claiming_machine_is_one_inbox_read_and_no_mark(cx: &mut TestAppCo
     let (shell, cx) = cx.add_window_view(move |window, cx| Shell::with_test_link(window, cx, link));
     cx.run_until_parked();
     cx.update(|window, _| window.activate_window());
+    cx.run_until_parked();
     while sent.try_recv().is_ok() {}
     let session = SessionId::random();
     shell.update_in(cx, |shell, window, cx| {
+        assert!(
+            window.is_window_active(),
+            "the read needs the window in front"
+        );
         shell.fleet = Fleet {
             machines: vec![Machine {
                 connection_epoch: None,
