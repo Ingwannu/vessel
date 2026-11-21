@@ -73,7 +73,11 @@ pub(super) fn entry(
     let words = paint.words;
     match &entry.kind {
         EntryKind::Prompt(prompt) => bubbles::person(paint, index, prompt, None, cx),
-        EntryKind::Steer { text, attachments } => bubbles::person(
+        EntryKind::Steer {
+            text,
+            attachments,
+            context,
+        } => bubbles::person(
             paint,
             index,
             &Prompt {
@@ -81,6 +85,7 @@ pub(super) fn entry(
                 replayed: false,
                 turn: 0,
                 attachments: attachments.clone(),
+                context: context.clone(),
             },
             Some(words.steered().to_owned()),
             cx,
