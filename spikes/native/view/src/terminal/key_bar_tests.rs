@@ -117,3 +117,26 @@ fn a_keyboard_key_takes_the_set_modifiers_with_those_held() {
     );
     assert!(sticky.is_empty());
 }
+
+#[test]
+fn a_keyboard_character_outside_ascii_goes_as_typed_and_clears() {
+    let mut sticky = Sticky::default();
+    sticky.toggle(Ctrl);
+    assert_eq!(
+        pressed(Key::Char('é'), Mods::NONE, &mut sticky, CursorKeys::Normal).as_deref(),
+        Some("é")
+    );
+    assert!(sticky.is_empty());
+    sticky.toggle(Alt);
+    assert_eq!(
+        pressed(
+            Key::Char('한'),
+            Mods::SHIFT,
+            &mut sticky,
+            CursorKeys::Normal
+        )
+        .as_deref(),
+        Some("한")
+    );
+    assert!(sticky.is_empty());
+}

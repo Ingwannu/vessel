@@ -176,11 +176,39 @@ fn goes_on_after_a_failed_send_without_repeating_it() {
     let _ = sender.keys("one");
     let first = sender.take();
     let _ = sender.keys("two");
-    sender.answered(); // failed: not repeated
+    sender.failed(); // not repeated
     assert_eq!(
         (first, sender.take()),
         (Some(keys("one")), Some(keys("two")))
     );
+}
+
+/// P4w node review note 1: a part of a long paste that fails ends the
+/// paste there, so it never lands with a hole; keys typed after it go.
+#[test]
+fn a_failed_part_drops_the_rest_of_its_paste_and_keys_after_it_go() {
+    let mut sender = TerminalSender::default();
+    let paste = "a".repeat(MAX_SEND_BYTES.saturating_mul(3));
+    assert_eq!(sender.paste(paste), Taken::Queued);
+    assert_eq!(sender.keys("x"), Taken::Queued);
+    let first = sender.take();
+    assert!(matches!(first, Some(Outgoing::Keys(part)) if part.len() == MAX_SEND_BYTES));
+    sender.failed();
+    assert_eq!(drain(&mut sender), [keys("x")]);
+    // A paste's room is given back with the parts dropped.
+    let whole = "b".repeat(MAX_PASTE_PENDING);
+    assert_eq!(sender.paste(whole), Taken::Queued);
+}
+
+/// A failed last part, or a failed send of keys, drops nothing more.
+#[test]
+fn a_failed_last_part_drops_nothing_after_it() {
+    let mut sender = TerminalSender::default();
+    assert_eq!(sender.paste("short".to_owned()), Taken::Queued);
+    assert_eq!(sender.keys("x"), Taken::Queued);
+    assert_eq!(sender.take(), Some(keys("short")));
+    sender.failed();
+    assert_eq!(drain(&mut sender), [keys("x")]);
 }
 
 #[test]

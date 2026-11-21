@@ -29,7 +29,10 @@
 //!   note 2: splitting the rest off moved it again on every send, about
 //!   8 GiB for a 32 MiB paste, on the window's thread).
 //! - Failures: a send that fails is not repeated (it may have been
-//!   applied); later items still go, in order.
+//!   applied); later items still go, in order. The rest of a paste whose
+//!   part failed is dropped, so a paste never lands with a hole in it
+//!   (P4w node review note 1): what got through is its start, and keys
+//!   typed after it still go.
 //! - Sizes (ADR 0116): each names a claim or an update. A size replacing a
 //!   queued claim keeps the claim, so a focus followed at once by a fit
 //!   still takes the terminal.
@@ -99,6 +102,8 @@ pub struct TerminalSender {
     /// Bytes of pastes queued.
     pasted: usize,
     busy: bool,
+    /// The send in flight is a part of a paste with more to go.
+    paste_continues: bool,
     closed: bool,
     overflowing: bool,
 }
@@ -196,6 +201,7 @@ impl TerminalSender {
             Some(Item::Typed(queued) | Item::Pasted(queued)) => queued.is_spent(),
             Some(Item::Resize { .. }) | None => true,
         };
+        self.paste_continues = !spent && matches!(self.items.front(), Some(Item::Pasted(_)));
         if spent {
             let _sent = self.items.pop_front();
         }
@@ -203,10 +209,22 @@ impl TerminalSender {
         Some(outgoing)
     }
 
-    /// The send in flight answered, well or not (a failed send is not
-    /// repeated). The next one may go.
+    /// The send in flight was taken. The next one may go.
     pub const fn answered(&mut self) {
         self.busy = false;
+    }
+
+    /// The send in flight was refused or lost: it is not repeated, and the
+    /// rest of a paste it was a part of is dropped. The next one may go.
+    pub fn failed(&mut self) {
+        self.busy = false;
+        if std::mem::take(&mut self.paste_continues)
+            && let Some(Item::Pasted(queued)) = self.items.front()
+        {
+            let rest = queued.text.len().saturating_sub(queued.at);
+            self.pasted = self.pasted.saturating_sub(rest);
+            let _dropped = self.items.pop_front();
+        }
     }
 
     /// Drop what has not been sent; send nothing more.
