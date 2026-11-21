@@ -38,6 +38,10 @@ const PADDING: u16 = 8;
 /// 10, less its side).
 const ADD: f32 = 22.0;
 const ADD_LEFT: f32 = 22.0;
+/// Its top: (the line's 20 less its 22) / 2, rounded down.
+const ADD_TOP: f32 = -1.0;
+/// A comment's edit and delete buttons, round.
+const ACTION: f32 = 26.0;
 
 /// geometry.ts `getInlineReviewThreadState`: the thread's least height,
 /// in whole points (counted in integers: the lints forbid float sums).
@@ -73,7 +77,7 @@ pub(in super::super) fn line(
     let add = div()
         .id(("review-add", index))
         .absolute()
-        .top(px(-1.0))
+        .top(px(ADD_TOP))
         .left(px(ADD_LEFT))
         .size(px(ADD))
         .rounded(px(radius::MD))
@@ -186,7 +190,7 @@ fn comment_block(
     let action = |name: &'static str, mark: Glyph, colour, label: &str| {
         div()
             .id((name, index))
-            .size(px(26.0))
+            .size(px(ACTION))
             .rounded_full()
             .flex()
             .items_center()
@@ -207,7 +211,7 @@ fn comment_block(
         .child(
             div()
                 .flex_1()
-                .min_w(px(0.0))
+                .min_w(px(spacing::S0))
                 .type_(Type::Body)
                 .text_color(neutral.foreground)
                 .line_clamp(2)
