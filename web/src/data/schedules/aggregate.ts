@@ -17,6 +17,8 @@ export function aggregate(state: ScheduleReads): ScheduleListView {
   let successes = 0;
   for (const [node, machine] of state.machines) {
     switch (machine.read.kind) {
+      case "offline":
+        break;
       case "failed":
         errors.push({ node, reason: machine.read.reason });
         break;

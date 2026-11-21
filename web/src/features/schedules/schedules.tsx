@@ -89,12 +89,6 @@ export function Schedules() {
   const retry = () => {
     if (reads.bookError !== null) void fleet.loadBook();
     schedules.retry();
-    for (const node of book) {
-      const state = connections[node.key]?.state;
-      if (state === "failed" || state === "reconnecting") {
-        void fleet.refresh(node.key);
-      }
-    }
   };
 
   if (view.phase === "loading") {

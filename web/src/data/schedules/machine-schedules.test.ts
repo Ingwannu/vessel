@@ -107,6 +107,27 @@ describe("machine schedules", () => {
     ]);
   });
 
+  it("skips offline machines and resolves a settled offline fleet as empty", () => {
+    const { controller, state, call } = setup();
+    controller.sync({
+      ...state,
+      statuses: {
+        [laptop.key]: {
+          state: "reconnecting",
+          message: "Offline",
+          attempt: 1,
+          retry_in_ms: 1000,
+        },
+      },
+    });
+    expect(call).not.toHaveBeenCalled();
+    expect(aggregate(controller.store.get())).toEqual({
+      phase: "ready",
+      rows: [],
+      errors: [],
+    });
+  });
+
   it("ignores an old connection's reply once a new connection has answered", async () => {
     const { controller, state, call } = setup();
     const old = deferred<ScheduleList>();

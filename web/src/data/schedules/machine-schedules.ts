@@ -10,6 +10,7 @@ import { type ScheduleAction, rowActions } from "./rows";
 
 type Read =
   | { kind: "loading" }
+  | { kind: "offline" }
   | { kind: "failed"; reason: string }
   | { kind: "ready"; schedules: readonly ScheduleInfo[] };
 
@@ -177,7 +178,9 @@ function initialRead(connection: NodeStatus | undefined): Read {
   switch (connection?.state) {
     case "failed":
     case "reconnecting":
-      return { kind: "failed", reason: "Could not load schedules" };
+      // A host that could not be asked is distinct from one that refused
+      // the request. The pane keeps the actual errors from connected hosts.
+      return { kind: "offline" };
     case "connected":
       return supportsSchedules(connection)
         ? { kind: "loading" }

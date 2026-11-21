@@ -26,9 +26,9 @@ ADR 0072 records the native consumer decisions.
   back another row. Presentation derives the filters and words from
   the controller snapshots.
 - Trade-offs. One slow machine leaves loaded rows from other machines
-  visible. Failed reads and disconnected book entries get a banner, so
-  the user can distinguish an incomplete fleet result from an empty
-  schedule list. Replies from a dropped connection are ignored and the
+  visible. Connected machines that refuse the request get a banner.
+  Offline machines are skipped until they reconnect, as in Paseo.
+  Replies from a dropped connection are ignored and the
   machine is read again after reconnect. Node end states include
   Creator gone and Unknown. The bridge uses each book entry's own
   connection, where the node authorizes every action. Agent-owned
