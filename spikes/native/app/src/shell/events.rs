@@ -17,6 +17,7 @@ impl Shell {
         match event {
             Event::CodeSource(answer) => self.code_source_answer(*answer),
             Event::Usage(answer) => self.usage_answer(answer, cx),
+            Event::Schedules(answer) => return self.schedules_answer(answer, cx),
             Event::Sessions(answer) => self.sessions_navigation_answer(answer, cx),
             Event::SessionLifecycle(answer) => self.sessions_lifecycle_answer(answer, cx),
             Event::Creation(answer) => self.creation_answer(answer, cx),
@@ -25,6 +26,7 @@ impl Shell {
             Event::Devices(answer) => self.devices_answer(answer, cx),
             Event::DeviceRetired(context) => {
                 self.history_retired(&context, cx);
+                self.schedules_retired(&context, cx);
                 if !self.devices_retired(&context) {
                     return;
                 }
@@ -127,6 +129,7 @@ impl Shell {
         self.labels_fleet(cx);
         self.refresh_fork_headers();
         self.plugin_catalogs_fleet();
+        self.schedules_fleet(cx);
         if self.route == Route::Settings {
             self.agent_load(false, cx);
         }

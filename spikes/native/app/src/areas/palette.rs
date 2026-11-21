@@ -169,6 +169,7 @@ impl Shell {
             Theme::ALL.map(|theme| (theme, words.theme(theme))),
             self.t.lang,
         );
+        all.push(PaletteEntry::schedules(self.words));
         if !settings::drawn(Section::Overview) {
             all.retain(|entry| !matches!(entry.target, PaletteTarget::Machine(_)));
         }
@@ -237,6 +238,7 @@ impl Shell {
             }
             PaletteTarget::AddMachine => self.go(Route::Pair, window, cx),
             PaletteTarget::Board => self.go(Route::Board, window, cx),
+            PaletteTarget::Schedules => self.go(Route::Schedules, window, cx),
             PaletteTarget::Settings(section) => self.open_settings(Some(section), window, cx),
             PaletteTarget::Machine(_) => {
                 self.open_settings(Some(Section::Overview), window, cx);

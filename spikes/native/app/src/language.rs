@@ -97,6 +97,7 @@ impl Shell {
         self.t = Lang::from_tag(words.locale().tag()).text();
         name_kit_controls(words, cx);
         self.refresh_general_words();
+        let _changed = self.schedules_changed(cx);
         self.refresh_preference_refusal();
         crate::areas::settings::apply_composer(self, window, cx);
         for refresh in PLACEHOLDERS {

@@ -93,6 +93,7 @@ pub mod sound {
     /// Nothing to play here.
     pub const fn play(_kind: vessel_app_view::notices::NoticeKind) {}
 }
+pub mod schedules;
 pub mod sync;
 pub mod terminals;
 pub mod usage;
@@ -235,6 +236,7 @@ impl Link {
             history_calls: history::Hub::default(),
             sync_calls: sync::Hub::default(),
             usage_calls: usage::Hub::default(),
+            schedule_calls: schedules::Hub::default(),
             session_navigation: sessions::Hub::default(),
             terminal_hub: terminals::Hub::default(),
             presence_hub: presence::Hub::default(),
@@ -319,6 +321,7 @@ struct State {
     history_calls: history::Hub,
     sync_calls: sync::Hub,
     usage_calls: usage::Hub,
+    schedule_calls: schedules::Hub,
     session_navigation: sessions::Hub,
     /// The terminal tabs' follows (`terminals`).
     terminal_hub: terminals::Hub,
