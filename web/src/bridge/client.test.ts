@@ -268,7 +268,8 @@ test("a page-side bug handling a frame neither refuses nor drops the key", async
   quiet.mockRestore();
 });
 
-test("a frame that is not JSON after the welcome redials instead of refusing", async () => {
+test("a frame that is not JSON after the welcome stops the link but keeps the key", async () => {
+  const quiet = vi.spyOn(console, "error").mockImplementation(() => undefined);
   const { bridge, socket } = start();
   const welcome = await answer(socket);
   socket.message(welcome);
@@ -277,8 +278,15 @@ test("a frame that is not JSON after the welcome redials instead of refusing", a
   });
   socket.dispatchEvent(new MessageEvent("message", { data: "{not json" }));
   await vi.waitFor(() => {
-    expect(bridge.link.kind).toBe("closed");
+    expect(bridge.link.kind).toBe("disconnected");
   });
+  // No redial of its own (it would meet the same frame every 500 ms).
+  expect(Socket.all.length).toBe(1);
+  expect(quiet).toHaveBeenCalled();
+  // Not a refusal: Retry dials again with the same key.
+  bridge.retry();
+  expect(Socket.all.length).toBe(2);
+  quiet.mockRestore();
 });
 
 test("a frame of the wrong shape after the welcome is a refusal", async () => {

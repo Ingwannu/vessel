@@ -484,6 +484,12 @@ An advertised route must still be reachable from the other device.
   proxies named, `400` otherwise; a request without it counts as the
   proxy). The node refuses to start with the header and no trusted
   proxy.
+- Before any of that, the node's address holds at most 512 sockets at
+  once, upgraded ones included, and 32 from one address (scaled as
+  above; loopback and a trusted proxy count only in the 512). A socket
+  past either gets `503`. A request's headers must arrive within 10 s,
+  or the connection is closed. A stopping node gives its connections
+  5 s to finish.
 - The device's credential is a file in `~/.config/vessel/credentials/`
   (0600); the book points to it and never holds the secret. Moving a
   device means pairing it again.
