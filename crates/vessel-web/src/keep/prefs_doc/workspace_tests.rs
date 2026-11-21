@@ -23,8 +23,16 @@ fn a_workspace_edit_preserves_other_choices_and_unread_fields() {
 
 #[test]
 fn the_terminal_change_accepts_only_the_buffer_range() {
-    for (lines, valid) in [("-1", false), ("0", true), ("1000000", true), ("1000001", false)] {
+    for (lines, valid) in [
+        ("-1", false),
+        ("0", true),
+        ("1000000", true),
+        ("1000001", false),
+    ] {
         let change = format!(r#"{{"set":"terminal_scrollback","value":{lines}}}"#);
-        assert_eq!(serde_json::from_str::<PreferenceChange>(&change).is_ok(), valid);
+        assert_eq!(
+            serde_json::from_str::<PreferenceChange>(&change).is_ok(),
+            valid
+        );
     }
 }

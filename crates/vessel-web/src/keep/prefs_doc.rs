@@ -31,8 +31,8 @@ use self::sections::{
 };
 use super::lenient::{Blank, Entries, Field};
 use crate::wire::{
-    ActionId, AgentDefaults, AgentKind, Bindings, OpenLocationSource, PreferenceChange, Preferences,
-    ShortcutTarget,
+    ActionId, AgentDefaults, AgentKind, Bindings, OpenLocationSource, PreferenceChange,
+    Preferences, ShortcutTarget,
 };
 
 /// The file's format.
@@ -288,7 +288,10 @@ impl PrefsDoc {
                 field.set(*destination);
             }
             PreferenceChange::PullRequestLocation(destination) => {
-                body.open_location.make_read().pull_requests.set(*destination);
+                body.open_location
+                    .make_read()
+                    .pull_requests
+                    .set(*destination);
             }
             PreferenceChange::InspectorPanel(panel) => {
                 body.layout.make_read().inspector.set(*panel);
