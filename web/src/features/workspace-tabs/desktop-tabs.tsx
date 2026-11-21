@@ -8,6 +8,7 @@ import {
   TabTitle,
   type TabChromeProps,
 } from "./chrome-parts";
+import { ProfileMenuGroup } from "./profile-rows";
 
 export function DesktopTabs(props: TabChromeProps) {
   const [over, setOver] = useState<{
@@ -159,6 +160,7 @@ export function DesktopTabs(props: TabChromeProps) {
         }
       >
         {menuRows(props.launch)}
+        <ProfileMenuGroup group={props.profiles} words={words} />
       </Menu>
     </div>
   );

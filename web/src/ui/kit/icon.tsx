@@ -24,6 +24,8 @@ export const ICON_NAMES = [
   "chevron-down",
   "chevron-up",
   "arrow-up",
+  "arrow-down",
+  "bot",
   "back",
   "stop",
   "shield",

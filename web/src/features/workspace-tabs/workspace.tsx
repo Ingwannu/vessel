@@ -190,6 +190,7 @@ export function Workspace({
         active={layout.active}
         words={words}
         launch={launch}
+        profiles={state.profiles}
         actions={lifecycle.actions}
         select={select}
         close={lifecycle.askClose}
@@ -197,7 +198,7 @@ export function Workspace({
         move={state.move}
       />
       {active === undefined ? (
-        <Launcher actions={launch} words={words} />
+        <Launcher actions={launch} profiles={state.profiles} words={words} />
       ) : null}
       {layout.tabs.map((tab) => {
         const key = tabKey(tab);
