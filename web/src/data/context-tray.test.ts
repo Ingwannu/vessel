@@ -39,6 +39,15 @@ describe("a session's context pills (TRACKER 833)", () => {
     expect(tray.pills.get()).toEqual([]);
   });
 
+  it("keeps a pill added again while the prompt was on its way", () => {
+    const tray = new ContextTray();
+    tray.add([pill("comment", "a", "older")]);
+    const carried = tray.pills.get();
+    tray.add([pill("comment", "a", "newer")]);
+    tray.sent(carried);
+    expect(tray.pills.get().map((kept) => kept.text)).toEqual(["newer"]);
+  });
+
   it("keeps one tray per session", () => {
     expect(contextOf("s1")).toBe(contextOf("s1"));
     expect(contextOf("s1")).not.toBe(contextOf("s2"));

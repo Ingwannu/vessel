@@ -21,8 +21,8 @@
 //   memory for the tab's life, as the page's file tray (data/trays.ts).
 //   A second add of the same kind and id replaces the first and moves to
 //   the end (Paseo's `appendWorkspaceAttachment`); a prompt that went
-//   takes only the pills it carried (one added meanwhile stays); a prompt
-//   the node refused leaves them all.
+//   takes only the pills it carried, by identity (one added, or added
+//   again, meanwhile stays); a prompt the node refused leaves them all.
 // - Cost: a reload forgets the pills (Paseo keeps a workspace file pill
 //   with its draft); a pill is text the page already holds, so nothing
 //   is fetched on Send.
@@ -129,12 +129,12 @@ export class ContextTray {
     );
   }
 
-  /** Take out the pills a prompt carried. */
+  /** Take out the pills a prompt carried: the same pills, not the same
+   * keys, so one added again while the prompt was on its way (a new pill
+   * in its place) stays (the node reviewer's 833 note). */
   sent(carried: readonly ContextPill[]): void {
-    const keys = new Set(carried.map(pillKey));
-    this.pills.update((current) =>
-      current.filter((pill) => !keys.has(pillKey(pill))),
-    );
+    const went = new Set(carried);
+    this.pills.update((current) => current.filter((pill) => !went.has(pill)));
   }
 }
 
