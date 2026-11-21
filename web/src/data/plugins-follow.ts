@@ -1,6 +1,8 @@
 // Following one machine's plugins while Settings › Plugins is open (ADR
 // 0115), and the order of a change: the parts of use-plugins.ts that decide
-// when to read, apart from React, so they are tested on their own.
+// when to read, apart from React, so they are tested on their own. The
+// plugin catalog's sync (catalog-sync.tsx) follows each machine the same
+// way.
 //
 // [Decision Log]
 // - Purpose: Paseo subscribes to `plugin_catalog_changed` again whenever its
@@ -27,6 +29,9 @@
 // - A change ends in Paseo's order (its mutation's onSuccess awaits the
 //   refresh): say what it did, read the list again, and only then let the
 //   controls go (R3). The old list is never clickable after a change.
+// - A read that fails starts over too (`reload` answers false): the
+//   catalog's sync has no Retry button, and a list it never read would
+//   otherwise stay until the next change (app review note 1).
 // - Cost: one long poll per open page, and after a failure, one retry every
 //   5 s until the page closes or the link drops.
 
@@ -41,8 +46,9 @@ const ANY = Number.MAX_SAFE_INTEGER;
 
 /** What following needs. */
 export interface Follow {
-  /** Read the list and the switch again. */
-  reload: () => Promise<void>;
+  /** Read again; false when the read failed, and following starts over
+   * after `RETRY_MS` as after a failed poll. */
+  reload: () => Promise<boolean>;
   /** `plugin.watch` after `after`. */
   poll: (after: number) => Promise<Outcome<number>>;
   /** Waits; pace.ts's by default (tests pass their own). */
@@ -62,8 +68,9 @@ export async function followPlugins(
   while (!halted(signal)) {
     const base = await follow.poll(ANY);
     if (halted(signal)) return;
-    await follow.reload();
-    if (base.ok) {
+    const read = await follow.reload();
+    if (halted(signal)) return;
+    if (base.ok && read) {
       let seen = base.value;
       for (;;) {
         const asked = now();
@@ -74,7 +81,7 @@ export async function followPlugins(
           await quietly(asked, signal);
         } else {
           seen = next.value;
-          await follow.reload();
+          if (!(await follow.reload())) break;
         }
         if (halted(signal)) return;
       }

@@ -47,6 +47,24 @@ pub fn removal_choices(reasons: &[KeptReason]) -> Vec<IfLost> {
     choices
 }
 
+/// The choices once the live terminals that alone keep it in use are to be
+/// ended first (ADR 0121): those the other reasons allow, the same buttons
+/// as without terminals. With no other reason both, as the page offers
+/// them: nothing is lost, so the node removes it either way and makes no
+/// snapshot.
+#[must_use]
+pub fn choices_ending_terminals(reasons: &[KeptReason]) -> Vec<IfLost> {
+    let others: Vec<KeptReason> = reasons
+        .iter()
+        .copied()
+        .filter(|reason| *reason != KeptReason::InUse)
+        .collect();
+    if others.is_empty() {
+        return vec![IfLost::Snapshot, IfLost::Discard];
+    }
+    removal_choices(&others)
+}
+
 #[cfg(test)]
 mod tests {
     use vessel_proto::workspace::GitOperation;
@@ -76,6 +94,22 @@ mod tests {
         );
         assert!(
             removal_choices(&[KeptReason::InUse, KeptReason::Uncommitted { files: 1 }]).is_empty()
+        );
+    }
+
+    #[test]
+    fn ending_its_terminals_offers_what_the_other_reasons_allow() {
+        assert_eq!(
+            choices_ending_terminals(&[KeptReason::InUse]),
+            [IfLost::Snapshot, IfLost::Discard]
+        );
+        assert_eq!(
+            choices_ending_terminals(&[KeptReason::InUse, KeptReason::Uncommitted { files: 1 }]),
+            [IfLost::Snapshot, IfLost::Discard]
+        );
+        assert_eq!(
+            choices_ending_terminals(&[KeptReason::InUse, KeptReason::Submodules]),
+            [IfLost::Discard]
         );
     }
 }

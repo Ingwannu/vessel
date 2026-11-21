@@ -60,14 +60,21 @@ impl Terminals {
     }
 
     /// End (and keep) the agents' terminals `session`'s end takes with it:
-    /// those its own agent opened (its credential ended with it) and any
-    /// agent's beside it.
+    /// those beside a session that its own agent opened (its credential
+    /// ended with it) and any agent's beside it. An agent's shell in a
+    /// workspace place (TRACKER 832) lives with that place, as a person's
+    /// there and as Paseo's agent terminals do (only the workspace's
+    /// archive ends them): the agent's end takes away its use of it, not
+    /// the shell.
     async fn end_agents_of(&self, here: NodeId, session: SessionId) {
         let handles = self.handles(|info| match info.created_by {
             Creator::Agent {
                 node,
                 session: agent,
-            } => (node == here && agent == session) || info.place.session() == Some(session),
+            } => info
+                .place
+                .session()
+                .is_some_and(|beside| beside == session || (node == here && agent == session)),
             Creator::Owner | Creator::Device { .. } => false,
         });
         self.end_all(&handles, false).await;

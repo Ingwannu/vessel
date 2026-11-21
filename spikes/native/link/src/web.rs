@@ -150,6 +150,7 @@ impl Link {
             Command::NodeSettings(ask) => self.emit(refuse::node_settings(ask)),
             Command::Diagnostics(ask) => self.emit(refuse::diagnostics(ask)),
             Command::Plugins(ask) => self.emit(refuse::plugins(ask)),
+            Command::PluginCatalog(ask) => self.emit(refuse::plugin_catalog(ask)),
             Command::Pair { .. } => self.emit(refuse::pair()),
             Command::Act {
                 machine,

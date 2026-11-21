@@ -269,12 +269,7 @@ impl Shell {
                     IfLost::Discard => Some(labels.nothing_removed.to_owned()),
                 };
                 if let Some(worktree) = info {
-                    detail.removing = Some(Removing {
-                        worktree,
-                        reasons,
-                        busy: None,
-                        error,
-                    });
+                    detail.removing = Some(Removing::new(worktree, reasons, error));
                 }
             }
             Err(problem) => {
@@ -291,6 +286,7 @@ impl Shell {
         if notice.is_some() {
             self.notice = notice;
         }
+        self.removal_count_terminals(machine);
         self.ask(
             machine,
             Ask::Worktree(WorktreeAsk::List(ListWorktrees {
@@ -602,7 +598,7 @@ fn worktrees(shell: &Shell, detail: &Detail, tokens: &Tokens, cx: &mut Context<'
                 tokens,
             )
             .on_click(cx.listener(move |this, _event, _window, cx| {
-                this.worktree_action(remove::remove_ask(id, IfLost::Keep), cx);
+                this.worktree_action(remove::remove_ask(id, IfLost::Keep, false), cx);
             })),
         );
         list = list.child(divided(

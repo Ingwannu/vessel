@@ -54,6 +54,12 @@ pub struct NodeSettings {
     /// `pluginsEnabled`, default off); hidden below `PLUGINS_PROTOCOL`.
     #[serde(default, skip_serializing_if = "core::ops::Not::not")]
     pub plugins_enabled: bool,
+    /// Whether the node installs its terminal activity hooks into the
+    /// agents' own configuration (ADR 0089, Paseo's
+    /// `enableTerminalAgentHooks`, default off); hidden below
+    /// `ATTENTION_NOTIFICATIONS_PROTOCOL`, as the feature's other fields are.
+    #[serde(default, skip_serializing_if = "core::ops::Not::not")]
+    pub terminal_agent_hooks: bool,
 }
 
 impl NodeSettings {
@@ -69,8 +75,30 @@ impl NodeSettings {
             None => recovery,
         };
         let base = named.as_ref().unwrap_or(self);
-        base.for_plugins_protocol(protocol, crate::plugins::PLUGINS_PROTOCOL)
-            .or(named)
+        let plugins = base
+            .for_plugins_protocol(protocol, crate::plugins::PLUGINS_PROTOCOL)
+            .or(named);
+        let base = plugins.as_ref().unwrap_or(self);
+        base.for_hooks_protocol(
+            protocol,
+            crate::notifications::ATTENTION_NOTIFICATIONS_PROTOCOL,
+        )
+        .or(plugins)
+    }
+
+    /// The terminal agent hooks switch (ADR 0089) stays hidden from a peer
+    /// below the feature's protocol, as the plugin switch does below its own.
+    fn for_hooks_protocol(
+        &self,
+        protocol: crate::ProtocolVersion,
+        assigned: Option<crate::ProtocolVersion>,
+    ) -> Option<Self> {
+        let readable = assigned.is_some_and(|version| protocol >= version);
+        (!readable && self.terminal_agent_hooks).then(|| {
+            let mut older = self.clone();
+            older.terminal_agent_hooks = false;
+            older
+        })
     }
 
     /// The plugin switch (ADR 0115) stays hidden from a peer below its
@@ -242,6 +270,11 @@ pub struct SetNodeSettings {
     /// Turn installed plugins on or off on this node, at once (ADR 0115).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub plugins_enabled: Option<bool>,
+    /// Install or remove the terminal activity hooks in the agents' own
+    /// configuration, at once (ADR 0089). Refused until
+    /// `ATTENTION_NOTIFICATIONS_PROTOCOL` is assigned.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub terminal_agent_hooks: Option<bool>,
 }
 
 #[cfg(test)]
@@ -259,6 +292,7 @@ mod tests {
             },
             metadata: None,
             plugins_enabled: false,
+            terminal_agent_hooks: false,
         };
         let required = crate::PROTOCOL_VERSION;
         let older = crate::ProtocolVersion::new(required.get().checked_sub(1).unwrap());
@@ -304,6 +338,60 @@ mod tests {
         assert_eq!(on.for_plugins_protocol(required, None), Some(off));
         let change: SetNodeSettings = serde_json::from_str(r#"{"plugins_enabled":true}"#).unwrap();
         assert_eq!(change.plugins_enabled, Some(true));
+    }
+
+    /// The terminal agent hooks switch (ADR 0089) reaches only peers of the
+    /// feature's protocol, is absent from the wire while off, and is hidden
+    /// from every peer while the protocol is unassigned.
+    #[test]
+    fn hooks_switch_is_hidden_below_the_attention_protocol_and_absent_while_off() {
+        let off: NodeSettings = serde_json::from_str(r#"{"park_after":{"kind":"never"}}"#).unwrap();
+        assert!(!off.terminal_agent_hooks);
+        assert!(
+            !serde_json::to_string(&off)
+                .unwrap()
+                .contains("terminal_agent_hooks"),
+            "absent while off"
+        );
+        let on = NodeSettings {
+            terminal_agent_hooks: true,
+            ..off.clone()
+        };
+        assert!(
+            serde_json::to_string(&on)
+                .unwrap()
+                .contains("terminal_agent_hooks")
+        );
+        let required = crate::ProtocolVersion::new(41);
+        let older = crate::ProtocolVersion::new(40);
+        assert_eq!(on.for_hooks_protocol(required, Some(required)), None);
+        assert_eq!(
+            on.for_hooks_protocol(older, Some(required)),
+            Some(off.clone())
+        );
+        assert_eq!(on.for_hooks_protocol(required, None), Some(off.clone()));
+        if crate::notifications::ATTENTION_NOTIFICATIONS_PROTOCOL.is_none() {
+            assert_eq!(on.for_protocol(crate::PROTOCOL_VERSION), Some(off));
+        }
+        let change: SetNodeSettings =
+            serde_json::from_str(r#"{"terminal_agent_hooks":true}"#).unwrap();
+        assert_eq!(change.terminal_agent_hooks, Some(true));
+        // A change naming it, on or off, needs the attention protocol, and
+        // is refused while that is unassigned (`rpc/since.rs`).
+        for named in [Some(true), Some(false)] {
+            let call = crate::Call::SetNodeSettings(SetNodeSettings {
+                terminal_agent_hooks: named,
+                ..SetNodeSettings::default()
+            });
+            match crate::notifications::ATTENTION_NOTIFICATIONS_PROTOCOL {
+                None => assert_eq!(call.required_protocol(), None, "{named:?}"),
+                Some(assigned) => {
+                    assert!(call.required_protocol() >= Some(assigned), "{named:?}");
+                }
+            }
+        }
+        let unnamed = crate::Call::SetNodeSettings(SetNodeSettings::default());
+        assert!(unnamed.required_protocol().is_some());
     }
 
     /// A node of 17 answers without `drivers`: every agent over ACP. A

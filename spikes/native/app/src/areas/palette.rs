@@ -16,7 +16,7 @@ mod rows;
 
 pub(crate) use entry::{sidebar_row, title_trigger};
 
-use rows::{child_at, glyph_of, ids, keys_of, subtitle};
+use rows::{child_at, glyph_of, heading, ids, keys_of, subtitle};
 
 use gpui::ScrollHandle;
 use vessel_app_kit::command::{
@@ -172,6 +172,21 @@ impl Shell {
         if !settings::drawn(Section::Overview) {
             all.retain(|entry| !matches!(entry.target, PaletteTarget::Machine(_)));
         }
+        // The machines' plugin items, a section per plugin id in the order
+        // first listed (Paseo's `plugin:<id>` groups).
+        let mut sections: Vec<vessel_proto::plugins::PluginId> = Vec::new();
+        let place = self.plugin_place();
+        for command in self.areas.plugin_catalogs.commands(&place) {
+            let at = sections
+                .iter()
+                .position(|plugin| *plugin == command.plugin)
+                .unwrap_or_else(|| {
+                    sections.push(command.plugin.clone());
+                    sections.len().saturating_sub(1)
+                });
+            let section = u16::try_from(at).unwrap_or(u16::MAX);
+            all.push(Entry::plugin(&command, section));
+        }
         all
     }
 
@@ -244,6 +259,7 @@ impl Shell {
             PaletteTarget::Theme(theme) => {
                 self.prefer(&PreferenceChange::Theme(theme), window, cx);
             }
+            PaletteTarget::Plugin { command, .. } => self.run_plugin_command(&command),
         }
     }
 }
@@ -278,7 +294,10 @@ pub(crate) fn render(
     } else {
         let mut children: Vec<AnyElement> = Vec::new();
         for (at, (group, entries)) in groups.iter().enumerate() {
-            children.push(command_heading(words.group(*group), at == 0, tokens).into_any_element());
+            children.push(
+                command_heading(heading(*group, entries, words), at == 0, tokens)
+                    .into_any_element(),
+            );
             for entry in entries {
                 let row = CommandRowParts {
                     glyph: Some(glyph_of(&entry.target)),

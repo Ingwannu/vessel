@@ -1,10 +1,13 @@
 //! Exact client tokens are resolved before attachments or optimistic delivery.
-//! Lifecycle owns the archive acknowledgement; this adapter never clears text.
+//! Lifecycle owns the archive acknowledgement; this adapter never clears text,
+//! except after a plugin command, which Paseo's composer empties at once.
 
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_view::composer::drafts::DraftKey;
+use vessel_app_view::composer_shell::catalog::{Entry, plugin_call};
 use vessel_app_view::composer_shell::commands::{ClientCommand, Context as CommandContext};
 use vessel_app_view::composer_shell::surface::{Access, Mode};
+use vessel_app_view::plugins::PluginSlash;
 
 use crate::{routes::Route, shell::Shell};
 
@@ -39,13 +42,45 @@ impl Shell {
             CommandContext::TextOnly
         };
         let Some(command) = ClientCommand::parse(text, context) else {
-            return false;
+            if !self.composer_plugin_command(text, context, window, cx) {
+                return false;
+            }
+            self.areas.composer_shell.collapse(target);
+            return true;
         };
         self.areas.composer_shell.collapse(target);
         match command {
             ClientCommand::Exit => self.composer_exit(window, cx),
             ClientCommand::Clear => self.composer_fresh(window, cx),
         }
+        true
+    }
+
+    /// A submitted `/name args` naming one of the session machine's plugin
+    /// commands runs its method instead of going to the agent (Paseo's
+    /// `resolvePluginClientSlashCommand`, ADR 0115): the composer empties
+    /// at once and a failure is a toast. With files or context attached the
+    /// text goes to the agent, as Paseo's.
+    fn composer_plugin_command(
+        &mut self,
+        text: &str,
+        context: CommandContext,
+        window: &mut Window,
+        cx: &mut Context<'_, Self>,
+    ) -> bool {
+        let place = self.plugin_place();
+        let commands = self.session_plugin_slash();
+        let entries: Vec<Entry<'_, PluginSlash>> = commands
+            .iter()
+            .map(|command| Entry::plugin(&command.name, *command))
+            .collect();
+        let call = plugin_call(text, context, &entries)
+            .and_then(|(command, arguments)| command.call(arguments.as_str(), &place));
+        let Some(call) = call else {
+            return false;
+        };
+        self.run_plugin_call(call);
+        self.session_composer_sent(window, cx);
         true
     }
 }

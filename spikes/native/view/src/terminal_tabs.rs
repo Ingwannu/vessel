@@ -24,13 +24,17 @@
 use vessel_proto::terminals::{TerminalInfo, TerminalKind, TerminalList, TerminalPlace};
 use vessel_proto::{ErrorCode, TerminalId};
 
+pub mod places;
+
+pub use places::{beside_sessions, in_place, place_for, workspace_places, workspace_sessions};
+
 /// The terminals `place` shows as tabs: its live shells, by id.
 #[must_use]
 pub fn standalone(list: &TerminalList, place: &TerminalPlace) -> Vec<TerminalId> {
     let mut ids: Vec<TerminalId> = list
         .terminals
         .iter()
-        .filter(|info| info.place == *place && shows_as_tab(info))
+        .filter(|info| in_place(info, place) && shows_as_tab(info))
         .map(|info| info.id)
         .collect();
     ids.sort_unstable();

@@ -104,5 +104,6 @@ fn settings() -> NodeSettings {
         },
         metadata: None,
         plugins_enabled: false,
+        terminal_agent_hooks: false,
     }
 }

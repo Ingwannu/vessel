@@ -112,7 +112,12 @@ impl Shell {
                 result,
                 waits,
             } => {
-                self.terminal_tabs_listed(&machine, &place, result.as_ref().ok(), waits);
+                if !self.terminal_tabs_beside_listed(&machine, &place, result.as_ref().ok()) {
+                    self.terminal_tabs_listed(&machine, &place, result.as_ref().ok(), waits);
+                }
+            }
+            Reply::ListedAll { result } => {
+                self.removal_terminals_listed(&machine, result.as_ref().ok(), cx);
             }
             Reply::Following(info) => {
                 let key = key(info.id);

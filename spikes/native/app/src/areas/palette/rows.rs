@@ -66,6 +66,35 @@ pub(super) const fn glyph_of(target: &Target) -> Glyph {
             | Theme::Ghostty
             | Theme::PureBlack,
         ) => Glyph::Moon,
+        // Paseo's plugin item icon falls back to its `Blocks` plugin icon.
+        PaletteTarget::Plugin { .. } => Glyph::Blocks,
+    }
+}
+
+/// A group's heading: the palette's word for it, or for a plugin's
+/// section the plugin's id (Paseo's `sectionTitle: plugin.id`), read from
+/// its entries.
+pub(super) fn heading(
+    group: PaletteGroup,
+    entries: &[&Entry],
+    words: &vessel_app_view::PaletteWords,
+) -> SharedString {
+    match group {
+        PaletteGroup::Plugin(_) => entries
+            .first()
+            .and_then(|entry| {
+                if let PaletteTarget::Plugin { plugin, .. } = &entry.target {
+                    Some(SharedString::from(plugin.to_string()))
+                } else {
+                    None
+                }
+            })
+            .unwrap_or_default(),
+        PaletteGroup::Actions
+        | PaletteGroup::GoTo
+        | PaletteGroup::Machines
+        | PaletteGroup::Sessions
+        | PaletteGroup::Theme => SharedString::from(words.group(group)),
     }
 }
 
@@ -108,7 +137,8 @@ const fn action_of(target: &Target) -> Option<Action> {
         PaletteTarget::AddMachine
         | PaletteTarget::Machine(_)
         | PaletteTarget::Session { .. }
-        | PaletteTarget::Theme(_) => None,
+        | PaletteTarget::Theme(_)
+        | PaletteTarget::Plugin { .. } => None,
     }
 }
 
