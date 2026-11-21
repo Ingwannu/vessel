@@ -18,24 +18,28 @@ export function useTerminalProfiles(
   enabled: boolean,
 ): readonly TerminalProfile[] {
   const fleet = useFleet();
-  const [profiles, setProfiles] = useState<readonly TerminalProfile[]>([]);
+  // Kept with the machine it was read from, so another machine's list is
+  // never shown while this one's is read.
+  const [read, setRead] = useState<{
+    node: NodeKey;
+    profiles: readonly TerminalProfile[];
+  } | null>(null);
   const served = enabled && profilesServed(protocol);
   useEffect(() => {
     if (!served) {
-      setProfiles([]);
       return undefined;
     }
     let live = true;
-    const read = async () => {
+    const load = async () => {
       const result = await readProfiles(fleet, node);
       if (live) {
-        setProfiles(result.ok ? result.value : []);
+        setRead({ node, profiles: result.ok ? result.value : [] });
       }
     };
-    void read();
+    void load();
     const again = () => {
       if (document.visibilityState === "visible") {
-        void read();
+        void load();
       }
     };
     window.addEventListener("focus", again);
@@ -46,5 +50,7 @@ export function useTerminalProfiles(
       document.removeEventListener("visibilitychange", again);
     };
   }, [fleet, node, served]);
-  return profiles;
+  return served && read?.node === node ? read.profiles : NONE;
 }
+
+const NONE: readonly TerminalProfile[] = [];
