@@ -1828,7 +1828,7 @@ raw: RawJson, } | { "type": "attachment",
 /**
  * Which, and what it is.
  */
-attachment: AttachmentRef, };
+attachment: AttachmentRef, } | { "type": "context" } & PromptContext | { "type": "review" } & PromptReview;
 
 /**
  * SHA-256 of a file's content, hexadecimal.
@@ -1865,6 +1865,29 @@ freshness: Freshness,
  * True only for a server report explicitly covering the whole workspace.
  */
 workspace_complete: boolean, };
+
+/**
+ * What a context is (Paseo's attachment kinds), for its pill's mark and
+ * words.
+ */
+export type ContextKind = "pull_comment" | "pull_review" | "pull_check" | "workspace_file" | "browser_element" | "chat_history" | "forge_issue" | "forge_change_request" | "plugin_resource";
+
+/**
+ * What the agent reads of a context: at most [`BLOCK_BYTES`] bytes,
+ * not blank, no NUL.
+ */
+export type ContextText = string;
+
+/**
+ * A pill's title or subtitle: one line of 1 to [`TITLE_CHARS`]
+ * characters.
+ */
+export type ContextTitle = string;
+
+/**
+ * A context's page: `https` or `http`, at most 2 KiB, no white space.
+ */
+export type ContextUrl = string;
 
 /**
  * How full the session's context is, from the agent's last
@@ -8129,6 +8152,33 @@ reason: CloneFailure,
 message: string, } | { "state": "missing" } | { "state": "unknown" };
 
 /**
+ * One piece of context sent with a prompt (Paseo's titled `text`
+ * attachment): the agent reads `text`; a timeline draws the pill.
+ */
+export type PromptContext = { 
+/**
+ * What it is.
+ */
+kind: ContextKind, 
+/**
+ * The pill's first line.
+ */
+title: ContextTitle, 
+/**
+ * The pill's second line, when the kind's word is not enough (a
+ * file's path).
+ */
+subtitle?: ContextTitle | null, 
+/**
+ * What the agent reads.
+ */
+text: ContextText, 
+/**
+ * Its page, when it has one.
+ */
+url?: ContextUrl | null, };
+
+/**
  * Reply to `prompt.list`.
  */
 export type PromptList = { 
@@ -8155,6 +8205,27 @@ entries: Array<QueuedPrompt>,
  * Why it does not move on its own; absent while it does.
  */
 held?: QueueHold | null, };
+
+/**
+ * A diff review sent with a prompt (Paseo's `review` attachment).
+ */
+export type PromptReview = { 
+/**
+ * The workspace's folder, as the agent's text names it.
+ */
+root: ReviewText, 
+/**
+ * Which changes the comments were made on.
+ */
+mode: ReviewMode, 
+/**
+ * The base or commit those changes are against, when there is one.
+ */
+base?: ReviewText | null, 
+/**
+ * The comments, in the order the agent reads them.
+ */
+comments: Array<ReviewComment>, };
 
 /**
  * `session.prompt`: send a prompt, delivered as asked. Needs `operate`.
@@ -9696,14 +9767,98 @@ export type ResumeSession = {
 session: SessionId, };
 
 /**
+ * A reviewer's words on one line: at most [`BODY_BYTES`] bytes, not
+ * blank, no NUL.
+ */
+export type ReviewBody = string;
+
+/**
+ * One comment on a line of the diff, with the lines around it.
+ */
+export type ReviewComment = { 
+/**
+ * The file, under the review's root.
+ */
+path: RelPath, 
+/**
+ * The side its line is on.
+ */
+side: ReviewSide, 
+/**
+ * The line's number on that side.
+ */
+line: number, 
+/**
+ * What the reviewer wrote.
+ */
+body: ReviewBody, 
+/**
+ * The hunk's header (`@@ -a,b +c,d @@ …`).
+ */
+hunk_header: ReviewText, 
+/**
+ * The commented line.
+ */
+target: ReviewLine, 
+/**
+ * The lines around it within its hunk, the commented one included, at
+ * most [`MAX_LINES`].
+ */
+lines: Array<ReviewLine>, };
+
+/**
  * The forge's review verdict.
  */
 export type ReviewDecision = "approved" | "changes_requested" | "review_required" | "none" | "unknown";
 
 /**
+ * One line of the diff around a comment.
+ */
+export type ReviewLine = { 
+/**
+ * Its number on the old side; absent for an added line.
+ */
+old?: number | null, 
+/**
+ * Its number on the new side; absent for a removed line.
+ */
+new?: number | null, 
+/**
+ * What it does.
+ */
+kind: ReviewLineKind, 
+/**
+ * Its text, without the diff's marker.
+ */
+content: ReviewText, };
+
+/**
+ * What a diff line does.
+ */
+export type ReviewLineKind = "add" | "remove" | "context";
+
+/**
+ * Which changes a review's comments were made on: the Changes pane's
+ * scope (`workspace::DiffScope`'s kinds; Paseo's `uncommitted`, `base`
+ * and `all`).
+ */
+export type ReviewMode = "unstaged" | "staged" | "uncommitted" | "base" | "commit";
+
+/**
+ * Which side of the diff a comment is on.
+ */
+export type ReviewSide = "old" | "new";
+
+/**
  * What a review said, as Paseo's pane groups it.
  */
 export type ReviewState = "approved" | "changes_requested" | "commented" | "unknown";
+
+/**
+ * One line of a diff, a hunk header, a review's root or base: no line
+ * break or NUL, at most 4 KiB.
+ */
+export type ReviewText = string;
 
 /**
  * People's reviews on the current head, the latest per person, bots
@@ -14733,3 +14888,8 @@ export const ATTENTION_NOTIFICATIONS_PROTOCOL = null;
  * a catalog entry using `card`, the settings controls or `open_settings` (ADR 0115, "Surfaces").
  */
 export const PLUGIN_SURFACES_PROTOCOL = 44;
+
+/**
+ * A prompt's `context` and `review` blocks (ADR 0124).
+ */
+export const PROMPT_CONTEXT_PROTOCOL = 46;
