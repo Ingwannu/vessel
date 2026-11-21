@@ -136,6 +136,9 @@ impl Core {
                 if self.client.is_some() {
                     return Err(ProtocolViolation::Ordering.into());
                 }
+                client
+                    .check_settings(&settings)
+                    .map_err(|_undeclared| ProtocolViolation::UndeclaredSettings)?;
                 self.client = Some(Arc::new(client));
                 self.hooks = hooks;
                 self.settings = Arc::new(settings);
@@ -150,6 +153,9 @@ impl Core {
             HelperToNode::Fatal { diagnostic: _ } => return Err(RuntimeError::Fatal),
             HelperToNode::ClientChanged { client } => {
                 let old = self.client.as_ref().ok_or(ProtocolViolation::Ordering)?;
+                client
+                    .check_settings(&self.settings)
+                    .map_err(|_undeclared| ProtocolViolation::UndeclaredSettings)?;
                 if old.as_ref() != &client {
                     self.revoke()?;
                     self.client = Some(Arc::new(client));

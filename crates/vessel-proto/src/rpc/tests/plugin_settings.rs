@@ -1,5 +1,5 @@
 //! ADR 0115's settings documents (`PLUGIN_SETTINGS_PROTOCOL`): three Admin
-//! calls after the catalog, never across a fleet hop, the newest protocol.
+//! calls after the catalog, never across a fleet hop.
 
 use super::*;
 use crate::plugins::{PLUGIN_CATALOG_PROTOCOL, PLUGIN_SETTINGS_PROTOCOL};
@@ -24,5 +24,5 @@ fn plugin_settings_are_an_administrators_and_come_after_the_catalog() {
         ]
     );
     assert!(PLUGIN_CATALOG_PROTOCOL < PLUGIN_SETTINGS_PROTOCOL);
-    assert_eq!(PLUGIN_SETTINGS_PROTOCOL, Some(crate::PROTOCOL_VERSION));
+    assert!(PLUGIN_SETTINGS_PROTOCOL <= Some(crate::PROTOCOL_VERSION));
 }

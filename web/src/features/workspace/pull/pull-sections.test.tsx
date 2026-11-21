@@ -6,7 +6,7 @@ import { pullWords } from "../../../data/workspace/pull/words";
 import type { Checks, TimelineItem } from "../../../wire/proto";
 import { PullActivity } from "./pull-activity";
 import { PullChecks } from "./pull-checks";
-import { PullTooOld } from "./pull-pane";
+import { PullNotice } from "./pull-pane";
 
 const NOW = Date.parse("2026-11-20T12:00:00Z");
 const words = pullWords("en-US");
@@ -141,9 +141,25 @@ describe("the pull request pane's sections (TRACKER 430)", () => {
   });
 
   it("says why a machine before protocol 39 shows no pull request", () => {
-    const html = renderToStaticMarkup(<PullTooOld language="en-US" />);
+    const html = renderToStaticMarkup(
+      <PullNotice reach="old" language="en-US" />,
+    );
     expect(html).toContain("Update Vessel on this machine");
-    const ko = renderToStaticMarkup(<PullTooOld language="ko-KR" />);
+    const ko = renderToStaticMarkup(
+      <PullNotice reach="old" language="ko-KR" />,
+    );
     expect(ko).toContain("이 머신의 Vessel을 업데이트하세요");
+  });
+
+  it("says a machine not connected is offline, not too old", () => {
+    const html = renderToStaticMarkup(
+      <PullNotice reach="offline" language="en-US" />,
+    );
+    expect(html).toContain("This machine is offline");
+    expect(html).not.toContain("Update Vessel");
+    const ko = renderToStaticMarkup(
+      <PullNotice reach="offline" language="ko-KR" />,
+    );
+    expect(ko).toContain("이 머신이 오프라인입니다");
   });
 });

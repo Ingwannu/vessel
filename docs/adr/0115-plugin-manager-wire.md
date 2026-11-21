@@ -314,9 +314,94 @@ docs/plugins.md:739-753.
 - **Lifecycle.** Values survive node restart, reload, disable and update.
   Remove deletes the installation's folder after any write in flight.
   Reinstalling the id starts from defaults.
-- **No UI yet.** Settings screens come with P3b's declarative surfaces, which
-  bind a document by id.
+- **UI.** Settings screens bind a document by id; see "Surfaces" below.
 - **Protocol.** 43 (`PLUGIN_SETTINGS_PROTOCOL`), after the origin link's 42; assigned at its node-line merge.
+
+### Surfaces (2026-11-21, P3b-1; coordinator ruling 2026-11-21)
+
+Paseo 0.15.4 lets a plugin add screens, sidebar header and footer items and
+settings screens as React components
+(public-docs/plugins/reference.md:637-846 and 1302-1352). Paseo owns the
+route, header, back and error boundary; the plugin owns the body. Its
+settings screens are listed in the plugin row's menu on Settings › Plugins
+(packages/app/src/screens/settings/plugins-page.tsx:86,
+packages/app/src/plugins/settings/index.tsx:44-153), titled
+`<plugin id> · <title>` (packages/app/src/screens/settings-screen.tsx:1314-1321),
+and built from `SettingsSection`, `SettingsCard`, `SettingsRow`,
+`SettingsSwitch`, `SettingsSelect`, `SettingsInput` and `SettingsAction`
+(packages/app/src/components/settings/index.tsx:44-199) bound to
+`useSettings` (packages/app/src/plugins/settings/use-settings.ts:16-85).
+Vessel draws the reviewed declarative `Surface` (ADR 0079) with its own
+controls instead, so the binding is data:
+
+| Control | Fields | Behaviour |
+|---|---|---|
+| `card` | `surface` | Paseo's `SettingsCard`: one card, a divider between direct children |
+| `settings_switch` | `settings`, `key`, `label`, `hint?` | Saves at once: `{...values, key: bool}` at the loaded revision |
+| `settings_select` | `settings`, `key`, `label`, `hint?`, `options` | Saves at once with the option's id as the string |
+| `settings_input` | `settings`, `key`, `label`, `hint?`, `placeholder?`, `mode` (`plain` or `secret`) | Keeps a draft; Enter saves it at the revision taken when the draft began; Escape discards it |
+
+`Action::OpenSettings {screen}` is Paseo's `openSettings(id)`
+(packages/app/src/plugins/actions.ts:36-40). It opens a settings screen of
+the same document, as `OpenScreen` opens a screen.
+
+- **Validation.**
+  - A bound document must be one the same helper declared in `ready`. The
+    actor refuses a `ready` or a `client_changed` that binds another
+    document (a protocol violation).
+  - A client-only plugin has no settings: a `client` file that binds one
+    fails the start ("it binds settings, and a plugin without a helper has
+    none").
+  - `open_settings` names a declared settings screen.
+  - A select's options are nonempty and distinct.
+  - **Stated limit:** `key` is one top-level property, an ASCII identifier
+    (`^[A-Za-z_][A-Za-z0-9_]{0,63}$`), with no nested paths. A select's
+    values are option ids (lowercase identifiers).
+- **States** follow `useSettings`:
+  - `loading`: no default is drawn as if it were saved;
+  - `ready`;
+  - `invalid`: the bounded error and "Reset to defaults", since a reset
+    recovers invalid stored data;
+  - `error`: Retry.
+  - A conflict keeps the draft and shows Paseo's words with Reload; an
+    invalid answer shows the bounded message on its row.
+  - Drafts are keyed by machine, plugin, document and key.
+  - `plugin.watch` moving re-reads the documents a screen shows.
+- **Read devices (stated difference; Paseo has no such tier).** A device
+  holding `read` draws screens: text, Markdown and layout render, and every
+  control that invokes a method renders disabled, with one muted line at
+  the top of the surface ("Changing this needs admin access to <machine>").
+  Settings screens are hidden there, as `plugin.settings.read` is Admin.
+  Commands and slash commands stay hidden without `may_invoke`, as decided
+  above.
+- **No screen params (stated difference).** Paseo's `openScreen({screenId,
+  params})` passes strings to a component that fetches its own data. A
+  Vessel surface is a static document; a helper changes what a screen shows
+  by declaring again (`client_changed`, which moves the catalog).
+- **What a control sends** (the authors' contract, as Paseo's `onSubmit`
+  gets its context):
+  - `text_field` invokes its method with `{value: <text>}`;
+  - `choice` with `{value: <option id>}`;
+  - `toggle` with `{value: <bool>}`;
+  - a slash command with `{arguments: <text>}`.
+  - Each call carries the context it was taken in: `global` for screens and
+    settings, `workspace` or `agent` for panels.
+- **Compatibility.**
+  - A native app decodes the catalog strictly, so a kind it does not know
+    fails the whole reply.
+  - Each entry's `required_client` is the oldest protocol that decodes every
+    kind its document uses: the catalog's for the first kinds, and this
+    protocol for `card`, the settings controls and `open_settings`.
+  - `plugin.catalog` leaves out an entry above the caller's negotiated
+    protocol. The rest of the reply still decodes, and the plugin appears
+    once the client is updated.
+  - Refusing new kinds while an older client is connected was the
+    alternative; it cannot be decided when a helper declares.
+- **Protocol.** Assigned 44 (`PLUGIN_SURFACES_PROTOCOL`) at its node-line
+  merge, after the settings' 43; no method is added.
+- **Order.** The node part comes first. Then the page and the app draw
+  screens, sidebar items and settings screens. Panels (P3b-2), then header
+  buttons and composer pills (P3b-3), follow.
 
 ## Alternatives
 
@@ -345,6 +430,9 @@ docs/plugins.md:739-753.
 - The catalog and invoke (2026-11-20) add two methods at their own protocol,
   with the same tables; `plugin.catalog` is a stated scope difference from
   Paseo (Read instead of `daemon.manage`).
-- Not in this record: plugin settings (their own note first), screens and
-  other surfaces (P3b), lifecycle hooks (P5), agent tools, providers, usage
+- The surfaces (2026-11-21) add declaration kinds at their own protocol and
+  no method; an entry using them is left out for an older caller. Read
+  devices and the missing screen params are stated differences.
+- Not in this record: panels, header buttons and composer pills (P3b-2 and
+  P3b-3), lifecycle hooks (P5), agent tools, providers, usage
   sources, timeline and attachments (P6).

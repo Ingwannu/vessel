@@ -13,8 +13,9 @@
 //   knows as its cwd (the node starts it there).
 // - Choice: Paseo's handlers one for one: copies say nothing (Paseo's
 //   explorer has no copied toast), a refused clipboard or a failed read
-//   says so in an error toast; Add to chat names the file in the
-//   session's draft as the composer's `@` does.
+//   says so in an error toast; Add to chat puts a file pill in the
+//   session's composer (TRACKER 833, data/context-tray.ts) and shows the
+//   chat.
 // - E2, as Paseo's handlers: New file and New folder open the folder and
 //   type the name in a row at its top, Rename types it in the entry's
 //   place (Enter or leaving the field makes it, Escape or an empty name
@@ -24,8 +25,9 @@
 //   is inside it; Duplicate is the node's `file.duplicate` (protocol 27).
 //   Each lists the folders it touched again, and the open folders follow
 //   a rename or a delete (Paseo's replaceExplorerPathPrefix).
-// - Cost: Add to chat writes `@path` where Paseo adds an attachment pill;
-//   the page's composer has no file pills, and the agent reads `@path`.
+// - Cost: Add to chat also shows the chat (the page's explorer is a tab,
+//   not a panel beside it); the pill is the whole file (the explorer has
+//   no line selection).
 
 import {
   type Dispatch,
@@ -36,7 +38,7 @@ import {
 } from "react";
 
 import { useFleet, useFleetState } from "../../context";
-import { withMention } from "../../data/suggest";
+import { contextOf, filePill } from "../../data/context-tray";
 import {
   absolutePath,
   childPath,
@@ -164,15 +166,10 @@ export function useExplorerActions(
           },
         );
         return;
-      case "add-to-chat": {
-        const draft = { kind: "session" as const, session };
-        fleet.drafts.type(
-          draft,
-          withMention(fleet.drafts.text(draft), target.path),
-        );
+      case "add-to-chat":
+        contextOf(session).add([filePill(target.path)]);
         openChat?.();
         return;
-      }
       case "new-file":
       case "new-folder": {
         // Paseo's: in the folder itself, or beside the file.

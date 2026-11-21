@@ -90,6 +90,7 @@ async fn call(client: &NodeClient, request: Request) -> Reply {
                 place: place.clone(),
                 size: None,
                 title: None,
+                profile: None,
             });
             Reply::Created {
                 place,

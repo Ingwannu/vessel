@@ -16,8 +16,10 @@ import { useWhere } from "../../data/where";
 import { labelManager } from "../../data/workspace-labels/hub";
 import { Banner, Button, Sheet } from "../../ui/kit";
 import { Toasts } from "../../ui/toasts";
+import { useBadge } from "../notifications/use-badge";
 import { useNotices } from "../notifications/use-notices";
 import { usePresence } from "../notifications/use-presence";
+import { useTerminalNotices } from "../notifications/use-terminal-notices";
 import { PaletteHost } from "../palette/palette";
 import { PluginCatalogSync } from "../plugins/catalog-sync";
 import { AddProjectFlowHost } from "../projects/add-project-flow";
@@ -45,7 +47,9 @@ export function Shell(): ReactElement {
   useShortcutListener();
   useShellShortcuts();
   useNotices();
+  useBadge();
   usePresence();
+  useTerminalNotices();
   useNewSessionEntry();
   return (
     <>

@@ -2,8 +2,8 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::identity::{ContentText, FileExtension, FileNamePattern};
-use super::{Caption, ContributionId, ContributionKind, PanelLocation, RpcName};
+use super::identity::{ContentText, FileExtension, FileNamePattern, SettingsKey};
+use super::{Caption, ContributionId, ContributionKind, PanelLocation, RpcName, SettingsId};
 use crate::{RawJson, SessionId};
 
 /// A contribution keeps its identity when translated labels change.
@@ -264,6 +264,65 @@ pub enum ControlContent {
         /// Core semantic tone.
         tone: StatusTone,
     },
+    /// Paseo's `SettingsCard`: one card, a divider between direct children.
+    Card {
+        /// Ordered children.
+        surface: Surface,
+    },
+    /// Paseo's `SettingsSwitch` bound to a boolean property; a change saves
+    /// at once at the loaded revision (ADR 0115, "Surfaces").
+    SettingsSwitch {
+        /// A document the same helper declared in `ready`.
+        settings: SettingsId,
+        /// The bound top-level property.
+        key: SettingsKey,
+        /// Row label.
+        label: Caption,
+        /// Muted help under the label.
+        hint: Option<Caption>,
+    },
+    /// Paseo's `SettingsSelect` bound to a string property; a choice saves
+    /// at once with the option's id.
+    SettingsSelect {
+        /// A document the same helper declared in `ready`.
+        settings: SettingsId,
+        /// The bound top-level property.
+        key: SettingsKey,
+        /// Row label.
+        label: Caption,
+        /// Muted help under the label.
+        hint: Option<Caption>,
+        /// Unique values; an option's id is the saved string.
+        options: Vec<ChoiceOption>,
+    },
+    /// Paseo's `SettingsInput` bound to a string property; it keeps a draft,
+    /// Enter saves it at the draft's revision and Escape discards it.
+    SettingsInput {
+        /// A document the same helper declared in `ready`.
+        settings: SettingsId,
+        /// The bound top-level property.
+        key: SettingsKey,
+        /// Row label.
+        label: Caption,
+        /// Muted help under the label.
+        hint: Option<Caption>,
+        /// Shown while the field is empty.
+        placeholder: Option<Caption>,
+        /// Whether the text is masked.
+        mode: InputMode,
+    },
+}
+
+/// Paseo's `secureTextEntry`, as an explicit state.
+/// In TypeScript `PluginInputMode`, beside the composer's own input names.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS), ts(rename = "PluginInputMode"))]
+#[serde(rename_all = "snake_case")]
+pub enum InputMode {
+    /// Shown as typed.
+    Plain,
+    /// Masked, as a password field.
+    Secret,
 }
 
 /// A choice option carries a stable value independent of translated labels.
@@ -384,6 +443,12 @@ pub enum Action {
     /// Open a screen from this same declaration document.
     OpenScreen {
         /// Referenced declared screen id.
+        screen: ContributionId,
+    },
+    /// Open a settings screen from this same declaration document (Paseo's
+    /// `openSettings(id)`).
+    OpenSettings {
+        /// Referenced declared settings screen id.
         screen: ContributionId,
     },
     /// Invoke a registered method. The node applies caller and plugin policy.

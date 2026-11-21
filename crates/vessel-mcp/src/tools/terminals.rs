@@ -80,6 +80,7 @@ impl VesselTools {
                     place: TerminalPlace::Session { session },
                     size: None,
                     title,
+                    profile: None,
                 },
             )
             .await?;

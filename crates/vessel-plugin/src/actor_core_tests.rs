@@ -292,3 +292,54 @@ fn second_ready_and_counter_exhaustion_are_closed_protocol_failures() {
     ));
     assert!(fixture.wire.try_recv().is_err());
 }
+
+/// A settings screen whose switch binds `settings` (ADR 0115, "Surfaces").
+fn binding(settings: &str) -> ClientDocument {
+    let text = format!(
+        r#"{{"methods":[],"themes":[],"contributions":[{{"id":"prefs","title":"Prefs","content":{{"kind":"settings_screen","surface":{{"controls":[{{"id":"on","content":{{"kind":"settings_switch","settings":"{settings}","key":"on","label":"On"}}}}]}}}}}}]}}"#
+    );
+    ClientDocument::decode(text.as_bytes()).expect("binding")
+}
+
+#[test]
+fn a_client_may_bind_only_the_settings_its_ready_declared() {
+    let address = PluginAddress {
+        node: NodeId::random(),
+        plugin: "test".parse().expect("plugin"),
+        generation: RuntimeGeneration::random(),
+    };
+    let declared: SettingsDeclarations =
+        serde_json::from_str(r#"[{"id":"display","version":1}]"#).expect("declared");
+    let ready = |client, settings| HelperToNode::Ready {
+        protocol: HelperProtocol::V1,
+        client,
+        hooks: HookSubscriptions::default(),
+        settings,
+    };
+
+    let (writer, _wire) = mpsc::channel(8);
+    let (published, state) = watch::channel(RuntimeState::Starting);
+    let mut core = Core::new(address.clone(), writer, published);
+    assert!(matches!(
+        core.receive(ready(binding("other"), declared.clone())),
+        Err(RuntimeError::Protocol(
+            ProtocolViolation::UndeclaredSettings
+        ))
+    ));
+    assert!(matches!(*state.borrow(), RuntimeState::Starting));
+
+    let (writer, _wire) = mpsc::channel(8);
+    let (published, state) = watch::channel(RuntimeState::Starting);
+    let mut core = Core::new(address, writer, published);
+    core.receive(ready(binding("display"), declared))
+        .expect("declared");
+    assert!(matches!(*state.borrow(), RuntimeState::Running { .. }));
+    assert!(matches!(
+        core.receive(HelperToNode::ClientChanged {
+            client: binding("other"),
+        }),
+        Err(RuntimeError::Protocol(
+            ProtocolViolation::UndeclaredSettings
+        ))
+    ));
+}

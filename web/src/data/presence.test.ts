@@ -58,6 +58,8 @@ class Machine {
 function tab(
   options: {
     nodes?: NodeKey[];
+    /** Machines that admit claims, so may hear a shown terminal. */
+    terminals?: NodeKey[];
     visible?: boolean;
     shown?: ShownSession | null;
     machine?: Machine;
@@ -70,6 +72,7 @@ function tab(
   const tracker: PresenceTracker = createPresenceTracker({
     link: {
       nodes: () => nodes,
+      terminals: (node) => options.terminals?.includes(node) === true,
       send(node, report) {
         sent.push({ node, at: now, report });
         options.machine?.report(options.name ?? "window", report, now);
@@ -146,6 +149,27 @@ describe("presence, as Paseo's client activity tracker", () => {
       focus: { focus: "elsewhere" },
       activity: "active",
     });
+  });
+
+  test("a shown terminal is terminal focus only to a machine that admits claims (claims row 3)", () => {
+    const terminal = fixtureId("TerminalId", "t1");
+    const page = tab({ nodes: [BOX, LAB], terminals: [BOX] });
+    page.tracker.setShown({ node: BOX, id: S1 });
+    page.pass(6_000);
+    page.tracker.setShown({ node: BOX, id: S1, terminal });
+    expect(page.last(BOX)).toEqual({
+      focus: { focus: "terminal", terminal },
+      activity: "active",
+    });
+    // Not the session's focus: Paseo's target is then the terminal, so
+    // the session's push is not held back.
+    const older = tab({ nodes: [BOX] });
+    older.tracker.setShown({ node: BOX, id: S1, terminal });
+    expect(older.last(BOX)?.focus).toEqual({ focus: "elsewhere" });
+    page.tracker.setShown({ node: BOX, id: S1, terminal });
+    page.pass(1_000);
+    page.tracker.setShown({ node: BOX, id: S1 });
+    expect(page.last(BOX)?.focus).toEqual({ focus: "session", session: S1 });
   });
 
   test("hidden reports background at the next heartbeat, not at once; visible again is input (:90-105)", () => {

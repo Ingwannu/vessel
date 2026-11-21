@@ -9,7 +9,7 @@
 // - Choice: the ring is one SVG circle per segment, dashed to its length
 //   from twelve o'clock; groups fold under their header (open at first);
 //   a row links to the check's page; "Add logs to chat" asks the node for
-//   the report (`pr.check`) and writes Paseo's check text into the draft.
+//   the report (`pr.check`) and puts Paseo's check pill in the composer.
 // - Differences: no live timer (a running check's time is as of the last
 //   read); the report is fetched per press, not cached.
 
@@ -19,7 +19,7 @@ import {
   checkAttachment,
   canAddCheck,
 } from "../../../data/workspace/pull/attach-check";
-import type { About } from "../../../data/workspace/pull/attach";
+import type { About, Attachment } from "../../../data/workspace/pull/attach";
 import {
   checksSummary,
   circumference,
@@ -65,7 +65,7 @@ export function PullChecks({
   /** The pull request the logs are about; null without a page. */
   about: About | null;
   report: (run: RunId) => Promise<Outcome<CheckDetails>>;
-  add: (texts: readonly string[]) => void;
+  add: (attachments: readonly Attachment[]) => void;
 }) {
   const runs = checks.runs ?? checks.failing;
   const summary = checksSummary(runs);
@@ -193,7 +193,7 @@ function Row({
   now: number;
   about: About | null;
   report: (run: RunId) => Promise<Outcome<CheckDetails>>;
-  add: (texts: readonly string[]) => void;
+  add: (attachments: readonly Attachment[]) => void;
 }) {
   const [adding, setAdding] = useState(false);
   // A report that comes back after the pane closed adds nothing.
@@ -224,7 +224,7 @@ function Row({
       return;
     }
     const found = answer?.value.report ?? null;
-    add([checkAttachment(about, run, found).text]);
+    add([checkAttachment(about, run, found)]);
   };
   return (
     <div className="pull-row">
