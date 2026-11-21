@@ -2,9 +2,9 @@
 // "Step B"): Paseo's open-in-editor button as a browser draws it
 // (`open-in-editor/button.tsx`, pinned 0.15.4). A browser has no desktop
 // bridge, so its one target is the forge's page (`:112` shows it on the
-// web only; `:259` draws the caret only with more than one target), the
+// web only; `:260` draws the caret only with more than one target), the
 // forge's mark in the muted colour (`:56`), named "Open workspace in
-// GitHub" or "Open <file> in GitHub" (`:229-237`).
+// GitHub" or "Open <file> in GitHub" (`:234-243`).
 //
 // [Decision Log]
 // - Purpose: the person reaches the branch, or the file they are reading
@@ -58,11 +58,11 @@ export function forgeOpenWords(language: string): typeof en {
 interface Read {
   node: NodeKey;
   root: WorkspaceRoot;
-  status: GitStatus | null;
+  status: GitStatus;
 }
 
 /** `root`'s status, read again every [`FRESH_MS`] while the page shows;
- * null before the first answer for this folder or when it failed. */
+ * null before the first answer for this folder. */
 function useStatus(
   node: NodeKey,
   root: WorkspaceRoot | null,
@@ -74,10 +74,21 @@ function useStatus(
       return;
     }
     let live = true;
+    // Answers come back in any order: only one newer than the last taken
+    // is taken. A failed read keeps what is shown (Paseo's query keeps its
+    // last data), so a passing error does not hide the button.
+    let asked = 0;
+    let taken = 0;
     const ask = () => {
+      asked += 1;
+      const mine = asked;
       void readStatus(fleet, node, root).then((outcome) => {
-        if (live) {
-          setRead({ node, root, status: outcome.ok ? outcome.value : null });
+        if (!live || mine <= taken) {
+          return;
+        }
+        taken = mine;
+        if (outcome.ok) {
+          setRead({ node, root, status: outcome.value });
         }
       });
     };

@@ -9,6 +9,7 @@ import {
   type LinkedFile,
   linkedFileOf,
   openForgePage,
+  withoutLine,
 } from "./forge-links";
 
 // Each remote below is Paseo's (`git/forge-url.test.ts`, pinned 0.15.4) as
@@ -214,7 +215,11 @@ describe("which forge a status's origin is on (Paseo's forge-manifest.ts)", () =
   it("links nothing for a host no forge owns (Paseo: no grammar)", () => {
     expect(forgeOf(origin("bitbucket.org"))).toBeNull();
     expect(forgeOf(origin("gitlab.example.com"))).toBeNull();
+    // Paseo's two no-grammar cases: Bitbucket's branch and file.
     expect(forgeLink(origin("bitbucket.org"), "main", null)).toBeNull();
+    expect(
+      forgeLink(origin("bitbucket.org"), "main", { path: "src/index.ts" }),
+    ).toBeNull();
     expect(forgeLink(null, "main", null)).toBeNull();
     expect(forgeLink(undefined, "main", null)).toBeNull();
   });
@@ -257,5 +262,26 @@ describe("the file a link names", () => {
     });
     expect(linkedFileOf({ kind: "files" }, lines)).toBeNull();
     expect(linkedFileOf(undefined, lines)).toBeNull();
+  });
+});
+
+describe("a file opened again at no line", () => {
+  it("drops its line, so the link names none", () => {
+    const lines = new Map([["src/a.ts", { line: 7, seq: 1 }]]);
+    const after = withoutLine(lines, "src/a.ts");
+    expect(linkedFileOf({ kind: "file", path: "src/a.ts" }, after)).toEqual({
+      path: "src/a.ts",
+    });
+    expect(withoutLine(after, "src/a.ts")).toBe(after);
+  });
+});
+
+describe("a repository path the page would not link", () => {
+  it("links nothing for an empty segment or a climb", () => {
+    for (const path of ["acme//repo", "acme/../repo", "/acme/repo", ""]) {
+      expect(
+        forgePage("github", { host: "github.com", path }, "main", null),
+      ).toBeNull();
+    }
   });
 });

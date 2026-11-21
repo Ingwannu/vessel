@@ -115,8 +115,10 @@ impl Git {
         self.address_of(dir, &origin).await
     }
 
-    /// `remote`'s address, through `remote get-url`, so `insteadOf` applies
-    /// as it does to a push.
+    /// `remote`'s fetch address, through `remote get-url`, so a
+    /// `url.<base>.insteadOf` applies as it does to a fetch (not
+    /// `pushInsteadOf`: no `--push`); Paseo's link reads the raw config
+    /// value instead (ADR 0123 "Step B").
     async fn address_of(
         &self,
         dir: &Path,

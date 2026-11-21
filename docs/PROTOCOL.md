@@ -159,10 +159,15 @@ Assigned 42 (`ORIGIN_LINK_PROTOCOL`, `PROTOCOL_VERSION` 42) at its node-line mer
   `origin { host, path, kind? }`: where `origin` (`git remote get-url origin`) keeps the repository. `host` is
   lower-cased, with its port only for an `http(s)` address on a port that is not the scheme's own; `path` is the
   repository's `owner/name` (or nested groups), without `.git`. The address itself never leaves the node (it may hold a
-  token). Absent when there is no `origin` or its address is not one of Paseo's forms (`user@host:path`, or an
-  `https`, `http` or `ssh` URL).
+  token). Absent when there is no `origin`, when its address is not one of Paseo's forms (`user@host:path`, or an
+  `https`, `http` or `ssh` URL), and when Vessel's host and path rules refuse it where Paseo's would not: a host label
+  with `_`, a path of one segment or more than eight (deep GitLab groups), or one with characters outside
+  `A-Z a-z 0-9 . _ -` (non-ASCII names). The address is the fetch address with `url.<base>.insteadOf` applied
+  (`git remote get-url`); Paseo reads the raw `remote.origin.url`.
 - `kind` is `github` for GitHub's own hosts and for a host the node holds a GitHub token for (from its environment or
-  `gh`); absent otherwise. A host `gh` was not asked about is asked off the read, so a later status says it. Clients
+  `gh`, asked with the host as `origin` names it, port included); absent otherwise. A host `gh` was not asked about is
+  asked off the read, so a later status says it; a host it has no token for is not asked again for a minute (Paseo
+  keeps a probe's "no" as long), and the other forges' public hosts are never asked. Clients
   map the public hosts of other forges themselves (Paseo's `forge-manifest.ts`), for an "Open on <forge>" link.
 - A peer below the number is not served `origin`: the node does not read it for such a peer, and
   `Reply::for_protocol` strips it from a status nested in a fleet envelope.

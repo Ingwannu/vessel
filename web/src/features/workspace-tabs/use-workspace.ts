@@ -2,7 +2,11 @@ import { useBlocker, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useFleetState } from "../../context";
-import { type LinkedFile, linkedFileOf } from "../../data/forge-links";
+import {
+  type LinkedFile,
+  linkedFileOf,
+  withoutLine,
+} from "../../data/forge-links";
 import {
   projectAt,
   type ProjectsView,
@@ -236,7 +240,11 @@ export function useWorkspace(
       anchor.pull_request?.summary != null && pullPaneServed(protocol),
   });
   const openFile = (path: RelPath, line: number | null) => {
-    if (line !== null) {
+    if (line === null) {
+      // Opened at no line: the tab's target has none any more (Paseo
+      // replaces it), so a forge link names no line (TRACKER 467).
+      setLines((current) => withoutLine(current, path));
+    } else {
       nextLine.current += 1;
       const seek = { line, seq: nextLine.current };
       setLines((current) => new Map(current).set(path, seek));
