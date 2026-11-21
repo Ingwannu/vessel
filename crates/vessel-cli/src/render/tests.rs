@@ -168,6 +168,7 @@ fn a_kept_worktree_says_why_and_how_to_remove_it() {
     use vessel_proto::workspace::{GitOperation, KeptReason, RemoveWorktreeOutcome};
 
     let kept = RemoveWorktreeOutcome::Kept {
+        diff_stat: None,
         reasons: vec![
             KeptReason::Uncommitted { files: 3 },
             KeptReason::UniqueCommits { commits: 1 },

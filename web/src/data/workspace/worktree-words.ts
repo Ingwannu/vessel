@@ -15,6 +15,7 @@
 import type {
   CloneFailure,
   CloneStage,
+  DiffStat,
   GitSupport,
   KeptReason,
   ProjectState,
@@ -172,6 +173,26 @@ export function keptReasonWords(reason: KeptReason): string {
     case "unknown":
       return "Something this page does not know";
   }
+}
+
+/** Paseo's archive warning gives the line counts only for the dirty reason. */
+export function removalReasonWords(
+  reason: KeptReason,
+  diffStat: DiffStat | null,
+): string {
+  if (reason.kind !== "uncommitted") return keptReasonWords(reason);
+  const parts: string[] = [];
+  if (diffStat !== null) {
+    if (diffStat.additions > 0) {
+      parts.push(counted(diffStat.additions, "added line", "added lines"));
+    }
+    if (diffStat.deletions > 0) {
+      parts.push(counted(diffStat.deletions, "deleted line", "deleted lines"));
+    }
+  }
+  return parts.length === 0
+    ? "Uncommitted changes"
+    : `Uncommitted changes (${parts.join(", ")})`;
 }
 
 /** Whether a snapshot can keep what `reason` names: a session in it or

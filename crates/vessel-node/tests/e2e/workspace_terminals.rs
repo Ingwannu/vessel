@@ -181,7 +181,7 @@ async fn removing_a_worktree_ends_its_shells_only_when_asked() {
         // Not asked (every older client): the live shell keeps it.
         let kept = owner.call(remove(false)).await.unwrap();
         assert!(
-            matches!(&kept, RemoveWorktreeOutcome::Kept { reasons } if reasons == &[KeptReason::InUse]),
+            matches!(&kept, RemoveWorktreeOutcome::Kept { reasons, .. } if reasons == &[KeptReason::InUse]),
             "{kept:?}"
         );
         assert!(info_of(&owner, &shell).await.is_live());
@@ -199,7 +199,7 @@ async fn removing_a_worktree_ends_its_shells_only_when_asked() {
             .unwrap();
         let held = owner.call(remove(true)).await.unwrap();
         assert!(
-            matches!(&held, RemoveWorktreeOutcome::Kept { reasons } if reasons == &[KeptReason::InUse]),
+            matches!(&held, RemoveWorktreeOutcome::Kept { reasons, .. } if reasons == &[KeptReason::InUse]),
             "{held:?}"
         );
         assert!(info_of(&owner, &shell).await.is_live());

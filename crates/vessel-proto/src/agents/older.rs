@@ -291,6 +291,7 @@ impl Reply {
             | Self::GetSchedule(_)
             | Self::CreateSchedule(_)
             | Self::UpdateSchedule(_)
+            | Self::UpdateScheduleCadence(_)
             | Self::PauseSchedule(_)
             | Self::ResumeSchedule(_)
             | Self::RunSchedule(_)

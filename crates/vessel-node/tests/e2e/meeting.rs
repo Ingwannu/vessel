@@ -214,7 +214,8 @@ async fn archiving_ends_the_watch_the_service_and_the_shell() {
         assert_eq!(
             kept,
             RemoveWorktreeOutcome::Kept {
-                reasons: vec![KeptReason::InUse]
+                reasons: vec![KeptReason::InUse],
+                diff_stat: None,
             }
         );
 
@@ -288,7 +289,8 @@ async fn deleting_ends_and_forgets_the_runs_before_the_worktree_is_tidied() {
         assert_eq!(
             remove(&owner, worktree.id).await,
             RemoveWorktreeOutcome::Kept {
-                reasons: vec![KeptReason::InUse]
+                reasons: vec![KeptReason::InUse],
+                diff_stat: None,
             }
         );
 

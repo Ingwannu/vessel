@@ -19,8 +19,8 @@ use tokio::sync::{OwnedSemaphorePermit, Semaphore, watch};
 use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
 use vessel_proto::registry::DiffStat;
-use vessel_proto::workspace::WorkspaceRoot;
-use vessel_workspace::GitError;
+use vessel_proto::workspace::{WorkspaceRoot, WorktreeBase, WorktreeInfo};
+use vessel_workspace::{Git, GitError};
 
 use super::Workspaces;
 
@@ -321,9 +321,28 @@ async fn read_root(workspaces: &Workspaces, shared: &Shared, root: WorkspaceRoot
     let Some(held) = permit(shared).await else {
         return Answer::Keep;
     };
-    let answer = classify(count::stat_in(git, resolved.root.path(), resolved.base.as_ref()).await);
+    let base = resolved.base.map(|name| WorktreeBase::Ref { name });
+    let answer = classify(count::stat_in(git, resolved.root.path(), base.as_ref()).await);
     drop(held);
     answer
+}
+
+/// Removal needs a fresh advisory stat from the same claimed checkout,
+/// even when no client is following that folder's served descriptor.
+pub(super) async fn removal_stat(git: &Git, info: &WorktreeInfo) -> Option<DiffStat> {
+    let base = info.base.as_ref().map(|start| match &start.name {
+        Some(name) => WorktreeBase::Ref { name: name.clone() },
+        None => WorktreeBase::Commit {
+            id: start.commit.clone(),
+        },
+    });
+    match count::stat_in(git, &info.path, base.as_ref()).await {
+        Ok(stat) => stat,
+        Err(error) => {
+            tracing::debug!(%error, "no diff stat for the removal warning");
+            None
+        }
+    }
 }
 
 async fn permit(shared: &Shared) -> Option<OwnedSemaphorePermit> {

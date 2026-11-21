@@ -258,6 +258,7 @@ untargeted!(
     vessel_proto::automation::GetSchedule,
     vessel_proto::automation::CreateSchedule,
     vessel_proto::automation::UpdateSchedule,
+    vessel_proto::automation::UpdateScheduleCadence,
     vessel_proto::automation::PauseSchedule,
     vessel_proto::automation::ResumeSchedule,
     vessel_proto::automation::RunSchedule,

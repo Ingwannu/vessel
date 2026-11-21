@@ -561,3 +561,4 @@ mod after_review;
 mod joined;
 
 mod ended_edit;
+mod heartbeat_edit;

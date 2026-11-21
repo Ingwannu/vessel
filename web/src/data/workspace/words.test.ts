@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import type { KeptReason } from "../../wire/proto";
 import { refusalWords } from "./git-words";
 import {
   cloneFailureWords,
@@ -7,6 +8,7 @@ import {
   gitSupportWords,
   keptReasonWords,
   projectStateWord,
+  removalReasonWords,
   setupFailureWords,
   snapshotCovers,
   worktreeRefusalWords,
@@ -75,6 +77,29 @@ describe("worktrees and projects in plain words", () => {
     expect(keptReasonWords({ kind: "operation", operation: "rebase" })).toBe(
       "A rebase in progress",
     );
+  });
+
+  it("uses Paseo's warning copy with only the sides that have counts", () => {
+    const dirty: KeptReason = { kind: "uncommitted", files: 2 };
+    expect(removalReasonWords(dirty, { additions: 2, deletions: 1 })).toBe(
+      "Uncommitted changes (2 added lines, 1 deleted line)",
+    );
+    expect(removalReasonWords(dirty, { additions: 0, deletions: 2 })).toBe(
+      "Uncommitted changes (2 deleted lines)",
+    );
+    expect(removalReasonWords(dirty, { additions: 1, deletions: 0 })).toBe(
+      "Uncommitted changes (1 added line)",
+    );
+    expect(removalReasonWords(dirty, { additions: 0, deletions: 0 })).toBe(
+      "Uncommitted changes",
+    );
+    expect(removalReasonWords(dirty, null)).toBe("Uncommitted changes");
+    expect(
+      removalReasonWords(
+        { kind: "unique_commits", commits: 1 },
+        { additions: 2, deletions: 1 },
+      ),
+    ).toBe("1 commit on no other branch");
   });
 
   it("offers a snapshot only for what a snapshot keeps", () => {

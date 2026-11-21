@@ -75,7 +75,7 @@ async fn a_terminal_and_its_worktree_s_removal_never_both_win() {
                 })
             );
             match (opened, removal.unwrap()) {
-                (Ok(shell), RemoveWorktreeOutcome::Kept { reasons }) => {
+                (Ok(shell), RemoveWorktreeOutcome::Kept { reasons, .. }) => {
                     assert_eq!(reasons, [KeptReason::InUse]);
                     assert!(shell.folder.starts_with(&worktree.path));
                     kept = kept.saturating_add(1);

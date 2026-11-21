@@ -65,7 +65,8 @@ async fn a_session_starting_in_a_worktree_keeps_it_from_removal() {
         assert_eq!(
             kept,
             RemoveWorktreeOutcome::Kept {
-                reasons: vec![KeptReason::InUse]
+                reasons: vec![KeptReason::InUse],
+                diff_stat: None,
             },
             "with {} still starting",
             held.len()
@@ -128,7 +129,8 @@ async fn a_terminal_starting_in_a_worktree_keeps_it_from_removal() {
     assert_eq!(
         kept,
         RemoveWorktreeOutcome::Kept {
-            reasons: vec![KeptReason::InUse]
+            reasons: vec![KeptReason::InUse],
+            diff_stat: None,
         }
     );
     drop(held);
