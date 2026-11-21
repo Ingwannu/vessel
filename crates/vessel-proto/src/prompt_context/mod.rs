@@ -55,6 +55,10 @@ pub const BLOCK_BYTES: usize = 64 * 1024;
 pub const BODY_BYTES: usize = 16 * 1024;
 /// The most comments one review carries.
 pub const MAX_COMMENTS: usize = 100;
+/// The most `context` and `review` blocks one prompt carries, so a prompt
+/// gives the agent at most 2 MiB of them (Paseo has no bound; the node
+/// reviewer's P6a note).
+pub const MAX_BLOCKS: usize = 32;
 /// The most diff lines around a comment's line (Paseo's three either side
 /// and the line itself).
 pub const MAX_LINES: usize = 7;
@@ -83,6 +87,9 @@ pub enum ContextProblem {
     /// A review whose text for the agent passes [`BLOCK_BYTES`].
     #[error("a review's text is at most 64 KiB; this one {0} bytes")]
     TooLarge(usize),
+    /// A prompt with more than [`MAX_BLOCKS`] context and review blocks.
+    #[error("a prompt carries at most 32 context and review blocks; this one {0}")]
+    Blocks(usize),
 }
 
 const fn invalid(kind: &'static str, rule: &'static str) -> ContextProblem {
@@ -422,12 +429,20 @@ impl PromptReview {
     }
 }
 
-/// Whether each `context` and `review` block of `content` keeps its bounds
-/// as a whole (a value's own bounds were checked as it decoded).
+/// Whether `content` holds at most [`MAX_BLOCKS`] `context` and `review`
+/// blocks, each within its bounds as a whole (a value's own bounds were
+/// checked as it decoded).
 ///
 /// # Errors
-/// The first bound a block breaks.
+/// Too many blocks, or the first bound a block breaks.
 pub fn check(content: &[ContentBlock]) -> Result<(), ContextProblem> {
+    let blocks = content
+        .iter()
+        .filter(|block| matches!(block, ContentBlock::Context(_) | ContentBlock::Review(_)))
+        .count();
+    if blocks > MAX_BLOCKS {
+        return Err(ContextProblem::Blocks(blocks));
+    }
     content.iter().try_for_each(|block| match block {
         ContentBlock::Review(review) => review.check(),
         ContentBlock::Text { .. }

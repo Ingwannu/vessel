@@ -69,7 +69,8 @@ page's drafts).
    subtitle?, text, url? }`, Paseo's titled text attachment, for a pull request's comment, review and check
    logs, a workspace file, a browser element, earlier conversation, a forge's issue or pull request and a
    plugin's resource. Bounds: title and subtitle one line of at most 200 characters, text at most 64 KiB,
-   url `https` or `http`. The agent reads its text; the timeline keeps the block. Clients send `Context`
+   url `https` or `http`. A prompt carries at most 32 context and review blocks (2 MiB for the agent; Paseo
+   has no bound, the node reviewer's P6a note). The agent reads its text; the timeline keeps the block. Clients send `Context`
    when the node speaks the protocol and `Text` otherwise (P6b switches the native sender, P6c the page's
    833 tray).
 6. Timeline draw, both blocks: a pill (Paseo's FileText mark for a context, its review mark for a review)

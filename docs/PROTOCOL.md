@@ -82,7 +82,8 @@ prompt's edit):
 - `review { root, mode, base?, comments }`: a diff review. `mode` is `unstaged | staged | uncommitted | base |
   commit`; each comment `{ path, side: old | new, line, body, hunk_header, target, lines }` with each line
   `{ old?, new?, kind: add | remove | context, content }`. 1 to 100 comments, at most 7 lines each, a body at most
-  16 KiB, the review's text for the agent at most 64 KiB; a block past these is refused (`invalid_request`).
+  16 KiB, the review's text for the agent at most 64 KiB. A prompt carries at most 32 of these blocks; past any
+  bound it is refused (`invalid_request`).
 - The agent receives a `context`'s text, and a `review` as Paseo's review text under the heading "Vessel review
   attachment (<mode>)" (`prompt_context::agent_text`). The session's log, its timeline and its queue keep the typed
   blocks, so clients draw them as pills.

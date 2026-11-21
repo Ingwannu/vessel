@@ -148,6 +148,17 @@ fn a_review_keeps_its_bounds_as_a_whole() {
 }
 
 #[test]
+fn a_prompt_carries_at_most_its_bound_of_blocks() {
+    let within = vec![context(); MAX_BLOCKS];
+    assert_eq!(check(&within), Ok(()));
+    let over = vec![context(); MAX_BLOCKS.saturating_add(1)];
+    assert_eq!(
+        check(&over),
+        Err(ContextProblem::Blocks(MAX_BLOCKS.saturating_add(1)))
+    );
+}
+
+#[test]
 fn an_older_peer_reads_the_blocks_as_the_text_the_agent_read() {
     let words = ContentBlock::Text {
         text: "Fix these.".to_owned(),
