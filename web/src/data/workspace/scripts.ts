@@ -7,11 +7,12 @@ import type {
   ScriptList,
   ScriptPlace,
   ScriptRefusal,
+  ScriptRunOutcome,
   TerminalId,
   TerminalInfo,
 } from "../../wire/proto";
 import type { Fleet } from "../fleet";
-import { attempt } from "../outcome";
+import { attempt, type Outcome } from "../outcome";
 
 export const SCRIPT_PROTOCOL = 11;
 
@@ -25,7 +26,11 @@ export interface ScriptRow {
   configured: boolean;
 }
 
-export function listScripts(fleet: Fleet, node: NodeKey, place: ScriptPlace) {
+export function listScripts(
+  fleet: Fleet,
+  node: NodeKey,
+  place: ScriptPlace,
+): Promise<Outcome<ScriptList>> {
   return attempt(() => fleet.bridge.call(node, "script.list", { place }));
 }
 
@@ -34,7 +39,7 @@ export function runScript(
   node: NodeKey,
   place: ScriptPlace,
   action: ScriptAction,
-) {
+): Promise<Outcome<ScriptRunOutcome>> {
   return attempt(() =>
     action.kind === "run"
       ? fleet.bridge.call(node, "script.run", { place, script: action.name })
@@ -44,7 +49,11 @@ export function runScript(
   );
 }
 
-export function stopScript(fleet: Fleet, node: NodeKey, terminal: TerminalId) {
+export function stopScript(
+  fleet: Fleet,
+  node: NodeKey,
+  terminal: TerminalId,
+): Promise<Outcome<null>> {
   return attempt(() => fleet.bridge.call(node, "terminal.kill", { terminal }));
 }
 

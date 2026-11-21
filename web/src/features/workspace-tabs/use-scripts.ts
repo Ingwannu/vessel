@@ -25,6 +25,18 @@ interface Approval {
   action: ScriptAction;
 }
 
+interface ScriptsState {
+  snapshot: ScriptList | null;
+  listError: string | null;
+  error: string | null;
+  approval: Approval | null;
+  busy: boolean;
+  clearApproval: () => void;
+  run: (action: ScriptAction) => void;
+  stop: (terminal: TerminalId) => void;
+  approve: () => void;
+}
+
 const REFRESH_MS = 2_000;
 
 export function useScripts({
@@ -41,7 +53,7 @@ export function useScripts({
   open: boolean;
   activity: string;
   onTerminal: (terminal: TerminalId) => void;
-}) {
+}): ScriptsState {
   const fleet = useFleet();
   const [snapshot, setSnapshot] = useState<ScriptList | null>(null);
   const [listError, setListError] = useState<string | null>(null);
