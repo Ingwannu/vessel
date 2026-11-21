@@ -110,7 +110,7 @@ fn a_window_that_tells_nothing_never_claims(cx: &mut TestAppContext) {
         shell.prefs.settings.notifications.alerts = Alerts::System;
         shell.terminal_notices_found("lab".to_owned(), vec![notice(NoticeKind::Finished, "t")]);
     });
-    let Ok(vessel_app_link::Command::TerminalClaims(ask)) = sent.try_recv() else {
+    let Ok(Command::TerminalClaims(ask)) = sent.try_recv() else {
         panic!("expected the terminal claims");
     };
     assert_eq!(ask.machine, "lab");

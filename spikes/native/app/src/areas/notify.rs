@@ -45,9 +45,7 @@ use gpui::{
 };
 use vessel_app_kit::ui::{Context, Window};
 use vessel_app_view::board::Fleet;
-use vessel_app_view::notices::{
-    Announce, Notice, NoticeKind, Seen, Unseen, announce, notices, title_with,
-};
+use vessel_app_view::notices::{Announce, NoticeKind, Seen, Unseen, announce, notices, title_with};
 use vessel_proto::notifications::TerminalAttentionRevision;
 use vessel_proto::terminals::TerminalPlace;
 use vessel_proto::{SessionId, TerminalId};
