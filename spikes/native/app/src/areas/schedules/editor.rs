@@ -303,7 +303,8 @@ impl Shell {
             } else {
                 if let Some(inputs) = &editor.inputs {
                     inputs.hold(
-                        editor.is_retired() || matches!(form.saved(), Some(Err(Failure::Unconfirmed))),
+                        editor.status == Status::Retired
+                            || matches!(form.saved(), Some(Err(Failure::Unconfirmed))),
                         cx,
                     );
                 }

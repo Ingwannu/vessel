@@ -5,7 +5,8 @@ use super::{Editor, Shell};
 use choices::{Change, Choice};
 use std::rc::Rc;
 use vessel_app_kit::{
-    self as kit, ComboHandlers, ComboHeader, Tokens, select::Anchor,
+    self as kit, ComboHandlers, ComboHeader, Tokens,
+    select::Anchor,
     ui::{
         AnyElement, Context, IntoElement as _, SharedString, StatefulInteractiveElement as _,
         Styled as _, Window,
@@ -217,8 +218,12 @@ fn apply(shell: &mut Shell, change: Change, window: &mut Window, cx: &mut Contex
                 close_picker(editor, window, cx);
             }
         }
-        change @ (Change::None | Change::Project(_) | Change::SelectModel { .. }
-            | Change::Option(_) | Change::Cadence(_) | Change::Unit(_)) => {
+        change @ (Change::None
+        | Change::Project(_)
+        | Change::SelectModel { .. }
+        | Change::Option(_)
+        | Change::Cadence(_)
+        | Change::Unit(_)) => {
             let project = matches!(change, Change::Project(_));
             let cadence = apply_value(&mut form.draft, change);
             close_picker(editor, window, cx);
