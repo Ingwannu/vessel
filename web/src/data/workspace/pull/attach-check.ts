@@ -90,13 +90,14 @@ function reportLines(report: CheckReport): string[] {
   const lines: string[] = [];
   const output = report.output ?? null;
   if (output !== null) {
-    if (output.title !== undefined && output.title !== null) {
+    // Paseo skips an empty one as an absent one (truthy checks).
+    if (output.title != null && output.title !== "") {
       lines.push(`Output title: ${output.title}`);
     }
-    if (output.summary !== undefined && output.summary !== null) {
+    if (output.summary != null && output.summary !== "") {
       lines.push(`Output summary: ${output.summary}`);
     }
-    if (output.text !== undefined && output.text !== null) {
+    if (output.text != null && output.text !== "") {
       lines.push("Output text:", output.text);
     }
   }

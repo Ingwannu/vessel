@@ -56,6 +56,22 @@ export function Markdown({
           ) : (
             <>{label}</>
           ),
+        // A forge's comment (httpsOnly): an image is not loaded (the page's
+        // policy blocks it); its words link to it over https.
+        ...(httpsOnly && files === undefined
+          ? {
+              img: ({ src, alt }) => {
+                const label = alt === undefined || alt === "" ? "image" : alt;
+                return typeof src === "string" && /^https:\/\//iu.test(src) ? (
+                  <a href={src} target="_blank" rel="noopener noreferrer">
+                    {label}
+                  </a>
+                ) : (
+                  <>{label}</>
+                );
+              },
+            }
+          : {}),
         ...(files === undefined
           ? {}
           : {

@@ -18,6 +18,7 @@ import { NewSession } from "../compose/new-session";
 import { useMedia } from "../shell/use-media";
 import { Launcher, TabChrome } from "./chrome";
 import { CodePane } from "./file-pane";
+import { pullPaneServed } from "../../data/workspace/pull/served";
 import { PullPane } from "../workspace/pull/pull-pane";
 import { RenameTab } from "./rename";
 import { TerminalPane } from "./terminal-pane";
@@ -133,7 +134,12 @@ export function Workspace({
         ) : null;
       case "pull":
         return selected ? (
-          <PullPane node={node} session={anchor} openChat={openChat} />
+          <PullPane
+            node={node}
+            session={anchor}
+            served={pullPaneServed(state.protocol)}
+            openChat={openChat}
+          />
         ) : null;
       case "files":
       case "changes":

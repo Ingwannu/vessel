@@ -13,7 +13,7 @@
 // - Differences: no live timer (a running check's time is as of the last
 //   read); the report is fetched per press, not cached.
 
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import {
   checkAttachment,
@@ -196,6 +196,14 @@ function Row({
   add: (texts: readonly string[]) => void;
 }) {
   const [adding, setAdding] = useState(false);
+  // A report that comes back after the pane closed adds nothing.
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   const took = timing(run, now);
   const name = (
     <span className="pull-row-name">
@@ -209,6 +217,7 @@ function Row({
     if (about === null) return;
     setAdding(true);
     const answer = run.run == null ? null : await report(run.run);
+    if (!mounted.current) return;
     setAdding(false);
     if (answer !== null && !answer.ok) {
       toast(answer.problem.message, "error");

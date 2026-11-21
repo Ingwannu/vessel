@@ -26,3 +26,15 @@ test("a forge comment links over https only", () => {
   expect(html.match(/<a /g)).toHaveLength(1);
   expect(html).toContain('href="https://example.com"');
 });
+
+// A forge comment's image is not loaded: its words link to it over https.
+test("a forge comment's image becomes a link", () => {
+  const html = renderToStaticMarkup(
+    <Markdown httpsOnly>
+      {"![trace](https://example.com/a.png) ![x](http://example.com/b.png)"}
+    </Markdown>,
+  );
+  expect(html).not.toContain("<img");
+  expect(html).toContain('<a href="https://example.com/a.png"');
+  expect(html.match(/<a /g)).toHaveLength(1);
+});

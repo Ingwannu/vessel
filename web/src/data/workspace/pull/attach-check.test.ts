@@ -142,4 +142,11 @@ describe("a failed check's text (attach.rs)", () => {
     expect(canAddCheck({ name: "a", state: "cancelled" })).toBe(false);
     expect(canAddCheck({ name: "a", state: "pending" })).toBe(false);
   });
+
+  it("skips an empty output title, summary or text, as Paseo's truthy checks", () => {
+    const run: CheckRun = { name: "build", state: "failed", run: 7 };
+    const empty = report({ output: { title: "", summary: "", text: "" } });
+    const text = checkAttachment(about, run, empty).text;
+    expect(text).not.toContain("Output");
+  });
 });

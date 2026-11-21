@@ -50,6 +50,10 @@ const en = {
   emptyTitle: "No pull request yet",
   emptyDescription:
     "Create a pull request for this checkout to see its details here.",
+  // A machine before protocol 39 (the node reviewer's P5b R1).
+  tooOldTitle: "Update Vessel on this machine",
+  tooOldDescription:
+    "This machine's Vessel is too old to show a pull request's checks and activity.",
   // The state beside its icon.
   stateOpen: "Open",
   stateDraft: "Draft",
@@ -144,6 +148,9 @@ const ko: typeof en = {
   emptyTitle: "아직 풀 리퀘스트가 없습니다",
   emptyDescription:
     "이 체크아웃에 풀 리퀘스트를 만들면 세부 정보가 여기에 표시됩니다.",
+  tooOldTitle: "이 머신의 Vessel을 업데이트하세요",
+  tooOldDescription:
+    "이 머신의 Vessel이 오래되어 풀 리퀘스트의 검사와 활동을 표시할 수 없습니다.",
   stateOpen: "열림",
   stateDraft: "초안",
   stateMerged: "병합됨",

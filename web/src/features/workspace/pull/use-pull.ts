@@ -12,10 +12,11 @@
 // - Cost: no live updates while the pane is open (Paseo polls); Refresh
 //   is the way to see new activity.
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useFleet } from "../../../context";
 import { attempt, type Outcome } from "../../../data/outcome";
+import { toast } from "../../../ui/toasts";
 import type { NodeKey } from "../../../wire/bridge";
 import type {
   CheckDetails,
@@ -42,6 +43,10 @@ export function usePull(node: NodeKey, session: SessionId): PullReads {
   const [refreshing, setRefreshing] = useState(false);
   const [readAt, setReadAt] = useState(0);
   const [asked, setAsked] = useState(0);
+  // What is shown: a failed Refresh keeps it and says why (Paseo's
+  // pane keeps its data and toasts, pane.tsx 246-247).
+  const shownView = useRef<Outcome<PullRequestView> | null>(null);
+  const shownTimeline = useRef<Outcome<PullTimeline> | null>(null);
 
   useEffect(() => {
     let live = true;
@@ -51,8 +56,16 @@ export function usePull(node: NodeKey, session: SessionId): PullReads {
       attempt(() => fleet.bridge.call(node, "pr.timeline", { session })),
     ]).then(([read, activity]) => {
       if (!live) return;
-      setView(read);
-      setTimeline(activity);
+      if (!read.ok && shownView.current?.ok === true) {
+        toast(read.problem.message, "error");
+      } else {
+        shownView.current = read;
+        setView(read);
+      }
+      if (activity.ok || shownTimeline.current?.ok !== true) {
+        shownTimeline.current = activity;
+        setTimeline(activity);
+      }
       setReadAt(Date.now());
       setRefreshing(false);
     });

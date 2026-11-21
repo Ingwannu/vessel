@@ -35,6 +35,38 @@ import { useAddToDraft, usePull } from "./use-pull";
 export function PullPane({
   node,
   session,
+  served,
+  openChat,
+}: {
+  node: NodeKey;
+  session: SessionInfo;
+  /** The machine answers pr.timeline and pr.check (protocol 39). */
+  served: boolean;
+  openChat: () => void;
+}) {
+  if (!served) {
+    // A tab kept from before, on a machine that cannot answer: say so,
+    // and ask it nothing (the launcher offers no such tab).
+    return <PullTooOld language={navigator.language} />;
+  }
+  return <PullReads node={node} session={session} openChat={openChat} />;
+}
+
+/** The pane on a machine before protocol 39 (the node reviewer's R1). */
+export function PullTooOld({ language }: { language: string }) {
+  const words = pullWords(language);
+  return (
+    <div className="pull-pane">
+      <EmptyState title={words.tooOldTitle} icon="info">
+        {words.tooOldDescription}
+      </EmptyState>
+    </div>
+  );
+}
+
+function PullReads({
+  node,
+  session,
   openChat,
 }: {
   node: NodeKey;
@@ -64,7 +96,12 @@ export function PullPane({
           title={words.paneFailed}
           icon="warn"
           action={
-            <Button variant="secondary" size="sm" onClick={reads.refresh}>
+            <Button
+              variant="secondary"
+              size="sm"
+              busy={reads.refreshing}
+              onClick={reads.refresh}
+            >
               {words.paneRetry}
             </Button>
           }
