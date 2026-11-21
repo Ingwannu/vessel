@@ -55,6 +55,7 @@ mod draw;
 mod find;
 mod find_bar;
 mod input;
+mod key_bar;
 mod open;
 mod select;
 mod stream;
@@ -72,6 +73,8 @@ use vessel_app_view::layout::{ClosePlan, LayoutKey};
 use vessel_app_view::terminal::{
     GridSize, Origin, ScrollbackLines, TerminalLog, TerminalModel, TerminalSender, Typed, Viewport,
 };
+use vessel_app_view::terminal::grid::CursorKeys;
+use vessel_app_view::terminal::key_bar::Sticky;
 use vessel_app_view::terminal_tabs::Trouble;
 use vessel_proto::terminals::{TerminalInfo, TerminalPlace};
 use vessel_proto::{EventSeq, TerminalId};
@@ -151,6 +154,8 @@ pub(crate) struct Pane {
     pub(crate) keys: Entity<TerminalKeys>,
     /// The IME's text being composed, drawn at the cursor.
     pub(crate) preedit: Option<String>,
+    /// The modifiers set on the key bar, for the next key (P4).
+    sticky: Sticky,
     sender: TerminalSender,
     /// Its focus observers.
     observers: Vec<gpui::Subscription>,
@@ -254,6 +259,15 @@ impl TerminalTabs {
 }
 
 impl Pane {
+    /// How the shell wants its arrows encoded now (DECCKM); the default
+    /// while a parse holds the model.
+    fn cursor_keys(&self) -> CursorKeys {
+        self.model
+            .as_ref()
+            .map(|model| model.grid().cursor_keys())
+            .unwrap_or_default()
+    }
+
     fn new(
         origin: Origin,
         scrollback: ScrollbackLines,
@@ -287,6 +301,7 @@ impl Pane {
             focus: cx.focus_handle(),
             keys: cx.new(|_cx| TerminalKeys::new(shell, keys_key)),
             preedit: None,
+            sticky: Sticky::default(),
             sender: TerminalSender::default(),
             observers: Vec::new(),
             selected: None,
