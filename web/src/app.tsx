@@ -34,14 +34,21 @@ function nodeSearch(search: Record<string, unknown>): { node?: string } {
 }
 
 /** `?machine=` and `?agent=` on Settings' sections (track W2): the
- * machine a section is about, the agent whose card is open. */
+ * machine a section is about, the agent whose card is open; `?plugin=` and
+ * `?screen=`, the plugin settings screen open in Settings › Plugins (ADR
+ * 0115, "Surfaces"). */
 function settingsSearch(search: Record<string, unknown>): {
   machine?: string;
   agent?: string;
+  plugin?: string;
+  screen?: string;
 } {
+  const { agent, plugin, screen } = search;
   return {
     ...machineSearch(search),
-    ...(typeof search["agent"] === "string" ? { agent: search["agent"] } : {}),
+    ...(typeof agent === "string" ? { agent } : {}),
+    ...(typeof plugin === "string" ? { plugin } : {}),
+    ...(typeof screen === "string" ? { screen } : {}),
   };
 }
 
@@ -144,6 +151,15 @@ const routeTree = rootRoute.addChildren([
     getParentRoute: () => rootRoute,
     path: "/settings",
     component: SettingsIndex,
+  }),
+  // A plugin's screen (ADR 0115, "Surfaces"): machine, plugin, screen id.
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/plugin/$node/$plugin/$screen",
+    component: lazyRouteComponent(
+      () => import("./routes/plugin-screen"),
+      "PluginScreenPage",
+    ),
   }),
   createRoute({
     getParentRoute: () => rootRoute,
