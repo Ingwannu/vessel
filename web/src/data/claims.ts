@@ -9,7 +9,8 @@
 //   With ADR 0089's protocol, a window asks its machine before it shows.
 // - Constraint: the protocol is unassigned. `claimsOn` is false for every
 //   machine until it is, and until then a notice takes ADR 0114's path
-//   unchanged.
+//   unchanged. The number comes from the generated `wire/proto`, so
+//   assigning it on the node line turns the page's claims on too.
 // - Source: a claim names the exact inbox entry, by key and cursor. The
 //   only way to learn them is `inbox.list`: newest first, sixteen a page,
 //   no session filter. The page reads the machine's first page once per
@@ -21,6 +22,7 @@
 //   a lost reply show nothing, and a claim is never retried (ADR 0089).
 
 import type { NodeKey, NodeStatus } from "../wire/bridge";
+import { ATTENTION_NOTIFICATIONS_PROTOCOL as ASSIGNED_ATTENTION_PROTOCOL } from "../wire/proto";
 import type {
   InboxEntry,
   InboxItem,
@@ -32,9 +34,13 @@ import type { Fleet } from "./fleet";
 import type { Notice, NoticeKind } from "./notices";
 import { attempt } from "./outcome";
 
-/** vessel-proto's `ATTENTION_NOTIFICATIONS_PROTOCOL`: `null` while the node
- * line has not assigned it. Set here when it does. */
-export const ATTENTION_NOTIFICATIONS_PROTOCOL: number | null = null;
+/** vessel-proto's `ATTENTION_NOTIFICATIONS_PROTOCOL`, from the generated
+ * `wire/proto` (`ts.rs` PROTOCOLS): `null` until the node line assigns it,
+ * and then that number with no edit here. Annotated wider than either
+ * value, so neither a `null` nor a number makes a guard below look
+ * constant to the type checker. */
+export const ATTENTION_NOTIFICATIONS_PROTOCOL: number | null =
+  ASSIGNED_ATTENTION_PROTOCOL;
 
 /** Whether `status` is a connected machine that admits claims. */
 export function claimsOn(status: NodeStatus | undefined): boolean {

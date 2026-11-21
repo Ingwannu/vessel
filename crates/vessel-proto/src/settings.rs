@@ -305,8 +305,8 @@ pub struct SetNodeSettings {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub terminal_agent_hooks: Option<bool>,
     /// Replace the node's terminal profiles with this list, in this order
-    /// (ADR 0117; Paseo patches the whole list too). Refused until
-    /// `TERMINAL_PROFILES_PROTOCOL` is assigned.
+    /// (ADR 0117; Paseo patches the whole list too). Refused below
+    /// `TERMINAL_PROFILES_PROTOCOL` (45).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub terminal_profiles: Option<Profiles>,
 }

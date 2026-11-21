@@ -23,6 +23,7 @@ mod env;
 mod producer;
 pub(crate) use producer::{ActivityProducer, hook_cli, producer_auth, producer_env};
 mod ports;
+mod program;
 mod registry;
 mod scripts;
 mod subscribe;
@@ -35,8 +36,9 @@ use tokio_util::task::TaskTracker;
 use vessel_session::terminals::Scrollback;
 
 pub use env::{KNOWN_CREDENTIALS, Shell, credentials_in};
-pub(crate) use env::{executable, find_program, scrubbed, shell_spec};
+pub(crate) use env::{executable, scrubbed, shell_spec};
 pub(crate) use ports::Ports;
+pub(crate) use program::{Lookup, batch_script, find_program, plain_for_batch};
 pub(crate) use registry::Terminals;
 pub(crate) use registry::{Entry, Owner, Start, TerminalsError};
 pub(crate) use scripts::{CLOSE_WAIT, Plan};
@@ -72,8 +74,10 @@ pub struct TerminalsConfig {
     pub scrollback: Scrollback,
     /// The node's `PATH`, which its terminals inherit: where a terminal
     /// profile's bare program name is looked for before it starts (ADR
-    /// 0117). `None`: not looked for, started as named.
+    /// 0117, absolute entries only). `None`: a bare name is not found.
     pub search_path: Option<OsString>,
+    /// The node's `PATHEXT` (Windows): the endings a bare name may take.
+    pub path_extensions: Option<OsString>,
 }
 
 impl TerminalsConfig {
@@ -89,6 +93,7 @@ impl TerminalsConfig {
         on_path: impl Fn(&str) -> Option<std::path::PathBuf>,
     ) -> Self {
         let search_path = var("PATH");
+        let path_extensions = var("PATHEXT");
         let shell = Shell::detect(
             cfg!(windows),
             cfg!(target_os = "macos"),
@@ -109,6 +114,7 @@ impl TerminalsConfig {
             removed,
             scrollback: Scrollback::DEFAULT,
             search_path,
+            path_extensions,
         }
     }
 }
@@ -120,6 +126,7 @@ impl Default for TerminalsConfig {
             removed: always_removed().collect(),
             scrollback: Scrollback::DEFAULT,
             search_path: None,
+            path_extensions: None,
         }
     }
 }

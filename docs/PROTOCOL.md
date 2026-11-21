@@ -68,6 +68,32 @@ no runtime to compile. The package that serves the method changes `staged`
 to `pending` in the commit that adds its handler; from then on the guard
 requires the handler, as for every assigned or pending row.
 
+## Version 45 (2026-11-21, milestone 12): terminal profiles (implementer T2, ADR 0117)
+
+Drafted 45 (`TERMINAL_PROFILES_PROTOCOL`, `PROTOCOL_VERSION` 45) at the node integrator's word, after 44; confirmed
+at its node-line merge.
+
+- `node.settings` gains `terminal_profiles` (Paseo's `terminalProfiles`): absent when never set, which clients show
+  as the shipped four (Claude Code, Codex, OpenCode, Pi); an empty list when a person removed them all. The list is
+  answered as kept; adoption of the prompt placeholder happens at launch.
+- `node.set_settings` takes `terminal_profiles` (`admin`), the whole list, replacing it.
+- `terminal.create` gains `profile {id, prompt?}`: see the terminal methods above. A prompt is at most 16 KiB.
+- Both fields are refused to, and the list hidden from, a peer below 45.
+
+## Version 44 (2026-11-21, milestone 12): plugin surfaces' declaration kinds (impl P, ADR 0115 "Surfaces")
+
+Assigned 44 (`PLUGIN_SURFACES_PROTOCOL`, `PROTOCOL_VERSION` 44) at its node-line merge, the next after the settings'
+43. No method is added; `plugin.catalog` may hold new kinds.
+
+- Control kinds: `card {surface}`; `settings_switch`, `settings_select {.., options}` and `settings_input {..,
+  placeholder?, mode: "plain" | "secret"}`, each with `settings`, `key` (a top-level property, an ASCII identifier
+  of at most 64 bytes), `label` and `hint?`. Action kind: `open_settings {screen}`, naming a declared settings
+  screen.
+- A bound document is one the same helper declared in `ready`; a client-only plugin binds none.
+- Each catalog entry's `required_client` is the oldest protocol that decodes its document: 41 for the first kinds,
+  44 for a document using any of the above. `plugin.catalog` leaves out entries above the caller's negotiated
+  protocol, so an older client's reply decodes and lacks only those plugins.
+
 ## Version 43 (2026-11-21, milestone 12): plugin settings documents (impl P, ADR 0115 "Settings")
 
 Assigned 43 (`PLUGIN_SETTINGS_PROTOCOL`, `PROTOCOL_VERSION` 43) at its node-line merge, the next after the origin link's
@@ -2374,18 +2400,6 @@ server dispatch refused it through required_protocol.
 The report adds explicit own-process numeric observations, source states and
 closed resource-refusal detail; it never carries raw logs or environment.
 
-
-## Terminal profiles before their number (ADR 0117)
-
-`TERMINAL_PROFILES_PROTOCOL` is `None` until the integrator assigns it at the merge. It covers three things:
-- `node.settings` gains `terminal_profiles` (Paseo's `terminalProfiles`): absent when never set, which clients
-  show as the shipped four; an empty list when a person removed them all.
-- `node.set_settings` takes the whole list (`admin`), replacing it.
-- `terminal.create` gains `profile { id, prompt? }`: the node runs that profile's program, adopted and
-  substituted, without a shell (see the terminal methods above).
-
-While the number is unassigned, every client send and server dispatch refuses both fields through
-`required_protocol`, and every reply leaves the list out.
 
 ## Unassigned command-kind metadata values (ADR0085)
 

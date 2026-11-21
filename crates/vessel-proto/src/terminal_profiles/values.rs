@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{
     Argument, Icon, Id, MAX_ARGUMENTS, MAX_COMMAND_BYTES, MAX_PROFILES, Name, PROMPT_SENTINEL,
-    ProfileError, Program, Prompt, TextKind,
+    ProfileError, Program, Prompt, RESOLVED_ARGUMENT_BYTES, TextKind,
 };
 
 /// A validated administrator-defined terminal launch template.
@@ -120,10 +120,10 @@ impl Profile {
             if text.is_empty() && prompt_only(arg) {
                 continue;
             }
-            args.push(Argument::parse(substitute(
+            args.push(Argument::resolved(substitute(
                 arg,
                 text,
-                Argument::MAX_BYTES,
+                RESOLVED_ARGUMENT_BYTES,
                 TextKind::Argument,
             )?)?);
         }

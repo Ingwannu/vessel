@@ -429,6 +429,16 @@ pub const PROTOCOLS: &[(&str, Option<crate::ProtocolVersion>, &str)] = &[
         "`plugin.settings.read`, `.write` and `.reset` (ADR 0115, \"Settings\").",
     ),
     (
+        "ATTENTION_NOTIFICATIONS_PROTOCOL",
+        crate::notifications::ATTENTION_NOTIFICATIONS_PROTOCOL,
+        "`notification.claim`, terminal attention and `Terminal` presence focus (ADR 0089); `null` until assigned.",
+    ),
+    (
+        "PLUGIN_SURFACES_PROTOCOL",
+        crate::plugins::PLUGIN_SURFACES_PROTOCOL,
+        "a catalog entry using `card`, the settings controls or `open_settings` (ADR 0115, \"Surfaces\").",
+    ),
+    (
         "TERMINAL_PROFILES_PROTOCOL",
         crate::terminal_profiles::TERMINAL_PROFILES_PROTOCOL,
         "The node's terminal profiles in its settings, and `terminal.create`'s `profile` (ADR 0117).",
