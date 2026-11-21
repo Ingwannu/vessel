@@ -32,6 +32,7 @@ export const BUNDLED: readonly Bundled[] = [
   },
   { name: "@tanstack/react-router", licence: "MIT", role: "Addresses" },
   { name: "@xterm/addon-fit", licence: "MIT", role: "Terminal sizing" },
+  { name: "@xterm/addon-search", licence: "MIT", role: "Terminal Find" },
   { name: "@xterm/xterm", licence: "MIT", role: "The terminal" },
   {
     name: "pretendard",
