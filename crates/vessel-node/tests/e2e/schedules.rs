@@ -370,7 +370,7 @@ async fn check_cadence_edit(owner: &NodeClient, heartbeat: &ScheduleInfo) {
         expected.cadence = cadence;
         assert_eq!(edited.definition, expected);
         assert_eq!(edited.defined_by, heartbeat.defined_by);
-        assert_eq!(edited.revision, heartbeat.revision + 1);
+        assert_eq!(edited.revision, heartbeat.revision.wrapping_add(1));
         assert_eq!(owner.schedule(heartbeat.id).await.unwrap(), edited);
     } else {
         assert!(matches!(

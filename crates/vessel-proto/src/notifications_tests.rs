@@ -194,11 +194,7 @@ fn passive_reads_are_narrow_person_operations_and_idle_age_is_versioned() {
 }
 
 #[test]
-fn the_attention_protocol_is_assigned_and_the_newest() {
-    // Assigned 47 (ADR 0089, "Turned on"); only the newest protocol asserts
-    // equality with `PROTOCOL_VERSION`, and a later one relaxes this to `<=`.
-    assert_eq!(
-        ATTENTION_NOTIFICATIONS_PROTOCOL,
-        Some(crate::PROTOCOL_VERSION)
-    );
+fn the_attention_protocol_is_assigned() {
+    // Assigned at 47 (ADR 0089). Newer nodes keep serving it.
+    assert!(ATTENTION_NOTIFICATIONS_PROTOCOL.is_some_and(|version| version <= crate::PROTOCOL_VERSION));
 }

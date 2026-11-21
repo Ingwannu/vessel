@@ -370,7 +370,8 @@ pub struct UpdateSchedule {
 }
 
 /// Protocol for editing a heartbeat's cadence without changing its owner (ADR 0033).
-pub const HEARTBEAT_CADENCE_PROTOCOL: Option<ProtocolVersion> = None;
+pub const HEARTBEAT_CADENCE_PROTOCOL: Option<ProtocolVersion> =
+    Some(ProtocolVersion::new(48));
 
 /// `schedule.update_cadence`: change only an existing-session schedule's
 /// cadence. Needs a direct connection and `operate`.
@@ -422,6 +423,12 @@ pub struct DeleteSchedule {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn heartbeat_cadence_is_the_newest_protocol() {
+        // Keep the newest equality pin here until the next activation.
+        assert_eq!(HEARTBEAT_CADENCE_PROTOCOL, Some(crate::PROTOCOL_VERSION));
+    }
 
     #[test]
     fn cadence_update_uses_the_feature_protocol_and_direct_operate_scope() {
