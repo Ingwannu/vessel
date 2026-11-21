@@ -257,6 +257,7 @@ impl Push {
             .or_insert(Presence {
                 focus: vessel_proto::push::PushFocus::Background,
                 active_at: None,
+                notifies: true,
             })
             .report(report, Utc::now());
         Ok(fresh)

@@ -47,6 +47,7 @@ fn pending_calls_and_terminal_focus_are_never_sent_as_an_older_field() {
     );
     let focus = crate::push::ReportPushPresence {
         idle_age: None,
+        notifies: true,
         focus: crate::push::PushFocus::Terminal {
             terminal: TerminalId::random(),
         },
@@ -143,6 +144,7 @@ fn elapsed_idle_is_gated_even_when_focusing_no_terminal_and_cannot_encode_future
         focus: crate::push::PushFocus::Elsewhere,
         activity: crate::push::PushActivity::Unchanged,
         idle_age: Some(crate::push::PushIdleAge::new(42)),
+        notifies: true,
     }
     .into_call();
     assert_eq!(request.since(), ATTENTION_NOTIFICATIONS_PROTOCOL);
@@ -173,6 +175,7 @@ fn passive_reads_are_narrow_person_operations_and_idle_age_is_versioned() {
             focus: crate::push::PushFocus::Background,
             activity: crate::push::PushActivity::Unchanged,
             idle_age: Some(crate::push::PushIdleAge::new(57)),
+            notifies: true,
         }
         .into_call(),
     ] {

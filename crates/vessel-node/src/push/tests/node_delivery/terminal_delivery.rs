@@ -217,6 +217,7 @@ async fn cancels_before_admission(stage: crate::push::PreparedStage, action: Dur
             .owner
             .report_push_presence(ReportPushPresence {
                 idle_age: None,
+                notifies: true,
                 focus: PushFocus::Terminal {
                     terminal: terminal.id,
                 },
