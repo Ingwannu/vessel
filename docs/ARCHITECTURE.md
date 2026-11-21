@@ -211,6 +211,16 @@ owner while the source adapter retains vendor/schema/credential-use ownership.
     which keeps it. At start a run left `making` is marked `interrupted`;
     an agent's schedules go when its session ends.
 
+The browser's `/schedules` route uses the existing React shell, fleet
+store and typed Bridge to read each connected machine. The controller
+in `web/src/data/schedules` matches list replies to their connection and
+keeps optimistic row actions separate from node snapshots so failures
+can restore a row. The sheet in `web/src/features/schedules` reuses the
+project and harness catalogues and asks the node for cadence previews.
+Updates carry the original revision. ADR 0033 governs ownership and
+execution. The [web schedules plan](plans/web-schedules.md) records the
+consumer choices and verification.
+
 ## Speed
 
 Measured, not assumed: each crate's `benches/` (criterion) for the hot

@@ -55,3 +55,40 @@ Paths are within `packages/app/src` in the pinned Paseo 0.15.4 reference.
 | Per-host aggregation and reconnect | `schedules/aggregated-schedules.ts:61–123`, `hooks/use-schedules.ts:36–74` |
 | Rows, actions and delete confirmation | `components/schedules/schedule-row.tsx:99–244,266–385`, `components/schedules/schedules-table.tsx:117–128`, `hooks/use-schedule-mutations.ts:145–216` |
 | Forms and cadence, second packet | `components/schedules/schedule-form-sheet.tsx:316–554,699–883`, `components/schedules/cadence-editor.tsx:33–122`, `schedules/schedule-cadence-options.ts:14–51` |
+
+The pinned CLI register in `packages/cli/src/commands/schedule/index.ts:14–99`
+covers create, inspect, logs and actions. Its heartbeat commands in
+`packages/cli/src/commands/heartbeat/index.ts:35–155` establish the agent
+caller's ownership. The web packet covers the list, row actions and
+sheets in the UI references above.
+
+## Editing decisions
+
+- Purpose. Create and edit recurring new-agent schedules in the same
+  place as their rows, with an explicit read-only view for heartbeats.
+- Constraint. `schedule.update` replaces a whole revision and changes
+  the authorizing principal to the caller. Old definitions can carry
+  elapsed cadence, an expiry, a non-default catch-up policy or choices
+  the current harness probe omits. Preserving those values avoids a
+  behavior change when editing another field.
+- Alternatives. Converting every interval to cron changes its timing
+  across daylight-saving transitions. Sending a partial edit is not
+  supported by this wire method. Editing a heartbeat with that method
+  also changes when the node cleans it up.
+- Choice. The dialog uses the existing composer catalogue and option
+  probe, kit controls and the node's cadence preview. It sets an hourly
+  cron in the local device zone for creation. A saved zone or elapsed
+  interval stays as stored. Updates preserve unedited fields and carry
+  the original revision. Heartbeats display Target and Cadence with
+  their host and can be deleted from the row. Owner-preserving cadence
+  editing depends on TRACKER 839.
+- Differences. Vessel's composer names the agent and the model in
+  separate controls where the node supplies both. A profile appears
+  when the machine offers choices. The node cannot mint a fresh worktree
+  for each run, so only an existing project is selectable on creation.
+  An existing worktree or CWD stays as stored on edits. Old elapsed
+  cadence is displayed as a fixed value. The app shows the next instant
+  supplied by the node and validates an invalid run cap inline. A
+  missing device zone uses the machine's zone when known. When the
+  harness cannot return a model catalogue, the composer can still
+  schedule the selected agent with its default model.
