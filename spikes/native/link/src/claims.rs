@@ -169,7 +169,7 @@ impl crate::State {
     /// Mark a session read through a record with `inbox.read`, fire and
     /// forget: a lost mark leaves the session unread, and the next view
     /// sends it again.
-    pub(crate) fn read_inbox(&self, read: ReadInbox) {
+    pub(crate) fn read_inbox(&self, read: &ReadInbox) {
         let Some(client) = self
             .clients
             .get(&read.machine)
@@ -177,8 +177,9 @@ impl crate::State {
         else {
             return;
         };
+        let (session, through) = (read.session, read.through);
         drop(tokio::spawn(async move {
-            if let Err(error) = client.read_inbox_through(read.session, read.through).await {
+            if let Err(error) = client.read_inbox_through(session, through).await {
                 tracing::debug!(%error, "a session read was not marked in the inbox");
             }
         }));
