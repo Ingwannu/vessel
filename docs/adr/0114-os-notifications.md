@@ -383,6 +383,9 @@ and attention (`desktop-badge-state.ts:5-14`, `use-favicon-status.ts`).
   where the browser offers it. The favicon has three states, drawn by the build. ADR 0089, "The page's badge and
   favicon", has the rule, the files and the tests.
 - **App: a stated difference (TRACKER 831).** The app shows no count on the OS dock or taskbar:
+  - Paseo's desktop shows its count on the macOS dock only: the app calls `setBadgeCount` only in Electron on a
+    Mac (`use-favicon-status.ts:80-95`, `updateMacDockBadge`), which sets the `NSDockTile` badge through
+    Electron's `app.setBadgeCount` (`desktop/src/window/window-manager.ts:181-194`);
   - GPUI has no badge call;
   - Windows' `ITaskbarList3` overlay and Linux's `com.canonical.Unity.LauncherEntry` would each need a patch;
   - the coordinator ruled on 2026-11-20 not to patch GPUI for it.
