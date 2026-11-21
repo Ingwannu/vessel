@@ -103,6 +103,7 @@ fn a_rows_trigger_is_a_button_that_takes_a_click_only_while_idle(cx: &mut TestAp
     let idle = trigger_node(cx);
     assert!(idle.contains(r#""Button""#), "{idle}");
     assert!(idle.contains(r#""Click""#), "{idle}");
+    assert!(idle.contains(r#""expanded": false"#), "{idle}");
     // A change out: the row waits and offers nothing to press.
     shell.update(cx, |shell, cx| {
         let state = &mut shell.areas.settings.plugins;
@@ -127,6 +128,8 @@ fn a_click_alone_opens_the_rows_menu_once(cx: &mut TestAppContext) {
         shell: cx.new(|cx| Shell::with_test_link(window, cx, link)),
     });
     let shell = probe.update(cx, |probe, _cx| probe.shell.clone());
+    let handle = cx.update(|window, _| window.window_handle());
+    assert!(cx.simulate_accessibility_activation(handle));
     shell.update(cx, |shell, cx| {
         opened(shell);
         cx.notify();
@@ -147,4 +150,6 @@ fn a_click_alone_opens_the_rows_menu_once(cx: &mut TestAppContext) {
             assert_eq!(state.menu_for, Some(night()));
         });
     });
+    let open = trigger_node(cx);
+    assert!(open.contains(r#""expanded": true"#), "{open}");
 }

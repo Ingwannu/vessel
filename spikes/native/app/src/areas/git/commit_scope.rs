@@ -41,9 +41,11 @@ pub(super) fn scope(
 ) -> AnyElement {
     let git = &shell.areas.git;
     let lang = shell.t.lang;
+    let field = lang.git_labels().commit_scope;
+    let value = lang.git_commit_scope(git.stage);
     let trigger = select::trigger(
         "git-commit-scope",
-        lang.git_commit_scope(git.stage),
+        select::Label::new(value, shell.words.select_field_name(field, value)),
         &git.scope_anchor,
         git.scope_list.is_open(),
         !git.writing.busy(),
@@ -73,7 +75,7 @@ pub(super) fn scope(
                 .type_(Type::Body)
                 .font_weight(gpui::FontWeight::MEDIUM)
                 .text_color(tokens.neutral.foreground)
-                .child(lang.git_labels().commit_scope),
+                .child(field),
         )
         .child(trigger)
         .into_any_element()

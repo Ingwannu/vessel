@@ -35,10 +35,11 @@ pub(super) fn toolbar(
     let page = &area.data.page;
     let mut controls = div().flex().flex_wrap().items_center().gap(px(spacing::S3));
     if page.multiple_machines() {
+        let label = page.machine_label(shell.words);
         controls = controls.child(
             kit::select::trigger(
                 "schedules-host",
-                page.machine_label(shell.words).to_owned(),
+                kit::select::Label::new(label.to_owned(), shell.words.host_filter_name(label)),
                 &area.ui.anchor,
                 area.ui.picker.is_open(),
                 true,

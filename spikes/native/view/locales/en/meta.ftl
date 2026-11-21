@@ -8,3 +8,10 @@ meta-system = System
 
 # General settings language row hint, following Paseo. Keep short.
 meta-language-note = App language
+
+# Screen-reader name for a select. $field is its visible field label.
+# $value is the selected value. Keep both so equal values can be distinguished.
+meta-select-field-name = { $field } ({ $value })
+
+# Screen-reader name for the host filter. $host is the selected machine or all hosts.
+meta-host-filter-name = Filter: { $host }
