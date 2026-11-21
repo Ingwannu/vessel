@@ -34,7 +34,7 @@ pub(crate) fn closes_terminal(scope: CloseScope, plans: &[ClosePlan]) -> bool {
 
 /// The terminal ids a layout shows as tabs.
 /// The terminal the focused pane shows, if it shows one.
-fn shown_terminal(layout: &vessel_app_view::layout::Layout) -> Option<TerminalId> {
+pub(crate) fn shown_terminal(layout: &vessel_app_view::layout::Layout) -> Option<TerminalId> {
     let tab = layout
         .root()
         .panes()

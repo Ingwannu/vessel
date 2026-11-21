@@ -342,7 +342,8 @@ web/src/features/ an area's components and hooks, each stylesheet beside its com
                   selection, launcher, lifecycle confirmation and pane dispatch), the
                   session's Summary (inspector),
                   welcome/, shortcuts/ (the one keydown listener and each action's handler),
-                  notifications/ (notices, the tone), the command palette (the shell's, with its
+                  notifications/ (notices, the tone, and presence: `use-presence.ts` reports
+                  `push.presence` to every machine from `data/presence.ts`, Paseo's tracker), the command palette (the shell's, with its
                   shortcut; the sidebar's row only opens it), the theme switch, the kit's
                   gallery at /kit
 web/src/routes/   the screens, each composing features: home (welcome or board), the board, a
@@ -1660,6 +1661,18 @@ with the writer and bounds them by inbox retention through a cascading foreign
 key. `vessel-session::terminals` owns semantic activity and once-only terminal
 revision admission in the existing info watch. No PTY parser, push sender or
 notification content is duplicated; clients display only a generic local notice.
+Clients report presence (`push.presence`, live since protocol 22): the page's
+`data/presence.ts` and the app's `view::presence` hold Paseo's client tracker
+(15 s heartbeats, immediate ones at most every 5 s, input and visibility), the
+app's `link::presence` and the page's `use-presence.ts` hand each connected machine
+its own report. ADR 0114, "Presence".
+Behind ADR 0089's constant, both clients claim a session notice before showing it
+(`view::notices::claims` with `link::claims`, and the page's `data/claims.ts`):
+one first inbox page per machine and change, then a claim per notice found on it.
+ADR 0114, "Claims". The app also follows each such machine's terminal list
+(`link::terminal_notices`, `view::notices::terminals`) and claims a terminal's
+Finished or Needs-input attention by its exact revision. ADR 0114, "Terminal
+notices".
 Passive read callers acquire the same transferable marking lease before a task
 is retained; accepted work owns it through durable and live publication. Local
 final authority/source checks share one borrowed-connection read transaction.

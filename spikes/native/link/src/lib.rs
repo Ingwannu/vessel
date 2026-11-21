@@ -57,15 +57,20 @@ pub mod attachments;
 mod pairing;
 mod prefs;
 #[cfg(not(target_arch = "wasm32"))]
+mod presence;
+#[cfg(not(target_arch = "wasm32"))]
 mod refresh;
 #[cfg(not(target_arch = "wasm32"))]
 mod sending;
 mod session;
+#[cfg(not(target_arch = "wasm32"))]
+mod terminal_notices;
 // A browser has no `vessel-client` yet (no tokio network, no files): the
 // same `Link`, `Command` and `Event`, answered from a demo fleet, so the
 // screens can be drawn and typed into from WebAssembly
 // (docs/plans/backend-m12-browser.md, questions 1 and 8).
 pub mod agents;
+pub mod claims;
 pub mod creation;
 #[cfg(any(target_arch = "wasm32", test))]
 mod demo;
@@ -191,6 +196,8 @@ fn offer(commands: &mpsc::Sender<Command>, command: Command) -> Result<(), Unsen
 #[derive(Debug)]
 pub struct Link {
     commands: mpsc::Sender<Command>,
+    /// This window's presence, latest only (`presence`).
+    presence: presence::Sender,
     _runtime: tokio::runtime::Runtime,
 }
 
@@ -209,6 +216,7 @@ impl Link {
             .build()?;
         let (commands, inbox) = mpsc::channel(CHANNEL);
         let (events, outbox) = mpsc::channel(CHANNEL);
+        let (presence, presence_inbox) = presence::channel();
         let state = State {
             label: label.to_owned(),
             commands: commands.downgrade(),
@@ -228,16 +236,26 @@ impl Link {
             usage_calls: usage::Hub::default(),
             session_navigation: sessions::Hub::default(),
             terminal_hub: terminals::Hub::default(),
+            presence_hub: presence::Hub::default(),
+            terminal_notices: terminal_notices::Hub::default(),
             offers: std::sync::Arc::default(),
         };
-        drop(runtime.spawn(state.run(inbox)));
+        drop(runtime.spawn(state.run(inbox, presence_inbox)));
         Ok((
             Self {
                 commands,
+                presence,
                 _runtime: runtime,
             },
             outbox,
         ))
+    }
+
+    /// This window's presence for every connected machine
+    /// (`push.presence`): kept as the latest value, never queued behind or
+    /// in front of a person's commands; returns at once.
+    pub fn presence(&self, snapshot: vessel_app_view::presence::Snapshot) {
+        let _earlier = self.presence.send_replace(Some(snapshot));
     }
 
     /// Ask for something and say whether the link took it; returns at
@@ -267,10 +285,12 @@ impl Link {
     #[cfg(feature = "testing")]
     pub fn detached(room: usize) -> std::io::Result<(Self, mpsc::Receiver<Command>)> {
         let (commands, inbox) = mpsc::channel(room);
+        let (presence, _nobody) = presence::channel();
         let runtime = tokio::runtime::Builder::new_current_thread().build()?;
         Ok((
             Self {
                 commands,
+                presence,
                 _runtime: runtime,
             },
             inbox,
@@ -301,6 +321,11 @@ struct State {
     session_navigation: sessions::Hub,
     /// The terminal tabs' follows (`terminals`).
     terminal_hub: terminals::Hub,
+    /// This window's presence to each machine (`presence`).
+    presence_hub: presence::Hub,
+    /// Each machine's terminal list, followed for attention
+    /// (`terminal_notices`).
+    terminal_notices: terminal_notices::Hub,
     /// The agents' lists kept between runs, by node: read before the first
     /// connection, written when an answer differs (on the blocking pool;
     /// the lock is held only there and for a lookup at connect).
@@ -309,7 +334,7 @@ struct State {
 
 #[cfg(not(target_arch = "wasm32"))]
 impl State {
-    async fn run(mut self, mut inbox: mpsc::Receiver<Command>) {
+    async fn run(mut self, mut inbox: mpsc::Receiver<Command>, mut presence: presence::Receiver) {
         // The kept lists first, so the first connection hands them over.
         let path = offers::Store::default_path();
         match tokio::task::spawn_blocking(move || offers::Store::load(path)).await {
@@ -323,6 +348,7 @@ impl State {
         self.reload().await;
         let mut tick = tokio::time::interval(REFRESH);
         tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+        let mut presence_open = true;
         loop {
             tokio::select! {
                 command = inbox.recv() => match command {
@@ -330,6 +356,12 @@ impl State {
                     None => break,
                 },
                 _instant = tick.tick() => self.refresh().await,
+                changed = presence.changed(), if presence_open => match changed {
+                    Ok(()) => self.presence_changed(&mut presence),
+                    // Only the command queue's end closes the link; with
+                    // no presence end, there is nothing more to report.
+                    Err(_dropped) => presence_open = false,
+                },
             }
         }
     }

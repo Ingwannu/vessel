@@ -32,7 +32,7 @@ async fn every_actor_book_error_path_keeps_the_canary_out_of_events() {
     .unwrap();
     let (state, mut events) = state(&home);
     let (send, inbox) = mpsc::channel(8);
-    let running = tokio::spawn(state.run(inbox));
+    let running = tokio::spawn(state.run(inbox, crate::presence::channel().1));
     // Startup reload and the interval's immediate first tick both reach refresh.
     for _ in 0..2 {
         assert!(matches!(next(&mut events).await, Event::BookUnreadable(_)));

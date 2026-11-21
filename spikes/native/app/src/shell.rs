@@ -16,6 +16,7 @@ use vessel_app_kit::ui::{
     ParentElement as _, Render, Styled as _, WeakEntity, Window, div, px,
 };
 use vessel_app_link::{Command, Event, Link, Prefs};
+use vessel_app_view::panels::SidebarLayout;
 use vessel_app_view::prefs::Panel;
 use vessel_app_view::{Fleet, Text};
 
@@ -115,6 +116,15 @@ impl Shell {
         shell
     }
 
+    /// This window's presence to the link (`areas::presence`): its own
+    /// latest-value channel, never the command queue. Without a link there
+    /// is no one to tell.
+    pub(crate) fn report_presence(&self, snapshot: vessel_app_view::presence::Snapshot) {
+        if let Some(link) = &self.link {
+            link.presence(snapshot);
+        }
+    }
+
     /// Send `command`; one the link does not take settles on the next
     /// update, after the caller's own code, through the handler its
     /// answer would reach (`crate::unsent`: callers that set what waits
@@ -202,7 +212,7 @@ impl Shell {
     pub(crate) fn toggle_sidebar(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) {
         if matches!(
             areas::sidebar::arrangement(self, window),
-            vessel_app_view::panels::SidebarLayout::Sheet
+            SidebarLayout::Sheet
         ) {
             self.sidebar_sheet = match self.sidebar_sheet {
                 Some(_) => None,
@@ -306,6 +316,7 @@ impl Render for Shell {
     fn render(&mut self, window: &mut Window, cx: &mut Context<'_, Self>) -> impl IntoElement {
         let started = crate::region::begin(self, cx);
         areas::notify::retitle(self, window);
+        self.presence_shown();
         if std::mem::take(&mut self.arrive_pending) {
             routes::arrive(self.route, self, window, cx);
         }
@@ -317,11 +328,8 @@ impl Render for Shell {
         // Navigation or docking closes its sheet.
         let phone = vessel_app_kit::breakpoint::phone(window);
         let sidebar = areas::sidebar::arrangement(self, window);
-        let sheet_form = matches!(sidebar, vessel_app_view::panels::SidebarLayout::Sheet);
-        let docked = matches!(
-            sidebar,
-            vessel_app_view::panels::SidebarLayout::Docked { .. }
-        );
+        let sheet_form = matches!(sidebar, SidebarLayout::Sheet);
+        let docked = matches!(sidebar, SidebarLayout::Docked { .. });
         if !sheet_form
             || self
                 .sidebar_sheet
@@ -354,6 +362,7 @@ impl Render for Shell {
             .on_modifiers_changed(cx.listener(Self::shortcut_modifiers_changed))
             .bg(tokens.bg_shell)
             .text_color(tokens.text_primary)
+            .child(areas::presence::observer(cx))
             .child(chrome::title_bar(self, &tokens, window, cx))
             .child(
                 div()

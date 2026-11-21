@@ -23,6 +23,8 @@ pub struct NoticeWords {
     pub lang: Lang,
     needs_you: &'static str,
     finished: &'static str,
+    terminal_needs_you: &'static str,
+    terminal_finished: &'static str,
 }
 
 impl NoticeWords {
@@ -34,16 +36,30 @@ impl NoticeWords {
             NoticeKind::Finished => self.finished,
         }
     }
+
+    /// A terminal notice's title, in Paseo's words
+    /// (`websocket-server.ts:213-215`).
+    #[must_use]
+    pub const fn terminal_title(&self, kind: NoticeKind) -> &'static str {
+        match kind {
+            NoticeKind::NeedsYou => self.terminal_needs_you,
+            NoticeKind::Finished => self.terminal_finished,
+        }
+    }
 }
 
 const EN: NoticeWords = NoticeWords {
     lang: Lang::En,
     needs_you: "Session needs you",
     finished: "Session finished",
+    terminal_needs_you: "Terminal needs input",
+    terminal_finished: "Terminal finished",
 };
 
 const KO: NoticeWords = NoticeWords {
     lang: Lang::Ko,
     needs_you: "세션이 응답을 기다립니다",
     finished: "세션이 끝났습니다",
+    terminal_needs_you: "터미널이 입력을 기다립니다",
+    terminal_finished: "터미널이 끝났습니다",
 };

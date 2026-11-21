@@ -165,3 +165,166 @@ none to done, or to a stated difference, without waiting on the node.
 - **Browser link.** `web.rs` `answer` is split by kind of request into `web/refuse.rs`. A source test
   (`link/src/web_dispatch_tests.rs`) keeps every `Command`, `Files` and mentions `Ask` named, with no
   catch-all.
+
+## Presence (2026-11-20, the claims follow-up's first row)
+
+[Decision Log]
+
+**Purpose and intent.** The first of the claims rows (the coordinator's plan, 2026-11-20): both clients
+report presence (`push.presence`, live since protocol 22). A machine then knows whether a person is here
+before it sends a Web Push, and which window to tell.
+
+**Existing implementation and constraints.**
+- The node already decides from presence with Paseo's policy (`push/policy.rs`, Paseo's
+  `agent-attention-policy.ts:3,42-76`):
+  - present means real input within 180 s;
+  - only a present, visible window focused on the target suppresses;
+  - otherwise the most recently active present window is the one told;
+  - otherwise the machine pushes.
+- Neither client reported presence, so every Web Push went out even while the person used Vessel.
+- The protocol has no client timestamps: `Active` is stamped by the node at receipt (ADR 0089).
+
+**Alternatives considered.**
+- Wait for the claims protocol and send presence with it. That leaves pushes going to people at their
+  screen until then, and presence does not need it.
+- Send presence only while notifications are wanted. Paseo always sends it, and the node uses it for Web
+  Push too.
+
+**Choice: Paseo's client tracker, copied** (`~/refs/paseo-latest/packages/app/src/hooks/client-activity-tracker.ts`
+and `use-client-activity.ts`).
+- Timing:
+  - a heartbeat every 15 s while connected, and one at once on connecting (`:1`, `:125-148`). The app
+    hands the link its first snapshot as soon as the shell exists, before the first machine connects, so
+    opening reaches every machine as input (app review R1);
+  - an immediate heartbeat on input at most every 5 s (`:2`, `:63-73`).
+- Input and visibility:
+  - window focus, a pointer press, a key, a wheel and a touch are input; opening counts as input (`:43`);
+  - a new shown session is input and sends at once (`:78-89`);
+  - becoming visible is input; becoming hidden waits for the next heartbeat (`:90-105`).
+- Focus:
+  - `session` on the machine whose session the window shows, when visible;
+  - `elsewhere` on every other machine;
+  - `background` while hidden.
+- Visible is the document's visibility on the page (Paseo's), and the window's visibility on native
+  (`observe_window_visibility`). A visible window that is not focused still shows its session, as in
+  Paseo.
+- Where it lives:
+  - page: `web/src/data/presence.ts` (the tracker), `features/notifications/use-presence.ts` (the wiring);
+  - native: `view/src/presence.rs` (the tracker and `Told`), `link/src/presence.rs` (a report per machine
+    connection), `app/src/areas/presence.rs` (input observed at the root in the capture phase, keystrokes,
+    activation, visibility, the 15 s timer).
+  - The app hands a snapshot to the link through `Link::presence`. That is a latest-value channel (tokio
+    `watch`) beside the command queue, not a command:
+    - only the latest state matters;
+    - a heartbeat must never fill the queue that carries a person's actions;
+    - screens' tests that read that queue see only actions.
+
+    The first build sent it as a command, and three such tests read a presence report where they expected
+    their own request.
+
+**Why this over the alternatives.** It is the reference's behaviour, value for value, and the node's
+policy is already Paseo's. Each difference is stated below.
+
+**Pros, cons and impact.**
+- **This changes Web Push today.** A machine sends no push while a window of the page or the app had real
+  input in the last 180 s. It suppresses a session's push entirely while a visible window shows that
+  session. A window that goes quiet stops counting 180 s after the report that carried its last input,
+  and pushes resume.
+- Difference, by the protocol: Paseo sends the input's own time. Vessel's report says `active` and the
+  machine stamps it. Input that waits for a heartbeat keeps presence up to 15 s longer than Paseo's. A
+  machine that connects hears `active` only for input in the last 15 s, the same bound.
+- Difference: no OS idle time (`idle_age` is pending under ADR 0089's constant, and native has no idle
+  API).
+- A machine refusing presence (older than 22, or a device it takes none from) is not asked again by the
+  page until it reconnects. The app's link tries each heartbeat; an older machine is refused by the client
+  before the wire.
+- Tests:
+  - page: `data/presence.test.ts`;
+  - native: `view/src/presence/tests.rs` and `link/src/presence/tests.rs`;
+  - both run the node's 180 s rule over the reports: a window that goes stale lets push resume, a hidden
+    tab is present but never suppresses, and the latest input wins.
+
+## Claims (2026-11-21, the claims follow-up's second row)
+
+Both clients ask a machine before they show a session's notice: `notification.claim`, ADR 0089 "The
+clients' session claims". This replaces "two open clients may both notify" once ADR 0089's constant is
+assigned.
+
+- Until then, no machine admits claims, and every notice takes this ADR's path unchanged.
+- Where:
+  - the app: `view/src/notices/claims.rs` holds the rules; `link/src/claims.rs` asks
+    (`Command::Claims`/`Event::Claims`); `app/src/areas/notify/claims.rs` (`ask_before_telling`,
+    `notices_claimed`) tells only what passes;
+  - the page: `web/src/data/claims.ts`, wired in `use-notices.ts`.
+- What shows: `Admitted`, and a notice whose entry is not on the machine's first inbox page. That fallback
+  is the coordinator's rule, and ADR 0089 states the limit. Nothing else shows, and a claim is never
+  retried.
+- Sound: an asked notice's sound plays with its notification when the answer admits it. On the app, the
+  answer's notices share one sound, as a fleet change's do.
+- Tests:
+  - rules, both clients: `view/src/notices/claims/tests.rs` and `web/src/data/claims.test.ts`;
+  - the link through the real actor: one first page, one claim per notice found, which the client refuses
+    before the wire while unassigned;
+  - the app: only admitted and past-the-page notices are told, and every notice is told at once while
+    unassigned.
+- Owed at assignment: an end-to-end claim against a node, with two windows of which one is admitted.
+
+## Terminal notices (2026-11-21, the claims follow-up's third row, app part)
+
+An agent in a terminal reports through Vessel's hooks (ADR 0089) that it finished or needs input. Paseo tells
+one client:
+- the server picks the client and titles it "Terminal finished" or "Terminal needs input", with the
+  terminal's name as the body (`websocket-server.ts:213-215,2955-3044`);
+- the app shows it, and a tap opens the terminal tab (`session-context.tsx:658-677`).
+
+The app now does the same behind ADR 0089's constant. Until the constant is assigned, the node fills no
+terminal's attention, and no machine admits claims, so nothing here runs.
+
+- **Source.** For each connected machine that admits claims, the link follows the whole terminal list
+  (`terminal.list` with no place), waiting on its revision (ADR 0116). Once the feature is assigned, the
+  node moves that revision when a terminal's attention changes (`terminals/registry/listed.rs`).
+  - One follower per connection (`link/src/terminal_notices.rs`).
+  - A newer connection replaces it, and a failed call ends it.
+  - A list whose revision did not move is asked again only after a quiet second. A node that answers without
+    waiting (its wait slots full, a delegated caller) would otherwise be asked at round-trip speed (app review
+    note).
+  - Following each terminal instead would cost a long poll per terminal, up to 96 a machine.
+- **What is a notice** (`view/src/notices/terminals.rs`, with the Decision Log):
+  - a terminal at Finished or Needs input, at an attention revision the connection has not told of;
+  - never the connection's first list, as for sessions;
+  - never a failed terminal, as the node's push worker.
+- **Claim and show.**
+  - Settings' alerts decide first: a window that tells nothing never claims.
+  - The claim names the exact revision (`NotificationSource::Terminal`).
+  - Only `Admitted` shows. A terminal has no inbox, so there is no fallback.
+  - The title is Paseo's words; the body is the terminal's title, or "Terminal", never its command.
+  - Admitted notices share one sound and count in the window's title, as session notices do.
+- **Click** (`app/src/areas/notify/terminals.rs`): opens the session whose workspace holds the terminal's
+  place, then the terminal's tab there. Nothing opens when the fleet lists no such session.
+- **Presence.** A terminal tab with the focused pane in the shown workspace is reported as
+  `Terminal{terminal}` focus (`view/src/presence.rs`, `Shown::Terminal`), as Paseo's focus target is an agent
+  or a terminal (`agent-attention-policy.ts:12`). The machine then suppresses that terminal's notice and
+  keeps the session's.
+  - A report carrying `Terminal` focus is versioned to ADR 0089's constant (`rpc/since.rs`). So only a
+    machine that admits claims hears it.
+  - Every other machine hears `Elsewhere`. **This changes push today.** Before this row, a terminal tab
+    reported its route's session, so that session's push was held back while the person looked at the
+    terminal. Now it goes, as Paseo's does: its focus target is then the terminal, not the agent.
+- **Viewing clears.** While the window is visible and a terminal's tab is shown, the app sends
+  `terminal.attention_clear` with the exact attention revision its list shows (`notices::terminals::to_clear`,
+  `notify/terminals.rs`), once per revision.
+  - Paseo's node clears a focused terminal's attention on a visible heartbeat (`session.ts:5064-5066`).
+    Vessel's clear is the client's, by revision, so a stale view never clears newer attention (ADR 0089).
+  - A lost clear is not retried, and the next view sends it again.
+- **Not in this part:** the page. It follows on the node line.
+- **Tests:**
+  - `view/src/notices/terminals/tests.rs`: the first list, a new revision told once, the kinds, a failed
+    terminal, alerts off;
+  - `link/src/terminal_notices/tests.rs`, through the real framed actor: the whole list, then from its
+    revision, and only the new attention told; a fresh connection follows only while the constant is
+    assigned;
+  - `app/src/areas/notify/terminals/tests.rs`: only admitted notices are shown, with their titles; alerts
+    off never claims; a viewed terminal's attention is cleared once, only on a machine that admits claims;
+  - `view/src/presence/tests.rs` and `link/src/presence/tests.rs`: a shown terminal is `Terminal` focus only
+    to a machine that admits claims.
+

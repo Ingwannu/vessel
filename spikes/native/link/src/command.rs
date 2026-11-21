@@ -205,6 +205,22 @@ pub enum Command {
     /// Search one machine's messages (`session.search`); answered by
     /// [`Event::Searched`].
     Search(search::Ask),
+    /// Ask a machine before its notices are shown (ADR 0089
+    /// `notification.claim`): answered as [`crate::Event::Claims`].
+    Claims(crate::claims::Ask),
+    /// Ask a machine before its terminals' notices are shown (ADR 0089
+    /// `notification.claim`, a terminal's exact attention): answered as
+    /// [`crate::Event::TerminalClaims`].
+    TerminalClaims(crate::claims::TerminalAsk),
+    /// The person viewed a terminal: clear its attention at the exact
+    /// revision shown (ADR 0089 `terminal.attention_clear`). Nothing comes
+    /// back: the followed list shows the result.
+    ClearTerminalAttention {
+        /// The machine, by its book name.
+        machine: String,
+        /// Which terminal, at which revision.
+        clear: vessel_proto::notifications::ClearTerminalAttention,
+    },
     /// A workspace's shell terminals (ADR 0031); answered by
     /// `Event::Terminals`.
     Terminals(crate::terminals::Ask),

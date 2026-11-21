@@ -44,6 +44,7 @@ const ANSWER_ROOM: usize = 2;
 pub struct Link {
     demo: RefCell<Demo>,
     events: mpsc::Sender<Event>,
+    presence: RefCell<Option<vessel_app_view::presence::Snapshot>>,
 }
 
 impl Link {
@@ -57,6 +58,7 @@ impl Link {
         let link = Self {
             demo: RefCell::new(Demo::new(Utc::now())),
             events,
+            presence: RefCell::new(None),
         };
         link.emit(Event::Fleet(link.demo.borrow().fleet(Utc::now())));
         Ok((link, outbox))
@@ -77,6 +79,12 @@ impl Link {
         }
         self.answer(command);
         Ok(())
+    }
+
+    /// This window's presence: the demo keeps the latest and has no machine
+    /// to tell it to.
+    pub fn presence(&self, snapshot: vessel_app_view::presence::Snapshot) {
+        let _earlier = self.presence.replace(Some(snapshot));
     }
 
     /// Ask for something nothing waits on (a command not taken is dropped
@@ -128,7 +136,9 @@ impl Link {
             | Command::SavePrefs(_)
             | Command::KeepCommands { .. }
             | Command::SaveDrafts(_)
-            | Command::RetireConnection(_) => {}
+            | Command::RetireConnection(_)
+            // The demo has no machine whose terminals ask for anyone.
+            | Command::ClearTerminalAttention { .. } => {}
             Command::CodeSource(request) => self.emit(refuse::code_source(request)),
             Command::Usage(ask) => self.emit(refuse::usage(ask)),
             Command::SessionAccess(access) => self.emit(refuse::session_access(access)),
@@ -147,6 +157,8 @@ impl Link {
             } => self.emit(refuse::devices(context, ticket, ask)),
             Command::Machines(ask) => self.emit(refuse::machines(ask)),
             Command::Sync { ticket, .. } => self.emit(refuse::sync(ticket)),
+            Command::Claims(ask) => self.emit(Event::Claims(ask.failed())),
+            Command::TerminalClaims(ask) => self.emit(Event::TerminalClaims(ask.failed())),
             Command::NodeSettings(ask) => self.emit(refuse::node_settings(ask)),
             Command::Diagnostics(ask) => self.emit(refuse::diagnostics(ask)),
             Command::Plugins(ask) => self.emit(refuse::plugins(ask)),

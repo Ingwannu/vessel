@@ -11,7 +11,7 @@
 //! - Choice: a child module of the crate root, as `options.rs` is.
 //! - Cost: one more file; no API, behaviour or dependency change.
 
-use super::{Command, Event, LinkError, State, drafts, nodes, pairing};
+use super::{Command, Event, LinkError, Offer, State, drafts, nodes, pairing};
 use vessel_proto::{PermissionOutcome, SessionInput};
 
 const CANCEL_TURN: SessionInput = SessionInput::CancelTurn { turn: None };
@@ -42,6 +42,11 @@ impl State {
             Command::Machines(ask) => self.machine_book(ask).await,
             Command::CodeSource(request) => self.code_source(request).await,
             Command::Sync { machine, ticket } => self.sync(&machine, ticket).await,
+            Command::Claims(ask) => self.claims(ask).await,
+            Command::TerminalClaims(ask) => self.terminal_claims(ask).await,
+            Command::ClearTerminalAttention { machine, clear } => {
+                self.clear_terminal_attention(&machine, clear);
+            }
             Command::NodeSettings(ask) => self.node_settings(ask).await,
             Command::Diagnostics(ask) => self.diagnostics(ask).await,
             Command::Plugins(ask) => self.plugins(ask, Event::Plugins).await,
@@ -98,14 +103,7 @@ impl State {
                 offer,
                 name,
                 prefer_node_name,
-            } => match nodes::pair(&offer, &name, prefer_node_name).await {
-                Ok((node, via, address)) => {
-                    self.emit(Event::Paired { node, via, address }).await;
-                    self.reload().await;
-                }
-                Err(LinkError::BookFault(fault)) => self.emit(Event::BookUnreadable(fault)).await,
-                Err(error) => self.emit(Event::PairFailed(pairing::problem(&error))).await,
-            },
+            } => self.pair(&offer, &name, prefer_node_name).await,
             Command::Act {
                 machine,
                 session,
@@ -115,6 +113,19 @@ impl State {
             Command::Search(ask) => self.search(ask),
             Command::Terminals(ask) => self.terminals(ask).await,
             Command::SavePrefs(prefs) => save_prefs(prefs).await,
+        }
+    }
+
+    /// Pair with an offer, then read the book again; out of `handle` so
+    /// its arms stay within the function budget (the Decision Log below).
+    async fn pair(&mut self, offer: &Offer, name: &str, prefer_node_name: bool) {
+        match nodes::pair(offer, name, prefer_node_name).await {
+            Ok((node, via, address)) => {
+                self.emit(Event::Paired { node, via, address }).await;
+                self.reload().await;
+            }
+            Err(LinkError::BookFault(fault)) => self.emit(Event::BookUnreadable(fault)).await,
+            Err(error) => self.emit(Event::PairFailed(pairing::problem(&error))).await,
         }
     }
 }
