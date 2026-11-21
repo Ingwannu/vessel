@@ -117,8 +117,16 @@ include!(concat!(env!("OUT_DIR"), "/files.rs"));
 /// names and session ids, which may hold dots, so the extension rule
 /// cannot tell them from files. `plugin` is a plugin's screen
 /// (`/plugin/<node>/<plugin>/<screen>`, ADR 0115 "Surfaces").
-const APP_ROUTES: [&str; 8] = [
-    "fleet", "new", "sessions", "sync", "devices", "settings", "kit", "plugin",
+const APP_ROUTES: [&str; 9] = [
+    "fleet",
+    "new",
+    "sessions",
+    "schedules",
+    "sync",
+    "devices",
+    "settings",
+    "kit",
+    "plugin",
 ];
 
 /// Whether `path` lies under one of the app's routes.

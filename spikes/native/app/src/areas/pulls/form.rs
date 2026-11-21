@@ -184,9 +184,12 @@ fn base_row(
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let pulls = &shell.areas.pulls;
+    let field = shell.words.pulls().field_base();
+    let value = base_label(shell, form_base(shell, form).as_ref());
+    let name = shell.words.select_field_name(field, &value);
     let trigger = select::trigger(
         "pulls-base",
-        base_label(shell, form_base(shell, form).as_ref()),
+        select::Label::new(value, name),
         &pulls.base_anchor,
         pulls.bases.is_open(),
         form.sending.is_none(),
@@ -211,7 +214,7 @@ fn base_row(
         .items_center()
         .justify_between()
         .gap(px(spacing::S2))
-        .child(label(shell.words.pulls().field_base(), tokens))
+        .child(label(field, tokens))
         .child(trigger)
         .into_any_element()
 }

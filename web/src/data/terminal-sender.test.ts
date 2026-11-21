@@ -149,6 +149,50 @@ describe("terminal input", () => {
     expect(sent.slice(2)).toEqual(["<80x24>", "\r"]);
   });
 
+  it("drops the rest of a long paste when a part fails, and keys after it go (P4w note 1)", async () => {
+    const { sent, send, answer } = sends();
+    const sender = new TerminalSender(send);
+    sender.keys("p".repeat(MAX_SEND_BYTES * 2 + 10));
+    sender.keys("\r");
+    await answer(false);
+    await answer();
+    expect(sent.map((one) => one.length)).toEqual([MAX_SEND_BYTES, 1]);
+    expect(sent.at(-1)).toBe("\r");
+  });
+
+  it("still ends a bracketed paste whose part fails, then sends the keys after it (R1)", async () => {
+    const { sent, send, answer } = sends();
+    const sender = new TerminalSender(send);
+    sender.keys(`\x1b[200~${"p".repeat(MAX_SEND_BYTES * 3)}\x1b[201~`);
+    sender.keys("\r");
+    await answer(false);
+    await answer();
+    await answer();
+    expect(sent.slice(1)).toEqual(["\x1b[201~", "\r"]);
+  });
+
+  it("sends only the end marker's tail when the cut fell inside it", async () => {
+    const { sent, send, answer } = sends();
+    const sender = new TerminalSender(send);
+    // Six, the body and six: one bound and three bytes.
+    sender.keys(`\x1b[200~${"p".repeat(MAX_SEND_BYTES - 9)}\x1b[201~`);
+    sender.keys("x");
+    await answer(false);
+    await answer();
+    await answer();
+    expect(sent.slice(1)).toEqual(["01~", "x"]);
+  });
+
+  it("drops nothing more when a send of keys fails", async () => {
+    const { sent, send, answer } = sends();
+    const sender = new TerminalSender(send);
+    sender.keys("a");
+    sender.keys("b");
+    await answer(false);
+    await answer();
+    expect(sent).toEqual(["a", "b"]);
+  });
+
   it("sends nothing after close", async () => {
     const { sent, send, answer } = sends();
     const sender = new TerminalSender(send);

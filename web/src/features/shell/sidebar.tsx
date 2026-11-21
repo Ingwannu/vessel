@@ -12,6 +12,7 @@ import { useFleet, useFleetState } from "../../context";
 import { isLive } from "../../data/format";
 import { selectedNode } from "../../data/nodes";
 import { prefs } from "../../data/prefs";
+import { schedulesLabel } from "../../data/schedules/words";
 import { pageGrouping } from "../../data/sidebar";
 import { useStore } from "../../data/store";
 import { chooseTheme } from "../../data/theme";
@@ -115,6 +116,14 @@ export function Sidebar({
           <Icon name="board" size={16} />
           <span className="label">Board</span>
           <span className="count">{live}</span>
+        </Link>
+        <Link
+          className={rowClass(place === "schedules")}
+          to="/schedules"
+          aria-current={place === "schedules" ? "page" : undefined}
+        >
+          <Icon name="calendar-clock" size={16} />
+          <span className="label">{schedulesLabel(navigator.language)}</span>
         </Link>
         <SidebarPluginItems placement="header" />
       </div>
