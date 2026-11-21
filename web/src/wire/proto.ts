@@ -14644,3 +14644,8 @@ export const ORIGIN_LINK_PROTOCOL = 42;
  * `plugin.settings.read`, `.write` and `.reset` (ADR 0115, "Settings").
  */
 export const PLUGIN_SETTINGS_PROTOCOL = 43;
+
+/**
+ * `notification.claim`, terminal attention and `Terminal` presence focus (ADR 0089); `null` until assigned.
+ */
+export const ATTENTION_NOTIFICATIONS_PROTOCOL = null;
