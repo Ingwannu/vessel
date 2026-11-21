@@ -108,11 +108,12 @@ async fn an_agent_reads_no_other_session_s_pull_request() {
         let forge = FakeForge::new();
         let fixture = Fixture::new();
         // The forge's node, with the `vessel` server its agents are given.
+        let shared = Arc::clone(&forge);
         let node = fixture
             .start_with(|config| {
                 config.harness_lookup = lookup(&fixture);
                 config.forge = ForgeSetup {
-                    custom: Some(Arc::clone(&forge)),
+                    custom: Some(shared),
                     ..ForgeSetup::default()
                 };
                 config.vessel_mcp = Some(vessel_mcp(&fixture));
