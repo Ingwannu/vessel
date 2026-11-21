@@ -168,8 +168,6 @@ pub(crate) fn settle(unsent: Unsent, words: &str) -> Settle {
     Settle::Answer(Box::new(event))
 }
 
-/// A search never sent: said under the Messages group as that machine's
-/// failure.
 /// An act that never left: answered as the machine's `unavailable`, with the
 /// app's sentence. Kept out of [`settle`] for its length (the match grows
 /// with every command).
@@ -191,6 +189,8 @@ fn act_unsent(
     })
 }
 
+/// A search never sent: said under the Messages group as that machine's
+/// failure.
 fn search_refused(ask: vessel_app_link::search::Ask, message: String) -> Event {
     Event::Searched(vessel_app_link::search::Answer {
         machine: ask.machine,
