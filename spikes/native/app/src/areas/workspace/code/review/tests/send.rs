@@ -145,7 +145,10 @@ fn feedback_to_the_one_agent_sends_one_review_and_clears_it_once_delivered(
         assert!(!pill_offered(shell, session));
         let toast = shell.areas.toasts.shown().unwrap();
         assert_eq!(toast.tone, ToastTone::Ok);
-        assert_eq!(toast.text, "Feedback sent to Fix the cart");
+        // The words name the agent (Fluent isolates the name).
+        let sent = shell.words.review().feedback_sent("Fix the cart").unwrap();
+        assert_eq!(toast.text, sent);
+        assert!(sent.starts_with("Feedback sent to ") && sent.contains("Fix the cart"));
     });
     assert_eq!(cx.debug_bounds("review-room").unwrap().size.height, px(0.0));
     shell.update(cx, |shell, _| scene.close(shell.fixture_link()).unwrap());
