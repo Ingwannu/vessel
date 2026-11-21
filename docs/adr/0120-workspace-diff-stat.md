@@ -121,7 +121,11 @@ failed or empty count leaves the dirty reason intact. Tidying does not
 recount or persist warning counts. The optional reply field leaves older
 readers and replies compatible.
 
-The page follows Paseo's archive warning and shows the nonzero added and
-deleted sides after “Uncommitted changes.” A reply without counts uses
-the plain warning. An unpushed or otherwise unique commit is a separate
-reason because its risk remains even when every file is committed.
+The page and native removal panel follow Paseo's archive warning
+(`worktree-archive-warning.ts:52–98`) and show the nonzero added and
+deleted sides after “Uncommitted changes.” Both clients display the
+reasons and counts from the same reply so a workspace-list update
+cannot change a warning independently of the removal check. A reply
+without counts uses the plain warning. An unpushed or otherwise unique
+commit is a separate reason because its risk remains even when every
+file is committed.
