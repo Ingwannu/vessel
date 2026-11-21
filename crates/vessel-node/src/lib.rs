@@ -71,6 +71,7 @@ pub mod cleanup;
 mod config;
 mod devices;
 mod diagnostics;
+mod direct;
 mod envelope;
 mod error;
 pub mod fleet;

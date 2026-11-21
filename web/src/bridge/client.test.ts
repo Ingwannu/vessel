@@ -246,3 +246,33 @@ test("an op's failure keeps the bridge's reason, and a lost socket says so", asy
   socket.cut();
   await expect(lost).rejects.toMatchObject({ reason: "disconnected" });
 });
+
+test("after the welcome, a throwing listener or an unreadable frame never forgets the key", async () => {
+  const errors = vi.spyOn(console, "error").mockImplementation(() => undefined);
+  const { bridge, socket } = start();
+  socket.message(await answer(socket));
+  await vi.waitFor(() => {
+    expect(bridge.link.kind).toBe("open");
+  });
+  const seen: string[] = [];
+  bridge.onNode((node) => {
+    seen.push(node);
+    if (seen.length === 1) throw new Error("A listener's own bug");
+  });
+  socket.message({ type: "node", node: "one", status: { state: "idle" } });
+  socket.message({ type: "node", node: "two", status: { state: "idle" } });
+  await vi.waitFor(() => {
+    expect(seen).toEqual(["one", "two"]);
+  });
+  expect(bridge.link.kind).toBe("open");
+
+  socket.message({ type: "not-a-frame" });
+  await vi.waitFor(() => {
+    expect(bridge.link.kind).toBe("disconnected");
+  });
+  // Not a refusal: Retry dials again with the same key.
+  bridge.retry();
+  expect(Socket.all.length).toBe(2);
+  expect(errors).toHaveBeenCalled();
+  errors.mockRestore();
+});

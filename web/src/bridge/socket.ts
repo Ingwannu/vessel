@@ -19,6 +19,12 @@
 //   guarantee the refusal gave. (A tab once deleted a valid key after five
 //   transient closes, and nothing could recover it: verification finding
 //   1, M7.)
+// - After the welcome nothing but a second handshake is a refusal: a
+//   frame the page cannot read, or a listener that throws while handling
+//   one, once logged the tab out as if the server had failed its proof
+//   (the 2026-11 review). Now a listener's error is reported and the
+//   next frame still comes, and an unreadable frame stops the link as
+//   `disconnected`, the key kept (`#deliver`).
 // - Divided from `client.ts` (milestone 11, track W): the lifecycle of
 //   the socket is one job, the meaning of its frames another.
 
@@ -163,12 +169,12 @@ export class BridgeSocket {
       messages = messages
         .then(async () => {
           if (!this.#current(socket)) return;
-          const frame = frames.parse(data);
           if (verified) {
-            if (frame.type === "challenge" || frame.type === "welcome")
-              throw new Error("Repeated handshake");
-            this.#events.frame(frame);
-          } else if (frame.type === "challenge") {
+            this.#deliver(socket, data);
+            return;
+          }
+          const frame = frames.parse(data);
+          if (frame.type === "challenge") {
             const hello = await handshake.hello(frame);
             if (this.#current(socket)) this.send(hello);
           } else if (frame.type === "welcome") {
@@ -231,6 +237,42 @@ export class BridgeSocket {
       this.#retry = null;
       this.#connect();
     }, retryInMs);
+  }
+
+  /** A frame after the welcome. The server has proved itself, so what
+   * goes wrong here is not a refusal, which would forget the session key:
+   * a listener that throws is reported and the next frame still comes; a
+   * frame that does not parse (a bug, since the page and the bridge ship
+   * together) stops the link as `disconnected`, the key kept for Retry. A
+   * second handshake is still a refusal (thrown to the caller's catch). */
+  #deliver(socket: WebSocket, data: unknown): void {
+    let frame: ServerFrame;
+    try {
+      frame = frames.parse(data);
+    } catch (error) {
+      console.error("vessel ui sent a frame the page cannot read", error);
+      this.#broken(socket);
+      return;
+    }
+    if (frame.type === "challenge" || frame.type === "welcome") {
+      throw new Error("Repeated handshake");
+    }
+    try {
+      this.#events.frame(frame);
+    } catch (error) {
+      console.error("handling a frame from vessel ui failed", error);
+    }
+  }
+
+  /** `socket` cannot go on but nothing was refused: stop redialling (a
+   * redial would meet the same frame) and say `disconnected`. */
+  #broken(socket: WebSocket): void {
+    if (this.#socket !== socket) {
+      return;
+    }
+    this.stop();
+    this.#events.lost();
+    this.#setLink({ kind: "disconnected", attempts: this.#attempt });
   }
 
   #current(socket: WebSocket): boolean {
