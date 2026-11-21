@@ -17,9 +17,11 @@
 //!   that session whose item matches the notice's kind ([`source`]).
 //! - Not on the first page (sixteen newer entries came first): the notice
 //!   falls back to ADR 0114's path and shows. This is the coordinator's
-//!   rule (2026-11-20), and ADR 0089 states the limit.
+//!   rule (2026-11-20), and ADR 0089 states the limit. A first page that
+//!   cannot be read falls back the same way for every notice, rather than
+//!   silencing them (ADR 0089, "Turned on", item 4).
 //! - Otherwise only `Admitted` shows ([`shows`]). Every other outcome, a
-//!   failed call and a lost reply show nothing, and a claim is never
+//!   failed claim and a lost reply show nothing, and a claim is never
 //!   retried (ADR 0089: the inbox still holds it).
 //! - Failed sessions never reach here: the diff drops them, as Paseo's
 //!   `session-context.tsx:267-269` does.
@@ -102,11 +104,13 @@ pub fn source(entries: &[InboxEntry], notice: &Notice) -> Option<NotificationSou
 /// What asking came to for one notice.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Asked {
-    /// The first page did not hold its entry: ADR 0114's path.
+    /// The first page did not hold its entry, or could not be read: ADR
+    /// 0114's path.
     NotOnFirstPage,
     /// The machine answered the claim.
     Answered(NotificationClaim),
-    /// The page or the claim failed, or the reply was lost.
+    /// The claim failed or its reply was lost, or the machine could not be
+    /// asked at all.
     Failed,
 }
 

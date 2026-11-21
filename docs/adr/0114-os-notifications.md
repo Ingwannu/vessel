@@ -257,14 +257,17 @@ assigned.
     `notices_claimed`) tells only what passes;
   - the page: `web/src/data/claims.ts`, wired in `use-notices.ts`.
 - What shows: `Admitted`, and a notice whose entry is not on the machine's first inbox page. That fallback
-  is the coordinator's rule, and ADR 0089 states the limit. Nothing else shows, and a claim is never
+  is the coordinator's rule, and ADR 0089 states the limit. A first page that cannot be read falls back the
+  same way for every notice, and no claim is made (ADR 0089, "Turned on", item 4; the page's
+  `askBeforeTelling`). Before, a failed page silenced them. Nothing else shows, and a claim is never
   retried.
 - Sound: an asked notice's sound plays with its notification when the answer admits it. On the app, the
   answer's notices share one sound, as a fleet change's do.
 - Tests:
   - rules, both clients: `view/src/notices/claims/tests.rs` and `web/src/data/claims.test.ts`;
   - the link through the real actor: one first page, one claim per notice found, which the client refuses
-    before the wire while unassigned;
+    before the wire while unassigned; a failed page answers every notice `NotOnFirstPage`
+    (`a_failed_first_page_tells_every_notice_by_the_old_path_and_claims_none`);
   - the app: only admitted and past-the-page notices are told, and every notice is told at once while
     unassigned.
 - Owed at assignment: an end-to-end claim against a node, with two windows of which one is admitted.
