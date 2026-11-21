@@ -29,7 +29,8 @@ import type { SessionInfo } from "../../wire/proto";
 import { useMedia } from "../shell/use-media";
 import { COMPACT } from "../../ui/breakpoints";
 import { KeyBar } from "./key-bar";
-import { mountTerminal, type TerminalKeyBar } from "./mount-terminal";
+import { mountTerminal } from "./mount-terminal";
+import { TerminalSurface } from "./terminal-surface";
 
 export function TerminalView({
   node,
@@ -46,7 +47,9 @@ export function TerminalView({
   const [stream, setStream] = useState<StreamState | null>(null);
   // Paseo shows the key bar off its mobile app only when compact (P4).
   const compact = useMedia(COMPACT);
-  const [keyBar, setKeyBar] = useState<TerminalKeyBar | null>(null);
+  const [mounted, setMounted] = useState<ReturnType<
+    typeof mountTerminal
+  > | null>(null);
   // Kept with the session and the next record it expects, so a follow
   // that starts again from the first record counts no call twice.
   const [usage, setUsage] = useState<{
@@ -66,7 +69,7 @@ export function TerminalView({
       () =>
         toast("Keys dropped: the session is not reading its input", "error"),
     );
-    setKeyBar(terminal.keyBar);
+    setMounted(terminal);
     const live = liveBoundary({
       read: () => readSession(fleet, node, session.id),
       onLink: (listener) => fleet.bridge.onLink(listener),
@@ -96,7 +99,7 @@ export function TerminalView({
       },
     });
     return () => {
-      setKeyBar(null);
+      setMounted(null);
       live.stop();
       stop();
       terminal.close();
@@ -136,12 +139,15 @@ export function TerminalView({
                     : "live"}
               </span>
             </div>
-            <div
-              className="term xterm-host"
-              ref={host}
-              aria-label="Session terminal"
+            <TerminalSurface
+              host={host}
+              find={mounted?.find ?? null}
+              compact={compact}
+              label="Session terminal"
             />
-            {compact && keyBar !== null ? <KeyBar bar={keyBar} /> : null}
+            {compact && mounted !== null ? (
+              <KeyBar bar={mounted.keyBar} />
+            ) : null}
           </div>
         </div>
       </div>

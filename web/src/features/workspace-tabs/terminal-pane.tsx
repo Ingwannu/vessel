@@ -21,7 +21,8 @@ import { toast } from "../../ui/toasts";
 import type { NodeKey, StreamState } from "../../wire/bridge";
 import type { TerminalId } from "../../wire/proto";
 import { KeyBar } from "../session/key-bar";
-import { mountTerminal, type TerminalKeyBar } from "../session/mount-terminal";
+import { mountTerminal } from "../session/mount-terminal";
+import { TerminalSurface } from "../session/terminal-surface";
 import { useMedia } from "../shell/use-media";
 import { COMPACT } from "../../ui/breakpoints";
 import type { TabWords } from "./words";
@@ -45,7 +46,9 @@ export function TerminalPane({
   );
   // Paseo shows the key bar off its mobile app only when compact (P4).
   const compact = useMedia(COMPACT);
-  const [keyBar, setKeyBar] = useState<TerminalKeyBar | null>(null);
+  const [mounted, setMounted] = useState<ReturnType<
+    typeof mountTerminal
+  > | null>(null);
   useEffect(() => {
     const element = host.current;
     if (element === null) {
@@ -60,7 +63,7 @@ export function TerminalPane({
       openedInThisTab(terminal) ? "opened" : "attached",
       "tab",
     );
-    setKeyBar(pane.keyBar);
+    setMounted(pane);
     const live = liveBoundary({
       read: () => readWorkspaceTerminal(fleet, node, terminal),
       onLink: (listener) => fleet.bridge.onLink(listener),
@@ -80,7 +83,7 @@ export function TerminalPane({
     return () => {
       live.stop();
       stop();
-      setKeyBar(null);
+      setMounted(null);
       pane.close();
     };
   }, [fleet, node, terminal, words.dropped]);
@@ -107,8 +110,13 @@ export function TerminalPane({
 
   return (
     <div className="workspace-terminal">
-      <div className="xterm-host" ref={host} aria-label={words.terminal} />
-      {compact && keyBar !== null ? <KeyBar bar={keyBar} /> : null}
+      <TerminalSurface
+        host={host}
+        find={mounted?.find ?? null}
+        compact={compact}
+        label={words.terminal}
+      />
+      {compact && mounted !== null ? <KeyBar bar={mounted.keyBar} /> : null}
       {!connected ? (
         <div className="workspace-terminal-state">{words.disconnected}</div>
       ) : registry === "missing" || stream?.state === "failed" ? (

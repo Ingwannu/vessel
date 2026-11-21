@@ -388,6 +388,11 @@ that may only shrink; the list is empty since milestone 11). Milestone
 10's plan has the rules. `src/testing/` may be imported only by tests
 and `src/data/fixtures/`, which lint also holds.
 
+The shared terminal mount uses xterm.js for the rendered buffer. Its
+search adapter loads the MIT-licensed `@xterm/addon-search` only while
+a query is active. The session PTY and workspace terminal use the same
+pane and keyboard handling. See `docs/plans/page-terminal-find.md`.
+
 **Branded handles.** The generated declarations brand every handle a
 node, the bridge, a harness or the page's bridge client mints:
 `SessionId` is `string & { readonly __brand: "SessionId" }`, so a
@@ -395,6 +400,10 @@ session's id cannot be passed where a machine's key is wanted, as in
 Rust. The brand exists only in the type; the wire is unchanged. What a
 person types or names (a book name, a profile, a path, a title, a URL,
 a key binding), quantities, secrets and content stay plain.
+
+The workspace Scripts control uses the owning node's script registry and
+project command approval. Its output opens in the workspace terminal tabs.
+See `docs/plans/page-workspace-scripts.md` for the live and staged contracts.
 `vessel-proto`'s `ts/aliases.rs` classifies every primitive alias in one
 table, with the rule; the generator fails its test on an alias in no
 class and on an entry no file declares any more, so a new alias is

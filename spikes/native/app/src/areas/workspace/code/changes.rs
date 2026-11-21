@@ -295,6 +295,7 @@ pub(super) fn render(
         .child(toolbar(shell, tokens, window, cx))
         .child(div().flex_1().min_h(px(0.0)).child(body))
         .children(scope_list(shell, tokens, window, cx))
+        .children(super::review::rows::sheet(shell, tokens, window, cx))
         .into_any_element()
 }
 
