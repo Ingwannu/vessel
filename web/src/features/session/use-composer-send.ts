@@ -105,7 +105,7 @@ export function useComposerSend({
     protocol,
     live: isLive(session),
     inTurn: timeline.inTurn,
-    filled: text.trim() !== "" || filled,
+    filled: (editing?.text ?? text).trim() !== "" || filled,
     abilities: timeline.conversation.abilities ?? session.abilities ?? null,
     queue: timeline.conversation.queue,
     preferred,
