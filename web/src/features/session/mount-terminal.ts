@@ -100,7 +100,7 @@ export function mountTerminal(
     cursorBlink: true,
     cursorStyle: "block",
     convertEol: false,
-    scrollback: 5000,
+    scrollback: prefs.get().values.terminal.scrollback,
     // OSC 8 hyperlinks from the session follow the timeline's link
     // policy (data/links.ts): http(s) only, after a confirm showing the
     // URL, in a new isolated tab; the UI tab is never navigated.
@@ -122,7 +122,11 @@ export function mountTerminal(
   const fit = new FitAddon();
   let codeSize = prefs.get().values.appearance.code_size;
   const stopSize = prefs.subscribe(() => {
-    const next = prefs.get().values.appearance.code_size;
+    const { appearance, terminal: preferences } = prefs.get().values;
+    const next = appearance.code_size;
+    if (terminal.options.scrollback !== preferences.scrollback) {
+      terminal.options.scrollback = preferences.scrollback;
+    }
     if (next !== codeSize) {
       codeSize = next;
       terminal.options.fontSize = next + 1;

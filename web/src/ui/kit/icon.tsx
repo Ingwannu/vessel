@@ -34,6 +34,8 @@ export const ICON_NAMES = [
   "board",
   "compose",
   "terminal",
+  "square-terminal",
+  "files",
   "message",
   "copy",
   "copy-x",

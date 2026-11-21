@@ -28,7 +28,7 @@
 mod auth;
 mod node;
 mod prefs;
-pub use auth::{AuthMode, InvalidAuthValue, LaunchId, Nonce};
+pub use auth::{AuthMode, InvalidAuthValue, LaunchId, Nonce, PresentedToken, SecretText};
 pub use node::{BookName, InvalidBookName, InvalidNodeKey, NodeKey};
 pub use prefs::{
     ActionId, AgentDefaults, AgentKind, Alerts, Appearance, Bindings, Bounded, ChoiceKey,
@@ -36,13 +36,14 @@ pub use prefs::{
     Draft, DraftKey, DraftText, DraftTooLong, DraftsState, ExplorerSort, Grouping, InterfaceSize,
     InvalidActionId, InvalidKeyBinding, Kept, KeyBinding, LabelPick, LabelPicks, LaunchOnly,
     Layout, MAX_ACTIONS, MAX_BINDINGS, MAX_CHOICE_TEXT, MAX_CHOICES, MAX_DRAFT, MAX_EDITS,
-    MAX_MACHINES, MAX_USAGE_PINS, MachineDefaults, Notifications, OutOfRange, Panel,
-    PreferenceChange, Preferences, PreferencesState, Revision, SendKey, SessionSort, ShortcutEdit,
-    ShortcutEdits, ShortcutTarget, SidebarTrailing, SidebarView, Theme, TooMany, TurnDelivery,
-    UsageDisplay, UsagePin, UsagePins, UsagePreferences,
+    MAX_MACHINES, MAX_USAGE_PINS, MachineDefaults, Notifications, OpenLocationDestination,
+    OpenLocationPreferences, OpenLocationSource, OutOfRange, Panel, PreferenceChange, Preferences,
+    PreferencesState, PullRequestLocation, Revision, ScrollbackOutOfRange, SendKey, SessionSort,
+    ShortcutEdit, ShortcutEdits, ShortcutTarget, SidebarTrailing, SidebarView, TerminalPreferences,
+    TerminalScrollback, Theme, TooMany, TurnDelivery, UsageDisplay, UsagePin, UsagePins,
+    UsagePreferences,
 };
 
-use std::fmt;
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
@@ -586,68 +587,6 @@ impl StreamId {
     #[must_use]
     pub const fn new(id: u64) -> Self {
         Self(id)
-    }
-}
-
-/// A token as a browser presented it: not yet checked, never printed.
-#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
-#[serde(transparent)]
-pub struct PresentedToken(String);
-
-impl PresentedToken {
-    /// The token as given.
-    #[must_use]
-    pub fn new(token: String) -> Self {
-        Self(token)
-    }
-
-    /// The text, for comparing.
-    #[must_use]
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-}
-
-impl fmt::Debug for PresentedToken {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str("PresentedToken(..)")
-    }
-}
-
-/// Text from the page that may be a credential: a pairing link (to
-/// inspect or pair with), or the text of a QR code (a pairing link to
-/// show). A link holds a single-use invitation until it is redeemed, so
-/// `Debug` never prints it (an `Op` or a `ClientFrame` in a log line, a
-/// test failure or a panic message shows a placeholder), and there is no
-/// `Display`. It is not checked here: explaining a bad link is
-/// `inspect`'s job, with the book's own parser.
-///
-/// [`SecretText::expose`] is called only where the text is parsed or
-/// drawn (`ops`: inspect, pair, qr; the source's pairing); nothing on
-/// those paths logs it.
-#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
-#[serde(transparent)]
-pub struct SecretText(String);
-
-impl SecretText {
-    /// The text as the page sent it.
-    #[must_use]
-    pub const fn new(text: String) -> Self {
-        Self(text)
-    }
-
-    /// The text, to parse or draw; never to log or format into a message.
-    #[must_use]
-    pub fn expose(&self) -> &str {
-        &self.0
-    }
-}
-
-impl fmt::Debug for SecretText {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str("SecretText(<redacted>)")
     }
 }
 
