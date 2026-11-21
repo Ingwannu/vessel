@@ -26,6 +26,8 @@ use vessel_app_link::Command;
 use vessel_app_link::attachments::{Answer, Files};
 use vessel_app_view::composer::sent::{Picture, Pictures, Sent};
 use vessel_app_view::composer::tray::{ItemState, Origin, Tray};
+use vessel_app_view::localization::Number;
+use vessel_app_view::timeline::SentContext;
 use vessel_proto::{AttachmentKind, AttachmentRef, SessionId};
 
 use crate::areas::conversation::ConversationArea;
@@ -69,34 +71,41 @@ impl<'a> SentFiles<'a> {
     }
 
     /// A message's files as Paseo's user message shows them: its images in
-    /// a row, then its other files in a row, each row 8 apart that wraps,
-    /// and 8 above the text when text follows; `None` when it has none.
+    /// a row, then its other files and its context and review pills (ADR
+    /// 0124; Paseo's `attachments` row) in a row, each row 8 apart that
+    /// wraps, and 8 above the text when text follows; `None` when it has
+    /// none.
     pub(crate) fn block(
         &self,
         files: &[AttachmentRef],
+        context: &[SentContext],
         text_follows: bool,
         tokens: &Tokens,
         cx: &mut Context<'_, Shell>,
     ) -> Option<Div> {
-        if files.is_empty() {
+        if files.is_empty() && context.is_empty() {
             return None;
         }
         let (images, others): (Vec<&AttachmentRef>, Vec<&AttachmentRef>) = files
             .iter()
             .partition(|file| file.kind == AttachmentKind::Image);
-        let mut row = |files: Vec<&AttachmentRef>| {
-            (!files.is_empty()).then(|| {
-                attachment_tray()
-                    .children(files.into_iter().map(|file| self.frame(file, tokens, cx)))
-            })
-        };
+        let images = (!images.is_empty()).then(|| {
+            attachment_tray().children(images.into_iter().map(|file| self.frame(file, tokens, cx)))
+        });
+        let others = (!others.is_empty() || !context.is_empty()).then(|| {
+            attachment_tray()
+                .children(others.into_iter().map(|file| self.frame(file, tokens, cx)))
+                .children(context.iter().map(|sent| {
+                    attachment_frame(&sent_pill(self.shell, sent), tokens).into_any_element()
+                }))
+        });
         Some(
             div()
                 .flex()
                 .flex_col()
                 .gap(px(spacing::S2))
-                .children(row(images))
-                .children(row(others))
+                .children(images)
+                .children(others)
                 .when(text_follows, |block| block.mb(px(UNDER_FILES))),
         )
     }
@@ -278,6 +287,34 @@ pub(super) fn seed(
             };
             pictures.seed(sent, Arc::clone(bytes));
         }
+    }
+}
+
+/// A sent context or review as Paseo's sent attachment pill
+/// (`getAgentAttachmentPillContent`): a context's title over "Text" (or
+/// "Previous conversation"), a review as "Review" over its comments. It
+/// opens nothing, as Paseo's.
+fn sent_pill(shell: &Shell, sent: &SentContext) -> Body {
+    let words = shell.words.composer();
+    match sent {
+        SentContext::Context { title, history } => Body::Label {
+            icon: Glyph::FileText,
+            title: SharedString::from(title.clone()),
+            subtitle: SharedString::from(if *history {
+                words.sent_history().to_owned()
+            } else {
+                words.sent_text().to_owned()
+            }),
+        },
+        SentContext::Review { comments } => Body::Label {
+            icon: Glyph::MessageCode,
+            title: SharedString::from(words.sent_review().to_owned()),
+            subtitle: SharedString::from(
+                words
+                    .sent_comments(Number::count(u32::try_from(*comments).unwrap_or(u32::MAX)))
+                    .unwrap_or_default(),
+            ),
+        },
     }
 }
 

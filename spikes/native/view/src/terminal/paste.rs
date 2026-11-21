@@ -13,8 +13,8 @@
 
 use super::grid::Bracketed;
 
-const START: &str = "\x1b[200~";
-const END: &str = "\x1b[201~";
+pub(super) const START: &str = "\x1b[200~";
+pub(super) const END: &str = "\x1b[201~";
 /// The end marker without its ESC: what an end marker inside a paste becomes.
 const END_DEFUSED: &str = "[201~";
 

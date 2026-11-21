@@ -4,6 +4,7 @@
 
 mod store;
 mod value;
+mod wire;
 use crate::machine_book::Name;
 use std::num::NonZeroU32;
 pub use store::{ContextIntent, ContextTray, ContextVisibility, Submission, SubmissionOutcome};

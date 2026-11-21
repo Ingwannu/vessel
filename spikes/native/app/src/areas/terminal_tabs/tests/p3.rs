@@ -340,3 +340,38 @@ fn a_paste_past_its_bound_is_said_once(cx: &mut TestAppContext) {
         assert_eq!(said(shell), None, "said once for a run of refusals");
     });
 }
+
+/// TRACKER 836: a press whose release was never heard (it came before the
+/// frame that listens window-wide) ends at the next move with the button
+/// up. A plain click so ended selects nothing, and a later move extends
+/// nothing; with the button down, the drag goes on.
+#[gpui::test]
+fn a_move_with_the_button_up_ends_a_press_that_missed_its_release(cx: &mut TestAppContext) {
+    let (probe, cx) = open(cx);
+    let session = probe.read_with(cx, |probe, _| probe.2);
+    let shell = probe.read_with(cx, |probe, _| probe.0.clone());
+    let key = laptop(super::shell_info(session).id);
+    let moved = |pressed_button| gpui::MouseMoveEvent {
+        position: gpui::point(gpui::px(5.0), gpui::px(5.0)),
+        pressed_button,
+        modifiers: gpui::Modifiers::none(),
+    };
+    shell.update_in(cx, |shell, _window, cx| {
+        live(shell, &key, b"select me", cx);
+        let pane = shell.areas.terminal_tabs.panes.get_mut(&key).unwrap();
+        let grid = pane.model.as_ref().unwrap().grid();
+        let at = grid.text_at(Scroll(0), 0, 2);
+        pane.selected = Some(Selected::on(Selection::new(at, SelectBy::Cells), grid));
+        pane.selecting = true;
+        shell.terminal_tab_pointer_moved(&key, &moved(Some(gpui::MouseButton::Left)), cx);
+        let panes = &shell.areas.terminal_tabs.panes;
+        assert!(panes.get(&key).is_some_and(|pane| pane.selecting));
+        shell.terminal_tab_pointer_moved(&key, &moved(None), cx);
+        let pane = shell.areas.terminal_tabs.panes.get(&key);
+        assert!(pane.is_some_and(|pane| !pane.selecting), "the press ended");
+        assert!(
+            pane.is_some_and(|pane| pane.selected.is_none()),
+            "a click selects nothing"
+        );
+    });
+}

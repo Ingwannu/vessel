@@ -52,6 +52,7 @@ impl State {
             Command::NodeSettings(ask) => self.node_settings(ask).await,
             Command::TerminalProfiles(ask) => self.terminal_profiles(ask).await,
             Command::Diagnostics(ask) => self.diagnostics(ask).await,
+            Command::Schedules(request) => self.schedule(request).await,
             Command::Plugins(ask) => self.plugins(ask, Event::Plugins).await,
             Command::PluginCatalog(ask) => self.plugins(ask, Event::PluginCatalog).await,
             Command::Devices {

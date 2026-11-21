@@ -31,6 +31,7 @@ pub(super) fn pending(
             replayed: false,
             turn: 0,
             attachments: Vec::new(),
+            context: Vec::new(),
         },
         None,
         cx,
@@ -47,9 +48,11 @@ pub(super) fn person(
     cx: &mut Context<'_, Shell>,
 ) -> AnyElement {
     let corner = corner.or_else(|| prompt.replayed.then(|| paint.words.prompt_corner(true, 0)));
-    // Its files as Paseo's user message shows them (track P's `SentFiles`).
+    // Its files, context and review as Paseo's user message shows them
+    // (track P's `SentFiles`; ADR 0124).
     let files = (paint.files).block(
         &prompt.attachments,
+        &prompt.context,
         !prompt.text.is_empty(),
         paint.tokens,
         cx,
