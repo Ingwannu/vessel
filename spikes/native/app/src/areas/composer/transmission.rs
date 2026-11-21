@@ -116,9 +116,8 @@ impl Shell {
                     .flat_map(Submission::attachments)
                     .filter_map(|item| match item {
                         ContextAttachment::Review(offer) => Some(offer.key.clone()),
-                        ContextAttachment::WorkspaceFile(_) | ContextAttachment::Snapshot { .. } => {
-                            None
-                        }
+                        ContextAttachment::WorkspaceFile(_)
+                        | ContextAttachment::Snapshot { .. } => None,
                     })
                     .collect();
                 if let Some(context) = &prompt.context

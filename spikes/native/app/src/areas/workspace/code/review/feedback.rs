@@ -128,9 +128,9 @@ impl Shell {
     }
 
     fn review_feedback_facts(&self, offer: Option<&Offer>, recipients: usize) -> FeedbackFacts {
-        let comments = self
-            .review_key()
-            .map_or(0, |key| self.areas.composer.drafts.reviews().comments(&key).len());
+        let comments = self.review_key().map_or(0, |key| {
+            self.areas.composer.drafts.reviews().comments(&key).len()
+        });
         FeedbackFacts {
             comments,
             sendable: offer.map(|offer| offer.snapshot.review.comments.len()),

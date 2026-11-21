@@ -105,7 +105,9 @@ fn comment_of(comment: &DraftComment, rows: &[DiffRow]) -> Option<ReviewComment>
         .iter()
         .rposition(|row| matches!(row, DiffRow::Hunk { .. }))?;
     let header = match rows.get(start)? {
-        DiffRow::Hunk { header, section, .. } => section
+        DiffRow::Hunk {
+            header, section, ..
+        } => section
             .as_ref()
             .map_or_else(|| header.clone(), |section| format!("{header} {section}")),
         DiffRow::Line { .. } | DiffRow::Cut { .. } => return None,
@@ -118,7 +120,10 @@ fn comment_of(comment: &DraftComment, rows: &[DiffRow]) -> Option<ReviewComment>
     let hunk = rows.get(start.saturating_add(1)..end)?;
     let place = at.saturating_sub(start.saturating_add(1));
     let from = place.saturating_sub(RADIUS);
-    let to = place.saturating_add(RADIUS).saturating_add(1).min(hunk.len());
+    let to = place
+        .saturating_add(RADIUS)
+        .saturating_add(1)
+        .min(hunk.len());
     let lines = hunk.get(from..to)?.iter().filter_map(line_of).collect();
     Some(ReviewComment {
         path: comment.target.path.clone(),

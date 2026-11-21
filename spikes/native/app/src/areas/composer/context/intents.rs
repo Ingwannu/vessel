@@ -12,13 +12,11 @@ pub(super) fn callbacks(
         item,
         ContextAttachment::WorkspaceFile(_) | ContextAttachment::Review(_)
     ))
-    .then(
-        || -> ScopedPillClick<Shell> {
-            std::rc::Rc::new(move |shell, _index, window, cx| {
-                shell.context_opened(target, &opened, window, cx);
-            })
-        },
-    );
+    .then(|| -> ScopedPillClick<Shell> {
+        std::rc::Rc::new(move |shell, _index, window, cx| {
+            shell.context_opened(target, &opened, window, cx);
+        })
+    });
     let remove: ScopedPillClick<Shell> = std::rc::Rc::new(move |shell, _index, _window, cx| {
         shell.context_removed(target, &intent, cx);
     });

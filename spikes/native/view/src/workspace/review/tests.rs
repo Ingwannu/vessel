@@ -163,8 +163,8 @@ fn the_document_keeps_its_shape_and_prunes_what_it_reads() {
 mod snapshots {
     use super::*;
     use crate::workspace::diff_rows::{DiffKey, DiffRow};
-    use vessel_proto::prompt_context::{MAX_COMMENTS, ReviewLineKind};
     use std::sync::Arc;
+    use vessel_proto::prompt_context::{MAX_COMMENTS, ReviewLineKind};
     use vessel_proto::workspace::LineKind;
 
     fn row(line: u32, kind: LineKind, old: Option<u32>, new: Option<u32>) -> DiffRow {
@@ -187,7 +187,12 @@ mod snapshots {
             section: Some("fn backoff".to_owned()),
         }];
         for n in 0..6 {
-            rows.push(row(n, LineKind::Context, Some(n.saturating_add(40)), Some(n.saturating_add(40))));
+            rows.push(row(
+                n,
+                LineKind::Context,
+                Some(n.saturating_add(40)),
+                Some(n.saturating_add(40)),
+            ));
         }
         rows.push(row(6, LineKind::Added, None, Some(46)));
         rows.push(row(7, LineKind::Added, None, Some(47)));
@@ -237,7 +242,10 @@ mod snapshots {
         let second = &made.review.comments[1];
         assert_eq!(second.target.old, NonZeroU32::new(46));
         assert_eq!(second.target.kind, ReviewLineKind::Remove);
-        assert!(made.text().starts_with("Vessel review attachment (uncommitted)\n"));
+        assert!(
+            made.text()
+                .starts_with("Vessel review attachment (uncommitted)\n")
+        );
     }
 
     #[test]
@@ -246,7 +254,9 @@ mod snapshots {
         let review = key("laptop");
         let gone = comment(ReviewSide::New, 90, "Line left the diff.");
         assert_eq!(
-            snapshot("/work", &review, std::slice::from_ref(&gone), |_| Some(&rows)),
+            snapshot("/work", &review, std::slice::from_ref(&gone), |_| Some(
+                &rows
+            )),
             None
         );
         let kept = comment(ReviewSide::New, 46, "Kept.");

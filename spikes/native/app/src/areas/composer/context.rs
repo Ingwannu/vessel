@@ -11,11 +11,11 @@ use vessel_app_kit::ui::{
     div,
 };
 use vessel_app_kit::{Tokens, assets::Glyph};
-use vessel_app_view::localization::Number;
 use vessel_app_view::composer::{
     context::{ContextAttachment, ContextIntent, ContextKind, ContextProblem, ContextScope},
     drafts::DraftKey,
 };
+use vessel_app_view::localization::Number;
 
 #[derive(Debug)]
 pub(super) struct Preview {
@@ -351,9 +351,8 @@ pub(super) fn tray(
                     icon,
                     title: SharedString::from(match item {
                         ContextAttachment::Review(_) => words.sent_review().to_owned(),
-                        ContextAttachment::WorkspaceFile(_) | ContextAttachment::Snapshot { .. } => {
-                            item.title().to_owned()
-                        }
+                        ContextAttachment::WorkspaceFile(_)
+                        | ContextAttachment::Snapshot { .. } => item.title().to_owned(),
                     }),
                     subtitle: subtitle.into(),
                 },

@@ -86,7 +86,10 @@ impl Shell {
                 | FileState::Loading(Some(DiffBody::Rows { rows, .. })),
             ) => Some(&**rows),
             Some(
-                FileState::Read(_) | FileState::Loading(_) | FileState::Unread | FileState::Failed(_),
+                FileState::Read(_)
+                | FileState::Loading(_)
+                | FileState::Unread
+                | FileState::Failed(_),
             )
             | None => None,
         })?;
