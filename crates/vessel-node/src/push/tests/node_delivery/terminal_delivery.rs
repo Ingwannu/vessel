@@ -124,7 +124,7 @@ async fn terminal_attention_uses_the_same_encrypted_generic_delivery_after_assig
             );
         } else {
             let working = working.unwrap();
-            let _finished = fixture
+            let finished = fixture
                 .owner
                 .report_terminal_activity(ReportTerminalActivity {
                     terminal: terminal.id,
@@ -143,6 +143,35 @@ async fn terminal_attention_uses_the_same_encrypted_generic_delivery_after_assig
             )
             .unwrap();
             assert_eq!(decoded, crate::push::crypto::PAYLOAD);
+            // The worker recorded the terminal as pushed in its burst, which
+            // opens the terminal's gap (`push/terminal/spacing.rs`): a turn
+            // that finishes again at once is not pushed again (ADR 0089,
+            // owed at assignment, beside the IPC route's test in
+            // `vessel-cli/tests/cli/terminals/hooks.rs`).
+            let again = fixture
+                .owner
+                .report_terminal_activity(ReportTerminalActivity {
+                    terminal: terminal.id,
+                    revision: Some(finished.revision),
+                    signal: TerminalActivitySignal::Working,
+                })
+                .await
+                .unwrap();
+            let _finished_again = fixture
+                .owner
+                .report_terminal_activity(ReportTerminalActivity {
+                    terminal: terminal.id,
+                    revision: Some(again.revision),
+                    signal: TerminalActivitySignal::Idle,
+                })
+                .await
+                .unwrap();
+            assert!(
+                tokio::time::timeout(std::time::Duration::from_secs(2), receiver.inbox.recv())
+                    .await
+                    .is_err(),
+                "a second finish inside the terminal's gap is not pushed"
+            );
         }
         fixture.close().await;
         receiver.close().await;
