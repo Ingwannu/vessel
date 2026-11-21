@@ -118,6 +118,10 @@ impl Sessions {
         if handle.info().spec.side_question_of.is_some() {
             return Err(crate::side_questions::SideError::PromptOnly.into());
         }
+        // A context or review block within its bounds as a whole (ADR
+        // 0124); each value checked its own as it decoded.
+        vessel_proto::prompt_context::check(&content)
+            .map_err(|problem| SessionError::Attachment(problem.into()))?;
         let named = content
             .iter()
             .any(|block| matches!(block, ContentBlock::Attachment { .. }));

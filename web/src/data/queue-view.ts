@@ -54,14 +54,18 @@ export function promptAttachments(
   return found;
 }
 
-/** `text` with the prompt's files after it, as an edit sends it: the
- * words replaced, the files kept (the CLI's `with_text`). */
+/** `text` with the prompt's files, context and reviews after it, as an
+ * edit sends it: the words replaced, what was attached kept (the CLI's
+ * `with_text`). */
 export function withText(
   content: readonly ContentBlock[],
   text: string,
 ): ContentBlock[] {
   const files: ContentBlock[] = content.filter(
-    (block) => block.type === "attachment",
+    (block) =>
+      block.type === "attachment" ||
+      block.type === "context" ||
+      block.type === "review",
   );
   return text === "" ? files : [{ type: "text", text }, ...files];
 }
