@@ -354,7 +354,7 @@ impl Page {
         let selected: Vec<_> = self
             .caches
             .iter()
-            .filter(|(key, _)| self.selected(key))
+            .filter(|(key, cache)| self.selected(key) && cache.connection.is_some())
             .map(|(_, cache)| cache)
             .collect();
         // The aggregate reference stays connecting after an empty answer
@@ -396,6 +396,7 @@ impl Page {
     pub fn filters_visible(&self) -> bool {
         self.caches
             .values()
+            .filter(|cache| cache.connection.is_some())
             .filter_map(|cache| cache.read.snapshot())
             .any(|snapshot| !snapshot.schedules.is_empty())
     }
@@ -408,7 +409,7 @@ impl Page {
     pub fn capped_machines(&self) -> impl Iterator<Item = &MachineKey> {
         self.caches
             .iter()
-            .filter(|(key, _)| self.selected(key))
+            .filter(|(key, cache)| self.selected(key) && cache.connection.is_some())
             .filter_map(|(key, cache)| {
                 let people = cache
                     .read
@@ -426,7 +427,7 @@ impl Page {
     pub fn problems(&self) -> Vec<(&MachineKey, &Failure)> {
         self.caches
             .iter()
-            .filter(|(key, _)| self.selected(key))
+            .filter(|(key, cache)| self.selected(key) && cache.connection.is_some())
             .filter_map(|(key, cache)| cache.read.problem().map(|failure| (key, failure)))
             .collect()
     }

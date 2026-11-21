@@ -1,6 +1,6 @@
 //! Schedule facts retain their original admission; this is not a connection
 //! registry or allocator. Only the canonical Fleet can supply a new context.
-use super::super::load::{Failure, MachineKey};
+use super::super::load::MachineKey;
 use super::{Cache, Page};
 use crate::{Fleet, connection::ConnectionContext};
 
@@ -21,10 +21,6 @@ impl Cache {
             return false;
         }
         if self.connection == context {
-            if context.is_none() && matches!(self.read, super::read::Read::Unread) {
-                self.read.fail(Failure::Offline);
-                return true;
-            }
             return false;
         }
         let other_node = context.as_ref().is_some_and(|context| {
@@ -41,9 +37,6 @@ impl Cache {
             self.origin = None;
         } else {
             self.invalidate();
-        }
-        if self.connection.is_none() {
-            self.read.fail(Failure::Offline);
         }
         true
     }

@@ -11,7 +11,9 @@ slot and the Command Center open the same route. The GPUI area uses the
 kit's header, segments, picker, settings rows, badge, menu and dialog.
 Fluent prepares English and Korean text. The view model owns host
 aggregation, per-host state, filtering, ordering, and optimistic row
-feedback. Link calls the existing schedule and target-metadata RPCs
+feedback. Offline hosts remain selectable. Aggregation skips them until they
+have an admission, so a banner describes a failed read on a reachable host.
+Link calls the existing schedule and target-metadata RPCs
 through the selected physical admission, with bounded work and a
 weak guard on queued replies. The node remains the source of record.
 

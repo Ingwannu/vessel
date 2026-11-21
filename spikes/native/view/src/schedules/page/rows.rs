@@ -111,7 +111,7 @@ impl Page {
     pub fn visible_rows(&self) -> Vec<Row<'_>> {
         let mut rows = Vec::new();
         for (machine, cache) in &self.caches {
-            if !self.selected(machine) {
+            if !self.selected(machine) || cache.connection.is_none() {
                 continue;
             }
             let Some(snapshot) = cache.read.snapshot() else {
@@ -149,6 +149,7 @@ impl Page {
             || self
                 .caches
                 .values()
+                .filter(|cache| cache.connection.is_some())
                 .filter_map(|cache| cache.read.snapshot())
                 .flat_map(|snapshot| &snapshot.schedules)
                 .any(|info| Status::of(&info.state).bucket() == Bucket::Unknown)

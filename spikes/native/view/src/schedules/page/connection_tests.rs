@@ -15,9 +15,9 @@ fn absent_or_legacy_admission_never_dispatches_a_read() {
         machines: vec![machine],
         read_at: Some(now()),
     };
-    assert!(page.admissions(&fleet));
-    assert_eq!(page.body(), Body::Failed);
-    assert_eq!(page.problems(), [(&key("laptop"), &Failure::Offline)]);
+    assert!(!page.admissions(&fleet));
+    assert_eq!(page.body(), Body::Empty);
+    assert!(page.problems().is_empty());
     assert!(page.due().is_empty());
     assert!(!page.admitted(context(&key("other"))));
 }
@@ -55,6 +55,8 @@ fn same_node_new_epoch_keeps_cached_facts_but_blocks_actions_until_admitted() {
     let (mut page, row) = loaded();
     let old = page.act(&row, Action::RunNow).unwrap();
     page.connected(&row.machine);
+    assert!(page.visible_rows().is_empty());
+    assert!(page.problems().is_empty());
     assert!(page.row(&row).is_some());
     assert!(page.row(&row).unwrap().menu_entries().is_empty());
     assert!(page.due().is_empty());
