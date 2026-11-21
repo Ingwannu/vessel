@@ -89,7 +89,7 @@ function FileHeader({
         {change.binary ? null : (
           <span className="d-counts">
             <span className="d-add">+{String(change.additions ?? 0)}</span>
-            <span className="d-del">−{String(change.deletions ?? 0)}</span>
+            <span className="d-del">-{String(change.deletions ?? 0)}</span>
           </span>
         )}
       </button>

@@ -23,12 +23,16 @@ pub(super) enum Compared {
 pub(super) async fn stat_in(
     git: &Git,
     dir: &Path,
-    base: Option<&RefName>,
+    base: Option<&WorktreeBase>,
 ) -> Result<Option<DiffStat>, GitError> {
     let status = git.status(dir).await?;
     let branch = status.branch.as_ref().map(BranchName::as_str);
-    let base_name = base.map(RefName::as_str);
-    let scope = match compared(branch, base_name) {
+    let comparison = match base {
+        Some(WorktreeBase::Ref { name }) => compared(branch, Some(name.as_str())),
+        Some(WorktreeBase::Commit { .. }) => branch.map(|_| Compared::Base),
+        None => compared(branch, None),
+    };
+    let scope = match comparison {
         None => return Ok(None),
         Some(Compared::Base) => DiffScope::Base { base: None },
         Some(Compared::Origin) => {
@@ -41,8 +45,7 @@ pub(super) async fn stat_in(
             }
         }
     };
-    let fallback = base.cloned().map(|name| WorktreeBase::Ref { name });
-    let resolved = git.resolve_scope(dir, &scope, fallback.as_ref()).await?;
+    let resolved = git.resolve_scope(dir, &scope, base).await?;
     let summary = git.changes(dir, &resolved, false).await?;
     Ok(counted(&summary.files))
 }
@@ -124,7 +127,7 @@ mod tests {
     use std::process::Command;
 
     use vessel_proto::registry::DiffStat;
-    use vessel_proto::workspace::{ChangeStatus, FileChange, RefName};
+    use vessel_proto::workspace::{ChangeStatus, FileChange, WorktreeBase};
     use vessel_workspace::{Git, GitSetup};
 
     use super::{Compared, compared, counted};
@@ -231,7 +234,9 @@ mod tests {
         std::fs::write(dir.join("README.md"), "hello\n").unwrap();
         run(&env, &dir, &["add", "README.md"]);
         run(&env, &dir, &["commit", "-q", "-m", "first"]);
-        let base: RefName = "main".parse().unwrap();
+        let base = WorktreeBase::Ref {
+            name: "main".parse().unwrap(),
+        };
         assert!(
             super::stat_in(&git, &dir, Some(&base))
                 .await

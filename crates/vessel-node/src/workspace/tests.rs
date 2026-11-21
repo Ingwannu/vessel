@@ -341,7 +341,8 @@ async fn a_clean_worktree_is_made_placed_and_removed_with_its_branch() {
     assert_eq!(
         kept,
         RemoveWorktreeOutcome::Kept {
-            reasons: vec![KeptReason::InUse]
+            reasons: vec![KeptReason::InUse],
+            diff_stat: None,
         }
     );
 
@@ -375,12 +376,19 @@ async fn work_is_kept_or_snapshotted_and_a_snapshot_comes_back() {
         .remove_worktree(worktree.id, IfLost::Keep, Vec::new)
         .await
         .unwrap();
-    let RemoveWorktreeOutcome::Kept { reasons } = kept else {
+    let RemoveWorktreeOutcome::Kept { reasons, diff_stat } = kept else {
         panic!("removed with work in it");
     };
     assert!(
         reasons.contains(&KeptReason::Uncommitted { files: 1 }),
         "{reasons:?}"
+    );
+    assert_eq!(
+        diff_stat,
+        Some(vessel_proto::registry::DiffStat {
+            additions: 1,
+            deletions: 0,
+        })
     );
     assert!(worktree.path.join("notes.txt").is_file());
 
@@ -714,7 +722,8 @@ async fn a_sessions_worktree_is_tidied_unless_another_session_is_in_it() {
     assert_eq!(
         kept.map(|tidied| tidied.outcome),
         Some(RemoveWorktreeOutcome::Kept {
-            reasons: vec![KeptReason::InUse]
+            reasons: vec![KeptReason::InUse],
+            diff_stat: None,
         })
     );
     assert_eq!(
@@ -759,7 +768,8 @@ async fn a_worktree_kept_for_its_work_is_left_to_a_person() {
     assert_eq!(
         kept.outcome,
         RemoveWorktreeOutcome::Kept {
-            reasons: vec![KeptReason::Uncommitted { files: 1 }]
+            reasons: vec![KeptReason::Uncommitted { files: 1 }],
+            diff_stat: None,
         }
     );
     assert!(worktree.path.join("notes.txt").exists(), "nothing was lost");
@@ -1059,7 +1069,8 @@ async fn a_worktree_redirected_or_replaced_is_not_worked_in() {
     assert_eq!(
         kept.outcome,
         RemoveWorktreeOutcome::Kept {
-            reasons: vec![KeptReason::InspectionFailed]
+            reasons: vec![KeptReason::InspectionFailed],
+            diff_stat: None,
         }
     );
     assert!(

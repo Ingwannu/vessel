@@ -190,6 +190,7 @@ fn what_became_of_the_worktree_in_words() {
             KeptReason::Uncommitted { files: 2 },
             KeptReason::UniqueCommits { commits: 1 },
         ],
+        diff_stat: None,
     };
     assert_eq!(
         EN.deleted_worktree(&kept),

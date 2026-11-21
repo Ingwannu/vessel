@@ -1,15 +1,9 @@
-// Removing a worktree that would lose work (Paseo's archive warning,
-// GOAT's snapshot before cleanup): the node first answers `kept` with
-// every reason that applies; this dialog says each, then offers to keep a
-// snapshot (a commit under the project's refs, restorable as a branch)
-// and remove, or to discard, saying first what discarding destroys.
+// The node's `kept` reply drives the removal warning. A snapshot gives
+// the person a recoverable branch before removal (Paseo's archive warning
+// and GOAT's snapshot before cleanup).
 //
-// Terminals (ADR 0121, TRACKER 829): from protocol 40 a live terminal no
-// longer has to be closed by hand. When live terminals are what keeps it
-// (no live session in it), the dialog says Paseo's terminal warning with
-// their count above the usual buttons, and those buttons ask the node to
-// end them first (`end_terminals`). Paseo ends a worktree's terminals on
-// archive without a word; Vessel asks (the ADR's ruling 2).
+// Since protocol 40 the dialog can ask to end the worktree's terminals
+// after showing their count (ADR 0121).
 
 import { useCallback, useEffect, useState } from "react";
 
@@ -21,16 +15,20 @@ import {
   speaksWorkspacePlaces,
 } from "../../data/workspace/terminal-place";
 import { workspaceTerminals } from "../../data/workspace/terminals";
-import { removeWorktree } from "../../data/workspace/worktrees";
+import {
+  type KeptRemoval,
+  removeWorktree,
+} from "../../data/workspace/worktrees";
 import {
   closesTerminals,
-  keptReasonWords,
+  removalReasonWords,
   snapshotCovers,
 } from "../../data/workspace/worktree-words";
 import { Alert, Banner, Button, Dialog } from "../../ui/kit";
 import { toast } from "../../ui/toasts";
 import type { NodeKey } from "../../wire/bridge";
 import type {
+  DiffStat,
   IfLost,
   KeptReason,
   SessionInfo,
@@ -100,14 +98,13 @@ function useLiveTerminals(
 export function RemoveWorktreeDialog({
   node,
   worktree,
-  reasons,
+  warning,
   onClose,
   onRemoved,
 }: {
   node: NodeKey;
   worktree: WorktreeInfo;
-  /** What the node said would be lost. */
-  reasons: readonly KeptReason[];
+  warning: KeptRemoval;
   onClose: () => void;
   onRemoved: () => void;
 }) {
@@ -120,7 +117,8 @@ export function RemoveWorktreeDialog({
     (state) => state.sessions[node] ?? NO_SESSIONS,
   );
   const [busy, setBusy] = useState<IfLost | null>(null);
-  const [kept, setKept] = useState<readonly KeptReason[]>(reasons);
+  const [current, setCurrent] = useState(warning);
+  const kept = current.reasons;
   const [error, setError] = useState<string | null>(null);
   const [asked, setAsked] = useState(0);
   const live = useLiveTerminals(node, worktree, protocol, asked);
@@ -151,7 +149,7 @@ export function RemoveWorktreeDialog({
         return;
       }
       if (outcome.value.outcome === "kept") {
-        setKept(outcome.value.reasons);
+        setCurrent(outcome.value);
         setError(
           ifLost === "snapshot"
             ? "The snapshot was refused, so nothing was removed."
@@ -191,6 +189,7 @@ export function RemoveWorktreeDialog({
     <RemoveWorktreeView
       worktree={worktree}
       kept={kept}
+      diffStat={current.diff_stat ?? null}
       busy={busy}
       error={error ?? live.problem}
       blocked={state.blocked}
@@ -209,6 +208,7 @@ export function RemoveWorktreeDialog({
 export function RemoveWorktreeView({
   worktree,
   kept,
+  diffStat = null,
   busy,
   error,
   blocked,
@@ -220,6 +220,7 @@ export function RemoveWorktreeView({
 }: {
   worktree: WorktreeInfo;
   kept: readonly KeptReason[];
+  diffStat?: DiffStat | null;
   busy: IfLost | null;
   error: string | null;
   blocked: boolean;
@@ -267,7 +268,7 @@ export function RemoveWorktreeView({
       <p className="dialog-copy">Removing it now would lose:</p>
       <ul className="kept-list">
         {kept.map((reason, index) => (
-          <li key={index}>{keptReasonWords(reason)}</li>
+          <li key={index}>{removalReasonWords(reason, diffStat)}</li>
         ))}
       </ul>
       {checking ? null : blocked ? (

@@ -40,6 +40,8 @@ pub struct PreparedRow {
     pub key: RowKey,
     /// Original admitted row identity, captured before the trigger is painted.
     pub intent: Option<super::page::Intent>,
+    /// Existing-session target, independent of who owns the schedule.
+    pub heartbeat: bool,
     /// The accepted title precedence, intact for wrapping.
     pub title: Arc<str>,
     /// Whole target line prepared outside paint for the source single-line label.
@@ -117,6 +119,7 @@ fn prepare(
     PreparedRow {
         key: row.key.clone(),
         intent: row.intent(),
+        heartbeat,
         title: super::title(&row.schedule.definition).into(),
         target_label: target_label
             .unwrap_or_else(|_| catalog.schedules().display_unavailable().into()),
@@ -142,28 +145,52 @@ fn prepare(
     }
 }
 fn target_for<'a>(row: &'a Row<'_>, fleet: &'a Fleet) -> target::Target<'a> {
-    let session = match row.schedule.definition.target {
-        vessel_proto::automation::ScheduleTarget::Session { session } => Some(session),
-        vessel_proto::automation::ScheduleTarget::NewSession { .. }
-        | vessel_proto::automation::ScheduleTarget::Unknown => None,
-    };
+    let target = &row.schedule.definition.target;
     let chat = fleet
         .machines
         .iter()
         .find(|machine| machine.name == row.key.machine.as_str())
-        .and_then(|machine| {
-            machine
-                .sessions
-                .iter()
-                .find(|card| Some(card.session) == session)
-        });
+        .and_then(|machine| chat_on(target, machine));
     target::resolve(
-        &row.schedule.definition.target,
+        target,
         chat,
         row.projects.as_deref().ok(),
         row.worktrees.as_deref().ok(),
     )
 }
+
+/// Resolve a heartbeat's fixed target on its original connected machine.
+/// # Errors
+/// Formatting the target label can fail for an invalid translation.
+pub fn heartbeat_target_label(
+    info: &vessel_proto::automation::ScheduleInfo,
+    connection: &crate::connection::ConnectionContext,
+    fleet: &Fleet,
+    catalog: &Translator,
+) -> Result<Arc<str>, FormatError> {
+    let target = &info.definition.target;
+    let chat = fleet
+        .machines
+        .iter()
+        .find(|machine| machine.connection_context().as_ref() == Some(connection))
+        .and_then(|machine| chat_on(target, machine));
+    display_target(&target::resolve(target, chat, None, None).line, catalog)
+}
+
+fn chat_on<'a>(
+    target: &vessel_proto::automation::ScheduleTarget,
+    machine: &'a crate::Machine,
+) -> Option<&'a crate::Card> {
+    use vessel_proto::automation::ScheduleTarget;
+    let ScheduleTarget::Session { session } = target else {
+        return None;
+    };
+    machine
+        .sessions
+        .iter()
+        .find(|card| card.session == *session)
+}
+
 fn display_target(line: &Line<'_>, catalog: &Translator) -> Result<Arc<str>, FormatError> {
     let words = catalog.schedules();
     let label = match line {

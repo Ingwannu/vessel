@@ -105,3 +105,10 @@ Run native fmt and clippy in the short lane, then the whole native and
 wasm32 checks via the remote gate. Capture against the isolated base14.105
 fleet for the initial pass and base14.106 for the review fix, via
 `spikes/native/scripts/fleet.sh`.
+
+P3 heartbeat details reuse the P2 dialog and the row's existing-session
+target naming. Clicking a connected heartbeat row opens the fixed Target
+and Cadence fields. A peer without cadence update support offers Close
+and retains its authorized Delete in the row menu. See Paseo
+`schedule-row.tsx:214–217,265–277,361–374`,
+`schedule-form-sheet.tsx:278–286,316–324,406,477–488,889–912` and ADR 0072.

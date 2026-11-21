@@ -12,6 +12,7 @@ use super::project::ProjectCommands;
 use super::text::{BranchName, CommitId, RefName};
 use crate::id::{ProjectId, SessionId, WorktreeId};
 use crate::profile::Creator;
+use crate::registry::DiffStat;
 use crate::terminal::TerminalBytes;
 
 /// Where a new branch starts.
@@ -296,6 +297,10 @@ pub enum RemoveWorktreeOutcome {
     Kept {
         /// Every reason that applies.
         reasons: Vec<KeptReason>,
+        /// For an uncommitted-changes warning, the nonempty line counts
+        /// when the node could compare the worktree with its base.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        diff_stat: Option<DiffStat>,
     },
 }
 
@@ -479,4 +484,27 @@ pub struct DropSnapshot {
     pub project: ProjectId,
     /// The worktree the snapshot was taken of.
     pub worktree: WorktreeId,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{KeptReason, RemoveWorktreeOutcome};
+    use serde_json::json;
+
+    #[test]
+    fn a_kept_reply_without_a_stat_keeps_its_wire_shape() {
+        let old = json!({
+            "outcome": "kept",
+            "reasons": [{"kind": "uncommitted", "files": 1}]
+        });
+        let reply: RemoveWorktreeOutcome = serde_json::from_value(old.clone()).unwrap();
+        assert_eq!(
+            reply,
+            RemoveWorktreeOutcome::Kept {
+                reasons: vec![KeptReason::Uncommitted { files: 1 }],
+                diff_stat: None,
+            }
+        );
+        assert_eq!(serde_json::to_value(reply).unwrap(), old);
+    }
 }

@@ -89,12 +89,31 @@ impl Draft {
         };
         Some(Self {
             fields: fields::Fields::open(&info.definition),
-            cadence: cadence::Draft::open(&info.definition.cadence, zone)?,
+            cadence: cadence::Draft::open(&info.definition.cadence, zone),
             opened: Some(Box::new(info.clone())),
             spec: Some(spec.clone()),
             place: spec.place.clone(),
             archive,
         })
+    }
+
+    /// Open an existing-session schedule in its own cadence-only form.
+    #[must_use]
+    pub fn open_heartbeat(info: &ScheduleInfo) -> Option<Self> {
+        super::is_heartbeat(info).then(|| Self {
+            fields: fields::Fields::open(&info.definition),
+            cadence: cadence::Draft::open(&info.definition.cadence, None),
+            opened: Some(Box::new(info.clone())),
+            spec: None,
+            place: None,
+            archive: false,
+        })
+    }
+
+    /// The heartbeat record supplies the original target and saved rule.
+    #[must_use]
+    pub fn heartbeat(&self) -> Option<&ScheduleInfo> {
+        self.opened().filter(|info| super::is_heartbeat(info))
     }
 
     /// The immutable original definition, for revision checks and disclosures.

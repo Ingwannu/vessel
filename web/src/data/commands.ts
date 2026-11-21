@@ -93,7 +93,7 @@ const THEMES: readonly PaletteEntry[] = (
  * new session starts on. Live sessions come before ended ones, each
  * newest first, so the one being worked on is near the top. */
 export function paletteEntries(
-  state: FleetState,
+  state: Pick<FleetState, "book" | "statuses" | "sessions">,
   selected: string | null,
   language = "en",
 ): PaletteEntry[] {

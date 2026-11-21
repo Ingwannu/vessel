@@ -68,6 +68,9 @@ impl Choice {
 /// Invalid input retains its original parse error.
 #[derive(Debug, thiserror::Error)]
 pub enum Issue {
+    /// A stored rule introduced by a newer protocol.
+    #[error("unknown stored cadence")]
+    Unknown,
     /// Missing or malformed IANA zone.
     #[error("invalid IANA zone: {0}")]
     Zone(#[source] InvalidAutomationText),
@@ -82,6 +85,7 @@ impl Issue {
     pub fn label<'a>(&self, catalog: &'a Translator) -> &'a str {
         let words = catalog.schedules();
         match self {
+            Self::Unknown => words.newer_value(),
             Self::Zone(_) => words.form_zone_invalid(),
             Self::Cron(_) => words.form_cron_invalid(),
         }
@@ -123,7 +127,7 @@ impl Draft {
 
     /// Open the exact stored rule. A legacy interval has no editable count
     /// or unit, and its original anchor survives a save of unrelated fields.
-    pub(super) fn open(cadence: &Cadence, zone: Option<&TimeZoneName>) -> Option<Self> {
+    pub(super) fn open(cadence: &Cadence, zone: Option<&TimeZoneName>) -> Self {
         let mut draft = Self::create(zone);
         match cadence {
             Cadence::Cron { expr, zone } => {
@@ -136,10 +140,15 @@ impl Draft {
                 draft.expression.clear();
                 draft.choice = Choice::Custom;
             }
-            Cadence::Unknown => return None,
+            Cadence::Unknown => {
+                draft.expression.clear();
+                draft.choice = Choice::Custom;
+                draft.checked = Err(Issue::Unknown);
+                return draft;
+            }
         }
         draft.checked = Ok(cadence.clone());
-        Some(draft)
+        draft
     }
 
     /// The current preset identity.

@@ -263,6 +263,7 @@ const fn refused(method: Method) -> bool {
         | Method::GetSchedule
         | Method::CreateSchedule
         | Method::UpdateSchedule
+        | Method::UpdateScheduleCadence
         | Method::PauseSchedule
         | Method::ResumeSchedule
         | Method::RunSchedule

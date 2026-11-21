@@ -48,7 +48,7 @@ export function WorkspaceCard({
               {`+${formatDiffCount(stat.additions)}`}
             </span>
             <span className="workspace-card-del">
-              {`\u2212${formatDiffCount(stat.deletions)}`}
+              {`-${formatDiffCount(stat.deletions)}`}
             </span>
           </span>
         </div>

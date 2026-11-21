@@ -103,11 +103,10 @@ export const Composer = memo(function Composer({
         ? { ...timeline, inTurn: true }
         : timeline,
     protocol,
-    draft: editing === null ? draft : { ...draft, text: editing.text },
+    draft,
     tray,
     editing,
     setEditing,
-    rows,
     onSent: () => {
       walk.current = null;
       forgetOpening(session.id);
@@ -151,6 +150,7 @@ export const Composer = memo(function Composer({
   const firstSend = useRef<boolean | null>(null);
   firstSend.current ??= takeFirstSend(session.id);
   const canFirst =
+    editing === null &&
     sender.plan.kind === "deliver" &&
     abilities !== null &&
     limits.kind === "read" &&

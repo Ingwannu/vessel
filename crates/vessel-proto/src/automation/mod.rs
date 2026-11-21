@@ -30,8 +30,9 @@ pub use run::{
 };
 pub use schedule::{
     AfterRun, Cadence, CatchUp, CreateSchedule, DeleteSchedule, EndReason, EverySeconds,
-    GetSchedule, ListSchedules, MaxRuns, OutOfRange, PauseSchedule, ResumeSchedule, RunSchedule,
-    ScheduleDefinition, ScheduleInfo, ScheduleList, ScheduleState, ScheduleTarget, UpdateSchedule,
+    GetSchedule, HEARTBEAT_CADENCE_PROTOCOL, ListSchedules, MaxRuns, OutOfRange, PauseSchedule,
+    ResumeSchedule, RunSchedule, ScheduleDefinition, ScheduleInfo, ScheduleList, ScheduleState,
+    ScheduleTarget, UpdateSchedule, UpdateScheduleCadence,
 };
 pub use text::{
     AutomationText, DeliveryKey, InvalidAutomationText, PromptName, PromptText, ScheduleName,

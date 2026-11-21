@@ -44,13 +44,19 @@ pub(super) fn render(
     )
     .id(("schedules-row", index));
     if let Some(intent) = &row.intent
-        && super::editor::editable(shell, intent)
+        && super::editor::openable(shell, intent)
     {
         let intent = intent.clone();
         let words = shell.words.schedules();
-        let label = words
-            .form_edit_row(&row.title)
-            .unwrap_or_else(|_| words.form_edit_title().to_owned());
+        let label = if row.heartbeat {
+            words
+                .heartbeat_open_row(&row.title)
+                .unwrap_or_else(|_| words.heartbeat_title().to_owned())
+        } else {
+            words
+                .form_edit_row(&row.title)
+                .unwrap_or_else(|_| words.form_edit_title().to_owned())
+        };
         element
             .role(gpui::Role::Button)
             .aria_label(label)

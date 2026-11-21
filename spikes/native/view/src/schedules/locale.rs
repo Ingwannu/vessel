@@ -111,7 +111,10 @@ pub fn action_label(action: Action, heartbeat: bool, catalog: &Translator) -> &s
     }
 }
 
-pub(super) fn cadence(
+/// Format a stored cadence for schedule rows and read-only detail.
+/// # Errors
+/// Locale formatting failed.
+pub fn cadence(
     cadence: &vessel_proto::automation::Cadence,
     catalog: &Translator,
 ) -> Result<String, crate::localization::FormatError> {

@@ -2,7 +2,10 @@
 //! as, and who may change what"). Pure: the scheduler asks before it
 //! changes anything, and the tests ask without one.
 
-use vessel_proto::Creator;
+use vessel_proto::automation::{ScheduleInfo, ScheduleTarget};
+use vessel_proto::{Creator, SessionId};
+
+use super::state::update_admitted;
 
 use crate::automation::error::AutomationError;
 
@@ -75,6 +78,23 @@ impl Asker {
         }
     }
 
+    /// Verify the same revision and authority before either definition edit.
+    pub(crate) fn check_update(
+        &self,
+        info: &ScheduleInfo,
+        revision: u32,
+    ) -> Result<(), AutomationError> {
+        self.may(Act::Update, &info.defined_by)?;
+        update_admitted(info)?;
+        if revision != info.revision {
+            return Err(AutomationError::Conflict(format!(
+                "the schedule was changed meanwhile (now revision {}); edit that one",
+                info.revision
+            )));
+        }
+        Ok(())
+    }
+
     /// May this asker `act` on a schedule `defined_by` last wrote.
     pub(crate) fn may(&self, act: Act, defined_by: &Creator) -> Result<(), AutomationError> {
         match (self.via, act) {
@@ -95,6 +115,19 @@ impl Asker {
                     Err(forbidden("an agent manages only the schedules it made"))
                 }
             }
+        }
+    }
+}
+
+/// The cadence-only edit is specific to existing-session targets. Ownership
+/// is independent of the target and stays with the stored creator.
+pub(crate) fn heartbeat_target(info: &ScheduleInfo) -> Result<SessionId, AutomationError> {
+    match info.definition.target {
+        ScheduleTarget::Session { session } => Ok(session),
+        ScheduleTarget::NewSession { .. } | ScheduleTarget::Unknown => {
+            Err(AutomationError::Invalid(
+                "a cadence-only edit requires an existing-session target".to_owned(),
+            ))
         }
     }
 }
