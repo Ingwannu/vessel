@@ -201,10 +201,13 @@ async fn sessions_get_the_fleets_mcp_servers_with_this_nodes_secrets() {
         let agents = homes.path().join("sources/AGENTS.md");
         write(&agents, "instructions\n");
         let fixture = Fixture::new();
-        fixture.data_dir().write_settings(&vessel_proto::settings::SetNodeSettings {
-            vessel_tools: Some(vessel_proto::mcp::Injection::Off),
-            ..vessel_proto::settings::SetNodeSettings::default()
-        }).unwrap();
+        fixture
+            .data_dir()
+            .write_settings(&vessel_proto::settings::SetNodeSettings {
+                vessel_tools: Some(vessel_proto::mcp::Injection::Off),
+                ..vessel_proto::settings::SetNodeSettings::default()
+            })
+            .unwrap();
         let files = FleetFiles::new(&fixture.data_dir());
         let _toml = fleet::init(
             &files,

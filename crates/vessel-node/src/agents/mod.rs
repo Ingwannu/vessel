@@ -262,7 +262,12 @@ impl Agents {
             || !entry
                 .credential
                 .iter()
-                .chain(entry.pending_tools.as_ref().and_then(tool_move::PendingTools::credential))
+                .chain(
+                    entry
+                        .pending_tools
+                        .as_ref()
+                        .and_then(tool_move::PendingTools::credential),
+                )
                 .any(|hash| hash.matches_agent(&auth.secret))
         {
             return None;

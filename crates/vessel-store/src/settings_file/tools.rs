@@ -3,6 +3,7 @@
 
 use chrono::Utc;
 use vessel_proto::mcp::Injection;
+use vessel_proto::settings::SetNodeSettings;
 
 use super::{DataDir, SetAside, StoreError};
 
@@ -21,7 +22,7 @@ impl DataDir {
             Ok(saved) => saved.unwrap_or_default(),
             Err(_) => {
                 let _aside = self.set_aside_settings(Utc::now(), SetAside::Unreadable)?;
-                Default::default()
+                SetNodeSettings::default()
             }
         };
         if saved.vessel_tools.is_some() {
@@ -68,17 +69,24 @@ mod tests {
         std::fs::write(&path, future).unwrap();
         data.initialize_vessel_tools().unwrap();
         let saved = data.read_settings().unwrap().unwrap();
-        assert_eq!(saved.park_after, Some(vessel_proto::parking::ParkAfter::Never));
+        assert_eq!(
+            saved.park_after,
+            Some(vessel_proto::parking::ParkAfter::Never)
+        );
         assert_eq!(saved.vessel_tools, Some(Injection::Off));
         assert!(std::fs::read_dir(root.path()).unwrap().any(|entry| {
             let entry = entry.unwrap();
-            entry.file_name().to_string_lossy().starts_with("settings.json.later-")
+            entry
+                .file_name()
+                .to_string_lossy()
+                .starts_with("settings.json.later-")
                 && std::fs::read(entry.path()).unwrap() == future
         }));
-        data.write_settings(&vessel_proto::settings::SetNodeSettings {
+        data.write_settings(&SetNodeSettings {
             vessel_tools: Some(Injection::On),
             ..saved
-        }).unwrap();
+        })
+        .unwrap();
         data.initialize_vessel_tools().unwrap();
         assert_eq!(
             data.read_settings().unwrap().unwrap().vessel_tools,

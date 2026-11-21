@@ -100,7 +100,10 @@ impl NodeSettings {
             .or(plugins);
         let base = hooks.as_ref().unwrap_or(self);
         let profiles = base
-            .for_profiles_protocol(protocol, crate::terminal_profiles::TERMINAL_PROFILES_PROTOCOL)
+            .for_profiles_protocol(
+                protocol,
+                crate::terminal_profiles::TERMINAL_PROFILES_PROTOCOL,
+            )
             .or(hooks);
         let base = profiles.as_ref().unwrap_or(self);
         base.for_vessel_tools_protocol(protocol, VESSEL_TOOLS_PROTOCOL)
@@ -340,8 +343,7 @@ mod tests {
 
     #[test]
     fn an_explicit_tools_off_is_visible_only_to_supported_peers() {
-        let old: NodeSettings =
-            serde_json::from_str(r#"{"park_after":{"kind":"never"}}"#).unwrap();
+        let old: NodeSettings = serde_json::from_str(r#"{"park_after":{"kind":"never"}}"#).unwrap();
         let current = NodeSettings {
             vessel_tools: Some(Injection::Off),
             ..old.clone()
@@ -353,13 +355,15 @@ mod tests {
             Some(old.clone())
         );
         assert_eq!(current.for_vessel_tools_protocol(version, None), Some(old));
-        assert_eq!(current.for_vessel_tools_protocol(version, Some(version)), None);
+        assert_eq!(
+            current.for_vessel_tools_protocol(version, Some(version)),
+            None
+        );
         assert_eq!(
             serde_json::to_value(&current).unwrap()["vessel_tools"],
             false
         );
-        let request: SetNodeSettings =
-            serde_json::from_str(r#"{"vessel_tools":false}"#).unwrap();
+        let request: SetNodeSettings = serde_json::from_str(r#"{"vessel_tools":false}"#).unwrap();
         assert_eq!(request.vessel_tools, Some(Injection::Off));
         let call = crate::Call::SetNodeSettings(request);
         assert_eq!(call.required_protocol(), VESSEL_TOOLS_PROTOCOL);

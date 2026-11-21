@@ -243,7 +243,9 @@ impl Settings {
     }
 
     fn tools_for(saved: &SetNodeSettings) -> vessel_proto::mcp::Injection {
-        saved.vessel_tools.unwrap_or(vessel_proto::mcp::Injection::On)
+        saved
+            .vessel_tools
+            .unwrap_or(vessel_proto::mcp::Injection::On)
     }
 
     /// The launch policy uses kept values, including when an older peer's reply omits it.

@@ -158,7 +158,10 @@ fn an_internal_tool_transition_can_disable_and_restore_a_live_agent() {
     let agents = Arc::new(Agents::new(NodeId::random()));
     let closing = CancellationToken::new();
     let id = SessionId::random();
-    let old = agents.reserve(id, &Principal::Owner, true).unwrap().unwrap();
+    let old = agents
+        .reserve(id, &Principal::Owner, true)
+        .unwrap()
+        .unwrap();
     let (_grant, old_link) = agents.admit(&auth(id, &old), &closing).unwrap();
 
     let (disable, absent) = agents.begin_move(id, false).unwrap();
@@ -181,7 +184,11 @@ fn an_internal_tool_transition_can_disable_and_restore_a_live_agent() {
 
     let (enable, secret) = agents.begin_move(id, true).unwrap();
     enable.unwrap().finish(true);
-    assert!(agents.admit(&auth(id, &secret.unwrap()), &closing).is_some());
+    assert!(
+        agents
+            .admit(&auth(id, &secret.unwrap()), &closing)
+            .is_some()
+    );
 }
 
 #[test]
