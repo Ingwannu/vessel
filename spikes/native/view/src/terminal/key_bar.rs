@@ -207,9 +207,9 @@ impl Sticky {
     /// Set `modifier` if it is not, clear it if it is.
     pub const fn toggle(&mut self, modifier: Modifier) {
         match modifier {
-            Modifier::Ctrl => self.ctrl = !self.ctrl,
-            Modifier::Alt => self.alt = !self.alt,
-            Modifier::Shift => self.shift = !self.shift,
+            Ctrl => self.ctrl = !self.ctrl,
+            Alt => self.alt = !self.alt,
+            Shift => self.shift = !self.shift,
         }
     }
 
@@ -217,9 +217,9 @@ impl Sticky {
     #[must_use]
     pub const fn is_set(self, modifier: Modifier) -> bool {
         match modifier {
-            Modifier::Ctrl => self.ctrl,
-            Modifier::Alt => self.alt,
-            Modifier::Shift => self.shift,
+            Ctrl => self.ctrl,
+            Alt => self.alt,
+            Shift => self.shift,
         }
     }
 
