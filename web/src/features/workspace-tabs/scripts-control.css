@@ -19,6 +19,23 @@
   padding: var(--s-1) var(--s-2);
 }
 
+.popover.scripts .row-list {
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.workspace-script-content .row-title .btn {
+  max-width: 100%;
+}
+
+.workspace-script-content .row-description,
+.workspace-script-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .workspace-script-actions {
   display: flex;
   flex-shrink: 0;

@@ -168,7 +168,7 @@ export function ScriptsControl({
                       else act("run", row);
                     }}
                   >
-                    {row.name}
+                    <span className="workspace-script-name">{row.name}</span>
                   </Button>
                 ) : (
                   row.name
@@ -218,7 +218,7 @@ export function ScriptsControl({
           <Popover
             title="Scripts"
             showTitle={false}
-            width="sm"
+            width="scripts"
             align="end"
             open={open && approval === null}
             onOpenChange={show}

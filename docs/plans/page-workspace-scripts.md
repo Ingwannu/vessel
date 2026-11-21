@@ -4,7 +4,8 @@
 
 - Purpose. Use the workspace header to list its configured scripts and
   services, run and restart them, view their terminal or stop them. The
-  desktop uses an anchored menu and the compact page uses a sheet.
+  desktop uses an end-aligned, 220–280px menu with rows on its surface.
+  Names and process states each use one line. The compact page uses a sheet.
 - Existing contract. The active protocol-11 `script.list`, `script.run`,
   `script.restart` and `terminal.kill` calls serve the workspace's owner
   node through the web bridge. Project roots use their project handle.
