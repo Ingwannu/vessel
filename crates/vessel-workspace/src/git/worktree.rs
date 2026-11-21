@@ -43,7 +43,7 @@ pub(crate) const MAX_SNAPSHOT_FILE: u64 = 100 * 1024 * 1024;
 /// The most a snapshot takes in all.
 pub(crate) const MAX_SNAPSHOT_TOTAL: u64 = 256 * 1024 * 1024;
 /// Where snapshots live in a repository.
-const SNAPSHOTS: &str = "refs/vessel/snapshots";
+pub(super) const SNAPSHOTS: &str = "refs/vessel/snapshots";
 /// The most snapshots listed.
 pub(crate) const MAX_SNAPSHOTS: usize = 1000;
 /// The mode git gives a submodule or a nested repository.
@@ -227,54 +227,6 @@ impl Git {
             reasons.push(KeptReason::UniqueCommits { commits });
         }
         Ok(reasons)
-    }
-
-    /// Commits reachable from a detached `HEAD` or the `created` branch that
-    /// no other branch, remote-tracking branch, tag or snapshot has.
-    async fn unique_commits(
-        &self,
-        dir: &Path,
-        created: Option<&BranchName>,
-    ) -> Result<u32, GitError> {
-        let detached = self.status(dir).await?.branch.is_none();
-        let mut tips = Vec::new();
-        if detached {
-            tips.push("HEAD".to_owned());
-        }
-        if let Some(branch) = created {
-            tips.push(format!("refs/heads/{branch}"));
-        }
-        if tips.is_empty() {
-            return Ok(0);
-        }
-        let mut command = self
-            .command(dir)
-            .args(["rev-list", "--count"])
-            .args(&tips)
-            .arg("--not");
-        if let Some(branch) = created {
-            command = command.arg(format!("--exclude={branch}"));
-        }
-        let output = command
-            .args(["--branches", "--remotes", "--tags"])
-            .arg(format!("--glob={SNAPSHOTS}/*"))
-            .output()
-            .await?;
-        if output.code != Some(0) {
-            // The created branch is gone (renamed or deleted by hand):
-            // count from `HEAD` alone.
-            if created.is_some() && !detached {
-                return Ok(0);
-            }
-            return Err(GitError::Failed {
-                code: output.code,
-                message: super::tail(&output.stderr_text()),
-            });
-        }
-        Ok(String::from_utf8_lossy(&output.stdout)
-            .trim()
-            .parse()
-            .unwrap_or(u32::MAX))
     }
 
     /// Keep the working tree of `dir` as a snapshot of worktree `id`.
@@ -528,16 +480,12 @@ impl Git {
             command = command.args(["--force", "--force"]);
         }
         command.arg(path).run().await?;
-        if let Some(branch) = created {
-            let deleted = self
-                .command(repo)
-                .args(["branch", "-D", "--end-of-options"])
-                .arg(branch.as_str())
-                .output()
-                .await?;
-            if deleted.code != Some(0) {
-                tracing::debug!(%branch, "the worktree's branch was already gone");
-            }
+        // A commit made on the branch since it was inspected (an agent
+        // still running) is not deleted with it, unless forced.
+        if let Some(branch) = created
+            && (force || self.branch_is_lost_freely(repo, branch).await)
+        {
+            self.delete_branch(repo, branch).await?;
         }
         Ok(())
     }
@@ -586,6 +534,8 @@ fn snapshot_record(line: &str) -> Option<Snapshot> {
         created_at,
     })
 }
+
+mod unique;
 
 #[cfg(test)]
 mod tests;

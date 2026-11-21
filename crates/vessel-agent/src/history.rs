@@ -33,7 +33,6 @@ use std::time::Duration;
 use agent_client_protocol::schema::ProtocolVersion;
 use agent_client_protocol::v1::schema as acp;
 use agent_client_protocol::{Client, Error, ErrorCode};
-use tokio::io::AsyncBufReadExt as _;
 use vessel_proc::{CommandSpec, Signal};
 use vessel_proto::HarnessSessionId;
 
@@ -303,15 +302,25 @@ async fn over_acp(
     let log = Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
     let kept = Arc::clone(&log);
     drop(tokio::spawn(async move {
-        let mut lines = tokio::io::BufReader::new(stderr).lines();
-        while let Ok(Some(line)) = lines.next_line().await {
+        // Bounded per line as a session's stderr is: a probe that writes
+        // without a newline must not grow the node's memory until its
+        // deadline.
+        let mut reader = tokio::io::BufReader::new(stderr);
+        let mut line = Vec::new();
+        loop {
+            line.clear();
+            match crate::stderr::read_line(&mut reader, &mut line).await {
+                Ok(true) => {}
+                Ok(false) | Err(_) => break,
+            }
+            let text = String::from_utf8_lossy(&line);
             let mut log = kept
                 .lock()
                 .unwrap_or_else(std::sync::PoisonError::into_inner);
             if log.len() == LOG_LINES {
                 let _oldest = log.remove(0);
             }
-            log.push(line);
+            log.push(text.trim_end_matches(['\n', '\r']).to_owned());
         }
     }));
     let gate = Gate::new();

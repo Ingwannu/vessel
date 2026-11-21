@@ -40,8 +40,9 @@ pub(crate) async fn pump(stderr: impl AsyncRead + Unpin, outputs: mpsc::Sender<A
 }
 
 /// Read one line (at most [`LINE_LIMIT`] bytes of it) into `line`; `false`
-/// at the end of the stream.
-async fn read_line<R: AsyncRead + Unpin>(
+/// at the end of the stream. Also the history probe's stderr reader
+/// (`history`), so both keep the same bound.
+pub(crate) async fn read_line<R: AsyncRead + Unpin>(
     reader: &mut BufReader<R>,
     line: &mut Vec<u8>,
 ) -> std::io::Result<bool> {
