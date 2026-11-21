@@ -175,5 +175,7 @@ async fn a_script_runs_once_its_set_is_approved() {
     .await;
 }
 
+#[cfg(unix)]
+mod hooks;
 #[cfg(target_os = "linux")]
 mod interrupts;

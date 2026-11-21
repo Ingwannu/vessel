@@ -201,7 +201,9 @@ fn an_older_peer_reads_the_blocks_as_the_text_the_agent_read() {
 
 #[test]
 fn the_blocks_are_the_newest_protocol_and_add_no_method() {
-    assert_eq!(PROMPT_CONTEXT_PROTOCOL, Some(crate::PROTOCOL_VERSION));
+    // At most the newest: ADR 0089's attention protocol is drafted after
+    // them, and only the newest asserts equality.
+    assert!(PROMPT_CONTEXT_PROTOCOL <= Some(crate::PROTOCOL_VERSION));
     assert!(
         crate::Method::ALL
             .iter()

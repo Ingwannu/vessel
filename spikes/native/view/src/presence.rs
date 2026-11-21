@@ -250,6 +250,9 @@ impl<K: Eq + Hash> Told<K> {
                 PushActivity::Unchanged
             },
             idle_age: None,
+            // The meaning before the field (ADR 0089): this window may be a
+            // claim's local recipient. U's native half decides it per window.
+            notifies: true,
         }
     }
 

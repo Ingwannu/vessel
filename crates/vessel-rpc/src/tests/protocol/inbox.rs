@@ -143,6 +143,7 @@ async fn old_direct_push_calls_are_refused_before_dispatch() {
         UnsubscribePush.into_call(),
         ReportPushPresence {
             idle_age: None,
+            notifies: true,
             focus: PushFocus::Background,
             activity: PushActivity::Unchanged,
         }

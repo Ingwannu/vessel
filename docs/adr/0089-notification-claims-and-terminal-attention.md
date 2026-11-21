@@ -426,8 +426,11 @@ While the constant is unassigned, no machine admits claims, and a notice takes A
   before assignment, which is a wire change on the node line.
 - **What shows.**
   - `Admitted` and the fallback show.
-  - Every other outcome, a failed page or claim, and a lost reply show nothing. The inbox still holds
-    the entry.
+  - A first page that cannot be read takes the fallback for every notice it would have asked about
+    (2026-11-21, at assignment): it names no source, as an entry past the page does, and a transient
+    failure must not silence them.
+  - Every other outcome, a failed claim, and a lost reply show nothing. The inbox still holds the
+    entry.
   - A claim is never retried.
   - Failed sessions never reach a claim: the diff drops them (the "Local error attention" section).
 
@@ -501,6 +504,71 @@ on the desktop's dock and swaps its favicon among none, running and attention (`
   favicon's three states); `e2e/brand.spec.ts` (the icon link is one of the three; both variants are served
   with their dot).
 
+## Turned on (2026-11-21, impl U; assigned 47 at its node-line merge)
+
+`ATTENTION_NOTIFICATIONS_PROTOCOL` is assigned 47 at its node-line merge, the next after the prompt context's 46
+(`PROTOCOL_VERSION` with it, docs/PROTOCOL.md "Version 47"). Everything below that was
+pending on it goes live together, and every test that read "while unassigned" now runs its assigned branch.
+
+What this packet adds for it, each with the coordinator's approval (2026-11-21):
+
+1. **Paseo's Ctrl-C/Esc fallback** (`terminal/terminal.ts:180-182,1164-1166`). A terminal input that is exactly
+   `\x03` or `\x1b` applies `TerminalActivitySignal::Interrupt` to that terminal
+   (`vessel-session/src/terminals/attention.rs` `interrupts`, `handle.rs` `send`). Working becomes unknown, and any
+   other state stays. Claude Code runs no `Stop` hook on an interrupt, so without this the terminal would stay
+   working. An Esc that starts a longer sequence (an arrow key) is not one.
+2. **`vessel hooks` end to end** (`vessel-cli/tests/cli/terminals/hooks.rs`), on a real node:
+   - in a Vessel terminal, `vessel hooks claude UserPromptSubmit` then `Stop` give Working, then Finished, on the
+     terminal;
+   - a standalone Esc after another `UserPromptSubmit` gives unknown.
+   The command reaches the node through its local endpoint with the terminal's capability, so this is also the
+   IPC route's wire test owed below (`ipc::admit` → `admit_producer` → a report).
+3. **The worker's per-burst pushed set, integrated** (`push/tests/node_delivery/terminal_delivery.rs`). After a
+   terminal's Finished is pushed, a second finish at once falls in the terminal's gap and is not pushed.
+4. **A failed first inbox page takes ADR 0114's fallback** for every notice ("The clients' session claims").
+5. **Only a notifying window is elected.**
+   - Paseo elects only among clients subscribed with `notifications: true` (`websocket-server.ts:2884-2894,
+     2987-2989`; `session.ts:2336-2345`), and its app always subscribes so (`session-context.tsx:492`).
+   - Vessel's windows have their own alerts. A window that only sounds, or tells nothing, would otherwise be
+     elected as the latest active, and the window that shows notifications would hear `not_recipient`.
+   - `ReportPushPresence.notifies` says whether the window shows the system's notifications. It is versioned to
+     this constant, and absent reads true.
+   - `push/policy.rs` `plan_for` elects only among notifying windows. That much is Paseo's.
+   - **A deliberate difference** (the coordinator's ruling on this plan, 2026-11-21): every present window still
+     counts for suppression, and for push.
+     - A focused silent window suppresses.
+     - A person present only at silent windows is not pushed, and no window is admitted.
+     - Paseo builds its whole plan from the notifying clients only: `allStates = notificationEntries`
+       (`websocket-server.ts:2883-2886,2987-2990`), then `agent-attention-policy.ts:42-76`. So a non-notifying
+       client there neither suppresses nor holds push back.
+     - Why Vessel differs: Paseo's only non-notifying clients are not its app, which always subscribes with
+       `notifications: true` (`session-context.tsx:492`). Vessel's are windows of the page or the app with a
+       person in front of them, who would otherwise be pushed while at the screen.
+   - A non-notifying window never claims, and plays its own sound (ADR 0114). The page:
+     `features/notifications/notifies.ts`, `use-notices.ts`, `use-terminal-notices.ts`, `use-presence.ts`. The
+     app's half is on the app line.
+
+## The page's follow-ups to the claims rows (2026-11-21, from their node reviews)
+
+- **Paseo's focus on other tabs.** Paseo sets the focused agent only while an agent's tab is active
+  (`workspace-screen.tsx:1436-1456`). With Files, Changes, Diff, a pull request or a draft in front, the page now
+  reports `elsewhere` rather than the route's session (`data/shown-terminal.ts` holds the active tab's kind,
+  written by `use-terminal-attention.ts`; `use-presence.ts` reads it). This changes push today in the same way
+  as the terminal tab's `elsewhere`: that session's push is no longer held back while the person looks at another
+  tab.
+- **A paused restart.** A terminal follower that ended on a failed list is started again only after 15 s
+  (`use-terminal-notices.ts`, `RETRY_MS`), not at the store's tick rate. A timer ends the rest and starts it, as
+  the app's follower asks again after its rest, so it does not wait for the next change of the machines.
+- **`inbox.read` before the read-only stop.** A machine that refused `session.mark` still gets `inbox.read`
+  (the `Read` scope) once it admits this protocol (`use-read-marks.ts`).
+- **A folder terminal's click asks the node.** The node keeps a folder place canonical, and a session keeps its
+  folder as it was given, so through a link or a `..` no session matched and the click opened nothing. When no
+  session holds the place as a path, each folder session's folder is listed with `terminal.list`, which matches a
+  folder place canonically. The first that lists the terminal opens (`features/notifications/terminal-holder.ts`,
+  `folderSessions` in `data/terminal-notices.ts`; tests in `terminal-holder.test.ts`: a path holder needs no call,
+  the folders are asked in turn past a failed or empty one, another place asks nothing). Paseo's daemon names the workspace in the notification itself
+  (`session-context.tsx:658-677`, `workspaceId`); Vessel's notice carries only the place, so the page asks.
+
 ## Owed before the feature constant is assigned
 
 The node review of TRACKER 815 (2026-11-20, the staging line merged onto the
@@ -534,15 +602,15 @@ backend/m12-impl-usage-815-owed) answers each:
      refused by the renewal's own check;
    - a current cursor paired with another session's key claims nothing;
    - `inbox.attention` reads two sessions from one snapshot.
-   Still owed at assignment: the IPC route (`ipc::admit` to `admit_producer`
-   to a report) with the assigned protocol, as the wire test the
-   "Activity-only local producer capability" section already requires.
+   At assignment (done, "Turned on" item 2): the IPC route (`ipc::admit` to
+   `admit_producer` to a report) with the assigned protocol, as the wire test
+   the "Activity-only local producer capability" section already requires.
 6. The terminal list wake. Done: T2's `Shown` holds the attention once the
    feature is assigned (left out while unassigned, when every peer has it cut).
 
 At assignment (the node review of the owed packet, 2026-11-20, PASS):
 - the worker's per-burst pushed set gets its integration test beside the IPC
-  route's;
+  route's (done, "Turned on" item 3);
 - the spacing reads the wall clock, so a clock step moves a gap; a monotonic
   `Instant` would ignore steps;
 - `pushed` takes the time after the burst's deliveries, which only lengthens a
@@ -552,8 +620,8 @@ At assignment (the node review of the owed packet, 2026-11-20, PASS):
 At assignment (the node review of the agent hooks, 2026-11-20):
 - Paseo clears a terminal's working activity on a standalone Ctrl-C or Esc in its input
   (`terminal/terminal.ts:180-182,1164-1166`), because Claude Code runs no `Stop` hook on an interrupt.
-  Vessel has no such input-side fallback yet, so after Esc during a Claude turn the terminal would stay
-  "working". It is owed with the assigned wire.
+  Vessel had no such input-side fallback, so after Esc during a Claude turn the terminal would stay
+  "working". Done with the assigned wire ("Turned on" item 1).
 
 Recorded, not owed (they fail closed or are allowed by the design):
 - one malformed parentage row fails a whole `pending_push` page through

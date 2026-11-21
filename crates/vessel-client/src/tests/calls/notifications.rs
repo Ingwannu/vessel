@@ -54,6 +54,7 @@ async fn attention_contract_and_presence_field_are_refused_before_any_wire_reque
         client
             .report_push_presence(vessel_proto::push::ReportPushPresence {
                 idle_age: None,
+                notifies: true,
                 focus: vessel_proto::push::PushFocus::Terminal { terminal },
                 activity: vessel_proto::push::PushActivity::Unchanged,
             })

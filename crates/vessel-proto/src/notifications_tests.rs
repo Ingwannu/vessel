@@ -47,6 +47,7 @@ fn pending_calls_and_terminal_focus_are_never_sent_as_an_older_field() {
     );
     let focus = crate::push::ReportPushPresence {
         idle_age: None,
+        notifies: true,
         focus: crate::push::PushFocus::Terminal {
             terminal: TerminalId::random(),
         },
@@ -61,8 +62,10 @@ fn pending_calls_and_terminal_focus_are_never_sent_as_an_older_field() {
         Some(crate::Scope::Operate)
     );
 }
+/// Below ADR 0089's protocol every terminal reply, direct or nested, drops
+/// the attention; from it, the attention goes as it is.
 #[test]
-fn direct_lists_scripts_subscriptions_and_nested_fleet_omit_unassigned_attention() {
+fn direct_lists_scripts_subscriptions_and_nested_fleet_omit_attention_below_its_protocol() {
     let terminal = terminal();
     let script = crate::scripts::ScriptRunOutcome::Started {
         terminal: Box::new(terminal.clone()),
@@ -87,7 +90,11 @@ fn direct_lists_scripts_subscriptions_and_nested_fleet_omit_unassigned_attention
         Reply::RunScript(script.clone()),
         Reply::RestartScript(script),
     ];
-    for protocol in [ProtocolVersion::new(11), crate::PROTOCOL_VERSION] {
+    let below = ATTENTION_NOTIFICATIONS_PROTOCOL.map_or(crate::PROTOCOL_VERSION, |since| {
+        ProtocolVersion::new(since.get().saturating_sub(1))
+    });
+    for protocol in [ProtocolVersion::new(11), below, crate::PROTOCOL_VERSION] {
+        let kept = ATTENTION_NOTIFICATIONS_PROTOCOL.is_some_and(|since| protocol >= since);
         for reply in &replies {
             let wrappers = [
                 reply.clone(),
@@ -108,10 +115,12 @@ fn direct_lists_scripts_subscriptions_and_nested_fleet_omit_unassigned_attention
                 };
                 let older = frame.for_protocol(protocol).unwrap_or(frame);
                 let json = serde_json::to_value(&older).unwrap();
-                assert!(
-                    !serde_json::to_string(&json)
+                assert_eq!(
+                    serde_json::to_string(&json)
                         .unwrap()
-                        .contains("\"attention\"")
+                        .contains("\"attention\""),
+                    kept,
+                    "attention at {protocol:?}"
                 );
                 let _decoded: ServerFrame = serde_json::from_value(json).unwrap();
             }
@@ -143,6 +152,7 @@ fn elapsed_idle_is_gated_even_when_focusing_no_terminal_and_cannot_encode_future
         focus: crate::push::PushFocus::Elsewhere,
         activity: crate::push::PushActivity::Unchanged,
         idle_age: Some(crate::push::PushIdleAge::new(42)),
+        notifies: true,
     }
     .into_call();
     assert_eq!(request.since(), ATTENTION_NOTIFICATIONS_PROTOCOL);
@@ -173,6 +183,7 @@ fn passive_reads_are_narrow_person_operations_and_idle_age_is_versioned() {
             focus: crate::push::PushFocus::Background,
             activity: crate::push::PushActivity::Unchanged,
             idle_age: Some(crate::push::PushIdleAge::new(57)),
+            notifies: true,
         }
         .into_call(),
     ] {
@@ -180,4 +191,14 @@ fn passive_reads_are_narrow_person_operations_and_idle_age_is_versioned() {
         let encoded = serde_json::to_vec(&call).unwrap();
         assert_eq!(serde_json::from_slice::<Call>(&encoded).unwrap(), call);
     }
+}
+
+#[test]
+fn the_attention_protocol_is_assigned_and_the_newest() {
+    // Assigned 47 (ADR 0089, "Turned on"); only the newest protocol asserts
+    // equality with `PROTOCOL_VERSION`, and a later one relaxes this to `<=`.
+    assert_eq!(
+        ATTENTION_NOTIFICATIONS_PROTOCOL,
+        Some(crate::PROTOCOL_VERSION)
+    );
 }

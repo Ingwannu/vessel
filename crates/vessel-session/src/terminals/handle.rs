@@ -181,10 +181,14 @@ impl TerminalHandle {
             return Err(InputError::Ended);
         }
         match input {
-            TerminalInput::Data { data } => pty
-                .write(data.into_bytes())
-                .await
-                .map_err(|_closed| InputError::Ended),
+            TerminalInput::Data { data } => {
+                if super::attention::interrupts(data.bytes()) {
+                    self.interrupt_activity();
+                }
+                pty.write(data.into_bytes())
+                    .await
+                    .map_err(|_closed| InputError::Ended)
+            }
             TerminalInput::Resize { size, .. } => {
                 pty.resize(WindowSize {
                     cols: size.cols,

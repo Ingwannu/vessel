@@ -18,6 +18,8 @@
 //   session whose item matches the notice's kind (`sourceFor`).
 // - Not on the first page: the notice falls back to ADR 0114's path and
 //   shows (the coordinator's rule, 2026-11-20). ADR 0089 states the limit.
+//   A first page that cannot be read does the same for every notice
+//   (2026-11-21, at assignment).
 // - Otherwise only `admitted` shows. Every other outcome, a failed call and
 //   a lost reply show nothing, and a claim is never retried (ADR 0089).
 
@@ -152,7 +154,10 @@ export async function askBeforeTelling(
 ): Promise<Notice[]> {
   const page = await calls.firstPage();
   if (page === null) {
-    return [];
+    // A first page that could not be read names no source, as a notice
+    // past it does: every notice takes ADR 0114's path and is told, rather
+    // than a transient failure silencing them (ADR 0089, at assignment).
+    return [...notices];
   }
   const asked = await Promise.all(
     notices.map(async (notice): Promise<[Notice, Asked]> => {
