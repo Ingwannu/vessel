@@ -2024,6 +2024,14 @@ injects `vessel-node::http_resolution`'s reqwest adapter into the one persistent
 both source owners end, before node stop completes. Without injection Harness
 builds no client (Unsupported), never reqwest's default resolver.
 
+## The host's Vessel tools switch
+
+The node records `vessel_tools` in its ordinary saved settings. Launch reads
+pass the switch to the internal stdio credential and server path. Fleet MCP
+resolution runs through its existing profile and secret owners. The session
+task owner keeps replacement credentials through the actor's settlement.
+See [Host Vessel tools](plans/host-vessel-tools.md).
+
 ## Page feedback and modal ownership
 
 The existing Base UI dialog, command palette and sheet own their key and

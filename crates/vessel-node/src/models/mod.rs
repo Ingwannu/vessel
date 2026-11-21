@@ -210,7 +210,11 @@ impl Models {
             Err(MoveTokenError::Running) => return Err(ServiceError::MoveRunning(id)),
             Err(MoveTokenError::Random(error)) => return Err(ServiceError::Random(error)),
         };
-        self.proxy(&route, &token).map(Some)
+        let proxy = self.proxy(&route, &token);
+        if proxy.is_err() {
+            self.tokens.end_move(id, false);
+        }
+        proxy.map(Some)
     }
 
     /// The move begun with [`begin_move`](Self::begin_move) ended.

@@ -24,7 +24,7 @@ impl PendingTools {
 pub(crate) struct ToolMove {
     agents: Arc<Agents>,
     session: SessionId,
-    ticket: u64,
+    ticket: Option<u64>,
 }
 
 impl Agents {
@@ -52,7 +52,7 @@ impl Agents {
             Some(ToolMove {
                 agents: Arc::clone(self),
                 session,
-                ticket,
+                ticket: Some(ticket),
             }),
             secret,
         ))
@@ -60,18 +60,21 @@ impl Agents {
 }
 
 impl ToolMove {
-    pub(crate) fn finish(self, moved: bool) {
+    pub(crate) fn finish(mut self, moved: bool) {
         self.settle(moved);
     }
 
-    fn settle(&self, moved: bool) {
+    fn settle(&mut self, moved: bool) {
+        let Some(ticket) = self.ticket.take() else {
+            return;
+        };
         let mut sessions = self.agents.lock();
         let Some(entry) = sessions.get_mut(&self.session) else {
             return;
         };
         let Some(pending) = entry
             .pending_tools
-            .take_if(|pending| pending.ticket == self.ticket)
+            .take_if(|pending| pending.ticket == ticket)
         else {
             return;
         };

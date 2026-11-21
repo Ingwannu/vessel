@@ -1,9 +1,9 @@
 //! Setting-specific admission prevents an older hop silently ignoring a
-//! later field. The outer option refuses a feature still awaiting assignment.
+//! later field. A feature still awaiting its protocol assignment is refused.
 
-use crate::settings::SetNodeSettings;
+use crate::{ProtocolVersion, settings::SetNodeSettings};
 
-pub(super) fn fields_since(request: &SetNodeSettings) -> Option<Option<u32>> {
+pub(super) fn since(request: &SetNodeSettings, method: ProtocolVersion) -> Option<ProtocolVersion> {
     // Agent drivers arrived in protocol 18.
     let drivers = request.drivers.map(|_| 18);
     // The plugin switch (ADR 0115) needs the plugin protocol.
@@ -33,5 +33,6 @@ pub(super) fn fields_since(request: &SetNodeSettings) -> Option<Option<u32>> {
     } else {
         None
     };
-    Some(base.max(metadata))
+    let fields = base.max(metadata).unwrap_or_default();
+    Some(method.max(ProtocolVersion::new(fields)))
 }

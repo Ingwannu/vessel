@@ -192,7 +192,7 @@ impl Call {
                 } => Some(crate::terminals::SHARED_TERMINALS_PROTOCOL?.get()),
                 TerminalInput::Resize { intent: None, .. } | TerminalInput::Data { .. } => None,
             },
-            Self::SetNodeSettings(request) => settings::fields_since(request)?,
+            Self::SetNodeSettings(request) => return settings::since(request, method),
             Self::WriteFile(request) => match request.expect {
                 crate::workspace::WriteExpect::Content { .. } => Some(11),
                 crate::workspace::WriteExpect::Absent | crate::workspace::WriteExpect::Any => None,

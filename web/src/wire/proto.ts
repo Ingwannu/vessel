@@ -5541,6 +5541,11 @@ path: string,
 name?: ProjectName | null, };
 
 /**
+ * Whether a launch gets the internal tool server; false is fresh-install behavior.
+ */
+export type Injection = boolean;
+
+/**
  * Directory inspection carries the metadata needed by all three sort modes.
  */
 export type InspectDirectory = { 
@@ -7110,7 +7115,12 @@ terminal_agent_hooks?: boolean,
  * [`Profiles::shipped`]; empty when a person removed them all. Hidden
  * below `TERMINAL_PROFILES_PROTOCOL`.
  */
-terminal_profiles?: TerminalProfiles | null, };
+terminal_profiles?: TerminalProfiles | null, 
+/**
+ * The node's internal stdio tools for future launches, absent below
+ * the Vessel tools protocol.
+ */
+vessel_tools?: Injection, };
 
 /**
  * Whether a node is taking new work.
@@ -11816,7 +11826,11 @@ terminal_agent_hooks?: boolean | null,
  * (ADR 0117; Paseo patches the whole list too). Refused below
  * `TERMINAL_PROFILES_PROTOCOL` (45).
  */
-terminal_profiles?: TerminalProfiles | null, };
+terminal_profiles?: TerminalProfiles | null, 
+/**
+ * Turn the internal stdio tool server on or off for future agent launches.
+ */
+vessel_tools?: Injection | null, };
 
 /**
  * `secret.set` (protocol 6): store a value in this node's `secrets.toml`,

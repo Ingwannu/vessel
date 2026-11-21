@@ -84,7 +84,6 @@ impl NodeService {
         let agents = &self.agents;
         let models = &self.models;
         let settings = &self.settings;
-        let mut tool_move = None;
         let moved = self
             .sessions
             .move_profile(id, async |info: &SessionInfo| {
@@ -93,20 +92,15 @@ impl NodeService {
                 // its own (`agents`, Decision Log), and a routed session's
                 // agent a model token of its own, on the same route.
                 let route = info.model.as_ref().map(|model| &model.route);
-                plan.model_proxy = models.begin_move(id, route, &plan.profile)?;
                 let inject = launcher.has_tools() && settings.inject_vessel_tools().await;
                 let (transition, secret) = agents.begin_move(id, inject)?;
-                tool_move = transition;
                 if let Some(secret) = secret {
                     launcher.attach_tools(&mut plan.mcp_servers, id, &secret)?;
                 }
-                Ok(plan)
+                plan.model_proxy = models.begin_move(id, route, &plan.profile)?;
+                Ok((plan, transition))
             })
             .await;
-        if let Some(tool_move) = tool_move {
-            tool_move.finish(moved.is_ok());
-        }
-        self.models.end_move(id, moved.is_ok());
         moved
             .map(|info| self.with_workspace(info))
             .map_err(|error| wire(&error))

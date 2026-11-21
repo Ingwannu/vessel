@@ -57,17 +57,12 @@ impl NodeService {
         if info.marks.archived_at.is_some() {
             let _unarchived = self.sessions.mark(id, Mark::Unarchive).await?;
         }
-        let mut tool_move = None;
         let reloaded = self
             .sessions
             .reload(id, async |handle: &SessionHandle| {
-                self.plan(id, handle, &mut tool_move).await
+                self.plan(id, handle).await
             })
             .await;
-        if let Some(tool_move) = tool_move {
-            tool_move.finish(reloaded.is_ok());
-        }
-        self.models.end_move(id, reloaded.is_ok());
         match reloaded {
             // Ended, or ending while this call ran: started again once its
             // log is all in the store (`Sessions::ended` waits for the
@@ -93,8 +88,7 @@ impl NodeService {
         &self,
         id: SessionId,
         handle: &SessionHandle,
-        tool_move: &mut Option<ToolMove>,
-    ) -> Result<Reload, ServiceError> {
+    ) -> Result<(Reload, Option<ToolMove>), ServiceError> {
         let info = handle.info();
         let before = self.sessions.prompts_before(id, handle.run_start()).await?;
         let mut launch = self.launcher.again(&self.profiles, &info)?;
@@ -104,14 +98,13 @@ impl NodeService {
                 .map_err(|error| ServiceError::Session(SessionError::Launch(error)))?,
         };
         let route = info.model.as_ref().map(|model| &model.route);
-        launch.model_proxy = self.models.begin_move(id, route, &profile)?;
         let inject = self.launcher.has_tools() && self.settings.inject_vessel_tools().await;
         let (transition, secret) = self.agents.begin_move(id, inject)?;
-        *tool_move = transition;
         if let Some(secret) = secret {
             self.launcher
                 .attach_tools(&mut launch.mcp_servers, id, &secret)?;
         }
-        Ok(Reload { launch, before })
+        launch.model_proxy = self.models.begin_move(id, route, &profile)?;
+        Ok((Reload { launch, before }, transition))
     }
 }
