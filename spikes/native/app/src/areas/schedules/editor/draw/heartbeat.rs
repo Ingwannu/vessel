@@ -6,11 +6,7 @@ use vessel_app_kit::{
     theme::spacing::{S3, S4, S8},
     ui::{Div, IntoElement as _, ParentElement as _, SharedString, Styled as _, div, px},
 };
-use vessel_app_view::schedules::{
-    editor::io::Form,
-    locale,
-    presentation::heartbeat_target_label,
-};
+use vessel_app_view::schedules::{editor::io::Form, locale, presentation::heartbeat_target_label};
 use vessel_proto::automation::ScheduleInfo;
 
 pub(super) fn body(
