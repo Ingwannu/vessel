@@ -285,6 +285,9 @@ terminal's attention, and no machine admits claims, so nothing here runs.
   node moves that revision when a terminal's attention changes (`terminals/registry/listed.rs`).
   - One follower per connection (`link/src/terminal_notices.rs`).
   - A newer connection replaces it, and a failed call ends it.
+  - A list whose revision did not move is asked again only after a quiet second. A node that answers without
+    waiting (its wait slots full, a delegated caller) would otherwise be asked at round-trip speed (app review
+    note).
   - Following each terminal instead would cost a long poll per terminal, up to 96 a machine.
 - **What is a notice** (`view/src/notices/terminals.rs`, with the Decision Log):
   - a terminal at Finished or Needs input, at an attention revision the connection has not told of;

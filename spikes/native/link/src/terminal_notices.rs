@@ -8,7 +8,8 @@
 //! the app as [`crate::Event::TerminalNotices`]. A newer connection to the
 //! machine replaces the follower. A failed call ends it, as a lost
 //! connection fails every call, and the next connection starts a new one.
-//! A wait that runs past its bound asks again.
+//! A wait that runs past its bound asks again, and a list whose revision
+//! did not move is asked again after a quiet second.
 //!
 //! While ADR 0089's constant is unassigned no machine admits claims, so no
 //! follower starts.
@@ -29,6 +30,12 @@ use crate::{Event, State};
 /// The longest one wait is given: the node's own bound (30 s) and a call's
 /// (15 s), as the terminal tabs' list.
 const WAIT: Duration = Duration::from_secs(30 + 15);
+
+/// How long a follower waits before asking again when the list's revision
+/// did not move: a node that answers without waiting (its wait slots full,
+/// or a delegated caller) would otherwise be asked at round-trip speed
+/// (app review of row 3, note 1; the catalog watcher's quiet wait).
+const QUIET: Duration = Duration::from_secs(1);
 
 /// The followers running, one per machine.
 #[derive(Debug, Default)]
@@ -113,6 +120,9 @@ pub(crate) async fn follow(client: NodeClient, machine: String, events: mpsc::Se
             }
             Ok(Ok(list)) => list,
         };
+        if changed_from == Some(list.revision) {
+            tokio::time::sleep(QUIET).await;
+        }
         changed_from = Some(list.revision);
         let notices = watched.read(&machine, &list.terminals);
         if notices.is_empty() {
