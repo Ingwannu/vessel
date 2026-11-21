@@ -66,6 +66,7 @@ async fn a_terminal_and_its_worktree_s_removal_never_both_win() {
                     place: TerminalPlace::Session { session },
                     size: None,
                     title: None,
+                    profile: None,
                 }),
                 owner.call(RemoveWorktree {
                     worktree: worktree.id,
