@@ -96,13 +96,7 @@ impl State {
                 session,
                 id,
                 option,
-            } => {
-                let input = SessionInput::AnswerPermission {
-                    id,
-                    outcome: PermissionOutcome::Selected { option },
-                };
-                self.input(&machine, session, input).await;
-            }
+            } => self.answer_permission(&machine, session, id, option).await,
             Command::Pair {
                 offer,
                 name,
@@ -118,6 +112,22 @@ impl State {
             Command::Terminals(ask) => self.terminals(ask).await,
             Command::SavePrefs(prefs) => save_prefs(prefs).await,
         }
+    }
+
+    /// Answer a permission the agent asked for with the option chosen; out
+    /// of `handle` so its arms stay within the function budget.
+    async fn answer_permission(
+        &self,
+        machine: &str,
+        session: vessel_proto::SessionId,
+        id: vessel_proto::PermissionId,
+        option: vessel_proto::PermissionOptionId,
+    ) {
+        let input = SessionInput::AnswerPermission {
+            id,
+            outcome: PermissionOutcome::Selected { option },
+        };
+        self.input(machine, session, input).await;
     }
 
     /// Pair with an offer, then read the book again; out of `handle` so
