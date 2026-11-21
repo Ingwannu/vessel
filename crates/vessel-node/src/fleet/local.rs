@@ -8,9 +8,11 @@
 //!   that account's, as the harness would) and
 //!   `vessel_fleet::Target::for_harness`.
 //!   Homes that do not exist are skipped by the plan, so a harness that is
-//!   not set up here gets nothing. `OpenCode` is left out when the default
-//!   Claude Code home (`~/.claude`) is a target, since `OpenCode` reads that
-//!   one's `CLAUDE.md` and skills too (ADR 0012, "As built").
+//!   not set up here gets nothing. A harness that also reads a directory
+//!   under the user's home (`HarnessLayout::also_reads`: `OpenCode` reads
+//!   `~/.claude`, not `CLAUDE_CONFIG_DIR`) is left out when that directory
+//!   is a target (ADR 0012, "As built"); which path that is stays in
+//!   `vessel-harness`.
 //! - `FleetTargets::Only` replaces the profiles with fixed homes: tests,
 //!   which must never write into the real harness homes of the machine
 //!   they run on.
@@ -59,7 +61,6 @@ impl TargetSource {
 }
 
 fn profile_targets(profiles: &NodeProfiles) -> Vec<Target> {
-    let user_home = profiles.user_home();
     let mut targets: Vec<(HarnessKind, Target)> = profiles
         .list(None)
         .into_iter()
@@ -72,13 +73,27 @@ fn profile_targets(profiles: &NodeProfiles) -> Vec<Target> {
             Some((harness, Target::for_harness(harness, root)?))
         })
         .collect();
-    let claude_default = canonical(&user_home.join(".claude"));
-    let claude_default_targeted = targets.iter().any(|(harness, target)| {
-        *harness == HarnessKind::ClaudeCode && canonical(&target.root) == claude_default
+    // A harness that also reads a directory under the user's home (the
+    // harness module says which, `HarnessLayout::also_reads`) is left out
+    // when that directory is filled: it would see every fleet file twice.
+    // The path is the user's `~/.claude`, not Claude Code's profile home,
+    // which follows `CLAUDE_CONFIG_DIR`.
+    let filled: Vec<PathBuf> = targets
+        .iter()
+        .map(|(_harness, target)| canonical(&target.root))
+        .collect();
+    targets.retain(|(harness, _target)| {
+        let Some(parts) = vessel_harness::layout(*harness).also_reads else {
+            return true;
+        };
+        let read = parts
+            .iter()
+            .fold(profiles.user_home().to_path_buf(), |path, part| {
+                path.join(part)
+            });
+        let read = canonical(&read);
+        !filled.contains(&read)
     });
-    if claude_default_targeted {
-        targets.retain(|(harness, _target)| *harness != HarnessKind::OpenCode);
-    }
     targets
         .into_iter()
         .map(|(_harness, target)| target)
@@ -241,4 +256,86 @@ pub fn restore(files: &FleetFiles, path: &Path) -> Result<usize, RestoreError> {
         files::write_json(&files.apply_request(), &chrono::Utc::now())?;
     }
     Ok(restored)
+}
+
+#[cfg(test)]
+mod tests {
+    use vessel_harness::Profile;
+
+    use super::*;
+
+    /// With the default Claude Code home among the targets, the harness
+    /// that also reads it (`OpenCode`) gets no copy of its own.
+    #[test]
+    fn a_harness_reading_a_filled_home_is_left_out() {
+        let dir = tempfile::tempdir().unwrap();
+        let profiles = NodeProfiles::load(
+            vessel_store::DataDir::new(dir.path()),
+            vessel_harness::HarnessEnv::new(dir.path().to_owned()),
+        )
+        .unwrap();
+        let roots: Vec<PathBuf> = profile_targets(&profiles)
+            .into_iter()
+            .map(|target| target.root)
+            .collect();
+        let home_of = |harness| canonical(&profiles.home(&Profile::default_for(harness)).unwrap());
+        let roots: Vec<PathBuf> = roots.iter().map(|root| canonical(root)).collect();
+        assert!(roots.contains(&home_of(HarnessKind::ClaudeCode)));
+        assert!(roots.contains(&home_of(HarnessKind::Codex)));
+        assert!(!roots.contains(&home_of(HarnessKind::OpenCode)));
+    }
+
+    /// `CLAUDE_CONFIG_DIR` moves Claude Code's home. `OpenCode` still reads
+    /// the user's `~/.claude`, so it stays when that directory is not a
+    /// target.
+    #[test]
+    fn opencode_stays_when_claude_config_dir_is_elsewhere() {
+        let dir = tempfile::tempdir().unwrap();
+        let work = dir.path().join("claude-work");
+        std::fs::create_dir(&work).unwrap();
+        let env = vessel_harness::HarnessEnv::new(dir.path().to_owned())
+            .with_var("CLAUDE_CONFIG_DIR", work.as_os_str().to_owned());
+        let profiles = NodeProfiles::load(vessel_store::DataDir::new(dir.path()), env).unwrap();
+        let roots: Vec<PathBuf> = profile_targets(&profiles)
+            .into_iter()
+            .map(|target| canonical(&target.root))
+            .collect();
+        let home_of = |harness| canonical(&profiles.home(&Profile::default_for(harness)).unwrap());
+        assert_eq!(home_of(HarnessKind::ClaudeCode), canonical(&work));
+        assert!(roots.contains(&home_of(HarnessKind::ClaudeCode)));
+        assert!(!roots.contains(&canonical(&dir.path().join(".claude"))));
+        assert!(roots.contains(&home_of(HarnessKind::OpenCode)));
+    }
+
+    /// A relative `CLAUDE_CONFIG_DIR` makes the default Claude home unknown.
+    /// A profile that still fills the user's `~/.claude` drops `OpenCode`.
+    #[test]
+    fn a_relative_claude_config_dir_still_drops_opencode_when_dot_claude_is_filled() {
+        let dir = tempfile::tempdir().unwrap();
+        let claude = dir.path().join(".claude");
+        std::fs::create_dir(&claude).unwrap();
+        let data = vessel_store::DataDir::new(dir.path());
+        std::fs::write(
+            data.profiles_path(),
+            format!(
+                "[profiles.alt]\nharness = \"claude\"\nenv = {{ CLAUDE_CONFIG_DIR = \"{}\" }}\n",
+                claude.display()
+            ),
+        )
+        .unwrap();
+        let env = vessel_harness::HarnessEnv::new(dir.path().to_owned())
+            .with_var("CLAUDE_CONFIG_DIR", "relative".into());
+        let profiles = NodeProfiles::load(data, env).unwrap();
+        let roots: Vec<PathBuf> = profile_targets(&profiles)
+            .into_iter()
+            .map(|target| canonical(&target.root))
+            .collect();
+        let opencode = canonical(
+            &profiles
+                .home(&Profile::default_for(HarnessKind::OpenCode))
+                .unwrap(),
+        );
+        assert!(roots.contains(&canonical(&claude)));
+        assert!(!roots.contains(&opencode));
+    }
 }

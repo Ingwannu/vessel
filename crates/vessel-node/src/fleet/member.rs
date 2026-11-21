@@ -20,7 +20,10 @@
 //!   bundle paths.
 //! - Failures: a connection that cannot be made or is lost is retried with
 //!   the client's backoff (0.5 s to 30 s, jittered); a failed pull waits
-//!   the same before the next, so a broken disk does not spin. Each is in
+//!   the same before the next, so a broken disk does not spin. A connection
+//!   counts as working only once the home answered a pull or a watch: one
+//!   that ends before that waits the backoff, so a home that accepts and
+//!   drops at once is not granted again in a tight loop. Each is in
 //!   `state.json` for `vessel fleet status`.
 //! - The mutual grant (protocol 6, Track X): after connecting, the loop
 //!   gives the home a credential on this node with the scopes the owner
@@ -183,7 +186,6 @@ pub(crate) async fn run<C: Connector>(
                 continue;
             }
         };
-        failures = 0;
         tracing::info!(home = %client.node().id, "connected to the fleet's home");
         links.connected_home(client.clone());
         let granted = links.grant(&client, &membership, &stop).await;
@@ -201,13 +203,37 @@ pub(crate) async fn run<C: Connector>(
         }
         // A member called back through its home's relays asks for a newer
         // ticket while connected (`fleet.callback`); the connection's end
-        // stops that.
-        tokio::select! {
-            () = session(&client, &local, &pacing, &mut applied, &stop) => {}
-            () = links.keep_callback(&client, &membership) => {}
-        }
+        // stops that. The callback running counts as the home having
+        // answered: the connection was in use.
+        let contact = tokio::select! {
+            contact = session(&client, &local, &pacing, &mut applied, &stop) => contact,
+            () = links.keep_callback(&client, &membership) => Contact::Answered,
+        };
         links.lost_home();
+        // A connection the home answered on was a working one: reconnect at
+        // once. One that ended before the home answered anything counts as
+        // a failure, so a home that accepts and drops at once is not dialled
+        // (and granted) in a tight loop.
+        match contact {
+            Contact::Answered => failures = 0,
+            Contact::None => {
+                failures = failures.saturating_add(1);
+                match pause(pacing.backoff.delay(failures), &stop, &pacing.manual).await {
+                    Wake::Stopped => return,
+                    Wake::Elapsed | Wake::Manual => {}
+                }
+            }
+        }
     }
+}
+
+/// Whether the home answered during one connection.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Contact {
+    /// A pull or a watch got an answer.
+    Answered,
+    /// The connection ended before any answer.
+    None,
 }
 
 /// One connection's worth: pull, then wait for news or the timer.
@@ -217,7 +243,8 @@ async fn session(
     pacing: &Pacing,
     applied: &mut Option<Generation>,
     stop: &CancellationToken,
-) {
+) -> Contact {
+    let mut contact = Contact::None;
     let mut failures = 0_u32;
     let mut due = true;
     let mut timer = tokio::time::interval(pacing.pull_every);
@@ -228,17 +255,18 @@ async fn session(
         // is not permission to begin new disk work after shutdown; an apply
         // already admitted still finishes normally.
         if stop.is_cancelled() {
-            return;
+            return contact;
         }
         if due {
             match pull(client, local).await {
                 Ok(generation) => {
                     *applied = Some(generation);
                     failures = 0;
+                    contact = Contact::Answered;
                 }
                 Err(PullError::Call(error)) if is_lost(&error) => {
                     tracing::info!(%error, "lost the fleet's home; reconnecting");
-                    return;
+                    return contact;
                 }
                 Err(error) => {
                     let message = format!("pulling from the home: {error}");
@@ -246,11 +274,11 @@ async fn session(
                     note_error(local, message).await;
                     failures = failures.saturating_add(1);
                     match pause(pacing.backoff.delay(failures), stop, &pacing.manual).await {
-                        Wake::Stopped => return,
+                        Wake::Stopped => return contact,
                         Wake::Elapsed | Wake::Manual => {}
                     }
                     if stop.is_cancelled() {
-                        return;
+                        return contact;
                     }
                     continue;
                 }
@@ -261,11 +289,12 @@ async fn session(
             answer = client.fleet_watch(after) => match answer {
                 Ok(generation) => {
                     contacted(local).await;
+                    contact = Contact::Answered;
                     due = Some(generation) != *applied;
                 }
                 Err(error) if is_lost(&error) => {
                     tracing::info!(%error, "lost the fleet's home; reconnecting");
-                    return;
+                    return contact;
                 }
                 Err(error) => {
                     let message = format!("watching the home: {error}");
@@ -279,8 +308,8 @@ async fn session(
             },
             _tick = timer.tick() => due = true,
             () = pacing.manual.notified() => due = true,
-            () = stop.cancelled() => return,
-            () = client.closed() => return,
+            () = stop.cancelled() => return contact,
+            () = client.closed() => return contact,
         }
     }
 }

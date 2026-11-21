@@ -205,6 +205,24 @@ impl Credentials {
         found
     }
 
+    /// Whether `host` has a token, as far as is known without asking
+    /// `gh`: `Some(true)` for one from the environment or kept from `gh`,
+    /// `Some(false)` for a kept miss, `None` when `gh` has not been asked
+    /// or its answer is no longer kept. A status read must not wait for
+    /// `gh` (ADR 0123 step B): it reads this, and asks
+    /// [`token`](Self::token) off the read when it is `None`.
+    #[must_use]
+    pub fn known(&self, host: &ForgeHost) -> Option<bool> {
+        if self.env_token(host).is_some() {
+            return Some(true);
+        }
+        let now = Instant::now();
+        self.cache()
+            .get(host)
+            .filter(|cached| cached.until > now)
+            .map(|cached| matches!(cached.found, Found::Token(..)))
+    }
+
     /// The machine's `gh`, when it has one (asked how it clones, ADR 0088).
     #[must_use]
     pub fn gh(&self) -> Option<&Gh> {
@@ -278,6 +296,21 @@ mod tests {
                 .len()
                 <= MAX_CACHED
         );
+    }
+
+    /// A status read learns what is kept and never waits for `gh`.
+    #[tokio::test]
+    async fn known_reads_only_what_is_kept() {
+        let vars = |name: &str| (name == "GH_TOKEN").then(|| OsString::from("first"));
+        let credentials = Credentials::new(EnvTokens::from_vars(vars), None);
+        assert_eq!(credentials.known(&host("github.com")), Some(true));
+        let other = host("ghe.example.org");
+        assert_eq!(credentials.known(&other), None);
+        assert!(matches!(
+            credentials.token(&other).await,
+            Found::None(GhState::Missing)
+        ));
+        assert_eq!(credentials.known(&other), Some(false));
     }
 
     #[test]

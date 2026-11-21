@@ -71,8 +71,7 @@ export function Workspace({
   const launch = compact
     ? actions.filter((action) => action.label !== words.diff)
     : actions;
-  const heading =
-    active?.kind === "agent" ? (state.session(active.id) ?? anchor) : anchor;
+  const heading = state.heading;
   const openSummary = () => {
     select({ kind: "agent", id: heading.id });
     setSummaryOpen(true);
@@ -180,6 +179,7 @@ export function Workspace({
         label={label}
         session={heading}
         renamed={title?.id === heading.id ? title.name : null}
+        file={state.shownFile}
         onPlace={openChanges}
         {...(narrowSummary && heading.spec.mode === "structured"
           ? { onSummary: openSummary }

@@ -808,7 +808,8 @@ fn the_plugin_catalog_and_invoke_come_after_the_manager() {
         ]
     );
     assert!(PLUGINS_PROTOCOL < PLUGIN_CATALOG_PROTOCOL);
-    assert_eq!(PLUGIN_CATALOG_PROTOCOL, Some(crate::PROTOCOL_VERSION));
+    // Only the newest protocol asserts equality with `PROTOCOL_VERSION`.
+    assert!(PLUGIN_CATALOG_PROTOCOL <= Some(crate::PROTOCOL_VERSION));
 }
 
 #[test]

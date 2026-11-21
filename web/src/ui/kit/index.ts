@@ -45,6 +45,8 @@ export { MenuNote, MenuSwitchItem } from "./menu-switch";
 export { type OptionRow, OptionList } from "./option-list";
 export { type PanelTab, PanelTabs } from "./panel-tabs";
 export { Popover } from "./popover";
+export { ForgeMark } from "./forge-mark";
+export { type ForgeMarkName } from "./forge-marks";
 export { ProviderMark, type ProviderMarkName } from "./provider-mark";
 export {
   QuotaMeter,
@@ -62,6 +64,7 @@ export { StatusDot } from "./status-dot";
 export {
   moveActive,
   suggestionId,
+  type SuggestionCard,
   type SuggestionItem,
   Suggestions,
 } from "./suggestions";

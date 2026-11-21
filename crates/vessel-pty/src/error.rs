@@ -2,23 +2,22 @@
 
 /// A PTY session could not be started.
 ///
-/// `portable-pty` reports errors as `anyhow::Error`; they are kept as text
-/// here so `anyhow` stays out of this crate's API (`AGENTS.md` section 6).
+/// `portable-pty` reports errors as `anyhow::Error`; they are kept as the
+/// source of an `io::Error` (`io::Error::other`), so `anyhow` stays out of
+/// this crate's API (`AGENTS.md` section 6) and the cause is not lost.
 #[derive(Debug, thiserror::Error)]
 pub enum PtyError {
     /// The OS would not create a pseudo-terminal.
-    #[error("cannot open a pseudo-terminal: {message}")]
-    Open {
-        /// What `portable-pty` reported.
-        message: String,
-    },
+    #[error("cannot open a pseudo-terminal")]
+    Open(#[source] std::io::Error),
     /// The program could not be started in the PTY.
-    #[error("cannot start {program} in a pseudo-terminal: {message}")]
+    #[error("cannot start {program} in a pseudo-terminal")]
     Spawn {
         /// The program.
         program: String,
         /// What `portable-pty` reported.
-        message: String,
+        #[source]
+        source: std::io::Error,
     },
     /// The program started but reports no process id.
     #[error("{program} started without a process id")]
@@ -36,11 +35,8 @@ pub enum PtyError {
         source: vessel_proc::InvalidGroup,
     },
     /// The PTY's reader or writer could not be obtained.
-    #[error("cannot attach to the pseudo-terminal: {message}")]
-    Attach {
-        /// What `portable-pty` reported.
-        message: String,
-    },
+    #[error("cannot attach to the pseudo-terminal")]
+    Attach(#[source] std::io::Error),
     /// An I/O thread could not be started.
     #[error("cannot start a PTY thread")]
     Thread(#[source] std::io::Error),
@@ -52,19 +48,18 @@ impl PtyError {
             vessel_proc::CommandDiagnostics::Standard => self,
             vessel_proc::CommandDiagnostics::Redacted => {
                 let program = || spec.diagnostic_program().display().to_string();
-                let message = || spec.diagnostic_message(&"backend detail");
                 match self {
-                    Self::Open { .. } => Self::Open { message: message() },
-                    Self::Spawn { .. } => Self::Spawn {
+                    Self::Open(source) => Self::Open(spec.diagnostic_io_error(source)),
+                    Self::Spawn { source, .. } => Self::Spawn {
                         program: program(),
-                        message: message(),
+                        source: spec.diagnostic_io_error(source),
                     },
                     Self::NoPid { .. } => Self::NoPid { program: program() },
                     Self::Group { source, .. } => Self::Group {
                         program: program(),
                         source,
                     },
-                    Self::Attach { .. } => Self::Attach { message: message() },
+                    Self::Attach(source) => Self::Attach(spec.diagnostic_io_error(source)),
                     Self::Thread(source) => Self::Thread(spec.diagnostic_io_error(source)),
                 }
             }
