@@ -16,15 +16,10 @@ pub(super) fn body(
     let words = shell.words.schedules();
     let editor = &shell.areas.schedules.editor;
     let draft = &form.draft.cadence;
-    let display = if draft.is_elapsed() {
-        words.form_select_cadence()
-    } else {
-        draft.choice().label(shell.words)
-    };
     let mut out = div().flex().flex_col().gap(px(S3)).child(choose(
         shell,
         Field::Cadence,
-        display,
+        draft.choice().label(shell.words),
         true,
         tokens,
         touch,
@@ -52,8 +47,7 @@ fn feedback(shell: &Shell, form: &Form, tokens: &Tokens) -> Option<Div> {
     };
     let preview = &shell.areas.schedules.editor.preview_label;
     let describe = || {
-        form.draft
-            .describe_cadence(rule, shell.words)
+        locale::cadence(rule, shell.words)
             .ok()
             .map(|label| hint(label, false, tokens))
     };
@@ -63,7 +57,7 @@ fn feedback(shell: &Shell, form: &Form, tokens: &Tokens) -> Option<Div> {
             .map(|label| hint(label.clone(), false, tokens))
             .or_else(describe),
         Some(Err(Failure::Older)) if form.draft.cadence.is_elapsed() => {
-            let summary = form.draft.describe_cadence(rule, shell.words).ok()?;
+            let summary = locale::cadence(rule, shell.words).ok()?;
             let text = words.form_elapsed_without_preview(&summary).ok()?;
             Some(hint(text, false, tokens))
         }

@@ -1,7 +1,7 @@
 //! Lossless conversion of elapsed cadence for display.
 use vessel_proto::automation::EverySeconds;
 
-/// Units a person can choose in the interval form.
+/// Units for an exact, single-unit elapsed cadence label.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IntervalUnit {
     /// Exact seconds, for intervals such as ninety seconds.
@@ -15,7 +15,7 @@ pub enum IntervalUnit {
 }
 
 impl IntervalUnit {
-    /// Largest to smallest, for lossless form decomposition.
+    /// Largest to smallest, to choose the first exact unit.
     pub const DESCENDING: [Self; 4] = [Self::Days, Self::Hours, Self::Minutes, Self::Seconds];
 
     /// Elapsed seconds represented by one unit.

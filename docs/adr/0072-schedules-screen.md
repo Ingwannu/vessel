@@ -352,3 +352,16 @@ the opened revision. This method keeps the saved owner and target
 receipt before closing. A connection change or ambiguous receipt uses
 the existing refresh and unconfirmed-write path. Peers below the
 assigned protocol continue to show the read-only details.
+
+#### Native cadence copy (TRACKER 846)
+
+The native preset displays **Custom cron** for a non-preset expression
+or a retained elapsed rule, using the display identity in Paseo's
+`schedule-cadence-options.ts` 30–36. The row, detail and editable form
+share the same exact single-unit elapsed label. Choose the largest of
+days, hours and minutes that divides the stored duration. If none does,
+show the full seconds. Thus 90 seconds stays **Every 90 seconds**
+and a whole hour stays **Every hour**. This matches the page's label
+shape and preserves seconds precision beyond Paseo's rounded
+interval conversion (`schedule-format.ts` 57–83). The formatter affects
+display only. A retained elapsed rule still opens with blank cron.

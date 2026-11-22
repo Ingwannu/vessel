@@ -27,9 +27,9 @@ impl Render for Probe {
 }
 
 #[gpui::test]
-fn cadence_button_announces_its_field_and_preset(cx: &mut TestAppContext) {
+fn cadence_button_announces_its_field_and_current_choice(cx: &mut TestAppContext) {
     init(cx);
-    let (_, cx) = cx.add_window_view(|window, cx| Probe {
+    let (probe, cx) = cx.add_window_view(|window, cx| Probe {
         shell: cx.new(|cx| {
             let mut shell = Shell::without_io(window, cx);
             shell.route = Route::Schedules;
@@ -47,4 +47,21 @@ fn cadence_button_announces_its_field_and_preset(cx: &mut TestAppContext) {
     assert!(cx.simulate_accessibility_activation(handle));
     cx.update(|window, _| window.refresh());
     assert!(named_button(cx, "Cadence (Daily 9:00)"));
+    probe.update(cx, |probe, cx| {
+        probe.shell.update(cx, |shell, cx| {
+            shell
+                .areas
+                .schedules
+                .editor
+                .model
+                .as_mut()
+                .unwrap()
+                .draft
+                .cadence
+                .set_expression("15 10 * * 6".to_owned());
+            cx.notify();
+        });
+    });
+    cx.update(|window, _| window.refresh());
+    assert!(named_button(cx, "Cadence (Custom cron)"));
 }

@@ -119,22 +119,6 @@ impl Draft {
         self.opened().filter(|info| super::is_heartbeat(info))
     }
 
-    /// Format a cadence for the opened editor. A heartbeat and its row
-    /// share the same elapsed representation.
-    /// # Errors
-    /// Locale formatting failed.
-    pub fn describe_cadence(
-        &self,
-        rule: &Cadence,
-        catalog: &crate::localization::Translator,
-    ) -> Result<String, crate::localization::FormatError> {
-        if self.heartbeat().is_some() {
-            super::locale::cadence(rule, catalog)
-        } else {
-            cadence::description(rule, catalog)
-        }
-    }
-
     /// The immutable original definition, for revision checks and disclosures.
     #[must_use]
     pub fn opened(&self) -> Option<&ScheduleInfo> {

@@ -394,7 +394,7 @@ schedules-form-model-placeholder = 모델 선택
 schedules-form-zone-placeholder = 시간대 선택
 
 # Schedule editor: form-custom control/feedback, never a node diagnostic.
-schedules-form-custom = 직접 입력
+schedules-form-custom = 사용자 지정 크론
 
 # Placeholder for searching project choices on the selected machine; short.
 schedules-form-search-projects = 프로젝트 검색...
@@ -456,12 +456,6 @@ schedules-form-no-machine = 일정을 만들려면 머신에 연결하세요.
 
 # Accessible name of the row that opens the editor.
 schedules-form-edit-row = 일정 수정 { $title }
-
-# Schedule rule or its first projected run.
-schedules-form-select-cadence = 실행 주기 선택
-
-# Schedule rule or its first projected run.
-schedules-form-elapsed-seconds = { NUMBER($seconds, useGrouping: "false") }초마다
 
 # Schedule rule or its first projected run.
 schedules-form-preview-line = { $description } · 다음 실행 { DATETIME($at) }

@@ -406,7 +406,7 @@ schedules-form-model-placeholder = Select model
 schedules-form-zone-placeholder = Choose a time zone
 
 # Schedule editor: form-custom control/feedback, never a node diagnostic.
-schedules-form-custom = Custom
+schedules-form-custom = Custom cron
 
 # Placeholder for searching project choices on the selected machine; short.
 schedules-form-search-projects = Search projects...
@@ -468,15 +468,6 @@ schedules-form-no-machine = Connect to a machine to create a schedule.
 
 # Accessible name of the row that opens the editor.
 schedules-form-edit-row = Edit schedule { $title }
-
-# Schedule rule or its first projected run.
-schedules-form-select-cadence = Select cadence
-
-# Schedule rule or its first projected run.
-schedules-form-elapsed-seconds = { $seconds ->
-    [one] Every second
-   *[other] Every { NUMBER($seconds, useGrouping: "false") } seconds
-}
 
 # Schedule rule or its first projected run.
 schedules-form-preview-line = { $description } · Next run { DATETIME($at) }

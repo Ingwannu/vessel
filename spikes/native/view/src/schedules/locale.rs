@@ -169,43 +169,47 @@ fn interval(
 
     let words = catalog.schedules();
     let whole = IntervalParts::of(seconds);
-    let single = match (whole.unit(), whole.count()) {
-        (IntervalUnit::Minutes, 1) => Some(words.every_minute()),
-        (IntervalUnit::Hours, 1) => Some(words.every_hour()),
-        (IntervalUnit::Days, 1) => Some(words.every_day()),
-        (
-            IntervalUnit::Seconds
-            | IntervalUnit::Minutes
-            | IntervalUnit::Hours
-            | IntervalUnit::Days,
-            _,
-        ) => None,
+    let count = Number::count(whole.count());
+    let duration = match (whole.unit(), whole.count()) {
+        (IntervalUnit::Minutes, 1) => return Ok(words.every_minute().to_owned()),
+        (IntervalUnit::Hours, 1) => return Ok(words.every_hour().to_owned()),
+        (IntervalUnit::Days, 1) => return Ok(words.every_day().to_owned()),
+        (IntervalUnit::Seconds, _) => words.interval_seconds(count),
+        (IntervalUnit::Minutes, _) => words.interval_minutes(count),
+        (IntervalUnit::Hours, _) => words.interval_hours(count),
+        (IntervalUnit::Days, _) => words.interval_days(count),
+    }?;
+    words.every_interval(&duration)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::cadence;
+    use crate::{
+        localization::{ENGLISH, Locale, Translator},
+        schedules::tests::visible,
     };
-    if let Some(single) = single {
-        return Ok(single.to_owned());
-    }
-    let mut remaining = seconds.get();
-    let mut parts = Vec::new();
-    for unit in IntervalUnit::DESCENDING {
-        let count = if whole.unit() == IntervalUnit::Seconds {
-            let count = remaining.checked_div(unit.seconds()).unwrap_or_default();
-            remaining = remaining.checked_rem(unit.seconds()).unwrap_or_default();
-            count
-        } else if whole.unit() == unit {
-            whole.count()
-        } else {
-            0
-        };
-        if count == 0 {
-            continue;
+    use vessel_proto::automation::Cadence;
+
+    #[test]
+    fn elapsed_labels_use_the_largest_exact_unit_in_both_languages() {
+        let en = Translator::get(ENGLISH).unwrap();
+        let ko = Translator::get(Locale::from_tag("ko").unwrap()).unwrap();
+        for (seconds, english, korean) in [
+            (60_u32, "Every minute", "매분"),
+            (90, "Every 90 seconds", "90초마다"),
+            (120, "Every 2 minutes", "2분마다"),
+            (3_600, "Every hour", "매시 정각"),
+            (7_200, "Every 2 hours", "2시간마다"),
+            (86_400, "Every day", "매일"),
+            (172_800, "Every 2 days", "2일마다"),
+        ] {
+            let rule = Cadence::Every {
+                seconds: seconds.try_into().unwrap(),
+                anchor: None,
+            };
+            assert_eq!(visible(&cadence(&rule, en).unwrap()), english);
+            assert_eq!(visible(&cadence(&rule, ko).unwrap()), korean);
         }
-        let count = Number::count(count);
-        parts.push(match unit {
-            IntervalUnit::Days => words.interval_days(count),
-            IntervalUnit::Hours => words.interval_hours(count),
-            IntervalUnit::Minutes => words.interval_minutes(count),
-            IntervalUnit::Seconds => words.interval_seconds(count),
-        }?);
     }
-    words.every_interval(&parts.join(" "))
 }
