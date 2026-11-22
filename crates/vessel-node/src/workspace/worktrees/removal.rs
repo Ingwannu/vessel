@@ -204,7 +204,9 @@ impl Workspaces {
             RemovalPurpose::Archive(claim) => Some(claim),
             RemovalPurpose::Requested | RemovalPurpose::Tidy => None,
         };
-        let debt = self.check_backing_removal(worktree, archive, purpose == RemovalPurpose::Requested).await?;
+        let debt = self
+            .check_backing_removal(worktree, archive, purpose == RemovalPurpose::Requested)
+            .await?;
         let claim = self.stop.child_token();
         let (info, root, written) = {
             let mut state = self.state();
@@ -279,7 +281,11 @@ impl Workspaces {
             return removal;
         }
         let written = match debt {
-            Some(workspace) => self.store.forget_archived_backing(worktree, workspace, chrono::Utc::now()).await,
+            Some(workspace) => {
+                self.store
+                    .forget_archived_backing(worktree, workspace, chrono::Utc::now())
+                    .await
+            }
             None => self.store.forget_worktree(worktree).await,
         };
         if let Err(error) = written {

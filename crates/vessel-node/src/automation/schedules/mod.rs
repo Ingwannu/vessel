@@ -42,7 +42,8 @@ use std::time::Duration;
 use chrono::{DateTime, Utc};
 use tokio::sync::{mpsc, oneshot};
 use vessel_proto::automation::{
-    Cadence, EndReason, RunArchive, RunNumber, RunOutcome, ScheduleDefinition, ScheduleInfo, ScheduleRun,
+    Cadence, EndReason, RunArchive, RunNumber, RunOutcome, ScheduleDefinition, ScheduleInfo,
+    ScheduleRun,
 };
 use vessel_proto::{Creator, ScheduleId, SessionId};
 
@@ -366,6 +367,22 @@ impl Schedules {
         .await
     }
 
+    /// Record late archive settlement against the exact retained run.
+    pub(crate) async fn record_archive(
+        &self,
+        schedule: ScheduleId,
+        run: RunNumber,
+        disposition: RunArchive,
+    ) -> Result<(), AutomationError> {
+        self.ask(|reply| Command::ArchiveDisposition {
+            schedule,
+            run,
+            disposition,
+            reply,
+        })
+        .await
+    }
+
     /// `session` starts again (`session.resume`): the schedules its agent
     /// made in its last run are deleted before the new run's agent gets
     /// its credential.
@@ -377,16 +394,6 @@ impl Schedules {
     /// over. Asked here, it cannot, whatever the channel did.
     ///
     /// # Errors
-    pub(crate) async fn record_archive(
-        &self,
-        schedule: ScheduleId,
-        run: RunNumber,
-        disposition: RunArchive,
-    ) -> Result<(), AutomationError> {
-        self.ask(|reply| Command::ArchiveDisposition { schedule, run, disposition, reply }).await
-    }
-
-
     /// `unavailable`: the scheduler has stopped (the node is stopping).
     pub(crate) async fn starting_again(&self, session: SessionId) -> Result<(), AutomationError> {
         let (reply, answer) = oneshot::channel();

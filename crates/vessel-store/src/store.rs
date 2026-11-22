@@ -362,7 +362,12 @@ impl Store {
         workspace: vessel_proto::WorkspaceId,
         at: DateTime<Utc>,
     ) -> Result<(), StoreError> {
-        self.workspace_write(WorkspaceWrite::ForgetArchivedBacking { worktree, workspace, at }).await
+        self.workspace_write(WorkspaceWrite::ForgetArchivedBacking {
+            worktree,
+            workspace,
+            at,
+        })
+        .await
     }
 
     /// Approve the command set `digest` for `project` (with the set, from

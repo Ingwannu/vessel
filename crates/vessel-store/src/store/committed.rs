@@ -65,7 +65,8 @@ impl Store {
         at: DateTime<Utc>,
         residence: Residence,
     ) -> Result<SessionCommit<KeptMarks>, StoreError> {
-        self.commit_mark(session, Mark::Archive, at, residence, true).await
+        self.commit_mark(session, Mark::Archive, at, residence, true)
+            .await
     }
 
     async fn commit_mark(

@@ -30,13 +30,22 @@ impl Workspaces {
         requested: bool,
     ) -> Result<Option<WorkspaceId>, WorkspaceError> {
         if let Some(claim) = claim {
-            return if self.store.registry_archive_owns_worktree(claim, worktree).await? {
+            return if self
+                .store
+                .registry_archive_owns_worktree(claim, worktree)
+                .await?
+            {
                 Ok(None)
             } else {
                 Err(WorkspaceError::RegistryWorktreeOwned(worktree))
             };
         }
-        if self.store.registry_worktree_reference(worktree).await?.is_none() {
+        if self
+            .store
+            .registry_worktree_reference(worktree)
+            .await?
+            .is_none()
+        {
             return Ok(None);
         }
         if requested && let Some(debt) = self.store.archived_worktree_debt(worktree).await? {
@@ -47,7 +56,10 @@ impl Workspaces {
 
     /// Refuse before the optional terminal-stop request. Removal rechecks
     /// under its retained project admission before touching the backing.
-    pub(crate) async fn check_requested_worktree_removal(&self, worktree: WorktreeId) -> Result<(), WorkspaceError> {
+    pub(crate) async fn check_requested_worktree_removal(
+        &self,
+        worktree: WorktreeId,
+    ) -> Result<(), WorkspaceError> {
         let _debt = self.check_backing_removal(worktree, None, true).await?;
         Ok(())
     }

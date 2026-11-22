@@ -123,9 +123,15 @@ impl NodeService {
         let store = self.sessions.store();
         match result {
             IsolationCleanup::Retained => {
-                store.advance_schedule_run_binding(binding, RunBindingStage::Kept).await?;
+                store
+                    .advance_schedule_run_binding(binding, RunBindingStage::Kept)
+                    .await?;
                 if store.schedule_keeps_session(binding.session, true).await? {
-                    store.notify_registry_member(WorkspaceResource::Session { session: binding.session }).await?;
+                    store
+                        .notify_registry_member(WorkspaceResource::Session {
+                            session: binding.session,
+                        })
+                        .await?;
                 }
             }
             IsolationCleanup::Settled { retirement, .. } => {

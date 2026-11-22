@@ -27,13 +27,19 @@ impl Store {
     /// A person's ordinary removal may clear an exclusively owned, archived backing.
     /// # Errors
     /// The exact debt or a state participating in the proof could not be read.
-    pub async fn archived_worktree_debt(&self, worktree: WorktreeId) -> Result<Option<WorkspaceId>, StoreError> {
-        self.read(move |reader| reader.with(|connection| {
-            let snapshot = connection.unchecked_transaction()?;
-            let owner = registry::worktree_debt(&snapshot, worktree)?;
-            snapshot.commit()?;
-            Ok(owner)
-        })).await
+    pub async fn archived_worktree_debt(
+        &self,
+        worktree: WorktreeId,
+    ) -> Result<Option<WorkspaceId>, StoreError> {
+        self.read(move |reader| {
+            reader.with(|connection| {
+                let snapshot = connection.unchecked_transaction()?;
+                let owner = registry::worktree_debt(&snapshot, worktree)?;
+                snapshot.commit()?;
+                Ok(owner)
+            })
+        })
+        .await
     }
 
     /// Confirm an archive claimant owns this exact, exclusively held backing.

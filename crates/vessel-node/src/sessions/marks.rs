@@ -100,9 +100,13 @@ impl Sessions {
             within_log(id, through, info.next_seq)?;
         }
         let _kept = if release_keep {
-            self.store.archive_kept_session(id, Utc::now(), Residence::Stored).await?
+            self.store
+                .archive_kept_session(id, Utc::now(), Residence::Stored)
+                .await?
         } else {
-            self.store.mark_committed(id, mark, Utc::now(), Residence::Stored).await?
+            self.store
+                .mark_committed(id, mark, Utc::now(), Residence::Stored)
+                .await?
         };
         drop(order);
         self.store
@@ -162,10 +166,14 @@ impl Sessions {
                         }
                         Err(error) => return Err(error.into()),
                     }
-                    if handle.info().marks.archived_at.is_none() && !handle.conversation()?.queue.entries.is_empty() {
+                    if handle.info().marks.archived_at.is_none()
+                        && !handle.conversation()?.queue.entries.is_empty()
+                    {
                         return Ok(IdleStop::Busy);
                     }
-                    let _archived = sessions.commit_live_mark(&handle, Mark::Archive, false).await?;
+                    let _archived = sessions
+                        .commit_live_mark(&handle, Mark::Archive, false)
+                        .await?;
                 } else {
                     if sessions.get(id).await?.marks.archived_at.is_none()
                         && !sessions.conversation(id).await?.queue.entries.is_empty()
@@ -187,9 +195,13 @@ impl Sessions {
         release_keep: bool,
     ) -> Result<SessionInfo, ServiceError> {
         let committed = if release_keep {
-            self.store.archive_kept_session(handle.id(), Utc::now(), Residence::Loaded).await?
+            self.store
+                .archive_kept_session(handle.id(), Utc::now(), Residence::Loaded)
+                .await?
         } else {
-            self.store.mark_committed(handle.id(), mark, Utc::now(), Residence::Loaded).await?
+            self.store
+                .mark_committed(handle.id(), mark, Utc::now(), Residence::Loaded)
+                .await?
         };
         let (kept, updated_at) = committed.into_parts();
         handle.set_committed_marks(kept, updated_at);

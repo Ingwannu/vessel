@@ -3,8 +3,8 @@
 
 use chrono::{DateTime, Utc};
 use rusqlite::{Connection, params};
-use vessel_proto::{WorkspaceId, WorktreeId};
 use vessel_proto::registry::{WorkspaceBacking, WorkspaceDescriptor, WorkspaceLifecycle};
+use vessel_proto::{WorkspaceId, WorktreeId};
 
 use super::{
     MAX_ARCHIVED_WORKSPACES, ProvisionRetirement, RegistryChange, ReservationStage, decode, read,
@@ -79,15 +79,20 @@ fn pinned(connection: &Connection, workspace: WorkspaceId) -> Result<bool, Store
 }
 
 /// A person can resolve debt only for the exclusive, settled archived backing.
-pub(crate) fn worktree_debt(connection: &Connection, worktree: WorktreeId) -> Result<Option<WorkspaceId>, StoreError> {
+pub(crate) fn worktree_debt(
+    connection: &Connection,
+    worktree: WorktreeId,
+) -> Result<Option<WorkspaceId>, StoreError> {
     let Some(workspace) = super::worktree_reference(connection, worktree, None)? else {
         return Ok(None);
     };
     let Some(record) = read::workspace(connection, workspace)? else {
         return Ok(None);
     };
-    let owned = matches!(record.descriptor.lifecycle, WorkspaceLifecycle::Archived { .. })
-        && record.descriptor.backing == (WorkspaceBacking::Managed { worktree })
+    let owned = matches!(
+        record.descriptor.lifecycle,
+        WorkspaceLifecycle::Archived { .. }
+    ) && record.descriptor.backing == (WorkspaceBacking::Managed { worktree })
         && read::reservation(connection, workspace)?.is_some_and(|reserved| {
             reserved.stage == ReservationStage::Ready && reserved.worktree == Some(worktree)
         })

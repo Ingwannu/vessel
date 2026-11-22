@@ -155,27 +155,46 @@ async fn scheduled_local_members_keep_distinct_ids_and_managed_archives_remove_o
         let kept_workspace = first_local.id;
         let next_workspace = second_local.id;
         node.stop().await.unwrap();
-        let node = fixture.start_with(|config| config.harness_lookup = lookup(&fixture)).await;
+        let node = fixture
+            .start_with(|config| config.harness_lookup = lookup(&fixture))
+            .await;
         let owner = fixture.connect(&node).await;
-        assert!(snapshot(&owner).await.workspaces.iter().any(|workspace|
-            workspace.id == kept_workspace && workspace.lifecycle == WorkspaceLifecycle::Active
-        ));
-        let archived = owner.mark(first, vessel_proto::Mark::Archive).await.unwrap();
+        assert!(
+            snapshot(&owner)
+                .await
+                .workspaces
+                .iter()
+                .any(|workspace| workspace.id == kept_workspace
+                    && workspace.lifecycle == WorkspaceLifecycle::Active)
+        );
+        let archived = owner
+            .mark(first, vessel_proto::Mark::Archive)
+            .await
+            .unwrap();
         assert!(archived.marks.archived_at.is_some());
-        step("the kept workspace retires on its person's Archive", async {
-            loop {
-                let registry = snapshot(&owner).await;
-                if registry.workspaces.iter().any(|workspace|
-                    workspace.id == kept_workspace && matches!(workspace.lifecycle, WorkspaceLifecycle::Archived { .. })
-                ) {
-                    assert!(registry.workspaces.iter().any(|workspace|
-                        workspace.id == next_workspace && workspace.lifecycle == WorkspaceLifecycle::Active
-                    ));
-                    break;
+        step(
+            "the kept workspace retires on its person's Archive",
+            async {
+                loop {
+                    let registry = snapshot(&owner).await;
+                    if registry.workspaces.iter().any(|workspace| {
+                        workspace.id == kept_workspace
+                            && matches!(workspace.lifecycle, WorkspaceLifecycle::Archived { .. })
+                    }) {
+                        assert!(
+                            registry
+                                .workspaces
+                                .iter()
+                                .any(|workspace| workspace.id == next_workspace
+                                    && workspace.lifecycle == WorkspaceLifecycle::Active)
+                        );
+                        break;
+                    }
+                    tokio::time::sleep(Duration::from_millis(30)).await;
                 }
-                tokio::time::sleep(Duration::from_millis(30)).await;
-            }
-        }).await;
+            },
+        )
+        .await;
 
         let managed = owner
             .create_schedule(

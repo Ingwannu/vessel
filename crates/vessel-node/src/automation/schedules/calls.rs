@@ -81,7 +81,12 @@ impl<R: Runner, C: Clock> Actor<R, C> {
                 asker,
                 reply,
             } => self.run_now(schedule, asker, reply).await,
-            Command::ArchiveDisposition { schedule, run, disposition, reply } => {
+            Command::ArchiveDisposition {
+                schedule,
+                run,
+                disposition,
+                reply,
+            } => {
                 let recorded = self.note_archive(schedule, run, disposition).await;
                 let _gone = reply.send(recorded);
             }

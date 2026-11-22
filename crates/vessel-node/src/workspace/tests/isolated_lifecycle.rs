@@ -156,40 +156,94 @@ async fn a_person_can_resolve_archived_dirty_debt_and_release_the_project_fence(
     let intent = WorkspaceProvision {
         project: project.id,
         isolation: WorkspaceIsolation::Worktree {
-            branch: WorktreeBranch::New { name: None, base: None },
+            branch: WorktreeBranch::New {
+                name: None,
+                base: None,
+            },
             setup: SetupChoice::Skip,
         },
         automation: WorkspaceAutomation::Allowed,
         title: None,
         visibility: WorkspaceVisibility::Foreground,
     };
-    let made = workspaces.provision_workspace(
-        id, workspaces.admit_project(project.id).await.unwrap(), intent, Creator::Owner,
-    ).await.unwrap();
+    let made = workspaces
+        .provision_workspace(
+            id,
+            workspaces.admit_project(project.id).await.unwrap(),
+            intent,
+            Creator::Owner,
+        )
+        .await
+        .unwrap();
     let WorkspaceBacking::Managed { worktree } = made.descriptor.backing else {
         panic!("fixture needs a managed backing");
     };
     std::fs::write(made.descriptor.path.join("dirty.txt"), "retain my work").unwrap();
     let actors = Actors {
         scheduled: SessionId::random(),
-        foreign: WorkspaceResource::Terminal { terminal: TerminalId::random() },
+        foreign: WorkspaceResource::Terminal {
+            terminal: TerminalId::random(),
+        },
         foreign_live: AtomicBool::new(false),
         stopped: AtomicUsize::new(0),
     };
-    let archived = workspaces.archive_workspace(
-        id, made.descriptor.revision, WorkspaceArchivePurpose::Automatic, None, &actors,
-    ).await.unwrap();
+    let archived = workspaces
+        .archive_workspace(
+            id,
+            made.descriptor.revision,
+            WorkspaceArchivePurpose::Automatic,
+            None,
+            &actors,
+        )
+        .await
+        .unwrap();
     assert!(matches!(archived, ArchiveResult::Archived { kept } if !kept.is_empty()));
-    assert_eq!(fixture.store.archived_worktree_debt(worktree).await.unwrap(), Some(id));
-    assert_eq!(fixture.store.registry_project_reference(project.id).await.unwrap(), Some(id));
-    let kept = workspaces.remove_worktree(worktree, IfLost::Keep, Vec::new).await.unwrap();
+    assert_eq!(
+        fixture
+            .store
+            .archived_worktree_debt(worktree)
+            .await
+            .unwrap(),
+        Some(id)
+    );
+    assert_eq!(
+        fixture
+            .store
+            .registry_project_reference(project.id)
+            .await
+            .unwrap(),
+        Some(id)
+    );
+    let kept = workspaces
+        .remove_worktree(worktree, IfLost::Keep, Vec::new)
+        .await
+        .unwrap();
     assert!(matches!(kept, RemoveWorktreeOutcome::Kept { .. }));
     assert!(made.descriptor.path.join("dirty.txt").exists());
-    let removed = workspaces.remove_worktree(worktree, IfLost::Discard, Vec::new).await.unwrap();
+    let removed = workspaces
+        .remove_worktree(worktree, IfLost::Discard, Vec::new)
+        .await
+        .unwrap();
     assert!(matches!(removed, RemoveWorktreeOutcome::Removed { .. }));
     assert!(!made.descriptor.path.exists());
-    assert_eq!(fixture.store.registry_reservation(id).await.unwrap().unwrap().stage, vessel_store::ReservationStage::Retired);
-    assert_eq!(fixture.store.registry_project_reference(project.id).await.unwrap(), None);
+    assert_eq!(
+        fixture
+            .store
+            .registry_reservation(id)
+            .await
+            .unwrap()
+            .unwrap()
+            .stage,
+        vessel_store::ReservationStage::Retired
+    );
+    assert_eq!(
+        fixture
+            .store
+            .registry_project_reference(project.id)
+            .await
+            .unwrap(),
+        None
+    );
     workspaces.remove_project(project.id, &[]).await.unwrap();
     assert!(project.root.join("README.md").exists());
     fixture.stop.cancel();

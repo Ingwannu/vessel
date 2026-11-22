@@ -227,7 +227,9 @@ pub(crate) fn keeps_session(
     )?)
 }
 
-pub(crate) fn awaiting_archive(connection: &Connection) -> Result<Vec<ScheduleRunBinding>, StoreError> {
+pub(crate) fn awaiting_archive(
+    connection: &Connection,
+) -> Result<Vec<ScheduleRunBinding>, StoreError> {
     let mut statement = connection.prepare_cached(
         "SELECT schedule, number, workspace, session, after, stage FROM schedule_run_bindings
          WHERE stage IN ('deferred_busy','deferred_members')

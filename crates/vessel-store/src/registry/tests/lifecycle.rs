@@ -280,7 +280,10 @@ fn unresolved_run_pins_are_bounded_and_survive_history_deletion() {
     use crate::automation::{AutomationWrite, apply as write_run};
     let mut db = db();
     let id = WorkspaceId::random();
-    let first = ScheduleRunBinding { after: AfterRun::Keep, ..making(&db, id) };
+    let first = ScheduleRunBinding {
+        after: AfterRun::Keep,
+        ..making(&db, id)
+    };
     write_run(&db, &AutomationWrite::BindRun(first)).unwrap();
     for _ in 1..MAX_WORKSPACES {
         let next = making(&db, WorkspaceId::random());
@@ -297,15 +300,36 @@ fn unresolved_run_pins_are_bounded_and_survive_history_deletion() {
         Some(first)
     );
     let stage = RunBindingStage::Started;
-    write_run(&db, &AutomationWrite::AdvanceRunBinding { previous: first, stage }).unwrap();
+    write_run(
+        &db,
+        &AutomationWrite::AdvanceRunBinding {
+            previous: first,
+            stage,
+        },
+    )
+    .unwrap();
     let started = ScheduleRunBinding { stage, ..first };
     let stage = RunBindingStage::Kept;
-    write_run(&db, &AutomationWrite::AdvanceRunBinding { previous: started, stage }).unwrap();
+    write_run(
+        &db,
+        &AutomationWrite::AdvanceRunBinding {
+            previous: started,
+            stage,
+        },
+    )
+    .unwrap();
     let first = ScheduleRunBinding { stage, ..first };
-    assert!(crate::automation::binding::awaiting_archive(&db).unwrap().is_empty());
+    assert!(
+        crate::automation::binding::awaiting_archive(&db)
+            .unwrap()
+            .is_empty()
+    );
     assert!(!crate::automation::binding::request_keep_release(&db, SessionId::random()).unwrap());
     assert!(crate::automation::binding::request_keep_release(&db, first.session).unwrap());
-    assert_eq!(crate::automation::binding::awaiting_archive(&db).unwrap(), [first]);
+    assert_eq!(
+        crate::automation::binding::awaiting_archive(&db).unwrap(),
+        [first]
+    );
 
     let _reservation = publish(&mut db, record(id));
     archive(&mut db, id);

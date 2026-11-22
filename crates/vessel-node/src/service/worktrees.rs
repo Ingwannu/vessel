@@ -92,7 +92,10 @@ impl NodeService {
         request: RemoveWorktree,
     ) -> Result<RemoveWorktreeOutcome, WireError> {
         if request.end_terminals {
-            self.workspaces.check_requested_worktree_removal(request.worktree).await.map_err(|error| wire(&error))?;
+            self.workspaces
+                .check_requested_worktree_removal(request.worktree)
+                .await
+                .map_err(|error| wire(&error))?;
             let folder = self
                 .workspaces
                 .worktree(request.worktree)

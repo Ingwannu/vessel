@@ -61,17 +61,28 @@ impl NodeService {
         }
         let store = self.sessions.store();
         let keep = binding.after == AfterRun::Keep
-            && matches!(binding.stage, RunBindingStage::Started | RunBindingStage::Kept);
+            && matches!(
+                binding.stage,
+                RunBindingStage::Started | RunBindingStage::Kept
+            );
         let releasing = keep && store.schedule_keeps_session(binding.session, true).await?;
         if keep && !releasing && binding.stage == RunBindingStage::Kept {
             return Ok(());
         }
         if (!keep || releasing)
-            && store.registry_workspace(binding.workspace).await?.is_some_and(|record| {
-                !matches!(record.descriptor.lifecycle, WorkspaceLifecycle::Archived { .. })
-            })
+            && store
+                .registry_workspace(binding.workspace)
+                .await?
+                .is_some_and(|record| {
+                    !matches!(
+                        record.descriptor.lifecycle,
+                        WorkspaceLifecycle::Archived { .. }
+                    )
+                })
         {
-            self.workspaces.reconcile_workspace_starts(binding.workspace, self).await?;
+            self.workspaces
+                .reconcile_workspace_starts(binding.workspace, self)
+                .await?;
         }
         let result = if releasing {
             self.archive_isolation(binding).await?
@@ -161,10 +172,15 @@ impl NodeService {
         }
     }
 
-    async fn archive_requested_run(&self, binding: ScheduleRunBinding) -> Result<(), WorkspaceError> {
+    async fn archive_requested_run(
+        &self,
+        binding: ScheduleRunBinding,
+    ) -> Result<(), WorkspaceError> {
         let cleanup = self.archive_isolation(binding).await?;
         if let Some(disposition) = cleanup.disposition() {
-            self.schedules.record_archive(binding.schedule, binding.run, disposition).await
+            self.schedules
+                .record_archive(binding.schedule, binding.run, disposition)
+                .await
                 .map_err(|error| WorkspaceError::Conflict(error.to_string()))?;
         }
         self.settle_isolation(binding, cleanup).await
@@ -203,7 +219,12 @@ impl NodeService {
                 })
                 && handle.turn_running().await.is_ok_and(|running| !running)
         } else {
-            if self.sessions.get(session).await.is_ok_and(|info| info.marks.archived_at.is_some()) {
+            if self
+                .sessions
+                .get(session)
+                .await
+                .is_ok_and(|info| info.marks.archived_at.is_some())
+            {
                 return true;
             }
             match self.sessions.conversation(session).await {

@@ -94,7 +94,10 @@ impl NodeService {
             return Err(wire(&ServiceError::AgentMarksRead));
         }
         let marked = match mark {
-            Mark::Archive => self.mark_archived_session(connection.principal(), session).await,
+            Mark::Archive => {
+                self.mark_archived_session(connection.principal(), session)
+                    .await
+            }
             Mark::Read { .. } | Mark::Unread | Mark::Pin | Mark::Unpin | Mark::Unarchive => {
                 self.sessions.mark(session, mark).await
             }
@@ -110,7 +113,11 @@ impl NodeService {
         session: SessionId,
     ) -> Result<SessionInfo, ServiceError> {
         if principal.agent().is_none()
-            && self.sessions.store().schedule_keeps_session(session, false).await?
+            && self
+                .sessions
+                .store()
+                .schedule_keeps_session(session, false)
+                .await?
         {
             // A person's session archive requests automatic workspace cleanup.
             // Other exact members are left for the workspace's claim to observe.
