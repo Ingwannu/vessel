@@ -1,19 +1,19 @@
-//! The real node and fake ACP harness exercise the same pending/assigned wire
-//! and durable workspace paths used by the page.
+//! The real node and fake ACP harness exercise the assigned wire and durable
+//! workspace paths used by the page.
 
 use std::time::Duration;
 
 use vessel_client::NodeClient;
 use vessel_proto::automation::{
-    AfterRun, Cadence, CatchUp, RunArchive, RunOutcome, SCHEDULE_ISOLATION_PROTOCOL,
-    ScheduleDefinition, ScheduleTarget,
+    AfterRun, Cadence, CatchUp, RunArchive, RunOutcome, ScheduleDefinition, ScheduleTarget,
 };
 use vessel_proto::registry::{
     GetRegistry, RegistrySnapshot, WorkspaceBacking, WorkspaceDescriptor, WorkspaceIsolation,
     WorkspaceLifecycle, WorkspaceResource,
 };
-use vessel_proto::workspace::{AddProject, SessionPlace, SetupChoice, WorktreeBranch};
+use vessel_proto::workspace::{AddProject, ProjectInfo, SessionPlace, SetupChoice, WorktreeBranch};
 use vessel_proto::{ProjectId, ScheduleId, SessionId, WorkspaceId};
+use vessel_store::{ReservationStage, Store, StoreConfig};
 
 use crate::support::{Fixture, step, structured_spec, within};
 use crate::workspace::{lookup, repository};
@@ -93,6 +93,7 @@ async fn run(
 
 async fn release_keep(
     owner: &NodeClient,
+    schedule: ScheduleId,
     session: SessionId,
     kept_workspace: WorkspaceId,
     next_workspace: WorkspaceId,
@@ -115,10 +116,18 @@ async fn release_keep(
         async {
             loop {
                 let registry = snapshot(owner).await;
-                if registry.workspaces.iter().any(|workspace| {
+                let archived = registry.workspaces.iter().any(|workspace| {
                     workspace.id == kept_workspace
                         && matches!(workspace.lifecycle, WorkspaceLifecycle::Archived { .. })
-                }) {
+                });
+                // The run's committed disposition precedes retirement. Wait
+                // for it before stopping and inspecting the durable receipt.
+                let runs = owner.schedule_runs(schedule).await.unwrap();
+                let noted = runs.iter().any(|run| {
+                    matches!(run.outcome, RunOutcome::Finished { session: ended, .. } if ended == session)
+                        && run.archive == Some(RunArchive::Archived)
+                });
+                if archived && noted {
                     assert!(
                         registry
                             .workspaces
@@ -135,43 +144,52 @@ async fn release_keep(
     .await;
 }
 
+async fn registered_project(owner: &NodeClient) -> (tempfile::TempDir, ProjectInfo) {
+    let folder = tempfile::tempdir().unwrap();
+    repository(folder.path());
+    let project = owner
+        .call(AddProject {
+            path: folder.path().to_owned(),
+            name: None,
+        })
+        .await
+        .unwrap();
+    (folder, project)
+}
+
+async fn assert_retired(fixture: &Fixture, released: WorkspaceId, retained: WorkspaceId) {
+    let store = Store::open(&fixture.data_dir(), StoreConfig::default())
+        .await
+        .unwrap()
+        .store;
+    for (workspace, expected) in [
+        (released, ReservationStage::Retired),
+        (retained, ReservationStage::Ready),
+    ] {
+        assert_eq!(
+            store.registry_reservation(workspace).await.unwrap().unwrap().stage,
+            expected
+        );
+    }
+    store.close().await;
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn scheduled_local_members_keep_distinct_ids_and_managed_archives_remove_only_their_backing()
-{
+async fn a_person_archives_one_kept_schedule_workspace_after_node_restart() {
     within(async {
         let fixture = Fixture::new();
         let node = fixture
             .start_with(|config| config.harness_lookup = lookup(&fixture))
             .await;
         let owner = fixture.connect(&node).await;
-        let folder = tempfile::tempdir().unwrap();
-        repository(folder.path());
-        let project = owner
-            .call(AddProject {
-                path: folder.path().to_owned(),
-                name: None,
-            })
-            .await
-            .unwrap();
+        let (_folder, project) = registered_project(&owner).await;
         let definition = task(
             &fixture,
             project.id,
             WorkspaceIsolation::Local,
             AfterRun::Keep,
         );
-        let local = owner.create_schedule(definition.clone(), false).await;
-        if SCHEDULE_ISOLATION_PROTOCOL.is_none() {
-            assert!(matches!(
-                local,
-                Err(vessel_rpc::CallError::UnassignedProtocol {
-                    method: vessel_proto::Method::CreateSchedule
-                })
-            ));
-            assert!(owner.schedules().await.unwrap().is_empty());
-            assert!(snapshot(&owner).await.workspaces.is_empty());
-            return;
-        }
-        let local = local.unwrap();
+        let local = owner.create_schedule(definition.clone(), false).await.unwrap();
 
         let mut old_client = definition;
         if let ScheduleTarget::NewSession { isolation, .. } = &mut old_client.target {
@@ -201,8 +219,22 @@ async fn scheduled_local_members_keep_distinct_ids_and_managed_archives_remove_o
             .start_with(|config| config.harness_lookup = lookup(&fixture))
             .await;
         let owner = fixture.connect(&node).await;
-        release_keep(&owner, first, first_local.id, second_local.id).await;
+        release_keep(&owner, local.id, first, first_local.id, second_local.id).await;
+        node.stop().await.unwrap();
+        assert_retired(&fixture, first_local.id, second_local.id).await;
+    })
+    .await;
+}
 
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn managed_schedule_archives_remove_only_their_owned_backing() {
+    within(async {
+        let fixture = Fixture::new();
+        let node = fixture
+            .start_with(|config| config.harness_lookup = lookup(&fixture))
+            .await;
+        let owner = fixture.connect(&node).await;
+        let (_folder, project) = registered_project(&owner).await;
         let managed = owner
             .create_schedule(
                 task(
@@ -240,6 +272,7 @@ async fn scheduled_local_members_keep_distinct_ids_and_managed_archives_remove_o
             assert!(!workspace.path.exists());
         }
         assert!(project.root.join("README.md").exists());
+        node.stop().await.unwrap();
     })
     .await;
 }

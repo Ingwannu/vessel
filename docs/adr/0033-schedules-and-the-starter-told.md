@@ -361,8 +361,9 @@ A client offers the editor when the exact peer negotiates that version.
   Replies omit the field and the archive disposition for older peers. A
   revisioned edit of an isolated definition must include an explicit known
   policy, preventing an older whole-definition save from discarding it.
-  Integration assigns the pending protocol in merge order. Store schema 26
-  appends the lifecycle receipts after the startup recovery migration.
+  The activation drafts protocol 49 for the page consumer. Integration
+  assigns the number in merge order. Store schema 26 appends the lifecycle
+  receipts after the startup recovery migration.
 
 These choices keep the same authority for interactive and unattended execution.
 A shared directory cannot establish ownership of an actor, and client-created

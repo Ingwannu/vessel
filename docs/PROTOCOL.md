@@ -79,6 +79,24 @@ preserving it. `node.settings` and patch replies carry the supported
 native transport names through `append_system_prompt_transports`.
 The pending and older-peer projections hide that field.
 
+## Version 49 (2026-11-22, milestone 12): scheduled workspace isolation (TRACKER 838, ADR 0033)
+
+Drafted 49 (`SCHEDULE_ISOLATION_PROTOCOL`, `PROTOCOL_VERSION` 49). The
+integrator assigns the number at the node-line merge.
+
+`schedule.create` and `schedule.update` can carry the explicit `Local` or
+managed `Worktree` isolation policy on a new-session target. The request
+needs this protocol on each hop. Legacy records keep their original
+placement until a policy is saved. A revisioned update of an isolated
+record carries its explicit policy, so an older whole-definition editor
+cannot erase it. Run replies offer the optional workspace archive
+disposition and hide it from peers below the isolation threshold.
+
+The page shows Isolation after Mode when the route supports it. New
+definitions default to Local. Each isolated run starts with its own
+workspace and ownership receipt. A person's Archive of a kept session
+requests cleanup of that exact workspace, including after a node restart.
+
 ## Version 48 (2026-11-21, milestone 12): heartbeat cadence edits (TRACKER 839, ADR 0033)
 
 Assigned 48 (`HEARTBEAT_CADENCE_PROTOCOL`, `PROTOCOL_VERSION` 48) at its
