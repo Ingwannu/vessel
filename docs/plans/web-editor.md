@@ -48,14 +48,16 @@ listed in About, and recorded with integrity in `web/package-lock.json`.
 | `@replit/codemirror-vim` | 6.3.0 |
 
 The production build measured these assets in kB, minified and gzipped.
-The baseline is node `d107c7553`. The editor chunk loads on Edit.
+The baseline is node `d107c7553`. The editor column includes the K2 settings
+icons from node `e0ff69e1b` and the E1–E3 corrections measured on `9866e80bc`.
+The editor chunk loads on Edit.
 
 | Asset | Baseline minified / gzip | With the editor minified / gzip |
 | --- | ---: | ---: |
 | Entry JS | 456.95 / 144.65 | 457.05 / 144.76 |
-| Workspace panel JS | 178.79 / 56.59 | 178.78 / 56.57 |
-| Lazy editor JS | — | 429.65 / 137.87 |
-| Shared CSS | 234.47 / 49.21 | 235.87 / 49.48 |
+| Workspace panel JS | 178.79 / 56.59 | 179.25 / 56.78 |
+| Lazy editor JS | — | 438.17 / 140.63 |
+| Shared CSS | 234.47 / 49.21 | 237.37 / 49.82 |
 
 The browser test drives the saved setting, verifies lazy loading, highlights
 code and a block comment across lines, follows the toolbar's caret, edits in
