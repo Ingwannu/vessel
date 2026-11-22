@@ -50,10 +50,7 @@ pub(super) fn apply(
             session,
             records,
             done,
-        } => {
-            let applied = append(transaction, session, &records, effects, indexer);
-            Answer::Session(done, applied)
-        }
+        } => Answer::Session(done, append(transaction, session, &records, effects, indexer)),
         Write::AddDevice {
             device,
             credential,
@@ -114,17 +111,7 @@ pub(super) fn apply(
             mark,
             residence,
             done,
-        } => {
-            // ADR 0089: an inbox change wakes the attention observers once the
-            // batch commits, on top of the session's mutation clock.
-            let applied = isolated(transaction, |connection| {
-                with_clock(connection, mark.key.session, |connection| {
-                    crate::inbox::mark(connection, &mark, residence)
-                })
-            });
-            effects.attention |= applied.is_ok();
-            Answer::Session(done, applied)
-        }
+        } => mark_inbox(transaction, &mark, residence, done, effects),
         Write::Push { write, done } => write_answer(transaction, done, |connection| {
             crate::push::apply(connection, &write)
         }),
@@ -140,6 +127,23 @@ pub(super) fn apply(
                 .try_for_each(|write| crate::automation::apply(connection, write))
         }),
     }
+}
+
+/// An inbox change acknowledges its clock and wakes attention after commit (ADR 0089).
+fn mark_inbox(
+    transaction: &mut Transaction<'_>,
+    mark: &vessel_proto::inbox::MarkInbox,
+    residence: crate::Residence,
+    done: Done<SessionCommit<()>>,
+    effects: &mut Effects,
+) -> Answer {
+    let applied = isolated(transaction, |connection| {
+        with_clock(connection, mark.key.session, |connection| {
+            crate::inbox::mark(connection, mark, residence)
+        })
+    });
+    effects.attention |= applied.is_ok();
+    Answer::Session(done, applied)
 }
 
 /// Projects and worktrees; legacy project removal archives the project's
