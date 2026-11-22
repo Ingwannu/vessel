@@ -18,6 +18,10 @@ use vessel_store::{DataDir, Retention, Store, StoreConfig, StoreError};
 )]
 mod fixtures;
 
+#[cfg(test)]
+#[path = "support/registry_rollback.rs"]
+mod registry_rollback;
+
 /// Builders for this file. A `cfg(test)` module so the lints' test
 /// allowances apply.
 #[cfg(test)]
@@ -305,7 +309,7 @@ async fn sessions_that_ended_before_schema_7_are_archived() {
     store.close().await;
     drop(store);
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
-    fixtures::undo_registry_schema(&connection);
+    registry_rollback::undo_registry_schema(&connection);
     connection
         .execute_batch("ALTER TABLE sessions DROP COLUMN updated_at;")
         .unwrap();
