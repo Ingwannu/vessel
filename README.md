@@ -1270,6 +1270,9 @@ vessel ui --no-open  # prints the address instead
 - **Vessel tools** in a supported machine's Agents settings choose
   whether future agent launches receive the built-in tools. Fleet MCP
   servers use that machine's fleet configuration.
+- **System prompt** in a supported machine's Agents settings appends
+  instructions to future Codex app-server launches. The machine's owner
+  or Admin device can read and edit the saved text.
 - **Adding a machine** (the "+" by Machines in the sidebar, Settings ›
   Machines › Add machine, the welcome, or the command palette): run `vessel node pair` on that machine and paste
   the link it prints. The page reads the link without sending anything and

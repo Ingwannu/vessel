@@ -80,6 +80,7 @@ impl Settings {
         let in_force = self.in_force(&saved);
         self.runtime.set_park_after(in_force.park_after.duration());
         self.runtime.set_drivers(in_force.drivers);
+        self.apply_append_system_prompt(&saved);
         Ok(in_force)
     }
 

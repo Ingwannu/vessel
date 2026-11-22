@@ -57,6 +57,7 @@ fn every_method_declares_authority_and_admin_is_rare() {
             "agent.install_output",
             "usage.lookup",
             "node.set_settings",
+            "node.append_system_prompt",
             "skills.status",
             "skills.reconcile",
             "skills.uninstall",

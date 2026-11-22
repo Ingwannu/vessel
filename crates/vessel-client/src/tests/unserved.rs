@@ -189,6 +189,7 @@ macro_rules! methods {
             write_plugin_settings: vessel_proto::plugins::WritePluginSettings => vessel_proto::plugins::PluginSettingsWrite;
             reset_plugin_settings: vessel_proto::plugins::ResetPluginSettings => vessel_proto::plugins::PluginSettingsWrite;
             node_settings: vessel_proto::settings::GetNodeSettings => vessel_proto::settings::NodeSettings;
+            get_append_system_prompt: vessel_proto::settings::GetAppendSystemPrompt => vessel_proto::settings::AppendSystemPrompt;
             set_node_settings: vessel_proto::settings::SetNodeSettings => vessel_proto::settings::NodeSettings;
             fork_session: vessel_proto::forking::ForkSession => SessionInfo;
             rewind_session: vessel_proto::forking::RewindSession => SessionInfo;

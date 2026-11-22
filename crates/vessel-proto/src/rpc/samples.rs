@@ -96,6 +96,7 @@ pub(crate) fn call(method: Method) -> Result<Call, serde_json::Error> {
         | Method::UninstallSkills
         | Method::GetNodeSettings
         | Method::SetNodeSettings
+        | Method::GetAppendSystemPrompt
         | Method::ListInbox
         | Method::Diagnostics
         | Method::ReadNodeLog

@@ -100,25 +100,29 @@ pub(super) enum SandboxPolicy {
 }
 
 /// `ThreadStartParams`.
-#[derive(Debug, Serialize)]
+#[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub(super) struct ThreadStartParams {
+pub(super) struct ThreadStartParams<'a> {
     pub(super) cwd: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) model: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) developer_instructions: Option<&'a str>,
     pub(super) approval_policy: AskForApproval,
     pub(super) approvals_reviewer: ApprovalsReviewer,
     pub(super) sandbox: SandboxMode,
 }
 
 /// `ThreadResumeParams`.
-#[derive(Debug, Serialize)]
+#[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub(super) struct ThreadResumeParams {
+pub(super) struct ThreadResumeParams<'a> {
     pub(super) thread_id: String,
     pub(super) cwd: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) model: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) developer_instructions: Option<&'a str>,
     pub(super) approval_policy: AskForApproval,
     pub(super) approvals_reviewer: ApprovalsReviewer,
     pub(super) sandbox: SandboxMode,
