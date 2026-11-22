@@ -31,12 +31,17 @@ pub(super) fn since(request: &SetNodeSettings, method: ProtocolVersion) -> Optio
         Some(_) => Some(crate::restart::RESTART_RECOVERY_PROTOCOL?.get()),
         None => None,
     };
+    let prompt = if request.append_system_prompt.is_some() {
+        Some(crate::settings::APPEND_SYSTEM_PROMPT_PROTOCOL?.get())
+    } else {
+        None
+    };
     let metadata = if request.metadata.is_some() {
         Some(crate::GENERATED_NAMES?.get())
     } else {
         None
     };
-    let fields = [drivers, plugins, hooks, profiles, tools, recovery, metadata]
+    let fields = [drivers, plugins, hooks, profiles, tools, recovery, prompt, metadata]
         .into_iter()
         .flatten()
         .max()

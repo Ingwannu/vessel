@@ -32,10 +32,14 @@
 use std::path::PathBuf;
 use std::time::Duration;
 
-use tokio::sync::oneshot;
+use tokio::sync::{oneshot, watch};
 use tokio::time::Instant;
-use vessel_agent::{AgentError, AgentProcess, AgentSetup, CommandSpec, Disconnect, Driver, Signal};
+use vessel_agent::{
+    AgentError, AgentInput, AgentOutputs, AgentProcess, AgentSetup, CommandSpec, Disconnect,
+    Driver, Signal,
+};
 use vessel_harness::{LinkError, ModelProxy, Profile, SessionFiles, SessionFilesError};
+use vessel_proto::settings::AppendSystemPrompt;
 use vessel_proto::{ProfileName, ResolvedMcpServers, SessionEvent};
 
 use crate::delivery::{Cancel, Change, Deliver};
@@ -194,6 +198,21 @@ pub(crate) struct Launch {
     /// The protocol it speaks, chosen at the session's first launch and
     /// kept for its life (`runtime::drivers`); `command` is for it.
     pub(crate) driver: Driver,
+    pub(crate) append_system_prompt: watch::Receiver<Option<AppendSystemPrompt>>,
+}
+
+impl Launch {
+    pub(crate) fn spawn(&self) -> Result<(AgentProcess, AgentInput, AgentOutputs), AgentError> {
+        // The same launch can be used again after parking or a profile move.
+        // Only the newly spawned process sees a newly committed setting.
+        let prompt = self.append_system_prompt.borrow().clone();
+        AgentProcess::spawn_with_append_prompt(
+            self.driver,
+            &self.command,
+            self.setup.clone(),
+            prompt,
+        )
+    }
 }
 
 impl StructuredActor {
@@ -234,6 +253,7 @@ impl StructuredActor {
                     // The runtime built `command` for the session's own
                     // driver (`SessionHandle::driver`).
                     driver: self.launch.driver,
+                    append_system_prompt: self.launch.append_system_prompt.clone(),
                 },
                 to,
                 (files, from_home, to_home),
@@ -413,11 +433,10 @@ impl StructuredActor {
         &mut self,
         launch: &Launch,
     ) -> Result<Result<(), Restart>, MoveError> {
-        let (agent, input, outputs) =
-            match AgentProcess::spawn_with(launch.driver, &launch.command, launch.setup.clone()) {
-                Ok(started) => started,
-                Err(error) => return Ok(Err(Restart::Spawn(error))),
-            };
+        let (agent, input, outputs) = match launch.spawn() {
+            Ok(started) => started,
+            Err(error) => return Ok(Err(Restart::Spawn(error))),
+        };
         self.life.out.running(Some(agent.lifetime()));
         self.agent = agent;
         self.input = input;

@@ -51,6 +51,7 @@ const FIELDS: &[(&str, &[&str])] = &[
         &[
             "cwd",
             "model",
+            "developerInstructions",
             "approvalPolicy",
             "approvalsReviewer",
             "sandbox",
@@ -62,6 +63,7 @@ const FIELDS: &[(&str, &[&str])] = &[
             "threadId",
             "cwd",
             "model",
+            "developerInstructions",
             "approvalPolicy",
             "approvalsReviewer",
             "sandbox",

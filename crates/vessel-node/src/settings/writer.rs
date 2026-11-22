@@ -103,7 +103,7 @@ impl State {
         }
         *saved = next;
         let in_force = self.in_force(&saved);
-        self.publish(&in_force);
+        self.publish(&in_force, &saved);
         if policy_changed {
             self.recovery.saved(next_policy);
         }

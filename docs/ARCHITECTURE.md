@@ -1917,6 +1917,12 @@ Store. An admitted prompt keeps its own outcome. See
 port decisions and [`ADR 0059`](adr/0059-resume-interrupted-turns-at-node-start.md)
 for the full contract.
 
+The host system prompt uses that writer to publish a committed supplement
+to the session runtime. The physical launch takes its own snapshot and gives
+it only to a proved native transport. Ordinary settings projections carry
+transport support, while the Admin endpoint retrieves the saved text.
+See the [host prompt plan](plans/host-append-system-prompt.md).
+
 ## Bounded node diagnostics (ADR 0074)
 
 `vessel-proto::diagnostics` owns the validated report, closed section states,

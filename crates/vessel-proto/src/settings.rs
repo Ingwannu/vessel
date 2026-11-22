@@ -15,7 +15,11 @@
 //!   agent that has one of its own. A node of 17 answers without it, which
 //!   reads as ACP for every agent, what it runs.
 
+mod append_prompt;
 mod metadata;
+pub use append_prompt::{
+    APPEND_SYSTEM_PROMPT_PROTOCOL, AppendPromptTransport, AppendSystemPrompt, GetAppendSystemPrompt,
+};
 pub use metadata::{
     InvalidMetadata, MAX_METADATA_PROVIDERS, MetadataEffort, MetadataProvider, MetadataSettings,
 };
@@ -73,6 +77,10 @@ pub struct NodeSettings {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "ts", ts(optional))]
     pub vessel_tools: Option<Injection>,
+    /// Usable native transports. Ordinary settings replies carry only this
+    /// capability, so a Read device cannot retrieve the saved supplement.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub append_system_prompt_transports: Option<Vec<AppendPromptTransport>>,
 }
 
 impl NodeSettings {
@@ -106,8 +114,12 @@ impl NodeSettings {
             )
             .or(hooks);
         let base = profiles.as_ref().unwrap_or(self);
-        base.for_vessel_tools_protocol(protocol, VESSEL_TOOLS_PROTOCOL)
-            .or(profiles)
+        let tools = base
+            .for_vessel_tools_protocol(protocol, VESSEL_TOOLS_PROTOCOL)
+            .or(profiles);
+        let base = tools.as_ref().unwrap_or(self);
+        base.for_append_system_prompt_protocol(protocol, APPEND_SYSTEM_PROMPT_PROTOCOL)
+            .or(tools)
     }
 
     fn for_vessel_tools_protocol(
@@ -119,6 +131,19 @@ impl NodeSettings {
         (!supported && self.vessel_tools.is_some()).then(|| {
             let mut older = self.clone();
             older.vessel_tools = None;
+            older
+        })
+    }
+
+    fn for_append_system_prompt_protocol(
+        &self,
+        protocol: crate::ProtocolVersion,
+        assigned: Option<crate::ProtocolVersion>,
+    ) -> Option<Self> {
+        let readable = assigned.is_some_and(|version| protocol >= version);
+        (!readable && self.append_system_prompt_transports.is_some()).then(|| {
+            let mut older = self.clone();
+            older.append_system_prompt_transports = None;
             older
         })
     }
@@ -294,7 +319,7 @@ impl SetAgentDrivers {
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 pub struct GetNodeSettings {
     /// Require the startup recovery protocol when reading the policy.
-    #[serde(default, skip_serializing_if = "core::ops::Not::not")]
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub include_restart_recovery: bool,
 }
 
@@ -342,11 +367,55 @@ pub struct SetNodeSettings {
     /// Change either saved recovery choice independently (ADR 0059).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub restart_recovery: Option<crate::restart::SetRestartRecovery>,
+    /// Saved supplemental instructions for future launches. An empty value
+    /// clears them, and omission preserves the prior setting.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub append_system_prompt: Option<AppendSystemPrompt>,
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_append_prompt_uses_one_private_protocol_boundary() {
+        let method = crate::Method::GetAppendSystemPrompt;
+        assert_eq!(method.scope(), Some(crate::Scope::Admin));
+        assert!(!method.forwardable());
+        assert_eq!(method.since(), APPEND_SYSTEM_PROMPT_PROTOCOL);
+
+        let patch = crate::Call::SetNodeSettings(SetNodeSettings {
+            append_system_prompt: Some(AppendSystemPrompt::default()),
+            ..SetNodeSettings::default()
+        });
+        assert_eq!(patch.since(), APPEND_SYSTEM_PROMPT_PROTOCOL);
+
+        let current = crate::PROTOCOL_VERSION;
+        let older = crate::ProtocolVersion::new(current.get() - 1);
+        let mut settings: NodeSettings =
+            serde_json::from_str(r#"{"park_after":{"kind":"never"}}"#).unwrap();
+        settings.append_system_prompt_transports =
+            Some(vec![AppendPromptTransport::CodexAppServer]);
+        assert!(
+            settings
+                .for_append_system_prompt_protocol(current, Some(current))
+                .is_none()
+        );
+        assert!(
+            settings
+                .for_append_system_prompt_protocol(older, Some(current))
+                .unwrap()
+                .append_system_prompt_transports
+                .is_none()
+        );
+        assert!(
+            settings
+                .for_append_system_prompt_protocol(current, None)
+                .unwrap()
+                .append_system_prompt_transports
+                .is_none()
+        );
+    }
 
     #[test]
     fn an_explicit_tools_off_is_visible_only_to_supported_peers() {
@@ -390,6 +459,7 @@ mod tests {
             terminal_agent_hooks: false,
             terminal_profiles: None,
             vessel_tools: None,
+            append_system_prompt_transports: None,
         };
         let required = crate::PROTOCOL_VERSION;
         let older = crate::ProtocolVersion::new(required.get().checked_sub(1).unwrap());

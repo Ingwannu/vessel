@@ -38,6 +38,7 @@ use std::time::Duration;
 use tokio::sync::{mpsc, watch};
 use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
+use vessel_proto::settings::AppendSystemPrompt;
 use vessel_proto::{SessionId, SessionInfo};
 
 pub(crate) use agent::AgentCommand;
@@ -96,6 +97,8 @@ pub struct SessionRuntime {
     /// `drivers`).
     drivers: drivers::Drivers,
     restart_journal: bool,
+    /// The host policy read at each physical spawn, including a parked wake.
+    append_system_prompt: watch::Sender<Option<AppendSystemPrompt>>,
     #[cfg(test)]
     before_registration: registration::RegistrationGate,
     #[cfg(test)]
@@ -141,6 +144,7 @@ impl SessionRuntime {
     #[must_use]
     pub fn new(config: RuntimeConfig, shutdown: CancellationToken) -> Self {
         let (park_after, _) = watch::channel(config.park_after);
+        let (append_system_prompt, _) = watch::channel(None);
         Self {
             config,
             shutdown,
@@ -155,11 +159,21 @@ impl SessionRuntime {
             claims: Arc::new(claims::Claims::default()),
             drivers: drivers::Drivers::default(),
             restart_journal: false,
+            append_system_prompt,
             #[cfg(test)]
             before_registration: registration::RegistrationGate::default(),
             #[cfg(test)]
             version_control: Arc::new(drivers::version::VersionControl::default()),
         }
+    }
+
+    /// Publish the host's kept supplement for future physical launches.
+    pub fn set_append_system_prompt(&self, prompt: Option<AppendSystemPrompt>) {
+        let _previous = self.append_system_prompt.send_replace(prompt);
+    }
+
+    pub(crate) fn append_prompt_setting(&self) -> watch::Receiver<Option<AppendSystemPrompt>> {
+        self.append_system_prompt.subscribe()
     }
 
     /// Freeze new launches at node stop while actors stay alive for settings

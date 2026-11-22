@@ -1,13 +1,24 @@
 //! Protocol 12's `node.settings` and `node.set_settings` (ADR 0038): the
 //! node's settings, kept and applied by `crate::settings`.
 
-use vessel_proto::settings::{GetNodeSettings, NodeSettings, SetNodeSettings};
+use vessel_proto::settings::{
+    AppendSystemPrompt, GetAppendSystemPrompt, GetNodeSettings, NodeSettings, SetNodeSettings,
+};
 use vessel_proto::{ErrorCode, WireError};
 
 use super::{Connection, NodeService};
 use crate::settings::SettingsError;
 
 impl NodeService {
+    /// The method table restricts exact saved text to Admin callers.
+    pub(crate) async fn get_append_system_prompt(
+        &self,
+        _: &Connection,
+        _: GetAppendSystemPrompt,
+    ) -> Result<AppendSystemPrompt, WireError> {
+        Ok(self.settings.append_system_prompt().await)
+    }
+
     /// `node.settings`: the settings in force.
     pub(crate) async fn node_settings(
         &self,

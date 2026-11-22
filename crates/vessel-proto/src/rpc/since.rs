@@ -416,6 +416,7 @@ impl Call {
             | Self::UninstallSkills(_)
             | Self::SaveSkillsSelection(_)
             | Self::ImportSkillsSelection(_)
+            | Self::GetAppendSystemPrompt(_)
             | Self::ForkSession(_)
             | Self::RewindSession(_)
             | Self::DetachSession(_) => None,

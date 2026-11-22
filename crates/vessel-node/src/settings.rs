@@ -70,7 +70,8 @@ use vessel_proto::HarnessKind;
 use vessel_proto::parking::ParkAfter;
 use vessel_proto::restart::SetRestartRecovery;
 use vessel_proto::settings::{
-    AgentDriver, AgentDrivers, MetadataSettings, NodeSettings, SetAgentDrivers, SetNodeSettings,
+    APPEND_SYSTEM_PROMPT_PROTOCOL, AgentDriver, AgentDrivers, AppendPromptTransport,
+    AppendSystemPrompt, MetadataSettings, NodeSettings, SetAgentDrivers, SetNodeSettings,
 };
 use vessel_proto::terminal_profiles::Profiles;
 use vessel_session::SessionRuntime;
@@ -224,7 +225,7 @@ impl Settings {
                 "--park-after is overridden by the value saved with node.set_settings"
             );
         }
-        state.publish(&in_force);
+        state.publish(&in_force, &saved);
         let state = Arc::new(state);
         Self {
             admission: admission::SettingsAdmission::start(Arc::clone(&state)),
@@ -264,6 +265,12 @@ impl Settings {
     pub(crate) async fn current(&self) -> NodeSettings {
         let saved = self.state.saved.lock().await;
         self.state.in_force(&saved)
+    }
+
+    /// Read only through the Admin prompt method.
+    pub(crate) async fn append_system_prompt(&self) -> AppendSystemPrompt {
+        let saved = self.state.saved.lock().await;
+        saved.append_system_prompt.clone().unwrap_or_default()
     }
 
     /// Background generation reads policy itself, before any per-peer reply projection.
@@ -365,6 +372,12 @@ impl State {
             terminal_agent_hooks,
             terminal_profiles,
             vessel_tools: Some(saved_tools),
+            append_system_prompt_transports: APPEND_SYSTEM_PROMPT_PROTOCOL.map(|_| {
+                (offered(HarnessKind::Codex) && vessel_agent::Driver::CodexAppServer.built())
+                    .then_some(AppendPromptTransport::CodexAppServer)
+                    .into_iter()
+                    .collect()
+            }),
         }
     }
 
@@ -374,9 +387,15 @@ impl State {
             .unwrap_or(vessel_proto::mcp::Injection::On)
     }
 
-    fn publish(&self, in_force: &NodeSettings) {
+    fn publish(&self, in_force: &NodeSettings, saved: &SetNodeSettings) {
         self.runtime.set_park_after(in_force.park_after.duration());
         self.runtime.set_drivers(in_force.drivers);
+        let prompt = if APPEND_SYSTEM_PROMPT_PROTOCOL.is_some() {
+            saved.append_system_prompt.clone()
+        } else {
+            None
+        };
+        self.runtime.set_append_system_prompt(prompt);
     }
 
     /// Only the admitted consumer prepares and persists candidates, in FIFO order.
@@ -414,6 +433,9 @@ impl State {
                         .unwrap_or(&SetRestartRecovery::default()),
                 ),
             );
+        }
+        if let Some(prompt) = change.append_system_prompt {
+            next.append_system_prompt = Some(prompt);
         }
         self.persist(saved, next).await
     }
