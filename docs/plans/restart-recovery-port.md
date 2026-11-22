@@ -22,8 +22,8 @@ The port starts from `1829d53dc` at protocol 48. The coordinator selected
   settlement and pin a person's Kill to the exact admitted run.
 - Effect. A saved Off consumes pending intent before a later On can
   proceed. A failed Off write restores the original admission. Recovery
-  metadata adds one schema migration. The named protocol remains
-  pending until integration binds its client surfaces.
+  metadata adds one schema migration. The combined Agents activation
+  binds the named protocol for the CLI and page.
 - Store. The recovery projection shares the existing writer savepoint
   with create, reopen and ordered checkpoint writes. The caller receives
   the same committed mutation clock as on an ordinary write. This keeps

@@ -6,6 +6,8 @@
 //! after which the store serves them.
 
 use vessel_harness::Lookup;
+use vessel_proto::mcp::Injection;
+use vessel_proto::settings::SetNodeSettings;
 use vessel_proto::{
     AgentEvent, ContentBlock, Delivered, Delivery, ErrorCode, EventRecord, EventSeq, HarnessKind,
     KanbanColumn, Mark, QueueChange, QueueHold, SessionId, SessionInfo, SessionMode, SessionSpec,
@@ -322,6 +324,14 @@ async fn refusals_leave_the_session_as_it_was() {
         refused(exits, ErrorCode::Unsupported).await;
         refused(gone, ErrorCode::InvalidRequest).await;
 
+        // This ownership case needs the newly started parent's credentials.
+        let _settings = client
+            .call(SetNodeSettings {
+                vessel_tools: Some(Injection::On),
+                ..SetNodeSettings::default()
+            })
+            .await
+            .unwrap();
         let mut parent = structured(&client, &fixture).await;
         assert_eq!(
             code(client.resume_session(parent.id).await),
