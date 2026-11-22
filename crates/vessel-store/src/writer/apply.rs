@@ -91,13 +91,7 @@ pub(super) fn apply(
             });
             Answer::Detached(done, applied)
         }
-        Write::Delete { session, done } => {
-            let applied = isolated(transaction, |connection| marks::delete(connection, session));
-            if applied.is_ok() {
-                effects.removed.push(session);
-            }
-            Answer::Done(done, applied)
-        }
+        Write::Delete { session, done } => delete_session(transaction, session, done, effects),
         Write::Reopen {
             session,
             next,
@@ -130,6 +124,19 @@ pub(super) fn apply(
                 .try_for_each(|write| crate::automation::apply(connection, write))
         }),
     }
+}
+
+fn delete_session(
+    transaction: &mut Transaction<'_>,
+    session: SessionId,
+    done: Done,
+    effects: &mut Effects,
+) -> Answer {
+    let applied = isolated(transaction, |connection| marks::delete(connection, session));
+    if applied.is_ok() {
+        effects.removed.push(session);
+    }
+    Answer::Done(done, applied)
 }
 
 /// An inbox change acknowledges its clock and wakes attention after commit (ADR 0089).
