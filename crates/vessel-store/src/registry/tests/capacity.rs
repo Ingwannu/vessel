@@ -79,7 +79,7 @@ fn resource_capacity_never_evicts_ended_owners_and_existing_lease_still_settles(
     apply(
         &mut db,
         &RegistryWrite::Settle {
-            lease,
+            lease: lease.clone(),
             settled: RegistryStartSettlement::Ready,
         },
     )
