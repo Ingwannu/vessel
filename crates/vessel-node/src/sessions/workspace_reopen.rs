@@ -21,7 +21,7 @@ impl Sessions {
         }
     }
 
-    pub(super) async fn admit_workspace_reopen(
+    pub(crate) async fn admit_workspace_reopen(
         &self,
         resource: WorkspaceResource,
     ) -> Result<Option<WorkspaceStartLease>, ServiceError> {

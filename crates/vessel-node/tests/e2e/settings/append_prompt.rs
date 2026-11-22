@@ -27,7 +27,7 @@ async fn the_private_prompt_is_kept_by_admin_and_legacy_settings_stay_public() {
         };
 
         if APPEND_SYSTEM_PROMPT_PROTOCOL.is_none() {
-            let original = owner.call(GetNodeSettings {}).await.unwrap();
+            let original = owner.call(GetNodeSettings::default()).await.unwrap();
             assert!(original.append_system_prompt_transports.is_none());
             assert!(matches!(
                 owner.call(patch).await,
@@ -37,7 +37,10 @@ async fn the_private_prompt_is_kept_by_admin_and_legacy_settings_stay_public() {
                 owner.call(GetAppendSystemPrompt {}).await,
                 Err(CallError::UnassignedProtocol { .. })
             ));
-            assert_eq!(owner.call(GetNodeSettings {}).await.unwrap(), original);
+            assert_eq!(
+                owner.call(GetNodeSettings::default()).await.unwrap(),
+                original
+            );
             node.stop().await.unwrap();
             return;
         }
@@ -53,7 +56,7 @@ async fn the_private_prompt_is_kept_by_admin_and_legacy_settings_stay_public() {
                 .contains("Synthetic host instruction")
         );
         let reader = crate::side_questions::access::device(&owner, &node, vec![Scope::Read]).await;
-        let public = reader.call(GetNodeSettings {}).await.unwrap();
+        let public = reader.call(GetNodeSettings::default()).await.unwrap();
         assert_eq!(public, result);
         assert_eq!(
             code(reader.call(GetAppendSystemPrompt {}).await),
@@ -90,7 +93,11 @@ async fn the_private_prompt_is_kept_by_admin_and_legacy_settings_stay_public() {
             ""
         );
         assert_eq!(
-            owner.call(GetNodeSettings {}).await.unwrap().park_after,
+            owner
+                .call(GetNodeSettings::default())
+                .await
+                .unwrap()
+                .park_after,
             ParkAfter::Never
         );
         node.stop().await.unwrap();

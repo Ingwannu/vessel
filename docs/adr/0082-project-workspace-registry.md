@@ -284,8 +284,14 @@ Cleanup reuses exact ownership, Git and occupancy checks. Dirty or occupied
 backing remains charged until proven removed. For exclusive, settled backing
 of an Archived workspace, a person's ordinary worktree removal uses their
 IfLost choice. The Store deletes the backing record and retires its reservation
-in one savepoint after confirmed removal. Session tidying still fences it. The shared Store migration
-rebuilds the reservation table to add Retired and adds internal archive and
-run-binding receipts. The unresolved binding count is bounded by
-`MAX_WORKSPACES`; pruning respects those pins. No new workspace RPC is needed
-for this first caller. Integration assigns the appended schema number.
+in one savepoint after confirmed removal. Session tidying still fences it.
+Store schema 26 follows the startup recovery append. It rebuilds the
+reservation table to add Retired and adds internal archive and run-binding
+receipts. The unresolved binding count is bounded by `MAX_WORKSPACES` and
+pruning respects those pins. No new workspace RPC is needed for this caller.
+
+Startup recovery (ADR 0059) excludes sessions with non-Active explicit
+workspace ownership. For Active workspaces it claims the same exact start
+lease as manual reopen before launch, then settles the lease after actor
+registration or confirmed failure. This lets an archive fence the next
+launch, and a new boot cannot replace an actor with an unconfirmed join.

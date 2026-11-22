@@ -127,6 +127,7 @@ fn foreign_owner_and_archiving_refuse_a_stable_terminal_restart_without_mutation
     put(&mut db, first, None).unwrap();
     put(&mut db, other.clone(), None).unwrap();
     let lease = registered(&mut db, id, resource);
+    apply(&mut db, &RegistryWrite::MemberJoined(lease.clone())).unwrap();
     let forged = WorkspaceStartLease::new(other.descriptor.id, resource, lease.revision());
     let before = load(&db).unwrap();
     assert!(matches!(

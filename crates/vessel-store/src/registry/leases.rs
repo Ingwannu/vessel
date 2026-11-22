@@ -54,7 +54,7 @@ pub(super) fn settle(
     write::put(connection, &record, Some(expected))
 }
 
-/// A stable terminal may admit its next run only from its exact settled predecessor.
+/// A stable resource admits its next run once its exact predecessor has joined.
 pub(super) fn restart(
     connection: &Connection,
     previous: &WorkspaceStartLease,
@@ -70,7 +70,7 @@ pub(super) fn restart(
         .next()
         .ok_or(StoreError::RegistryRevisionExhausted)?;
     let (kind, id) = resource_key(previous.resource);
-    let changed=connection.execute("UPDATE workspace_registry_resources SET stage='pending',lease_revision=?4,joined=0 WHERE kind=?1 AND resource=?2 AND workspace=?3 AND stage='ready' AND lease_revision=?5",params![kind,id,previous.workspace.to_string(),write::revision(next)?,write::revision(previous.revision)?])?;
+    let changed=connection.execute("UPDATE workspace_registry_resources SET stage='pending',lease_revision=?4,joined=0 WHERE kind=?1 AND resource=?2 AND workspace=?3 AND stage='ready' AND lease_revision=?5 AND joined=1",params![kind,id,previous.workspace.to_string(),write::revision(next)?,write::revision(previous.revision)?])?;
     if changed == 0 {
         return Err(StoreError::RegistryConflict);
     }

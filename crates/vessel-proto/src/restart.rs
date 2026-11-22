@@ -3,6 +3,12 @@ use crate::automation::PromptText;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
+mod checkpoint;
+pub use checkpoint::{InvalidRestartGeneration, RestartCheckpoint, RestartGeneration};
+
+#[cfg(test)]
+mod admission_tests;
+
 /// Unassigned until the CLI and native/web host-settings surfaces can show,
 /// change and acknowledge the startup policy, and every client/dispatch hop
 /// uses the shared `required_protocol` admission boundary (ADR 0059).

@@ -18,7 +18,7 @@ use vessel_relay::address::ClientAddress;
 use vessel_relay::{LinkState, TlsConfig};
 use vessel_secure::NodeKeypair;
 use vessel_session::{AttachmentLoader, SessionRuntime};
-use vessel_store::{DataDir, NodeLock, NodeToken, Opened, Store};
+use vessel_store::{DataDir, NodeLock, NodeToken, Store};
 
 use crate::agents::Agents;
 use crate::attachments::staging;
@@ -155,7 +155,7 @@ impl Node {
             workspace_labels: secure.service.0.workspace_labels.clone(),
             runtime,
             settings,
-            tasks,
+            tasks: tasks.clone(),
             forwarders,
             closing,
             connections: connections.clone(),
@@ -179,6 +179,8 @@ impl Node {
         relays.serve(secure.clone(), connections.clone());
         let gateway =
             LocalGateway::new(rpc, token, connections, agents, &secure, config.rpc.clone());
+        // Register before serving can start teardown. The listeners are already bound.
+        crate::service::recovery::start(&secure.service, &tasks, stop.clone());
         let task = tokio::spawn(serve(
             router,
             (local, gateway),
@@ -241,23 +243,9 @@ impl Node {
     /// # Errors
     /// The HTTP server had failed.
     pub async fn stop(self) -> Result<(), NodeError> {
-        self.stop.cancel();
+        self.lifecycle.stop(vessel_proto::StopWhen::Now);
         self.task.await.map_err(NodeError::Task)?
     }
-}
-
-/// Open the event log, closing sessions a previous run left live.
-async fn open_store(config: &Config) -> Result<Store, NodeError> {
-    let Opened { store, interrupted } = Store::open(&config.data_dir, config.store)
-        .await
-        .map_err(NodeError::Store)?;
-    if !interrupted.is_empty() {
-        tracing::info!(
-            sessions = interrupted.len(),
-            "sessions from the previous run are now interrupted"
-        );
-    }
-    Ok(store)
 }
 
 /// The node's parts below its transports.
@@ -301,7 +289,11 @@ async fn core(
     let runtime = setup::runtime(config, loader, setup.private_dir.clone(), stop.clone());
     // A value saved with `node.set_settings` wins over `--park-after`
     // (protocol 12, `settings`).
-    let settings = Arc::new(Settings::for_config(config, Arc::clone(&runtime)));
+    let settings = Arc::new(Settings::from_opening(
+        setup.settings,
+        Arc::clone(&runtime),
+        store.clone(),
+    ));
     // System zone detection may read OS configuration; keep startup I/O
     // off the async workers just as data-directory preparation is.
     let name = config.name.clone();
@@ -309,7 +301,8 @@ async fn core(
     let info = tokio::task::spawn_blocking(move || identity::node_info(id, name, public_key))
         .await
         .map_err(NodeError::Task)?;
-    let lifecycle = Lifecycle::new(info, stop.clone(), Arc::clone(&runtime));
+    let lifecycle =
+        Lifecycle::new(info, stop.clone(), Arc::clone(&runtime)).with_settings(&settings);
     let tasks = TaskTracker::new();
     let agents = Arc::new(Agents::new(id));
     let sessions = Arc::new(Sessions::new(

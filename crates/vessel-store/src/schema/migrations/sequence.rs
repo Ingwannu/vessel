@@ -36,5 +36,6 @@ pub(in crate::schema) const MIGRATIONS: &[&str; super::super::WORKSPACE_LIFECYCL
     super::super::mutation_time::SQL,
     crate::workspace_labels::MIGRATION,
     crate::notification_claims::SCHEMA,
+    super::super::restart_migration::RESTART,
     super::super::workspace_lifecycle::SQL,
 ];

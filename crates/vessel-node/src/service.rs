@@ -8,23 +8,20 @@ use tokio_util::task::TaskTracker;
 use vessel_harness::Lookup;
 use vessel_proto::{
     Ack, DeviceInfo, GetNode, Harness, Invitation, InviteDevice, ListDevices, ListHarnesses,
-    NodeInfo, ProtocolVersion, RevokeDevice, StopNode, WireError,
+    NodeInfo, RevokeDevice, StopNode, WireError,
 };
-use vessel_rpc::{Outbound, Peer};
 
 use crate::agents::Agents;
 use crate::attachments::Attachments;
 use crate::automation::notices::Notices;
 use crate::automation::prompts::SavedPrompts;
 use crate::automation::schedules::Schedules;
-use crate::connection_life::ConnectionLife;
 use crate::devices::Devices;
 use crate::error::ServiceError;
 use crate::fleet::{Home, Links};
 use crate::forge::Forges;
 use crate::lifecycle::Lifecycle;
 use crate::models::Models;
-use crate::principal::Principal;
 use crate::probes::Probes;
 use crate::profiles::NodeProfiles;
 use crate::profiles::launch::Launcher;
@@ -32,10 +29,12 @@ use crate::sessions::Sessions;
 use crate::terminals::{Ports, Terminals};
 use crate::tidying::Tidying;
 use crate::transfers::Transfers;
-use crate::waits::{ConnectionWaits, Share, WaitSlot, Waits};
+use crate::waits::{Share, WaitSlot, Waits};
 use crate::workspace::{Occupant, Workspaces};
 
 // The calls of protocols 2 to 8, by area.
+mod connection;
+pub(crate) use connection::Connection;
 mod discovery;
 mod export_cleanup;
 mod fleet;
@@ -92,6 +91,7 @@ mod forking;
 mod history;
 mod parking;
 mod plugins;
+pub(crate) mod recovery;
 mod reload;
 mod search;
 mod settings;
@@ -181,6 +181,7 @@ pub(crate) struct NodeService {
     /// Turns followed for their starters (protocol 11,
     /// `automation::notices`).
     notices: Arc<Notices>,
+    pub(crate) recovery: Arc<crate::recovery::Recovery>,
     /// Creation/reset lease also held by a detached creation task.
     side_opening: Arc<tokio::sync::Mutex<()>>,
     push: Arc<crate::push::Push>,
@@ -255,6 +256,7 @@ impl NodeService {
             plugins,
         } = parts;
         let diff_stats = crate::workspace::DiffStats::start(Arc::clone(&workspaces));
+        let recovery = Arc::new(crate::recovery::Recovery::new(settings.recovery_policy()));
         let store = sessions.store().clone();
         let readiness = Arc::new(crate::readiness::Readiness::default());
         let diagnostics = crate::diagnostics::State::new(
@@ -269,6 +271,7 @@ impl NodeService {
             file_panels: file_panels::FilePanelSlots::default(),
             session_sizes: crate::size_owner::SessionSizes::default(),
             workspace_labels,
+            recovery,
             lsp,
             lsp_roots,
             lifecycle,
@@ -339,78 +342,6 @@ impl NodeService {
             );
         }
         slot
-    }
-}
-
-/// Per-connection state: who is calling, and where this connection's
-/// subscriptions go.
-#[derive(Debug)]
-pub(crate) struct Connection {
-    outbound: Outbound,
-    principal: Principal,
-    /// The protocol the client negotiated: an older client is never handed
-    /// what it cannot decode (protocol 11's added agents).
-    protocol: ProtocolVersion,
-    /// Its waiting reads, against its share (`waits`).
-    waiting: ConnectionWaits,
-    presence_id: crate::push::PresenceId,
-    /// Its identity and close observer, one per connection
-    /// (`connection_life`).
-    life: ConnectionLife,
-}
-
-impl Connection {
-    pub(crate) fn new(peer: Peer, principal: Principal) -> Self {
-        tracing::info!(
-            client = %peer.client.name,
-            version = %peer.client.version,
-            ?principal,
-            "client connected"
-        );
-        Self {
-            life: ConnectionLife::within(peer.outbound.closing_token()),
-            outbound: peer.outbound,
-            principal,
-            protocol: peer.protocol,
-            waiting: ConnectionWaits::default(),
-            presence_id: crate::push::PresenceId::new(),
-        }
-    }
-
-    /// A connection of the machine's own clients (token or local socket).
-    pub(crate) fn owner(peer: Peer) -> Self {
-        Self::new(peer, Principal::Owner)
-    }
-
-    /// Who is calling.
-    pub(crate) const fn principal(&self) -> &Principal {
-        &self.principal
-    }
-
-    /// The protocol the client speaks.
-    pub(crate) const fn protocol(&self) -> ProtocolVersion {
-        self.protocol
-    }
-
-    /// This connection, calling as `principal`: a call delivered from
-    /// another node runs as its delegated principal (protocol 6).
-    pub(crate) fn acting_as(&self, principal: Principal) -> Self {
-        Self {
-            outbound: self.outbound.clone(),
-            principal,
-            protocol: self.protocol,
-            waiting: Arc::clone(&self.waiting),
-            presence_id: self.presence_id,
-            life: self.life.clone(),
-        }
-    }
-
-    /// This connection's identity and close observer, the same for every
-    /// context acting for it. A resource the connection owns keeps
-    /// `owner()` and `closed()`, never the life: holding the life keeps the
-    /// connection's last context from ending it.
-    pub(crate) const fn life(&self) -> &ConnectionLife {
-        &self.life
     }
 }
 

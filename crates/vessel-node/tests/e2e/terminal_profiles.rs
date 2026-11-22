@@ -68,7 +68,7 @@ async fn a_kept_profile_is_shown_and_launched_over_the_wire() {
         let (node, owner) = node_with_claude(&fixture, fixture.cwd().join("bin")).await;
         assert_eq!(
             owner
-                .call(GetNodeSettings {})
+                .call(GetNodeSettings::default())
                 .await
                 .unwrap()
                 .terminal_profiles,
@@ -82,7 +82,7 @@ async fn a_kept_profile_is_shown_and_launched_over_the_wire() {
             .await
             .unwrap();
         assert_eq!(set.terminal_profiles, Some(kept()));
-        let read = owner.call(GetNodeSettings {}).await.unwrap();
+        let read = owner.call(GetNodeSettings::default()).await.unwrap();
         assert_eq!(read.terminal_profiles, Some(kept()));
         let terminal = owner.call(launch(fixture.cwd())).await.unwrap();
         assert_eq!(
@@ -129,7 +129,7 @@ async fn an_older_peer_is_refused_the_profiles_and_never_shown_them() {
             &node,
             older,
             vec![
-                GetNodeSettings {}.into_call(),
+                GetNodeSettings::default().into_call(),
                 SetNodeSettings {
                     terminal_profiles: Some(kept()),
                     ..SetNodeSettings::default()

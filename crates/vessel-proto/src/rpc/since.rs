@@ -193,6 +193,13 @@ impl Call {
                 TerminalInput::Resize { intent: None, .. } | TerminalInput::Data { .. } => None,
             },
             Self::SetNodeSettings(request) => return settings::since(request, method),
+            Self::GetNodeSettings(request) => {
+                if request.include_restart_recovery {
+                    Some(crate::restart::RESTART_RECOVERY_PROTOCOL?.get())
+                } else {
+                    None
+                }
+            }
             Self::WriteFile(request) => match request.expect {
                 crate::workspace::WriteExpect::Content { .. } => Some(11),
                 crate::workspace::WriteExpect::Absent | crate::workspace::WriteExpect::Any => None,
@@ -413,7 +420,6 @@ impl Call {
             | Self::UninstallSkills(_)
             | Self::SaveSkillsSelection(_)
             | Self::ImportSkillsSelection(_)
-            | Self::GetNodeSettings(_)
             | Self::GetAppendSystemPrompt(_)
             | Self::ForkSession(_)
             | Self::RewindSession(_)

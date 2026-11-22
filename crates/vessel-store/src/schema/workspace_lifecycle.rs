@@ -1,5 +1,5 @@
 //! Retained provision provenance, internal archive claims and run pins (ADR 0082).
-//! The integrator assigns the version at merge. Released SQL stays append-only.
+//! Schema 26 follows startup recovery. Released SQL stays append-only.
 
 pub(super) const SQL: &str = "
 ALTER TABLE workspace_registry_reservations RENAME TO workspace_reservations_previous;
@@ -37,19 +37,27 @@ CREATE TABLE schedule_run_bindings (
 
 #[cfg(test)]
 mod tests {
-    use super::super::{MIGRATIONS, NOTIFICATION_CLAIMS_SCHEMA, migrate};
+    use super::super::{
+        MIGRATIONS, NOTIFICATION_CLAIMS_SCHEMA, RESTART_SCHEMA, WORKSPACE_LIFECYCLE_SCHEMA, migrate,
+    };
     use rusqlite::{Connection, params};
 
     #[test]
-    fn upgrades_schema_24_reservations_without_reallocating_a_backing() {
+    fn upgrades_schema_24_and_25_reservations_without_reallocating_a_backing() {
+        assert_eq!((NOTIFICATION_CLAIMS_SCHEMA, RESTART_SCHEMA), (24, 25));
+        assert_eq!(WORKSPACE_LIFECYCLE_SCHEMA, 26);
+        for previous in [NOTIFICATION_CLAIMS_SCHEMA, RESTART_SCHEMA] {
+            upgrade(previous);
+        }
+    }
+
+    fn upgrade(previous: usize) {
         let mut connection = Connection::open_in_memory().unwrap();
-        for sql in MIGRATIONS.iter().take(NOTIFICATION_CLAIMS_SCHEMA) {
+        for sql in MIGRATIONS.iter().take(previous) {
             connection.execute_batch(sql).unwrap();
         }
-        let version = i64::try_from(NOTIFICATION_CLAIMS_SCHEMA).unwrap();
-        assert_eq!(version, 24);
         connection
-            .pragma_update(None, "user_version", version)
+            .pragma_update(None, "user_version", i64::try_from(previous).unwrap())
             .unwrap();
         for stage in ["reserved", "creating", "ready", "uncertain"] {
             let _copied = connection
@@ -60,6 +68,12 @@ mod tests {
                 .unwrap();
         }
         migrate(&mut connection).unwrap();
+        assert_eq!(
+            connection
+                .pragma_query_value(None, "user_version", |row| row.get::<_, u32>(0))
+                .unwrap(),
+            u32::try_from(MIGRATIONS.len()).unwrap()
+        );
         for query in [
             "SELECT COUNT(*) FROM workspace_archive_claims",
             "SELECT COUNT(*) FROM schedule_run_bindings",

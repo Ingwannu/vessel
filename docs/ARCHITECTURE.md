@@ -1636,9 +1636,8 @@ transport are a following stage, not exposed by these value definitions.
 patch values using the existing bounded `PromptText`. The feature protocol is
 unassigned. Both settings replies pass through peer projection, including the
 existing recursive envelope walker; an unassigned field stays hidden from every
-peer. The node's existing response builder supplies only the disabled default.
-There is no recovery settings engine, request registration or startup service
-in this value-only slice; those remain for the staged and wiring slices.
+peer. The explicit settings read also requires the named protocol. Clients
+treat a missing field as default Off only after that read succeeds.
 
 ## Ended conversations in the page (ADR 0036 amendment)
 
@@ -1838,7 +1837,10 @@ Automatic archive uses the session actor's idle-stop command and defers for
 live foreign membership. The startup coordinator reconciles run receipts and
 starts watching deferred members before scheduler dispatch. Archived backing
 debt retains live capacity. The Store prunes settled history and retired
-receipts together once no caller pins them.
+receipts together once no caller pins them. Boot recovery checks explicit
+workspace ownership when it projects and claims pending turns. It uses the
+same exact start lease as manual reopen and keeps its admission fence when a
+previous process has an unconfirmed join.
 
 ### Workspace label catalog (ADR 0086, protocol 28)
 
@@ -1893,17 +1895,37 @@ draft's text only, ADR 0028).
 
 ### Settings writer lifetime
 
-The node settings owner retains an owned serialization guard in a tracked task
-through atomic file replacement and runtime application. RPC cancellation drops
-only the waiter. After connections finish, teardown closes settings mutation
-admission and joins admitted writers before the store closes (ADR 0064). This
-adds no crate edge, setting, format or wire method.
+The node settings owner accepts validated changes into a FIFO with one
+consumer and eight waiting slots. It retains the settings guard through
+atomic file replacement and application, even if the RPC caller leaves.
+The node closes admission before shutdown and settles accepted changes
+while runtime and Store are available (ADR 0064 and ADR 0059).
 
 The host system prompt uses that writer to publish a committed supplement
 to the session runtime. The physical launch takes its own snapshot and gives
 it only to a proved native transport. Ordinary settings projections carry
 transport support, while the Admin endpoint retrieves the saved text.
 See the [host prompt plan](plans/host-append-system-prompt.md).
+
+### Session restart recovery
+
+Startup uses one validated settings snapshot for Store normalization and
+the node's live recovery policy. The Store records active turn eligibility
+and stop generations in the same transaction as public records. Internal
+checkpoints use the ordinary session journal and receive acknowledgements
+after commit. Startup consumes each pending intent before opening its
+existing conversation. The node bounds the unresolved work to two
+attempts and checks the stored creator's current grant before launch and
+again before the new prompt. The runtime's existing launch fence also
+applies to any version helper used while preparing the launch. Recovery
+retains its original claim and slot through physical settlement.
+
+An admitted Kill reaches the exact run that owns an unresolved prompt.
+Settings Off seals new recovery effects and clears pending intent in
+Store. An admitted prompt keeps its own outcome. See
+[`plans/restart-recovery-port.md`](plans/restart-recovery-port.md) for the
+port decisions and [`ADR 0059`](adr/0059-resume-interrupted-turns-at-node-start.md)
+for the full contract.
 
 ## Bounded node diagnostics (ADR 0074)
 

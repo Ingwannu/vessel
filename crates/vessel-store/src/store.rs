@@ -13,6 +13,7 @@ mod notification_claims;
 mod placement;
 mod push;
 mod registry;
+mod restart;
 mod search;
 mod subagents;
 mod usage;
@@ -81,6 +82,18 @@ impl Store {
     /// The database cannot be opened or migrated (for example it was written
     /// by a newer Vessel), or the writer thread cannot start.
     pub async fn open(dir: &DataDir, config: StoreConfig) -> Result<Opened, StoreError> {
+        Self::open_with_restart_policy(dir, config, false).await
+    }
+
+    /// Open with validated recovery policy before normalization and retention.
+    ///
+    /// # Errors
+    /// The same migration, file and worker errors as [`Self::open`].
+    pub async fn open_with_restart_policy(
+        dir: &DataDir,
+        config: StoreConfig,
+        enabled: bool,
+    ) -> Result<Opened, StoreError> {
         let path = dir.database_path();
         let retention = config.retention;
         let opening = path.clone();
@@ -90,6 +103,7 @@ impl Store {
             let mut connection = Connection::open(&opening)?;
             schema::configure_writer(&connection)?;
             schema::migrate(&mut connection)?;
+            crate::restart::prepare(&mut connection, enabled)?;
             let interrupted = recovery::interrupt_live(&mut connection, Utc::now())?;
             // Outside a transaction: each deletion is committed as it runs.
             for session in log::prune_ended(&connection, &retention)? {

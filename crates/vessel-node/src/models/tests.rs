@@ -133,7 +133,7 @@ impl Fixture {
         let records = tokio::spawn(async move {
             let mut records = Vec::new();
             while let Some(record) = durable.recv().await {
-                records.push(record);
+                records.push(record.into_event().unwrap());
             }
             records
         });
@@ -168,7 +168,7 @@ impl Fixture {
         let records = tokio::spawn(async move {
             let mut records = Vec::new();
             while let Some(record) = durable.recv().await {
-                records.push(record);
+                records.push(record.into_event().unwrap());
             }
             records
         });

@@ -3,11 +3,12 @@
 
 use super::Store;
 use crate::{
-    Residence, SessionCommit, StoreError,
+    ReopenMode, Residence, RestartEligibility, SessionCommit, StoreError,
     writer::{SessionMark, Write},
 };
 use chrono::{DateTime, Utc};
 use std::sync::Arc;
+use vessel_proto::restart::RestartGeneration;
 use vessel_proto::{EventRecord, EventSeq, KeptMarks, Mark, SessionId, SessionInfo};
 
 impl Store {
@@ -19,8 +20,21 @@ impl Store {
         &self,
         info: SessionInfo,
     ) -> Result<SessionCommit<()>, StoreError> {
+        self.create_session_with_restart(info, RestartEligibility::Never)
+            .await
+    }
+
+    /// A new session and its eligibility commit together before its actor drains.
+    /// # Errors
+    /// As with the ordinary create, or if the eligibility projection failed.
+    pub async fn create_session_with_restart(
+        &self,
+        info: SessionInfo,
+        eligibility: RestartEligibility,
+    ) -> Result<SessionCommit<()>, StoreError> {
         self.write(|done| Write::Create {
             info: Box::new(info),
+            eligibility,
             done,
         })
         .await
@@ -102,9 +116,37 @@ impl Store {
         session: SessionId,
         next: EventSeq,
     ) -> Result<SessionCommit<KeptMarks>, StoreError> {
+        self.reopen_guarded(session, next, None, ReopenMode::Manual)
+            .await
+    }
+
+    /// Reopen the precise observed run. Startup also requires an unarchived,
+    /// interrupted row with an active boot claim.
+    /// # Errors
+    /// As with the ordinary reopen, or if the stop generation or claim changed.
+    pub async fn reopen_exact(
+        &self,
+        session: SessionId,
+        next: EventSeq,
+        generation: RestartGeneration,
+        mode: ReopenMode,
+    ) -> Result<SessionCommit<KeptMarks>, StoreError> {
+        self.reopen_guarded(session, next, Some(generation), mode)
+            .await
+    }
+
+    async fn reopen_guarded(
+        &self,
+        session: SessionId,
+        next: EventSeq,
+        generation: Option<RestartGeneration>,
+        mode: ReopenMode,
+    ) -> Result<SessionCommit<KeptMarks>, StoreError> {
         self.write(|done| Write::Reopen {
             session,
             next,
+            generation,
+            mode,
             done,
         })
         .await

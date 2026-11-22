@@ -13,6 +13,7 @@ mod labels;
 mod listing;
 mod migrations;
 mod mutation_time;
+mod restart_migration;
 mod workspace_lifecycle;
 mod workspace_registry;
 
@@ -26,8 +27,10 @@ const WORKSPACE_LABELS_SCHEMA: usize = mutation_time::MUTATION_TIME_SCHEMA.satur
 /// released version changes meaning.
 const NOTIFICATION_CLAIMS_SCHEMA: usize = WORKSPACE_LABELS_SCHEMA.saturating_add(1);
 
-// Provisional append. Integration fixes the assignment in merge order.
-const WORKSPACE_LIFECYCLE_SCHEMA: usize = NOTIFICATION_CLAIMS_SCHEMA.saturating_add(1);
+const RESTART_SCHEMA: usize = NOTIFICATION_CLAIMS_SCHEMA.saturating_add(1);
+
+// The workspace lifecycle append follows the released restart schema 25.
+const WORKSPACE_LIFECYCLE_SCHEMA: usize = RESTART_SCHEMA.saturating_add(1);
 
 // Diagnostic schema projection reads the canonical migration list only.
 mod diagnostics;

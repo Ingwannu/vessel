@@ -37,17 +37,24 @@ pub(super) fn apply(
             source,
             done,
         } => notification_claim(transaction, authority, source, done),
-        Write::Create { info, done } => session_answer(transaction, info.id, done, |connection| {
-            log::create_session(connection, &info)
+        Write::Restart(operation) => {
+            super::restarting::apply(transaction, operation, effects, indexer)
+        }
+        Write::Create {
+            info,
+            eligibility,
+            done,
+        } => session_answer(transaction, info.id, done, |connection| {
+            super::restarting::create(connection, &info, eligibility)
         }),
         Write::Append {
             session,
             records,
             done,
-        } => {
-            let applied = append(transaction, session, &records, effects, indexer);
-            Answer::Session(done, applied)
-        }
+        } => Answer::Session(
+            done,
+            append(transaction, session, &records, effects, indexer),
+        ),
         Write::AddDevice {
             device,
             credential,
@@ -77,19 +84,15 @@ pub(super) fn apply(
             });
             Answer::Detached(done, applied)
         }
-        Write::Delete { session, done } => {
-            let applied = isolated(transaction, |connection| marks::delete(connection, session));
-            if applied.is_ok() {
-                effects.removed.push(session);
-            }
-            Answer::Done(done, applied)
-        }
+        Write::Delete { session, done } => delete_session(transaction, session, done, effects),
         Write::Reopen {
             session,
             next,
+            mode,
+            generation,
             done,
         } => marks_answer(transaction, effects, session, done, |connection| {
-            again::reopen(connection, session, next)
+            again::reopen(connection, session, next, mode, generation)
         }),
         Write::Attach { kept, at, done } => write_answer(transaction, done, |connection| {
             attachments::insert(connection, &kept, time_to_sql(at)?)
@@ -98,17 +101,7 @@ pub(super) fn apply(
             mark,
             residence,
             done,
-        } => {
-            // ADR 0089: an inbox change wakes the attention observers once the
-            // batch commits, on top of the session's mutation clock.
-            let applied = isolated(transaction, |connection| {
-                with_clock(connection, mark.key.session, |connection| {
-                    crate::inbox::mark(connection, &mark, residence)
-                })
-            });
-            effects.attention |= applied.is_ok();
-            Answer::Session(done, applied)
-        }
+        } => mark_inbox(transaction, &mark, residence, done, effects),
         Write::Push { write, done } => write_answer(transaction, done, |connection| {
             crate::push::apply(connection, &write)
         }),
@@ -124,6 +117,36 @@ pub(super) fn apply(
                 .try_for_each(|write| crate::automation::apply(connection, write))
         }),
     }
+}
+
+fn delete_session(
+    transaction: &mut Transaction<'_>,
+    session: SessionId,
+    done: Done,
+    effects: &mut Effects,
+) -> Answer {
+    let applied = isolated(transaction, |connection| marks::delete(connection, session));
+    if applied.is_ok() {
+        effects.removed.push(session);
+    }
+    Answer::Done(done, applied)
+}
+
+/// An inbox change acknowledges its clock and wakes attention after commit (ADR 0089).
+fn mark_inbox(
+    transaction: &mut Transaction<'_>,
+    mark: &vessel_proto::inbox::MarkInbox,
+    residence: crate::Residence,
+    done: Done<SessionCommit<()>>,
+    effects: &mut Effects,
+) -> Answer {
+    let applied = isolated(transaction, |connection| {
+        with_clock(connection, mark.key.session, |connection| {
+            crate::inbox::mark(connection, mark, residence)
+        })
+    });
+    effects.attention |= applied.is_ok();
+    Answer::Session(done, applied)
 }
 
 /// Projects and worktrees; legacy project removal archives the project's
@@ -258,21 +281,33 @@ fn append(
         ))
     })?;
     indexer.keep(session, advanced);
-    let _first = effects.touched.insert(session);
-    effects.ended |= now_ended;
-    // ADR 0089: what changes a session's attention wakes its observers.
-    effects.attention |= records.iter().any(|record| {
-        record.event.asks_for_attention()
-            || matches!(
-                &record.event,
-                vessel_proto::SessionEvent::Agent {
-                    event: vessel_proto::AgentEvent::PermissionResolved { .. }
-                        | vessel_proto::AgentEvent::QuestionResolved { .. }
-                        | vessel_proto::AgentEvent::TurnStarted { .. }
-                } | vessel_proto::SessionEvent::Rewound { .. }
-            )
-    });
+    effects.appended(session, records, now_ended);
     Ok(SessionCommit::new((), updated_at))
+}
+
+impl Effects {
+    /// Both ordinary appends and checkpoint batches retain the head's post-commit wakes.
+    pub(super) fn appended(
+        &mut self,
+        session: SessionId,
+        records: &[Arc<EventRecord>],
+        ended: bool,
+    ) {
+        let _first = self.touched.insert(session);
+        self.ended |= ended;
+        // ADR 0089 observes any event that changes outstanding attention.
+        self.attention |= records.iter().any(|record| {
+            record.event.asks_for_attention()
+                || matches!(
+                    &record.event,
+                    vessel_proto::SessionEvent::Agent {
+                        event: vessel_proto::AgentEvent::PermissionResolved { .. }
+                            | vessel_proto::AgentEvent::QuestionResolved { .. }
+                            | vessel_proto::AgentEvent::TurnStarted { .. }
+                    } | vessel_proto::SessionEvent::Rewound { .. }
+                )
+        });
+    }
 }
 
 pub(super) fn isolated<T>(
