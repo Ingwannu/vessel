@@ -12,7 +12,7 @@ async fn a_pending_or_invalid_metadata_patch_leaves_the_file_and_settings_unchan
         let owner = fixture.connect(&node).await;
         let path = fixture.data_dir().settings_path();
         let before = path.exists().then(|| std::fs::read(&path).unwrap());
-        let original = owner.call(GetNodeSettings {}).await.unwrap();
+        let original = owner.call(GetNodeSettings::default()).await.unwrap();
         let metadata = MetadataSettings::new(vec![MetadataProvider {
             route: "missing-metadata-route".parse().unwrap(),
             model: None,
@@ -32,7 +32,10 @@ async fn a_pending_or_invalid_metadata_patch_leaves_the_file_and_settings_unchan
             }
             Some(_) => assert_eq!(code(refused), ErrorCode::InvalidRequest),
         }
-        assert_eq!(owner.call(GetNodeSettings {}).await.unwrap(), original);
+        assert_eq!(
+            owner.call(GetNodeSettings::default()).await.unwrap(),
+            original
+        );
         assert_eq!(path.exists().then(|| std::fs::read(&path).unwrap()), before);
         node.stop().await.unwrap();
     })

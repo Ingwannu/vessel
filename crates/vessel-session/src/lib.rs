@@ -123,6 +123,7 @@ mod error;
 mod forge;
 mod forking;
 mod handle;
+mod journal;
 mod lifecycle;
 mod limits;
 pub use limits::LimitAssociation;
@@ -147,7 +148,8 @@ pub use error::{
     DeliveryError, InputKind, ModeKind, ParkRefusal, RemoveError, RewindRefusal, SessionError,
 };
 pub use forge::ForgeView;
-pub use handle::{SessionHandle, TitleUpdate};
+pub use handle::{PromptPermit, SessionHandle, SessionStop, TitleUpdate};
+pub use journal::{JournalEntry, JournalError};
 pub use moving::{MoveError, ProfileMove, Restart};
 pub use queue::QueueError;
 pub use reload::{NotReloadable, Reload, UserPrompts};

@@ -202,6 +202,14 @@ impl NodeService {
     }
 
     async fn run_prompt(&self, job: &Job, principal: &Principal, session: SessionId) -> Made {
+        let _operation = match self
+            .recovery
+            .before_operation(session, crate::recovery::Intervention::Wait)
+            .await
+        {
+            Ok(operation) => operation,
+            Err(error) => return Made::outcome(failed(&error, None)),
+        };
         if let Err(error) = principal.permit(Method::PromptSession) {
             return Made::outcome(failed(&error, None));
         }

@@ -16,7 +16,7 @@
 //!   lists sessions again after each round, so it waits for that one too,
 //!   unless the node was already idle and stopping.
 
-use std::sync::Arc;
+use std::sync::{Arc, Weak};
 
 use tokio::sync::watch;
 use tokio_util::sync::CancellationToken;
@@ -31,6 +31,7 @@ pub(crate) struct Lifecycle {
     /// Cancelled to stop the node (the same token `Node::stop` cancels).
     stop: CancellationToken,
     runtime: Arc<SessionRuntime>,
+    settings: Option<Weak<crate::settings::Settings>>,
 }
 
 impl Lifecycle {
@@ -43,6 +44,20 @@ impl Lifecycle {
             info: Arc::new(watch::channel(info).0),
             stop,
             runtime,
+            settings: None,
+        }
+    }
+
+    /// Live nodes attach their canonical mutation owner without a reference
+    /// cycle. Standalone fact observers need no settings mutation authority.
+    pub(crate) fn with_settings(mut self, settings: &Arc<crate::settings::Settings>) -> Self {
+        self.settings = Some(Arc::downgrade(settings));
+        self
+    }
+
+    fn seal_settings(&self) {
+        if let Some(settings) = self.settings.as_ref().and_then(Weak::upgrade) {
+            settings.seal();
         }
     }
 
@@ -64,12 +79,13 @@ impl Lifecycle {
 
     /// Whether new sessions are refused.
     pub(crate) fn is_draining(&self) -> bool {
-        self.info.borrow().state == NodeState::Draining
+        self.stop.is_cancelled() || self.info.borrow().state == NodeState::Draining
     }
 
     /// Carry out `node.stop`. Returns at once; the stop itself runs in the
     /// node's shutdown path.
     pub(crate) fn stop(&self, when: StopWhen) {
+        self.seal_settings();
         match when {
             StopWhen::Now => {
                 tracing::info!("stop requested");

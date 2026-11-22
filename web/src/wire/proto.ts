@@ -4625,7 +4625,11 @@ export type GetNode = null;
 /**
  * `node.settings`: the node's settings in force. Needs `read`.
  */
-export type GetNodeSettings = Record<symbol, never>;
+export type GetNodeSettings = { 
+/**
+ * Require the startup recovery protocol when reading the policy.
+ */
+include_restart_recovery?: boolean, };
 
 /**
  * `plugin.catalog`: the running installations' client declarations. Needs
@@ -7104,7 +7108,7 @@ park_after: ParkAfter,
 drivers?: AgentDrivers, 
 /**
  * Startup policy, hidden until its protocol is assigned (ADR 0059).
- * This value-only field does not enable an engine or register input.
+ * An explicit settings read requests the capability.
  */
 restart_recovery?: RestartRecovery, 
 /**
@@ -11852,10 +11856,27 @@ terminal_profiles?: TerminalProfiles | null,
  */
 vessel_tools?: Injection | null, 
 /**
+ * Change either saved recovery choice independently (ADR 0059).
+ */
+restart_recovery?: SetRestartRecovery | null, 
+/**
  * Saved supplemental instructions for future launches. An empty value
  * clears them, and omission preserves the prior setting.
  */
 append_system_prompt?: AppendSystemPrompt | null, };
+
+/**
+ * A partial startup-policy change; omission preserves either saved field.
+ */
+export type SetRestartRecovery = { 
+/**
+ * Enable or disable without replacing the configured prompt.
+ */
+enabled?: boolean | null, 
+/**
+ * Replace the prompt, also while recovery is disabled.
+ */
+prompt?: PromptText | null, };
 
 /**
  * `secret.set` (protocol 6): store a value in this node's `secrets.toml`,

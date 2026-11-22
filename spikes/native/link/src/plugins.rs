@@ -116,7 +116,10 @@ async fn call(client: &vessel_client::NodeClient, request: Request) -> Result<Re
             .call(ListPlugins {})
             .await
             .map(|list| Reply::List(list.plugins)),
-        Request::ReadSwitch => client.call(GetNodeSettings {}).await.map(Reply::Settings),
+        Request::ReadSwitch => client
+            .call(GetNodeSettings::default())
+            .await
+            .map(Reply::Settings),
         Request::Switch(on) => client
             .call(SetNodeSettings {
                 plugins_enabled: Some(on),

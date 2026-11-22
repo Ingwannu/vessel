@@ -1,31 +1,63 @@
-//! Cancellation-safe creation and the empty-row-before-log persistence boundary.
-//! Handover and reads remain the session collection's responsibility.
-
+//! A created actor is stored with explicit provenance before its journal drains.
+//! Creation is node-owned after launch; an RPC cancellation cannot leave an
+//! unrecorded process or promote an unattended origin to a startup candidate.
+use super::Sessions;
+use crate::error::ServiceError;
+use crate::persist::{Durability, Persisted};
 use std::sync::Arc;
 use vessel_proto::{EventSeq, SessionInfo, SessionSpec};
 use vessel_session::{Created, LaunchOptions};
 
-use super::Sessions;
-use crate::error::ServiceError;
-use crate::persist::{Durability, Persisted};
-
 impl Sessions {
-    /// Start a session and its persistence.
-    ///
-    /// Runs as its own task: once the process is started, storing the
-    /// session and starting its persistence must finish even if the client
-    /// cancels the call, or the session would run unrecorded.
+    /// Ordinary interactive creation, retaining the existing internal seam.
     pub(crate) async fn create(
         self: &Arc<Self>,
         spec: SessionSpec,
         options: LaunchOptions,
         lease: Option<tokio::sync::OwnedMutexGuard<()>>,
     ) -> Result<SessionInfo, ServiceError> {
+        self.create_eligible(
+            spec,
+            options,
+            lease,
+            vessel_store::RestartEligibility::Person,
+        )
+        .await
+    }
+
+    /// Agent, unattended or forwarded creation remains manual at restart.
+    pub(crate) async fn create_without_recovery(
+        self: &Arc<Self>,
+        spec: SessionSpec,
+        options: LaunchOptions,
+        lease: Option<tokio::sync::OwnedMutexGuard<()>>,
+    ) -> Result<SessionInfo, ServiceError> {
+        self.create_eligible(
+            spec,
+            options,
+            lease,
+            vessel_store::RestartEligibility::Never,
+        )
+        .await
+    }
+
+    /// Start a session and its persistence.
+    ///
+    /// Runs as its own task: once the process is started, storing the
+    /// session and starting its persistence must finish even if the client
+    /// cancels the call, or the session would run unrecorded.
+    async fn create_eligible(
+        self: &Arc<Self>,
+        spec: SessionSpec,
+        options: LaunchOptions,
+        lease: Option<tokio::sync::OwnedMutexGuard<()>>,
+        restart_eligible: vessel_store::RestartEligibility,
+    ) -> Result<SessionInfo, ServiceError> {
         let sessions = Arc::clone(self);
         self.tasks
             .spawn(async move {
                 let _lease = lease;
-                sessions.start(spec, options).await
+                sessions.start(spec, options, restart_eligible).await
             })
             .await
             .map_err(ServiceError::Task)?
@@ -35,6 +67,7 @@ impl Sessions {
         self: &Arc<Self>,
         spec: SessionSpec,
         options: LaunchOptions,
+        restart_eligible: vessel_store::RestartEligibility,
     ) -> Result<SessionInfo, ServiceError> {
         let Created {
             initial,
@@ -45,12 +78,12 @@ impl Sessions {
         // Visible from here on (see the module docs). Readers that need the
         // log wait on the watch until persistence starts below.
         let durability = self.track(&handle, EventSeq::ZERO);
-        if let Err(error) = self
+        let kept = self
             .store
-            .create_session_committed(*initial)
+            .create_session_with_restart(*initial, restart_eligible)
             .await
-            .map(|committed| handle.acknowledge_time(committed.updated_at()))
-        {
+            .map(|committed| handle.acknowledge_time(committed.updated_at()));
+        if let Err(error) = kept {
             // Without a stored row its records cannot be kept. Fail anyone
             // already waiting for its log, stop it, and forget it; dropping
             // `durable` lets it finish without waiting for us.

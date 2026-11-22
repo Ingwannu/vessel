@@ -44,7 +44,7 @@ pub struct NodeSettings {
     #[serde(default, skip_serializing_if = "AgentDrivers::all_acp")]
     pub drivers: AgentDrivers,
     /// Startup policy, hidden until its protocol is assigned (ADR 0059).
-    /// This value-only field does not enable an engine or register input.
+    /// An explicit settings read requests the capability.
     #[serde(default, skip_serializing_if = "RestartRecovery::is_default")]
     pub restart_recovery: RestartRecovery,
     /// Generated-name routes (ADR 0062): `Some` with an empty list is Automatic;
@@ -315,9 +315,13 @@ impl SetAgentDrivers {
 }
 
 /// `node.settings`: the node's settings in force. Needs `read`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
-pub struct GetNodeSettings {}
+pub struct GetNodeSettings {
+    /// Require the startup recovery protocol when reading the policy.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub include_restart_recovery: bool,
+}
 
 /// `node.set_settings`: change the settings it names; the others stay.
 /// Needs `admin`. Answers the settings in force.
@@ -360,6 +364,9 @@ pub struct SetNodeSettings {
     /// Turn the internal stdio tool server on or off for future agent launches.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub vessel_tools: Option<Injection>,
+    /// Change either saved recovery choice independently (ADR 0059).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub restart_recovery: Option<crate::restart::SetRestartRecovery>,
     /// Saved supplemental instructions for future launches. An empty value
     /// clears them, and omission preserves the prior setting.
     #[serde(default, skip_serializing_if = "Option::is_none")]

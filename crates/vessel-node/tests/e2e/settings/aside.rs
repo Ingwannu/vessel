@@ -42,7 +42,11 @@ async fn a_damaged_file_is_set_aside_and_a_change_does_not_replace_it() {
         let node = fixture.start_with(flag).await;
         let owner = fixture.connect(&node).await;
         assert_eq!(
-            owner.call(GetNodeSettings {}).await.unwrap().park_after,
+            owner
+                .call(GetNodeSettings::default())
+                .await
+                .unwrap()
+                .park_after,
             idle(30),
             "the flag's value"
         );

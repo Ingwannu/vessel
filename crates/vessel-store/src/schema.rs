@@ -13,6 +13,7 @@ mod labels;
 mod listing;
 mod migrations;
 mod mutation_time;
+mod restart_migration;
 mod workspace_registry;
 
 /// The label append (schema 23) follows the mutation clock (22); integration rebinds here.
@@ -24,6 +25,8 @@ const WORKSPACE_LABELS_SCHEMA: usize = mutation_time::MUTATION_TIME_SCHEMA.satur
 /// onto the node line they append after its two newer migrations, so no
 /// released version changes meaning.
 const NOTIFICATION_CLAIMS_SCHEMA: usize = WORKSPACE_LABELS_SCHEMA.saturating_add(1);
+
+const RESTART_SCHEMA: usize = NOTIFICATION_CLAIMS_SCHEMA.saturating_add(1);
 
 // Diagnostic schema projection reads the canonical migration list only.
 mod diagnostics;

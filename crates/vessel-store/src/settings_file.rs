@@ -93,6 +93,27 @@ impl DataDir {
     /// # Errors
     /// The file exists but cannot be read, or does not parse.
     pub fn read_settings(&self) -> Result<Option<SetNodeSettings>, SettingsFileError> {
+        self.read_settings_document()
+            .map(|document| document.map(|(saved, _)| saved))
+    }
+
+    /// Startup reads the validated settings and whether to preserve later fields
+    /// from the same bytes, so recovery and the mutation owner agree after boot.
+    /// # Errors
+    /// The file exists but cannot be read or its settings failed validation.
+    pub fn read_settings_snapshot(&self) -> Result<(SetNodeSettings, bool), SettingsFileError> {
+        let Some((saved, bytes)) = self.read_settings_document()? else {
+            return Ok((SetNodeSettings::default(), false));
+        };
+        let later = serde_json::from_slice(&bytes)
+            .and_then(|file| serde_json::to_value(&saved).map(|known| !covered(&file, &known)))
+            .unwrap_or(true);
+        Ok((saved, later))
+    }
+
+    fn read_settings_document(
+        &self,
+    ) -> Result<Option<(SetNodeSettings, Vec<u8>)>, SettingsFileError> {
         let path = self.settings_path();
         let text = match std::fs::read(&path) {
             Ok(text) => text,
@@ -100,7 +121,7 @@ impl DataDir {
             Err(error) => return Err(StoreError::io(&path)(error).into()),
         };
         metadata::decode(&text)
-            .map(Some)
+            .map(|saved| Some((saved, text)))
             .map_err(|source| SettingsFileError::Parse { path, source })
     }
 
