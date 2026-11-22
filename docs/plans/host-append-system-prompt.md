@@ -30,6 +30,14 @@ in `host-page.tsx:983–1089`.
   remain unavailable on this receiving line. Support is added when each
   driver is usable and its native delivery passes the provider fixtures.
 
+Paseo omits `developerInstructions` on resume when its composed prompt is
+empty (`codex-app-server-agent.ts:4076–4091`, `agent/system-prompt.ts:1–10`).
+Vessel sends an empty value on resume to clear a host supplement that Codex
+may retain with the thread. This can also clear the user's configured Codex
+`developer_instructions` default for that resumed thread. On a fresh thread,
+Vessel omits the field when the supplement is empty, so Codex keeps its
+configured default.
+
 The node stores the setting with its other owner-only settings. The saved
 type masks Debug output and the Codex handshake masks provider refusals that
 could quote the supplement. The web sheet reads text on Edit and keeps the
