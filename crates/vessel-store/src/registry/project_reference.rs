@@ -1,13 +1,10 @@
-//! Registry-owned backings and pre-publication reservations fence legacy project cleanup.
-//! The caller holds canonical project metadata admission across this read and its effects.
-//! A `Local` workspace that is Active or Archived owns no directory: legacy removal
-//! archives the Active ones in its own savepoint instead (ADR 0106, reversing W11's
-//! "every retained lifecycle blocks"). `Managed`, Archiving and Restoring still fence.
-use rusqlite::Connection;
+//! Project removal fences all outstanding registry ownership. A worktree
+//! removal fences only the exact backing (ADR 0082).
+use rusqlite::{Connection, OptionalExtension as _, params};
 use vessel_proto::registry::{WorkspaceBacking, WorkspaceDescriptor, WorkspaceLifecycle};
-use vessel_proto::{ProjectId, WorkspaceId};
+use vessel_proto::{ProjectId, WorkspaceId, WorktreeId};
 
-use super::{WorkspaceProvision, decode};
+use super::decode;
 use crate::StoreError;
 
 pub(crate) fn read(
@@ -20,34 +17,71 @@ pub(crate) fn read(
     Ok(found)
 }
 
-fn find(connection: &Connection, project: ProjectId) -> Result<Option<WorkspaceId>, StoreError> {
-    {
-        let mut statement =
-            connection.prepare_cached("SELECT descriptor FROM workspace_registry")?;
-        let mut rows = statement.query([])?;
-        while let Some(row) = rows.next()? {
-            let text: String = row.get(0)?;
-            let descriptor: WorkspaceDescriptor = decode(&text)?;
-            let unowned = descriptor.backing == WorkspaceBacking::Local
-                && matches!(
-                    descriptor.lifecycle,
-                    WorkspaceLifecycle::Active | WorkspaceLifecycle::Archived { .. }
-                );
-            if descriptor.project == project && !unowned {
-                return Ok(Some(descriptor.id));
-            }
-        }
-    }
-    let mut statement =
-        connection.prepare_cached("SELECT id,intent FROM workspace_registry_reservations")?;
-    let mut rows = statement.query([])?;
+/// The same fence that the node reads before entering the storage write.
+pub(crate) fn find(
+    connection: &Connection,
+    project: ProjectId,
+) -> Result<Option<WorkspaceId>, StoreError> {
+    let mut statement = connection.prepare_cached(
+        "SELECT w.descriptor,r.stage FROM workspace_registry w
+         LEFT JOIN workspace_registry_reservations r ON r.id=w.id WHERE w.project=?1",
+    )?;
+    let mut rows = statement.query([project.to_string()])?;
     while let Some(row) = rows.next()? {
-        let text: String = row.get(1)?;
-        let intent: WorkspaceProvision = decode(&text)?;
-        if intent.project == project {
-            let id: String = row.get(0)?;
-            return decode(&serde_json::to_string(&id).map_err(StoreError::Encode)?).map(Some);
+        let text: String = row.get(0)?;
+        let stage: Option<String> = row.get(1)?;
+        let descriptor: WorkspaceDescriptor = decode(&text)?;
+        let owns = match (descriptor.backing, stage.as_deref()) {
+            (_, Some("retired")) => {
+                !matches!(descriptor.lifecycle, WorkspaceLifecycle::Archived { .. })
+            }
+            (_, Some(_)) | (WorkspaceBacking::Managed { .. }, None) => true,
+            (WorkspaceBacking::Local, None) => matches!(
+                descriptor.lifecycle,
+                WorkspaceLifecycle::Archiving { .. } | WorkspaceLifecycle::Restoring { .. }
+            ),
+        };
+        if owns {
+            return Ok(Some(descriptor.id));
         }
     }
-    Ok(None)
+    let found: Option<String> = connection
+        .query_row(
+            "SELECT id FROM workspace_registry_reservations
+             WHERE stage!='retired' AND json_extract(intent,'$.project')=?1 ORDER BY id LIMIT 1",
+            [project.to_string()],
+            |row| row.get(0),
+        )
+        .optional()?;
+    found.map(parse).transpose()
+}
+
+/// Retired receipts whose backing was removed do not make a live claim.
+/// Exclusion is only used after the same workspace proves its archive token.
+pub(crate) fn worktree(
+    connection: &Connection,
+    worktree: WorktreeId,
+    excluding: Option<WorkspaceId>,
+) -> Result<Option<WorkspaceId>, StoreError> {
+    let found: Option<String> = connection
+        .query_row(
+            "SELECT id FROM (
+               SELECT w.id FROM workspace_registry w
+               LEFT JOIN workspace_registry_reservations r ON r.id=w.id
+               WHERE json_extract(w.descriptor,'$.backing.kind')='managed'
+               AND json_extract(w.descriptor,'$.backing.worktree')=?1
+               AND (json_extract(w.descriptor,'$.lifecycle.kind')!='archived' OR r.stage IS NOT 'retired')
+               UNION
+               SELECT id FROM workspace_registry_reservations WHERE worktree=?1 AND stage!='retired'
+             ) WHERE ?2 IS NULL OR id!=?2 ORDER BY id LIMIT 1",
+            params![worktree.to_string(), excluding.map(|id| id.to_string())],
+            |row| row.get(0),
+        )
+        .optional()?;
+    found.map(parse).transpose()
+}
+
+fn parse(text: String) -> Result<WorkspaceId, StoreError> {
+    text.parse()
+        .map_err(|source| StoreError::CorruptId { text, source })
 }

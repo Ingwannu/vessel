@@ -109,6 +109,9 @@ pub enum WorkspaceIsolation {
         /// Saving/creating never implicitly approves a command set.
         setup: SetupChoice,
     },
+    /// A newer node defines this policy. It cannot be run or resaved here.
+    #[serde(other)]
+    Unknown,
 }
 
 /// Existing backing identity is separate from the logical workspace identity.

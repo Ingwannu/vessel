@@ -485,6 +485,7 @@ async fn at_start_a_run_being_made_is_interrupted_and_agents_schedules_go() {
         runs: 0,
         last_due: Some(at("2026-01-01T10:10:00Z")),
         last_run: Some(ScheduleRun {
+            archive: None,
             number: RunNumber::FIRST,
             due_at: at("2026-01-01T10:10:00Z"),
             at: at("2026-01-01T10:10:00Z"),

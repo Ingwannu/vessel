@@ -46,7 +46,7 @@ use std::sync::Arc;
 
 use chrono::Utc;
 use vessel_proto::{EventSeq, Mark, SessionId, SessionInfo};
-use vessel_session::{RemoveError, SessionHandle};
+use vessel_session::{IdleStop, RemoveError, SessionError, SessionHandle};
 use vessel_store::Residence;
 
 use super::{Found, Sessions};
@@ -65,8 +65,24 @@ impl Sessions {
         id: SessionId,
         mark: Mark,
     ) -> Result<SessionInfo, ServiceError> {
+        self.mark_with_release(id, mark, false).await
+    }
+
+    pub(crate) async fn archive_kept(
+        self: &Arc<Self>,
+        id: SessionId,
+    ) -> Result<SessionInfo, ServiceError> {
+        self.mark_with_release(id, Mark::Archive, true).await
+    }
+
+    async fn mark_with_release(
+        self: &Arc<Self>,
+        id: SessionId,
+        mark: Mark,
+        release_keep: bool,
+    ) -> Result<SessionInfo, ServiceError> {
         if let Found::Live { handle, .. } = self.find(id).await? {
-            return self.mark_live(handle, mark).await;
+            return self.mark_live(handle, mark, release_keep).await;
         }
         // A session starting again becomes visible and has its row
         // reopened under this lock (`again`): looked up again under it, a
@@ -76,7 +92,7 @@ impl Sessions {
         let info = match self.find(id).await? {
             Found::Live { handle, .. } => {
                 drop(order);
-                return self.mark_live(handle, mark).await;
+                return self.mark_live(handle, mark, release_keep).await;
             }
             Found::Stored(info) => info,
         };
@@ -86,7 +102,15 @@ impl Sessions {
         if matches!(mark, Mark::Archive) {
             let _same = self.store.suppress_ended_restart(id, info.next_seq).await?;
         }
-        let _kept = self.store.mark(id, mark, Utc::now()).await?;
+        let _kept = if release_keep {
+            self.store
+                .archive_kept_session(id, Utc::now(), Residence::Stored)
+                .await?
+        } else {
+            self.store
+                .mark_committed(id, mark, Utc::now(), Residence::Stored)
+                .await?
+        };
         drop(order);
         self.store
             .session(id)
@@ -103,6 +127,7 @@ impl Sessions {
         self: &Arc<Self>,
         handle: SessionHandle,
         mark: Mark,
+        release_keep: bool,
     ) -> Result<SessionInfo, ServiceError> {
         let id = handle.id();
         if let Mark::Read { through } = mark {
@@ -118,16 +143,74 @@ impl Sessions {
                     let _final = handle.ended().await;
                 }
                 let _order = sessions.marking.lock().await;
-                let committed = sessions
-                    .store
-                    .mark_committed(id, mark, Utc::now(), Residence::Loaded)
-                    .await?;
-                let (kept, updated_at) = committed.into_parts();
-                handle.set_committed_marks(kept, updated_at);
-                Ok(handle.info())
+                sessions.commit_live_mark(&handle, mark, release_keep).await
             })
             .await
             .map_err(ServiceError::Task)?
+    }
+
+    /// Schedule cleanup is ordered with deliveries by the actor and with
+    /// reopens by the marking lease. The task retains both decisions when
+    /// the caller leaves after an admitted stop.
+    pub(crate) async fn archive_idle(
+        self: &Arc<Self>,
+        id: SessionId,
+    ) -> Result<IdleStop, ServiceError> {
+        let order = self.marking_lease().await;
+        let sessions = Arc::clone(self);
+        self.tasks
+            .spawn(async move {
+                let _order = order;
+                if let Found::Live { handle, .. } = sessions.find(id).await? {
+                    match handle.stop_if_idle().await {
+                        Ok(IdleStop::Busy) | Err(SessionError::Moving) => {
+                            return Ok(IdleStop::Busy);
+                        }
+                        Ok(IdleStop::Stopped) | Err(SessionError::Ended) => {
+                            let _final = handle.ended().await;
+                        }
+                        Err(error) => return Err(error.into()),
+                    }
+                    if handle.info().marks.archived_at.is_none()
+                        && !handle.conversation()?.queue.entries.is_empty()
+                    {
+                        return Ok(IdleStop::Busy);
+                    }
+                    let _archived = sessions
+                        .commit_live_mark(&handle, Mark::Archive, false)
+                        .await?;
+                } else {
+                    if sessions.get(id).await?.marks.archived_at.is_none()
+                        && !sessions.conversation(id).await?.queue.entries.is_empty()
+                    {
+                        return Ok(IdleStop::Busy);
+                    }
+                    let _archived = sessions.store.mark(id, Mark::Archive, Utc::now()).await?;
+                }
+                Ok(IdleStop::Stopped)
+            })
+            .await
+            .map_err(ServiceError::Task)?
+    }
+
+    async fn commit_live_mark(
+        &self,
+        handle: &SessionHandle,
+        mark: Mark,
+        release_keep: bool,
+    ) -> Result<SessionInfo, ServiceError> {
+        let committed = if release_keep {
+            self.store
+                .archive_kept_session(handle.id(), Utc::now(), Residence::Loaded)
+                .await?
+        } else {
+            self.store
+                .mark_committed(handle.id(), mark, Utc::now(), Residence::Loaded)
+                .await?
+        };
+        let (kept, updated_at) = committed.into_parts();
+        handle.set_committed_marks(kept, updated_at);
+        Ok(handle.info())
     }
 
     /// Human-only Read-scoped ingress; it cannot perform any general mark.

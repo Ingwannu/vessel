@@ -153,7 +153,9 @@ async fn registry_fence_managed_backing_blocks_discard_before_teardown_and_keeps
             .workspaces
             .remove_worktree(worktree.id, IfLost::Discard, Vec::new)
             .await;
-        assert!(matches!(result, Err(WorkspaceError::RegistryProjectOwned(id)) if id==project.id));
+        assert!(
+            matches!(result, Err(WorkspaceError::RegistryWorktreeOwned(id)) if id == worktree.id)
+        );
         assert_eq!(
             std::fs::read_to_string(worktree.path.join("uncommitted")).unwrap(),
             "keep this work"
@@ -211,7 +213,9 @@ async fn registry_fence_uncertain_reservation_without_descriptor_blocks_legacy_d
             .workspaces
             .remove_worktree(worktree.id, IfLost::Discard, Vec::new)
             .await;
-        assert!(matches!(result, Err(WorkspaceError::RegistryProjectOwned(id)) if id==project.id));
+        assert!(
+            matches!(result, Err(WorkspaceError::RegistryWorktreeOwned(id)) if id == worktree.id)
+        );
         assert!(worktree.path.join("README.md").is_file());
         fixture.stop.cancel();
     })
@@ -249,7 +253,7 @@ async fn registry_fence_project_admission_serializes_publication_against_legacy_
         .await;
         drop(admission);
         assert!(
-            matches!(remove.await, Err(WorkspaceError::RegistryProjectOwned(id)) if id==project.id)
+            matches!(remove.await, Err(WorkspaceError::RegistryWorktreeOwned(id)) if id == worktree.id)
         );
         assert!(worktree.path.exists());
         fixture.stop.cancel();
@@ -298,8 +302,7 @@ async fn registry_fence_automatic_retire_keeps_registry_backing_and_unrelated_le
         let tidied = fixture.workspaces.retire(session, Vec::new).await.unwrap();
         assert!(matches!(tidied.outcome, RemoveWorktreeOutcome::Kept { .. }));
         assert!(worktree.path.join("README.md").is_file());
-        let unowned = fixture.project("unowned", None).await;
-        let other = fixture.created(unowned.id).await;
+        let other = fixture.created(project.id).await;
         let removed = fixture
             .workspaces
             .remove_worktree(other.id, IfLost::Discard, Vec::new)

@@ -44,6 +44,7 @@ impl<R: Runner, C: Clock> Actor<R, C> {
         outcome: RunOutcome,
     ) {
         let run = ScheduleRun {
+            archive: None,
             number: next_number(&info),
             due_at,
             at: self.clock.now(),
@@ -76,6 +77,7 @@ impl<R: Runner, C: Clock> Actor<R, C> {
             .get(info.id)
             .and_then(|entry| entry.current.clone());
         let run = ScheduleRun {
+            archive: None,
             number: next_number(&info),
             due_at,
             at: self.clock.now(),
@@ -230,7 +232,11 @@ impl<R: Runner, C: Clock> Actor<R, C> {
     /// A followed run's later outcome. A session waiting for a person, or
     /// done with its first turn, gives its first turn's room back.
     pub(super) async fn followed(&mut self, followed: Followed) {
-        let Followed { schedule, run } = followed;
+        let Followed {
+            schedule,
+            run,
+            committed,
+        } = followed;
         if matches!(
             run.outcome,
             RunOutcome::Waiting { .. } | RunOutcome::Finished { .. }
@@ -239,20 +245,73 @@ impl<R: Runner, C: Clock> Actor<R, C> {
             self.dispatch();
         }
         let Some(entry) = self.book.get(schedule).cloned() else {
+            // Deletion already discarded history, but never discards a pin.
+            if let Some(committed) = committed {
+                let _gone = committed.send(true);
+            }
             return;
         };
         let mut info = entry.info;
+        let last = info
+            .last_run
+            .as_ref()
+            .is_some_and(|last| last.number == run.number);
+        let result = if last {
+            info.last_run = Some(run.clone());
+            let result = self
+                .store
+                .put_schedule(info.clone(), Some(run.clone()))
+                .await;
+            self.book.put(info);
+            result
+        } else {
+            self.store.put_run(schedule, run.clone()).await
+        };
+        if let Err(error) = &result {
+            tracing::warn!(%schedule, %error, "cannot record a run's outcome");
+        }
+        if let Some(committed) = committed {
+            let _gone = committed.send(result.is_ok());
+        }
+        self.book.noted(schedule, &run);
+    }
+
+    /// Keep the first archive disposition alongside the original turn.
+    /// A late release must not replace a newer run or re-create trimmed history.
+    pub(super) async fn note_archive(
+        &mut self,
+        schedule: ScheduleId,
+        number: RunNumber,
+        disposition: vessel_proto::automation::RunArchive,
+    ) -> Result<(), AutomationError> {
+        let Some(entry) = self.book.get(schedule) else {
+            return Ok(());
+        };
+        let mut info = entry.info.clone();
+        let Some(mut run) = self
+            .store
+            .runs(schedule)
+            .await?
+            .into_iter()
+            .find(|run| run.number == number)
+        else {
+            return Ok(());
+        };
+        if run.archive.is_some() {
+            return Ok(());
+        }
+        run.archive = Some(disposition);
         if info
             .last_run
             .as_ref()
-            .is_some_and(|last| last.number == run.number)
+            .is_some_and(|last| last.number == number)
         {
             info.last_run = Some(run.clone());
-            self.persist(&info, Some(run.clone())).await;
+            self.store.put_schedule(info.clone(), Some(run)).await?;
             self.book.put(info);
-        } else if let Err(error) = self.store.put_run(schedule, run.clone()).await {
-            tracing::warn!(%schedule, %error, "cannot record a run's outcome");
+        } else {
+            self.store.put_run(schedule, run).await?;
         }
-        self.book.noted(schedule, &run);
+        Ok(())
     }
 }

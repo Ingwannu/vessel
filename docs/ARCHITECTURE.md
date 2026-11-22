@@ -1816,26 +1816,31 @@ in-transaction seam for catalog assignment extensions, not a second registry.
 rename, pin and the blocked-source release through the single method table:
 protocol 25's six metadata methods. Agent principals, direct or delegated, are
 refused before lookup; a forwarded person-origin call holds the intersected
-scopes and reads without the long poll. The separate
-create and lifecycle packages own actor launch and archive/recovery orchestration.
-Pre-spawn leases fence archive against late actor registration. Restoring is an
-exclusive persisted claim before backing recovery. Filesystem provisioning remains on the separate continuation until a real
-create driver wires it; no unwired node service ships in this dependency. Project config,
-icons, editor integration and automatic archive remain separate incomplete work.
-Those have no method row; protocol 25 covers the six metadata methods only.
+scopes and reads without the long poll. Protocol 25 covers the six metadata
+methods. Public workspace creation and lifecycle routes remain separate.
 
-Runtime registration (ADR 0106) is what populates the registry. `vessel-node::workspace::registration`
-registers a project root when `session.create`, `terminal.create` or `script.run`
-starts work there, and at node start for the roots of stored placed sessions
-(once per project). A failure is logged and never refuses the start.
-`vessel-store::registry::placement` finds or creates the root's `Local`
-workspace in one writer savepoint. It derives each placed session's membership
-when a snapshot is read (no row per session, not revisioned). It archives a
-project's `Local` Active workspaces in the same write as legacy project removal.
-The legacy-removal fence (`registry::project_reference`) still refuses `Managed`
-backings, reservations and records that are Archiving or Restoring. Archived
-records stay outside the live caps and are pruned oldest first beyond
-`MAX_ARCHIVED_WORKSPACES` (ADR 0082 amendment). Worktrees are not registered yet.
+Runtime registration (ADR 0106) registers a project root when `session.create`,
+`terminal.create` or `script.run` starts work there, and at node start for stored
+placed sessions. Failure is logged and allows the start. The Store derives legacy
+membership when reading a snapshot and archives legacy Local roots in the same
+write as project removal. Both paths check provenance, so a shared Local
+directory never attaches a legacy session to an independently provisioned
+workspace.
+
+The shared `vessel-node::workspace::lifecycle` producer (ADR 0082) uses
+`ProjectAdmission` and the Store registry writer to reserve an independent
+Local or Managed backing. Schedules are its first caller. The schedules Store
+binds a run and exact actor ID before provision, and pre-spawn leases fence
+archive against late actor registration. Managed backing is removed under a
+private exact archive claim with the existing Git, trust and occupancy checks.
+Automatic archive uses the session actor's idle-stop command and defers for
+live foreign membership. The startup coordinator reconciles run receipts and
+starts watching deferred members before scheduler dispatch. Archived backing
+debt retains live capacity. The Store prunes settled history and retired
+receipts together once no caller pins them. Boot recovery checks explicit
+workspace ownership when it projects and claims pending turns. It uses the
+same exact start lease as manual reopen and keeps its admission fence when a
+previous process has an unconfirmed join.
 
 ### Workspace label catalog (ADR 0086, protocol 28)
 

@@ -1,8 +1,10 @@
 //! The phases owned by one boot attempt; no new comparison/session registry.
 use super::{Context, NodeService, Run, admission_expired, wire};
 use tokio::time::Instant;
+use vessel_proto::registry::WorkspaceResource;
 use vessel_proto::{ContentBlock, ErrorCode, WireError};
 use vessel_session::{PreparationCancellation, PreparationGate, SessionHandle};
+use vessel_store::WorkspaceStartLease;
 impl NodeService {
     pub(super) async fn recover_turn(
         &self,
@@ -65,21 +67,65 @@ impl NodeService {
         }
         launch.model_proxy = launched.map(|(_model, proxy)| proxy);
         let prepared = self.prepare_recovery(context, ended, launch).await?;
-        let reopening = self.admit_launch(context, prepared, &creator).await?;
-        *run = Run::Loading(reopening.created.handle.clone());
-        // This mutation is already admitted. Never drop its completion just
-        // because Off, stop, a deadline or an RPC caller went away.
-        let handle = self
+        // Admission is a durable write. Await its receipt outside the
+        // cancellable stages, then settle it even if launch is cancelled.
+        let workspace = self
             .sessions
+            .admit_workspace_reopen(WorkspaceResource::Session { session: id })
+            .await
+            .map_err(|error| wire(&error))?;
+        let started = self
+            .start_recovery(context, prepared, &creator, next, run)
+            .await;
+        if let Some(lease) = workspace {
+            self.settle_workspace_launch(lease, started.is_ok(), run)
+                .await?;
+        }
+        let handle = started?;
+        self.recover_prompt(context, &handle, creator, run).await
+    }
+
+    async fn start_recovery(
+        &self,
+        context: &Context<'_>,
+        prepared: vessel_session::PreparedAgain<'_>,
+        creator: &vessel_proto::Creator,
+        next: vessel_proto::EventSeq,
+        run: &mut Run,
+    ) -> Result<SessionHandle, WireError> {
+        let reopening = self.admit_launch(context, prepared, creator).await?;
+        *run = Run::Loading(reopening.created.handle.clone());
+        // This mutation is already admitted. Keep it through Off, stop
+        // or a deadline so the exact launched run always gets a settlement.
+        self.sessions
             .adopt_again(
                 reopening,
                 next,
-                candidate.generation,
+                context.candidate.generation,
                 vessel_store::ReopenMode::Startup,
             )
             .await
-            .map_err(|error| wire(&error))?;
-        self.recover_prompt(context, &handle, creator, run).await
+            .map_err(|error| wire(&error))
+    }
+
+    async fn settle_workspace_launch(
+        &self,
+        lease: WorkspaceStartLease,
+        started: bool,
+        run: &Run,
+    ) -> Result<(), WireError> {
+        let store = self.sessions.store();
+        let result = if started {
+            store.complete_registry_start(lease).await
+        } else {
+            // Failed adoption closes its publication gate. Keep the start
+            // fenced until that exact unpublished actor has ended.
+            if let Run::Loading(handle) = run {
+                let _ended = handle.ended().await;
+            }
+            store.fail_registry_start(lease).await
+        };
+        result.map_err(|error| WireError::new(error.code(), error.to_string()))
     }
 
     async fn prepare_recovery(

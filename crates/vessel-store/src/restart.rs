@@ -6,6 +6,7 @@ use crate::reader::select_session;
 use rusqlite::{Connection, OptionalExtension as _, params};
 pub use state::Eligibility;
 pub(crate) use state::State;
+use vessel_proto::registry::{WorkspaceLifecycle, WorkspaceResource};
 use vessel_proto::restart::{RestartCheckpoint, RestartGeneration};
 use vessel_proto::{Creator, SessionId, SessionMode, SessionOrigin, SessionStatus};
 
@@ -84,13 +85,22 @@ fn policy(connection: &Connection) -> Result<bool, StoreError> {
     )?)
 }
 fn eligible(connection: &Connection, session: SessionId) -> Result<bool, StoreError> {
-    Ok(select_session(connection, session)?.is_some_and(|info| {
+    let person_session = select_session(connection, session)?.is_some_and(|info| {
         matches!(info.spec.mode, SessionMode::Structured { .. })
             && info.spec.side_question_of.is_none()
             && matches!(info.created_by, Creator::Owner | Creator::Device { .. })
             && matches!(info.origin, None | Some(SessionOrigin::Imported { .. }))
             && info.marks.archived_at.is_none()
-    }))
+    });
+    if !person_session {
+        return Ok(false);
+    }
+    let resource = WorkspaceResource::Session { session };
+    let Some(workspace) = crate::registry::resource_owner(connection, resource)? else {
+        return Ok(true);
+    };
+    Ok(crate::registry::workspace(connection, workspace)?
+        .is_some_and(|record| record.descriptor.lifecycle == WorkspaceLifecycle::Active))
 }
 /// One writer operation, whose boolean distinguishes a stale claim/checkpoint.
 pub(crate) fn write(connection: &Connection, change: RestartWrite) -> Result<bool, StoreError> {
@@ -160,13 +170,18 @@ fn consume_claim(connection: &Connection, candidate: RestartCandidate) -> Result
         || state.claimed
         || state.generation != candidate.generation
         || state.pending.is_none_or(|turn| turn.seq != candidate.turn)
-        || !eligible(connection, candidate.session)?
         || select_session(connection, candidate.session)?
             .is_none_or(|info| info.status != SessionStatus::Interrupted)
     {
         return Ok(false);
     }
     state.pending = None;
+    if !eligible(connection, candidate.session)? {
+        // Boot select and claim can straddle an archive. Discard this exact
+        // intent so the passive selector can advance to the next candidate.
+        save(connection, candidate.session, &state)?;
+        return Ok(false);
+    }
     state.claimed = true;
     save(connection, candidate.session, &state)?;
     Ok(true)

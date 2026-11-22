@@ -22,7 +22,7 @@ pub(super) fn claim(
         .ok_or(StoreError::RegistryRevisionExhausted)?;
     super::capacity::resource(connection, resource)?;
     let (kind, id) = resource_key(resource);
-    let changed=connection.execute("INSERT INTO workspace_registry_resources(kind,resource,workspace,stage,lease_revision) VALUES (?1,?2,?3,'pending',?4) ON CONFLICT(kind,resource) DO UPDATE SET stage='pending',lease_revision=excluded.lease_revision WHERE workspace=excluded.workspace AND stage='failed'",params![kind,id,workspace.to_string(),write::revision(next)?])?;
+    let changed=connection.execute("INSERT INTO workspace_registry_resources(kind,resource,workspace,stage,lease_revision) VALUES (?1,?2,?3,'pending',?4) ON CONFLICT(kind,resource) DO UPDATE SET stage='pending',lease_revision=excluded.lease_revision,joined=0 WHERE workspace=excluded.workspace AND stage='failed'",params![kind,id,workspace.to_string(),write::revision(next)?])?;
     if changed == 0 {
         return Err(StoreError::RegistryConflict);
     }
@@ -54,7 +54,7 @@ pub(super) fn settle(
     write::put(connection, &record, Some(expected))
 }
 
-/// A stable terminal may admit its next run only from its exact settled predecessor.
+/// A stable resource admits its next run once its exact predecessor has joined.
 pub(super) fn restart(
     connection: &Connection,
     previous: &WorkspaceStartLease,
@@ -70,10 +70,30 @@ pub(super) fn restart(
         .next()
         .ok_or(StoreError::RegistryRevisionExhausted)?;
     let (kind, id) = resource_key(previous.resource);
-    let changed=connection.execute("UPDATE workspace_registry_resources SET stage='pending',lease_revision=?4 WHERE kind=?1 AND resource=?2 AND workspace=?3 AND stage='ready' AND lease_revision=?5",params![kind,id,previous.workspace.to_string(),write::revision(next)?,write::revision(previous.revision)?])?;
+    let changed=connection.execute("UPDATE workspace_registry_resources SET stage='pending',lease_revision=?4,joined=0 WHERE kind=?1 AND resource=?2 AND workspace=?3 AND stage='ready' AND lease_revision=?5 AND joined=1",params![kind,id,previous.workspace.to_string(),write::revision(next)?,write::revision(previous.revision)?])?;
     if changed == 0 {
         return Err(StoreError::RegistryConflict);
     }
     record.descriptor.revision = next;
     write::put(connection, &record, Some(expected))
+}
+
+/// Retain proof for this exact generation, even if it ended before its
+/// registration acknowledgement. Reopening invalidates this receipt.
+pub(super) fn joined(
+    connection: &Connection,
+    lease: &WorkspaceStartLease,
+) -> Result<bool, StoreError> {
+    let (kind, id) = resource_key(lease.resource);
+    let changed = connection.execute(
+        "UPDATE workspace_registry_resources SET joined=1
+         WHERE kind=?1 AND resource=?2 AND workspace=?3 AND lease_revision=?4 AND joined=0",
+        params![
+            kind,
+            id,
+            lease.workspace.to_string(),
+            write::revision(lease.revision)?,
+        ],
+    )?;
+    Ok(changed != 0)
 }

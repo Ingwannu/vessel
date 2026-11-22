@@ -202,6 +202,9 @@ impl Sessions {
         if persisted == Persisted::Incomplete {
             let _final = handle.ended().await;
         }
+        // Keep recovery proof before making a successor visible. A
+        // synthetic Interrupted status on startup cannot supply this proof.
+        self.record_workspace_join(id).await;
         self.agents.retire(id);
         self.models.retire(id);
         if let Err(error) = self.runtime.remove(id) {
@@ -479,6 +482,7 @@ mod reload;
 pub(crate) mod settled;
 mod side_questions;
 mod stopping;
+mod workspace_reopen;
 
 #[cfg(test)]
 mod tests;

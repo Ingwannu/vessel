@@ -5,8 +5,8 @@ use std::fmt::Write as _;
 
 use vessel_client::NodeClient;
 use vessel_proto::automation::{
-    AfterRun, Cadence, CatchUp, EverySeconds, MaxRuns, RunOutcome, RunTrigger, ScheduleDefinition,
-    ScheduleInfo, ScheduleRun, ScheduleState, ScheduleTarget, TimeZoneName,
+    AfterRun, Cadence, CatchUp, EverySeconds, MaxRuns, RunArchive, RunOutcome, RunTrigger,
+    ScheduleDefinition, ScheduleInfo, ScheduleRun, ScheduleState, ScheduleTarget, TimeZoneName,
 };
 use vessel_proto::{SessionMode, SessionSpec};
 
@@ -241,7 +241,7 @@ async fn target(
         return Ok(None);
     }
     let (mut spec, mut after) = match (old, &args.harness) {
-        (Some(ScheduleTarget::NewSession { spec, after }), harness) => {
+        (Some(ScheduleTarget::NewSession { spec, after, .. }), harness) => {
             let mut spec = (**spec).clone();
             if let Some(harness) = harness {
                 spec.harness = harness.clone();
@@ -289,6 +289,7 @@ async fn target(
     Ok(Some(ScheduleTarget::NewSession {
         spec: Box::new(spec),
         after,
+        isolation: old.and_then(|target| target.isolation().cloned()),
     }))
 }
 
@@ -312,7 +313,7 @@ fn details(info: &ScheduleInfo) -> String {
     let mut text = line(info);
     let definition = &info.definition;
     let target = match &definition.target {
-        ScheduleTarget::NewSession { spec, after } => format!(
+        ScheduleTarget::NewSession { spec, after, .. } => format!(
             "a new {} session each run ({})",
             spec.harness,
             match after {
@@ -380,8 +381,16 @@ fn run_line(run: &ScheduleRun) -> String {
         RunOutcome::Interrupted => "interrupted by the node's stop".to_owned(),
         RunOutcome::Unknown => "?".to_owned(),
     };
+    let archive = match run.archive {
+        Some(RunArchive::Archived) => "  workspace archived",
+        Some(RunArchive::BackingKept) => "  workspace archived; backing kept",
+        Some(RunArchive::DeferredBusy) => "  archive deferred: session has work",
+        Some(RunArchive::DeferredOtherMembers) => "  archive deferred: other members",
+        Some(RunArchive::Unconfirmed) => "  workspace archive unconfirmed",
+        Some(RunArchive::Unknown) | None => "",
+    };
     format!(
-        "#{}  {}  {trigger}  {outcome}\n",
+        "#{}  {}  {trigger}  {outcome}{archive}\n",
         run.number.get(),
         run.due_at
     )

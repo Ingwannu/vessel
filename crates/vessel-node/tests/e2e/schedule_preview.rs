@@ -52,6 +52,7 @@ async fn a_preview_writes_nothing_and_saved_cadence_keeps_its_anchor() {
                     name: None,
                     cadence: preview.cadence.clone(),
                     target: ScheduleTarget::NewSession {
+                        isolation: None,
                         spec: Box::new(structured_spec(&fixture, None)),
                         after: AfterRun::Archive,
                     },

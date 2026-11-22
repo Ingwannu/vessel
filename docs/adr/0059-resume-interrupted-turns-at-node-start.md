@@ -365,3 +365,13 @@ existing settings builder only completes its response literal with the disabled
 default. Its file format, save/apply engine and request types are unchanged.
 Raw legacy setter evidence with a nondefault saved policy belongs to R2's real
 staged engine; a synthetic reply test does not claim that product evidence.
+
+### Independent workspace admission
+
+Paseo checks the workspace's archive mark in `bootstrap.ts` (0.15.4,
+1048–1054). The Store checks the explicit owner during boot projection and
+claim. A session in a non-Active workspace is excluded even when its own
+session marks would allow recovery. The exact startup re-open uses the
+same registry start lease as a manual re-open. Archive and start each
+observe the other's durable admission, and the lease retains an unconfirmed
+predecessor until its join can be proved (ADR 0082).

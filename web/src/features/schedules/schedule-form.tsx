@@ -29,6 +29,8 @@ import {
   scheduleZone,
   useCadencePreview,
 } from "./schedule-cadence";
+import { ScheduleIsolation } from "./schedule-isolation";
+import { useIsolationChoice } from "./use-isolation-choice";
 import { ScheduleTargetFields } from "./schedule-target";
 import { useScheduleTarget } from "./use-schedule-target";
 
@@ -82,11 +84,13 @@ export function ScheduleForm({
   );
   const target = useScheduleTarget(node, original);
   const targetSpec = target.spec;
+  const isolation = useIsolationChoice(connection, edit, target);
   const nameProblem = nameError(draft.name);
   const promptProblem = draft.prompt === "" ? null : promptError(draft.prompt);
   const cap = maxRuns(draft.maxRuns);
   const valid =
     supportsSchedules(connection) &&
+    isolation.valid &&
     nameProblem === null &&
     promptError(draft.prompt) === null &&
     cap !== "invalid" &&
@@ -122,6 +126,9 @@ export function ScheduleForm({
       cadence: wireCadence,
       spec,
       archive: draft.archive,
+      ...(isolation.policy === undefined
+        ? {}
+        : { isolation: isolation.policy }),
       cap,
     };
     setSubmitError(null);
@@ -212,12 +219,16 @@ export function ScheduleForm({
               onChange={(next) => {
                 setSubmitError(null);
                 target.reset();
+                isolation.reset();
                 setNode(next);
               }}
             />
           </FieldGroup>
         ) : null}
         <ScheduleTargetFields target={target} original={original} busy={busy} />
+        {isolation.visible ? (
+          <ScheduleIsolation {...isolation.field} disabled={busy} />
+        ) : null}
         {targetSpec === null ? null : (
           <Switch
             checked={draft.archive}

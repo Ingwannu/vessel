@@ -3,15 +3,96 @@
 //! back (`crate::automation` says how they are kept).
 
 use chrono::{DateTime, Utc};
-use vessel_proto::automation::{HookDelivery, HookInfo, SavedPrompt, ScheduleInfo, ScheduleRun};
+use vessel_proto::automation::{
+    HookDelivery, HookInfo, RunNumber, SavedPrompt, ScheduleInfo, ScheduleRun,
+};
 use vessel_proto::{HookId, ProjectId, SavedPromptId, ScheduleId};
 
 use super::Store;
 use crate::automation::{self, AutomationWrite, StoredAutomation};
 use crate::error::StoreError;
 use crate::writer::Write;
+use crate::{RunBindingStage, ScheduleRunBinding};
 
 impl Store {
+    /// Pin the run's exact future workspace and actor before either can be created.
+    /// # Errors
+    /// The run no longer exists, conflicts with another pin, or capacity/storage failed.
+    pub async fn bind_schedule_run(&self, binding: ScheduleRunBinding) -> Result<(), StoreError> {
+        self.automation_write(vec![AutomationWrite::BindRun(binding)])
+            .await
+    }
+
+    /// Update an exact unsettled binding after actor registration or archive deferral.
+    /// # Errors
+    /// The pinned identity/stage changed or storage failed.
+    pub async fn advance_schedule_run_binding(
+        &self,
+        previous: ScheduleRunBinding,
+        stage: RunBindingStage,
+    ) -> Result<(), StoreError> {
+        self.automation_write(vec![AutomationWrite::AdvanceRunBinding { previous, stage }])
+            .await
+    }
+
+    /// Release a pin once durable side-effect reconciliation is complete.
+    /// # Errors
+    /// The pinned identity/stage changed or storage failed.
+    pub async fn finish_schedule_run_binding(
+        &self,
+        binding: ScheduleRunBinding,
+    ) -> Result<(), StoreError> {
+        self.automation_write(vec![AutomationWrite::FinishRunBinding(binding)])
+            .await
+    }
+
+    /// Fetch the existing exact run pin without deriving ownership from a directory.
+    /// # Errors
+    /// The read or decoding failed.
+    pub async fn schedule_run_binding(
+        &self,
+        schedule: ScheduleId,
+        run: RunNumber,
+    ) -> Result<Option<ScheduleRunBinding>, StoreError> {
+        self.read(move |reader| {
+            reader.with(|connection| automation::binding::find(connection, schedule, run))
+        })
+        .await
+    }
+
+    /// The bounded set of unresolved run pins, including those with deleted schedules.
+    /// # Errors
+    /// The read or decoding failed.
+    pub async fn schedule_run_bindings(&self) -> Result<Vec<ScheduleRunBinding>, StoreError> {
+        self.read(|reader| reader.with(automation::binding::load))
+            .await
+    }
+
+    /// Whether the exact session has a Keep receipt. When requested is
+    /// true, require its person's committed Archive mark as well.
+    /// # Errors
+    /// Storage or read failure.
+    pub async fn schedule_keeps_session(
+        &self,
+        session: vessel_proto::SessionId,
+        requested: bool,
+    ) -> Result<bool, StoreError> {
+        self.read(move |reader| {
+            reader.with(|db| automation::binding::keeps_session(db, session, requested))
+        })
+        .await
+    }
+
+    /// Receipts ready for an archive retry or a person's deferred Keep release.
+    /// # Errors
+    /// Storage or decoding failure.
+    pub async fn schedule_bindings_awaiting_archive(
+        &self,
+    ) -> Result<Vec<ScheduleRunBinding>, StoreError> {
+        self.read(|reader| reader.with(automation::binding::awaiting_archive))
+            .await
+    }
+
     /// Schedules, hooks and the delivery keys hooks saw (protocol 11),
     /// read once when the node starts.
     ///

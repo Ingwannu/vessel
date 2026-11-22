@@ -206,8 +206,12 @@ impl Call {
             },
             Self::CreatePrompt(request) => template_since(request.session.as_deref()),
             Self::UpdatePrompt(request) => template_since(request.session.as_deref()),
-            Self::CreateSchedule(request) => target_since(&request.definition.target),
-            Self::UpdateSchedule(request) => target_since(&request.definition.target),
+            Self::CreateSchedule(request) => {
+                Some(target_since(&request.definition.target, method)?)
+            }
+            Self::UpdateSchedule(request) => {
+                Some(target_since(&request.definition.target, method)?)
+            }
             Self::ListWorkspaceScripts(_)
             | Self::StartWorkspaceScript(_)
             | Self::StopWorkspaceScript(_)
@@ -467,18 +471,95 @@ fn template_since(spec: Option<&crate::SessionSpec>) -> Option<u32> {
     spec.and_then(|spec| spec.side_question_of.map(|_| 19))
 }
 
-fn target_since(target: &crate::automation::ScheduleTarget) -> Option<u32> {
-    match target {
+fn target_since(
+    target: &crate::automation::ScheduleTarget,
+    method: ProtocolVersion,
+) -> Option<u32> {
+    let required = if target.isolation().is_some() {
+        method.max(crate::automation::SCHEDULE_ISOLATION_PROTOCOL?)
+    } else {
+        method
+    };
+    let spec_since = match target {
         crate::automation::ScheduleTarget::NewSession { spec, .. } => template_since(Some(spec)),
         crate::automation::ScheduleTarget::Session { .. }
         | crate::automation::ScheduleTarget::Unknown => None,
-    }
+    };
+    Some(spec_since.map_or(required.get(), |fields| required.get().max(fields)))
 }
 
 #[cfg(test)]
 mod requirement_tests {
     use crate::rpc::samples;
     use crate::{Deliver, Forward, Method, NodeId, RelayCall, Request as _};
+
+    #[test]
+    fn explicit_schedule_isolation_keeps_its_requirement_through_every_hop() {
+        use crate::automation::{
+            AfterRun, Cadence, CatchUp, CreateSchedule, SCHEDULE_ISOLATION_PROTOCOL,
+            ScheduleDefinition, ScheduleTarget, UpdateSchedule,
+        };
+        use crate::registry::WorkspaceIsolation;
+        use crate::{HarnessKind, ScheduleId, SessionMode, SessionSpec};
+        let definition = ScheduleDefinition {
+            name: None,
+            cadence: Cadence::Every {
+                seconds: 3600.try_into().unwrap(),
+                anchor: None,
+            },
+            target: ScheduleTarget::NewSession {
+                spec: Box::new(SessionSpec::new(
+                    HarnessKind::ClaudeCode,
+                    SessionMode::Structured {
+                        model: None,
+                        resume: None,
+                        options: Vec::new(),
+                    },
+                )),
+                after: AfterRun::Archive,
+                isolation: Some(WorkspaceIsolation::Local),
+            },
+            prompt: "test".parse().unwrap(),
+            catch_up: CatchUp::Skip,
+            max_runs: None,
+            ends_at: None,
+        };
+        for request in [
+            CreateSchedule {
+                definition: definition.clone(),
+                paused: false,
+            }
+            .into_call(),
+            UpdateSchedule {
+                schedule: ScheduleId::random(),
+                revision: 0,
+                definition,
+            }
+            .into_call(),
+        ] {
+            assert_eq!(request.required_protocol(), SCHEDULE_ISOLATION_PROTOCOL);
+            for wrapper in [
+                Forward {
+                    node: NodeId::random(),
+                    call: Box::new(request.clone()),
+                }
+                .into_call(),
+                RelayCall {
+                    node: NodeId::random(),
+                    call: Box::new(request.clone()),
+                    origin: samples::origin(),
+                }
+                .into_call(),
+                Deliver {
+                    call: Box::new(request.clone()),
+                    origin: samples::origin(),
+                }
+                .into_call(),
+            ] {
+                assert_eq!(wrapper.required_protocol(), SCHEDULE_ISOLATION_PROTOCOL);
+            }
+        }
+    }
 
     #[test]
     fn assigned_requests_and_every_envelope_keep_the_existing_requirement() {

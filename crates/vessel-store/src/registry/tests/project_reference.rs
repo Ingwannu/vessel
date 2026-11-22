@@ -1,5 +1,5 @@
 //! Legacy deletion accounts for owned backings, transitions AND every reservation stage.
-use super::{apply, db, put, record};
+use super::{apply, db, put, record, seed_legacy_lifecycle};
 use crate::registry::{RegistryWrite, project_reference};
 use crate::{RegistryReservation, ReservationStage, WorkspaceProvision};
 use vessel_proto::registry::{
@@ -28,7 +28,7 @@ fn legacy_project_reference_covers_owned_backings_and_transitions_only() {
         let expected = item.descriptor.revision;
         item.descriptor.revision = expected.next().unwrap();
         item.descriptor.lifecycle = lifecycle;
-        put(&mut connection, item.clone(), Some(expected)).unwrap();
+        seed_legacy_lifecycle(&connection, &item, expected);
         assert_eq!(
             project_reference(&connection, project).unwrap(),
             fences.then_some(item.descriptor.id)

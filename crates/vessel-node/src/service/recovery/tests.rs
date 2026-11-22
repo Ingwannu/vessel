@@ -125,43 +125,48 @@ impl Fixture {
         .with_cwd(self.work.clone())
         .with_profile("recovery".parse().unwrap());
         let id = client.create_session(spec).await.unwrap().id;
-        let mut stream = client.follow(id, EventSeq::ZERO).await.unwrap();
-        loop {
-            let event = stream.next().await.unwrap().unwrap();
-            if matches!(
-                event.event,
-                SessionEvent::Status {
-                    status: SessionStatus::Running
-                }
-            ) {
-                break;
-            }
-        }
-        let delivered = client
-            .prompt(
-                id,
-                vec![ContentBlock::Text {
-                    text: "wait".into(),
-                }],
-                Delivery::Start,
-            )
-            .await
-            .unwrap();
-        assert_eq!(delivered, vessel_proto::Delivered::Started);
-        let through = loop {
-            let record = stream.next().await.unwrap().unwrap();
-            if matches!(
-                record.event,
-                SessionEvent::Agent {
-                    event: AgentEvent::TurnStarted { .. }
-                }
-            ) {
-                break record.seq.next().unwrap();
-            }
-        };
-        (id, through)
+        (id, begin_turn(client, id).await)
     }
 }
+
+async fn begin_turn(client: &NodeClient, id: SessionId) -> EventSeq {
+    let mut stream = client.follow(id, EventSeq::ZERO).await.unwrap();
+    loop {
+        let event = stream.next().await.unwrap().unwrap();
+        if matches!(
+            event.event,
+            SessionEvent::Status {
+                status: SessionStatus::Running
+            }
+        ) {
+            break;
+        }
+    }
+    let delivered = client
+        .prompt(
+            id,
+            vec![ContentBlock::Text {
+                text: "wait".into(),
+            }],
+            Delivery::Start,
+        )
+        .await
+        .unwrap();
+    assert_eq!(delivered, vessel_proto::Delivered::Started);
+    loop {
+        let record = stream.next().await.unwrap().unwrap();
+        if matches!(
+            record.event,
+            SessionEvent::Agent {
+                event: AgentEvent::TurnStarted { .. }
+            }
+        ) {
+            return record.seq.next().unwrap();
+        }
+    }
+}
+
+mod workspaces;
 async fn committed(
     node: &Node,
     session: SessionId,

@@ -191,6 +191,9 @@ pub enum StoreError {
     /// A lifecycle or membership CAS failed; no partial mutation was committed.
     #[error("workspace registry revision changed or the workspace is not active")]
     RegistryConflict,
+    /// A completed allocation cannot enter the filesystem path again.
+    #[error("workspace {0} already finished its provision lifecycle")]
+    RegistryFinished(vessel_proto::WorkspaceId),
     /// Retained ownership/identity capacity is reserved before any new side effect.
     #[error("workspace registry retained capacity is full")]
     RegistryFull,
@@ -368,6 +371,7 @@ impl StoreError {
             | Self::RegistryInactive(_)
             | Self::RegistryRecordTooLarge
             | Self::RegistryConflict
+            | Self::RegistryFinished(_)
             | Self::AttentionWaiting
             | Self::PushFull
             | Self::SessionExists(_)

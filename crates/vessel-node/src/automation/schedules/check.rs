@@ -165,6 +165,7 @@ mod tests {
             anchor: None,
         });
         unknown.target = ScheduleTarget::NewSession {
+            isolation: None,
             spec: Box::new(vessel_proto::SessionSpec::new(
                 vessel_proto::HarnessKind::ClaudeCode,
                 vessel_proto::SessionMode::Structured {

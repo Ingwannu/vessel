@@ -224,20 +224,22 @@ budget above where the two disagree.
   would fail because of history.
 - Choice:
   - `MAX_WORKSPACES` counts live identities only: records that are not Archived,
-    plus every reservation.
-  - `MAX_RESOURCES` counts only the ownership rows of workspaces that are not
-    Archived.
-  - Archived records are kept, but they do not count toward either cap.
-  - Archived `Local` records beyond `MAX_ARCHIVED_WORKSPACES` (equal to
-    `MAX_WORKSPACES`) are pruned oldest first (archive time, then id), in the
-    same savepoint as the archive that exceeded the bound. Their ownership rows
-    and label assignments cascade. A record with a reservation is never pruned.
-  - A live create is never refused because of archived records.
+    plus every non-retired reservation, deduplicated by identity.
+  - `MAX_RESOURCES` counts explicit ownership rows, including archived
+    explicit rows. Retained membership can refuse a new isolated start
+    because the same byte limit covers live and historical ownership.
+  - Eligible legacy Local archives, retired provision receipts and their
+    archived descriptors share `MAX_ARCHIVED_WORKSPACES`. Pruning is oldest
+    first by archive or retirement time, then id. Ownership and labels
+    cascade from a pruned descriptor.
   - `MAX_RETAINED_BYTES` adds one `RESERVED_BYTES_PER_WORKSPACE` term for each
     retained archived slot.
-- Why `Local` only: an archived `Managed` record may still describe a worktree
-  that the registry must remove after its last reference. Only W21's archive path
-  creates archived `Managed` records, and that path brings its own bound with it.
+- Fully cleaned Local and Managed archives and retired provision receipts
+  with proven absence share `MAX_ARCHIVED_WORKSPACES`. A descriptor and its
+  retired reservation are pruned together when no unsettled caller binding
+  pins the id. A managed backing that remains on disk or an unsettled
+  effect keeps its live slot under `MAX_WORKSPACES`. Retired history does not
+  consume live capacity. The two caps preserve `MAX_RETAINED_BYTES`.
 - Snapshot size:
   - live and archived descriptors are at most 512 × 8 KiB = 4 MiB;
   - explicit memberships are at most 4096 rows;
@@ -251,3 +253,45 @@ budget above where the two disagree.
   - archive is not an eviction of live state;
   - pruning removes archived history beyond the bound (a declared difference:
     Paseo keeps archived workspace records without a count limit).
+
+## Shared lifecycle producer for TRACKER 838
+
+A caller with an admitted project uses the node's `workspace/lifecycle`
+producer to reserve an independent identity and provision its Local descriptor
+or managed Worktree. The retained project admission covers backing creation
+through descriptor publication. Approved setup follows publication. The Store
+reuses exact actor leases and records membership before an actor may spawn.
+Legacy root lookup and derived membership skip independently provisioned
+identities. Project removal checks provenance and retained debt. Ordinary
+worktree removal and tidying protect only the exact backing. Session retention
+does not own a managed worktree.
+
+An internal archive claim closes admission before draining the members of one
+workspace. A retained Explicit claim can resume after restart; metadata edits
+preserve the lifecycle. Automatic archive defers to Active while a member
+other than the scheduled session is still live. It uses the session actor's
+idle-only stop for the scheduled session, serialized with turn and queue
+admission. Accepted prompts retain their place. The run records
+`archive deferred: other members` and relevant registry activity can resume
+cleanup. Paseo stops the workspace's agents and terminals during archive.
+
+A person's Archive mark of a kept scheduled session records a durable
+automatic workspace release in the same transaction. The exact Keep
+receipt persists through restart, schedule deletion and history trimming.
+Other live members still defer that release.
+
+Cleanup reuses exact ownership, Git and occupancy checks. Dirty or occupied
+backing remains charged until proven removed. For exclusive, settled backing
+of an Archived workspace, a person's ordinary worktree removal uses their
+IfLost choice. The Store deletes the backing record and retires its reservation
+in one savepoint after confirmed removal. Session tidying still fences it.
+Store schema 26 follows the startup recovery append. It rebuilds the
+reservation table to add Retired and adds internal archive and run-binding
+receipts. The unresolved binding count is bounded by `MAX_WORKSPACES` and
+pruning respects those pins. No new workspace RPC is needed for this caller.
+
+Startup recovery (ADR 0059) excludes sessions with non-Active explicit
+workspace ownership. For Active workspaces it claims the same exact start
+lease as manual reopen before launch, then settles the lease after actor
+registration or confirmed failure. This lets an archive fence the next
+launch, and a new boot cannot replace an actor with an unconfirmed join.
