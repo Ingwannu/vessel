@@ -273,7 +273,7 @@ impl Startup {
         })
         .await
         .map_err(NodeError::Task)?;
-        let store = super::open_store(config, settings.recovery_policy().enabled).await?;
+        let store = open_store(config, settings.recovery_policy().enabled).await?;
         let (models, proxy) = model_proxy(models).await?;
         let session_setup = SessionSetup::new(config, id, profiles, Arc::clone(&models), settings, dirs);
         Ok(Self {
@@ -289,6 +289,21 @@ impl Startup {
             relaying,
         })
     }
+}
+
+/// Open the event log, closing sessions a previous run left live.
+async fn open_store(config: &Config, recovery_enabled: bool) -> Result<vessel_store::Store, NodeError> {
+    let vessel_store::Opened { store, interrupted } =
+        vessel_store::Store::open_with_restart_policy(&config.data_dir, config.store, recovery_enabled)
+        .await
+        .map_err(NodeError::Store)?;
+    if !interrupted.is_empty() {
+        tracing::info!(
+            sessions = interrupted.len(),
+            "sessions from the previous run are now interrupted"
+        );
+    }
+    Ok(store)
 }
 
 /// The session runtime, whose structured sessions load their prompts'

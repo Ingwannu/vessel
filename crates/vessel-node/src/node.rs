@@ -18,7 +18,7 @@ use vessel_relay::address::ClientAddress;
 use vessel_relay::{LinkState, TlsConfig};
 use vessel_secure::NodeKeypair;
 use vessel_session::{AttachmentLoader, SessionRuntime};
-use vessel_store::{DataDir, NodeLock, NodeToken, Opened, Store};
+use vessel_store::{DataDir, NodeLock, NodeToken, Store};
 
 use crate::agents::Agents;
 use crate::attachments::staging;
@@ -246,21 +246,6 @@ impl Node {
         self.lifecycle.stop(vessel_proto::StopWhen::Now);
         self.task.await.map_err(NodeError::Task)?
     }
-}
-
-/// Open the event log, closing sessions a previous run left live.
-async fn open_store(config: &Config, recovery_enabled: bool) -> Result<Store, NodeError> {
-    let Opened { store, interrupted } =
-        Store::open_with_restart_policy(&config.data_dir, config.store, recovery_enabled)
-        .await
-        .map_err(NodeError::Store)?;
-    if !interrupted.is_empty() {
-        tracing::info!(
-            sessions = interrupted.len(),
-            "sessions from the previous run are now interrupted"
-        );
-    }
-    Ok(store)
 }
 
 /// The node's parts below its transports.
@@ -493,6 +478,7 @@ async fn core(
         },
     )
     .await;
+    crate::service::recovery::start(&service, &tasks, stop.clone());
     Ok(Core {
         runtime,
         settings,

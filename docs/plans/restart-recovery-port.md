@@ -50,8 +50,16 @@ The port starts from `1829d53dc` at protocol 48. The coordinator selected
 | `8970e4fa339fb5199e13584ca6612877c0f8efe8` | Producer regression coverage for failed file replacement, SQL cleanup and exact saved prompt preservation. |
 | `37f9460f4cde60ae629779b80d60104a5fa4b225` | Ordered restart journal and shutdown capture. The port keeps runtime `LaunchAdmission`, preparation claims and the live metadata clock. |
 | `12d862346c78e7bccda51baff9d4f9dda7b56913` | Node persistence consumer and test acknowledgement barrier. The port applies the committed clock before publishing the durable sequence or returning a checkpoint acknowledgement. |
+| `3fc3de004e89226538ba8993e54d8c524e3dc827`, `51dc3419fcdf835c9969eba8879dd84f6e70f260` | Boot coordinator, device grant fence, ordinary-operation admission and actual provider cases as assembled at `12d862346`. Existing worktree leases, model routing and confirmed Vessel tool injection remain on the same launch. |
+| `090ea2c62f5587ed76012b2eaafa0362342c5fda`, `f1c5b42fba3c3a1825ef110a66042c120a10b127`, `5970aec68e2ec1807a9f0c65960432fe74fa0a47` | Exact-run Kill boundary and its held real Arm-acknowledgement regression. The code pins the already admitted handle while recovery retains its original slot and actual prompt outcome. |
+| `9d8396be1b948204d70e75bdbd1c656e88f607ac` | Client helpers, CLI settings and fake load admission. The CLI reuses the current `Switch` parser and retains the plugins patch. |
 
 The consumer checklist is `8003b14e1f9fc26f228390ee071b15eb5b47a2fd`.
-The producer reference is `385fc1ee5`, and the exact-run Kill reference
-is `d9a9c840d`. The implementation records the selected commits below as
-each portion is integrated.
+The producer reference is `385fc1ee5b0e96e1968b2025eb626a2e13e2153a`.
+The exact-run Kill source evidence is `d9a9c840db88958a965091d19d75b919cbf2d908`.
+The preparation view observes the current runtime's `LaunchAdmission`.
+Its host callback holds the original attempt and checks live cancellation
+and the deadline under the same policy arbiter as launch and prompt enqueue.
+When preparation is refused, the coordinator awaits the original physical
+lookup or helper before releasing its attempt and Store protection.
+Failure diagnostics use outcome codes because a provider can echo input.
