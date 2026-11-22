@@ -124,7 +124,7 @@ async fn scheduled_local_members_keep_distinct_ids_and_managed_archives_remove_o
                 })
             ));
             assert!(owner.schedules().await.unwrap().is_empty());
-            assert!(snapshot(&owner).workspaces.is_empty());
+            assert!(snapshot(&owner).await.workspaces.is_empty());
             return;
         }
         let local = local.unwrap();
