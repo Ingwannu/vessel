@@ -99,14 +99,14 @@ impl NodeService {
                     return;
                 }
             };
-            let mut activity = FuturesUnordered::new();
+            let mut observations = Vec::new();
             for binding in bindings {
                 let ready = match binding.stage {
                     RunBindingStage::DeferredBusy => {
-                        self.watch_busy_archive(binding, &activity).await
+                        self.watch_busy_archive(binding, &mut observations).await
                     }
                     RunBindingStage::DeferredMembers => {
-                        self.watch_other_members(binding, &activity).await
+                        self.watch_other_members(binding, &mut observations).await
                     }
                     RunBindingStage::Bound | RunBindingStage::Started => false,
                 };
@@ -114,6 +114,7 @@ impl NodeService {
                     tracing::warn!(workspace = %binding.workspace, %error, "deferred workspace archive remains unsettled");
                 }
             }
+            let mut activity = observations.into_iter().collect::<FuturesUnordered<_>>();
             tokio::select! {
                 () = stopping.cancelled() => return,
                 result = changes.changed() => {
@@ -133,7 +134,7 @@ impl NodeService {
     async fn watch_busy_archive(
         &self,
         binding: ScheduleRunBinding,
-        activity: &FuturesUnordered<Activity>,
+        activity: &mut Vec<Activity>,
     ) -> bool {
         let session = binding.session;
         if let Some(handle) = self.sessions.live(session) {
@@ -174,7 +175,7 @@ impl NodeService {
     async fn watch_other_members(
         &self,
         binding: ScheduleRunBinding,
-        activity: &FuturesUnordered<Activity>,
+        activity: &mut Vec<Activity>,
     ) -> bool {
         let Ok(members) = self
             .sessions

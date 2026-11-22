@@ -119,8 +119,7 @@ impl Workspaces {
         let Ok(registry) = self.store.workspace_registry().await else {
             return;
         };
-        for record in registry.workspaces {
-            let descriptor = record.descriptor;
+        for descriptor in registry.workspaces {
             if !matches!(descriptor.lifecycle, WorkspaceLifecycle::Archived { .. })
                 || !self
                     .store

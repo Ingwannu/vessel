@@ -129,6 +129,9 @@ mod settings;
 mod schedule_preview;
 #[cfg(test)]
 #[cfg(unix)]
+mod schedule_isolation;
+#[cfg(test)]
+#[cfg(unix)]
 mod scheduled;
 #[cfg(test)]
 mod schedules;

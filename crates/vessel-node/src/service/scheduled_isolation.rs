@@ -1,7 +1,6 @@
 //! Schedule admission and run identity. Workspace effects stay in its lifecycle
 //! module so other callers can use the same producer and archive claims.
 
-use chrono::Utc;
 use vessel_proto::automation::{AfterRun, RunOutcome};
 use vessel_proto::registry::{
     WorkspaceAutomation, WorkspaceIsolation, WorkspaceResource, WorkspaceVisibility,
