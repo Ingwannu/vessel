@@ -127,7 +127,10 @@ impl NodeService {
                         // retirement commit. They can resume after either write.
                         store.advance_schedule_run_binding(binding, stage).await?;
                     }
-                    match store.retire_registry_workspace(binding.workspace, evidence, Utc::now()).await {
+                    match store
+                        .retire_registry_workspace(binding.workspace, evidence, Utc::now())
+                        .await
+                    {
                         Ok(()) | Err(vessel_store::StoreError::RegistryMissing(_)) => {}
                         Err(error) => return Err(error.into()),
                     }

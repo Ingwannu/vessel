@@ -462,12 +462,12 @@ pub(crate) mod again;
 mod conversation;
 mod discovery;
 mod marks;
-mod workspace_reopen;
 mod metadata;
 mod read;
 mod reload;
 pub(crate) mod settled;
 mod side_questions;
+mod workspace_reopen;
 
 #[cfg(test)]
 mod tests;

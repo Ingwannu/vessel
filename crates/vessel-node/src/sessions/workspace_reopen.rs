@@ -25,10 +25,14 @@ impl Sessions {
         let expected = current.descriptor.revision;
         let lease = match previous.readiness {
             RegistryResourceReadiness::Ready => {
-                self.store.claim_registry_restart(previous.lease, expected).await?
+                self.store
+                    .claim_registry_restart(previous.lease, expected)
+                    .await?
             }
             RegistryResourceReadiness::Failed => {
-                self.store.claim_registry_start(workspace, resource, expected).await?
+                self.store
+                    .claim_registry_start(workspace, resource, expected)
+                    .await?
             }
             RegistryResourceReadiness::Pending | RegistryResourceReadiness::Uncertain => {
                 return Err(StoreError::RegistryConflict.into());

@@ -492,17 +492,35 @@ mod requirement_tests {
                 _ => unreachable!("the selected methods return schedule writes"),
             };
             *target = ScheduleTarget::NewSession {
-                spec: Box::new(SessionSpec::new(HarnessKind::ClaudeCode, SessionMode::Structured {
-                    model: None, resume: None, options: Vec::new(),
-                })),
+                spec: Box::new(SessionSpec::new(
+                    HarnessKind::ClaudeCode,
+                    SessionMode::Structured {
+                        model: None,
+                        resume: None,
+                        options: Vec::new(),
+                    },
+                )),
                 after: AfterRun::Archive,
                 isolation: Some(WorkspaceIsolation::Local),
             };
             assert_eq!(request.required_protocol(), SCHEDULE_ISOLATION_PROTOCOL);
             for wrapper in [
-                Forward { node: NodeId::random(), call: Box::new(request.clone()) }.into_call(),
-                RelayCall { node: NodeId::random(), call: Box::new(request.clone()), origin: samples::origin() }.into_call(),
-                Deliver { call: Box::new(request.clone()), origin: samples::origin() }.into_call(),
+                Forward {
+                    node: NodeId::random(),
+                    call: Box::new(request.clone()),
+                }
+                .into_call(),
+                RelayCall {
+                    node: NodeId::random(),
+                    call: Box::new(request.clone()),
+                    origin: samples::origin(),
+                }
+                .into_call(),
+                Deliver {
+                    call: Box::new(request.clone()),
+                    origin: samples::origin(),
+                }
+                .into_call(),
             ] {
                 assert_eq!(wrapper.required_protocol(), SCHEDULE_ISOLATION_PROTOCOL);
             }

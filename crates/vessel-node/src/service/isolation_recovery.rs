@@ -39,10 +39,15 @@ impl NodeService {
         binding: ScheduleRunBinding,
     ) -> Result<(), WorkspaceError> {
         if let Some(retirement) = binding.stage.retirement() {
-            return self.settle_isolation(
-                binding,
-                IsolationCleanup::Settled { archive: None, retirement: Some(retirement) },
-            ).await;
+            return self
+                .settle_isolation(
+                    binding,
+                    IsolationCleanup::Settled {
+                        archive: None,
+                        retirement: Some(retirement),
+                    },
+                )
+                .await;
         }
         let store = self.sessions.store();
         for start in store.pending_registry_starts(binding.workspace).await? {
@@ -115,8 +120,10 @@ impl NodeService {
                     RunBindingStage::DeferredMembers => {
                         self.watch_other_members(binding, &mut observations).await
                     }
-                    RunBindingStage::Bound | RunBindingStage::Started |
-                    RunBindingStage::RetiringArchive | RunBindingStage::RetiringUnpublished => false,
+                    RunBindingStage::Bound
+                    | RunBindingStage::Started
+                    | RunBindingStage::RetiringArchive
+                    | RunBindingStage::RetiringUnpublished => false,
                 };
                 if ready && let Err(error) = self.cleanup_isolation(binding).await {
                     tracing::warn!(workspace = %binding.workspace, %error, "deferred workspace archive remains unsettled");
