@@ -13,7 +13,9 @@ import { isHeartbeat } from "./rows";
 export type Cron = Extract<Cadence, { kind: "cron" }>;
 const REVISION_LIMIT = 2 ** 32;
 
-export function supportsHeartbeatEdit(connection: NodeStatus | undefined) {
+export function supportsHeartbeatEdit(
+  connection: NodeStatus | undefined,
+): boolean {
   return (
     connection?.state === "connected" &&
     connection.protocol >= HEARTBEAT_CADENCE_PROTOCOL

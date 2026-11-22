@@ -33,7 +33,7 @@ export function aggregate(state: ScheduleReads): ScheduleListView {
           if (pending === "delete") continue;
           const row: ScheduleRow = { node, info };
           if (pending !== undefined) row.pending = pending;
-          if (machine.heartbeatGrant && editableHeartbeat(info))
+          if (machine.heartbeatGrant === true && editableHeartbeat(info))
             row.heartbeatRoute = machine.generation;
           rows.push(row);
         }
