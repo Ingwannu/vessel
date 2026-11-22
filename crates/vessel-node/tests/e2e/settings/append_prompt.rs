@@ -15,7 +15,9 @@ use crate::support::ask;
 async fn the_private_prompt_is_kept_by_admin_and_legacy_settings_stay_public() {
     within(async {
         let fixture = Fixture::new();
-        let node = fixture.start().await;
+        let node = fixture
+            .start_with(crate::secure::advertise_placeholder_route)
+            .await;
         let owner = fixture.connect(&node).await;
         let raw = " \n Synthetic host instruction.\n ";
         let prompt = raw.parse::<AppendSystemPrompt>().unwrap();
