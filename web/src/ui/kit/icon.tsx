@@ -35,6 +35,7 @@ export const ICON_NAMES = [
   "compose",
   "terminal",
   "square-terminal",
+  "code-xml",
   "files",
   "message",
   "copy",

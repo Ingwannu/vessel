@@ -1,44 +1,201 @@
-// A file's editor in the Files tab: its whole text in a bare monospace
-// area; ⌘/Ctrl+S saves. The file view keeps the edit and its save.
+import {
+  defaultKeymap,
+  history,
+  historyKeymap,
+  indentWithTab,
+} from "@codemirror/commands";
+import { bracketMatching, indentOnInput } from "@codemirror/language";
+import { search, searchKeymap } from "@codemirror/search";
+import {
+  Annotation,
+  Compartment,
+  EditorState,
+  Transaction,
+} from "@codemirror/state";
+import {
+  drawSelection,
+  EditorView,
+  highlightActiveLine,
+  highlightActiveLineGutter,
+  keymap,
+  lineNumbers,
+} from "@codemirror/view";
+import { getCM, vim } from "@replit/codemirror-vim";
+import { useEffect, useEffectEvent, useRef } from "react";
 
-import { TextArea } from "../../ui/kit";
+import { prefs } from "../../data/prefs";
+import { useStore } from "../../data/store";
+import { languageOf } from "../../data/workspace/syntax-languages";
 import type { RelPath } from "../../wire/proto";
+import { fileEditorSyntax } from "./file-editor-syntax";
+import "./file-editor.css";
 
+export type FileCursor = Readonly<{ line: number; column: number }>;
+
+const replaceDraft = Annotation.define<boolean>();
+const editability = new Compartment();
+const bindings = new Compartment();
+
+/** CodeMirror owns input and selection. The file view owns the draft and its
+ * revision-checked save so an editor mode cannot bypass a disk conflict. */
 export function FileEditor({
   path,
   draft,
   saving,
   onChange,
   onSave,
+  onCursor,
+  onMode,
 }: {
   path: RelPath;
   draft: string;
   saving: boolean;
   onChange: (draft: string) => void;
   onSave: () => void;
+  onCursor: (cursor: FileCursor) => void;
+  onMode: (mode: string | null) => void;
 }) {
+  const host = useRef<HTMLDivElement>(null);
+  const editor = useRef<EditorView | null>(null);
+  const vimEnabled = useStore(
+    prefs,
+    (state) => state.values.editor.vim_keybindings,
+  );
+  const currentDraft = useEffectEvent(() => draft);
+  const changeDraft = useEffectEvent(onChange);
+  const cursorChanged = useEffectEvent(onCursor);
+  const vimModeChanged = useEffectEvent(onMode);
+
+  useEffect(() => {
+    if (host.current === null) {
+      return;
+    }
+    const source = currentDraft();
+    // Keep CRLF as the inserted line break for files already using it.
+    // An explicit LF for mixed input also retains their literal CR bytes.
+    const separator =
+      source.includes("\r\n") && !/(^|[^\r])\n/u.test(source) ? "\r\n" : "\n";
+    let lastCursor: FileCursor | undefined;
+    const publishCursor = (state: EditorState) => {
+      const head = state.selection.main.head;
+      const line = state.doc.lineAt(head);
+      const column = head - line.from + 1;
+      if (lastCursor?.line !== line.number || lastCursor.column !== column) {
+        lastCursor = { line: line.number, column };
+        cursorChanged(lastCursor);
+      }
+    };
+    const view = new EditorView({
+      parent: host.current,
+      state: EditorState.create({
+        doc: source,
+        extensions: [
+          // Modal keys must reach Vim before the standard editing keymap.
+          bindings.of([]),
+          EditorState.lineSeparator.of(separator),
+          EditorView.contentAttributes.of({ "aria-label": `Edit ${path}` }),
+          lineNumbers(),
+          highlightActiveLine(),
+          highlightActiveLineGutter(),
+          history(),
+          drawSelection(),
+          indentOnInput(),
+          bracketMatching(),
+          fileEditorSyntax(languageOf(path)),
+          search({ top: true }),
+          keymap.of([
+            indentWithTab,
+            ...defaultKeymap,
+            ...historyKeymap,
+            ...searchKeymap,
+          ]),
+          /\.(?:md|markdown)$/iu.test(path) ? EditorView.lineWrapping : [],
+          editability.of([]),
+          EditorView.updateListener.of((update) => {
+            if (update.selectionSet || update.docChanged) {
+              publishCursor(update.state);
+            }
+            if (
+              update.docChanged &&
+              !update.transactions.some(
+                (transaction) => transaction.annotation(replaceDraft) === true,
+              )
+            ) {
+              changeDraft(update.state.sliceDoc());
+            }
+          }),
+        ],
+      }),
+    });
+    editor.current = view;
+    publishCursor(view.state);
+    return () => {
+      editor.current = null;
+      view.destroy();
+    };
+  }, [path]);
+
+  useEffect(() => {
+    const view = editor.current;
+    if (view === null || draft === view.state.sliceDoc()) {
+      return;
+    }
+    const replacement = view.state.toText(draft);
+    view.dispatch({
+      changes: { from: 0, to: view.state.doc.length, insert: replacement },
+      selection: {
+        anchor: Math.min(view.state.selection.main.head, replacement.length),
+      },
+      annotations: [replaceDraft.of(true), Transaction.addToHistory.of(false)],
+    });
+  }, [draft]);
+
+  useEffect(() => {
+    editor.current?.dispatch({
+      effects: editability.reconfigure([
+        EditorState.readOnly.of(saving),
+        EditorView.editable.of(!saving),
+      ]),
+    });
+  }, [path, saving]);
+
+  useEffect(() => {
+    const view = editor.current;
+    if (view === null) {
+      return;
+    }
+    view.dispatch({ effects: bindings.reconfigure(vimEnabled ? vim() : []) });
+    const cm = vimEnabled ? getCM(view) : null;
+    if (cm === null) {
+      vimModeChanged(null);
+      return;
+    }
+    vimModeChanged("NORMAL");
+    const showMode = (event: { mode: string }) => {
+      vimModeChanged(event.mode.toUpperCase());
+    };
+    cm.on("vim-mode-change", showMode);
+    return () => {
+      cm.off("vim-mode-change", showMode);
+    };
+  }, [path, vimEnabled]);
+
   return (
     <div
       className="file-editor"
-      onKeyDown={(event) => {
+      onKeyDownCapture={(event) => {
         if (
           (event.metaKey || event.ctrlKey) &&
           event.key.toLowerCase() === "s"
         ) {
+          // Save belongs to the enclosing file, even in Vim Normal mode.
           event.preventDefault();
+          event.stopPropagation();
           onSave();
         }
       }}
     >
-      <TextArea
-        look="bare"
-        mono
-        fill
-        value={draft}
-        onChange={onChange}
-        readOnly={saving}
-        aria-label={`Edit ${path}`}
-      />
+      <div className="file-editor-host" ref={host} />
     </div>
   );
 }

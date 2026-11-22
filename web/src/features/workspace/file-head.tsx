@@ -9,6 +9,7 @@ import { useState } from "react";
 import { splitPath } from "../../data/workspace/changes";
 import { Button, Icon, IconButton, Segmented, Tooltip } from "../../ui/kit";
 import type { RelPath } from "../../wire/proto";
+import type { FileCursor } from "./file-editor";
 
 /** Which side of a file with a Preview is shown. */
 export type FileSide = "preview" | "source";
@@ -40,6 +41,8 @@ export function FileHead({
   dirty,
   editing,
   saving,
+  cursor,
+  vimMode,
   edit,
   side,
   onSide,
@@ -51,6 +54,8 @@ export function FileHead({
   dirty: boolean;
   editing: boolean;
   saving: boolean;
+  cursor: FileCursor | null;
+  vimMode: string | null;
   /** Edit: absent where the file cannot be edited here, `null` when it is
    * too large to. */
   edit: (() => void) | null | undefined;
@@ -63,7 +68,7 @@ export function FileHead({
 }) {
   const { dir, name } = splitPath(path);
   return (
-    <div className="file-head">
+    <div className={editing ? "file-head editing" : "file-head"}>
       <Tooltip label="All files">
         <IconButton
           label="All files"
@@ -82,6 +87,20 @@ export function FileHead({
       </span>
       {dirty ? (
         <span className="file-dirty" aria-label="Unsaved changes" />
+      ) : null}
+      {vimMode !== null || cursor !== null ? (
+        <span className="file-head-position">
+          {vimMode === null ? null : (
+            <span role="status" aria-label={`Vim mode ${vimMode}`}>
+              {vimMode}
+            </span>
+          )}
+          {cursor === null ? null : (
+            <span>
+              Ln {cursor.line}, Col {cursor.column}
+            </span>
+          )}
+        </span>
       ) : null}
       <span className="file-head-end">
         {side === null ? null : (

@@ -60,8 +60,8 @@ pub use state::{PreferencesState, Revision};
 pub use usage::{MAX_USAGE_PINS, UsageDisplay, UsagePin, UsagePins, UsagePreferences};
 
 pub use workspace::{
-    OpenLocationDestination, OpenLocationPreferences, OpenLocationSource, PullRequestLocation,
-    ScrollbackOutOfRange, TerminalPreferences, TerminalScrollback,
+    EditorPreferences, OpenLocationDestination, OpenLocationPreferences, OpenLocationSource,
+    PullRequestLocation, ScrollbackOutOfRange, TerminalPreferences, TerminalScrollback,
 };
 
 /// The most keys bound to one action.
@@ -142,6 +142,8 @@ pub struct Preferences {
     pub layout: Layout,
     /// The built-in terminal display.
     pub terminal: TerminalPreferences,
+    /// Source editor controls.
+    pub editor: EditorPreferences,
     /// Where workspace actions open.
     pub open_location: OpenLocationPreferences,
     /// The composer.
@@ -479,7 +481,7 @@ mod tests {
         let text = serde_json::to_string(&values).unwrap();
         assert_eq!(
             text,
-            r#"{"appearance":{"theme":"system","interface_size":14,"code_size":12,"content_width":"comfortable","conversation":"full"},"layout":{"sidebar":"shown","inspector":"shown","explorer_sort":"name"},"terminal":{"scrollback":10000},"open_location":{"explorer_files":"main","diffs":"main","diff_files":"main","pull_requests":"explorer"},"composer":{"send":"enter","delivery":"steer"},"shortcuts":{},"notifications":{"alerts":"off","title":true},"sidebar":{"group":"machine","sort":"created","ended":true,"labels":[],"usage":false,"trailing":"timestamp"},"usage":{"display":"used","host":null,"pins":null},"defaults":{}}"#
+            r#"{"appearance":{"theme":"system","interface_size":14,"code_size":12,"content_width":"comfortable","conversation":"full"},"layout":{"sidebar":"shown","inspector":"shown","explorer_sort":"name"},"terminal":{"scrollback":10000},"editor":{"vim_keybindings":false},"open_location":{"explorer_files":"main","diffs":"main","diff_files":"main","pull_requests":"explorer"},"composer":{"send":"enter","delivery":"steer"},"shortcuts":{},"notifications":{"alerts":"off","title":true},"sidebar":{"group":"machine","sort":"created","ended":true,"labels":[],"usage":false,"trailing":"timestamp"},"usage":{"display":"used","host":null,"pins":null},"defaults":{}}"#
         );
         assert_eq!(serde_json::from_str::<Preferences>(&text).unwrap(), values);
     }

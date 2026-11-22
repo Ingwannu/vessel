@@ -6,7 +6,14 @@ import { useFleet } from "../../context";
 import { prefer, prefs } from "../../data/prefs";
 import { useStore } from "../../data/store";
 import { WORKSPACE_SPLIT_QUERY } from "../../data/workspace/tab-layout";
-import { Row, RowList, Select, TextField, type Choice } from "../../ui/kit";
+import {
+  Row,
+  RowList,
+  Select,
+  Switch,
+  TextField,
+  type Choice,
+} from "../../ui/kit";
 import { toast } from "../../ui/toasts";
 import type {
   OpenLocationDestination,
@@ -93,6 +100,33 @@ export function FilesSection() {
         <p className="file-associations-empty">
           File panels appear here when a plugin adds one
         </p>
+      </SettingsSection>
+    </SettingsPage>
+  );
+}
+
+export function EditorSection() {
+  const vim = useStore(prefs, (state) => state.values.editor.vim_keybindings);
+  const edit = usePreferenceEdit();
+  return (
+    <SettingsPage>
+      <KeptNote />
+      <SettingsSection title="Editor">
+        <RowList label="Editor">
+          <Row
+            title="Vim keybindings"
+            detail={{ description: "Applies when editing source files." }}
+            control={
+              <Switch
+                label="Vim keybindings"
+                checked={vim}
+                onChange={(enabled) => {
+                  edit({ set: "vim_keybindings", value: enabled });
+                }}
+              />
+            }
+          />
+        </RowList>
       </SettingsSection>
     </SettingsPage>
   );

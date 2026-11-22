@@ -1,7 +1,7 @@
 // A session in the fleet's `shop` repository (e2e/repos.ts) and its code
 // panel's tabs, shared by the specs that read the panel.
 
-import { type Locator, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 
 import { choose, newSessionPage } from "./kit";
 
@@ -21,6 +21,18 @@ export async function openPanelTab(page: Page, name: string): Promise<void> {
     await page.getByRole("button", { name: "New tab", exact: true }).click();
     await page.getByRole("menuitem", { name, exact: true }).click();
   }
+}
+
+/** The active CodeMirror lines expose the short fixture's draft in order. */
+export async function expectEditorText(
+  editor: Locator,
+  text: string,
+): Promise<void> {
+  await expect
+    .poll(async () =>
+      (await editor.locator(".cm-line").allTextContents()).join("\n"),
+    )
+    .toBe(text);
 }
 
 /** Start a session on laptop in the project `shop`, `where` it runs. */

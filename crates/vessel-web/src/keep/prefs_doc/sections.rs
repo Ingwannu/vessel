@@ -11,11 +11,11 @@ use vessel_proto::{ChoiceValue, HarnessKind, NodeId, ProfileName, RawJson};
 use super::super::lenient::{Blank, Entries, Field};
 use crate::wire::{
     AgentDefaults, AgentKind, Alerts, Appearance, ChoiceKey, Choices, CodeSize, Composer,
-    ContentWidth, ConversationDisplay, ExplorerSort, Grouping, InterfaceSize, LabelPicks, Layout,
-    MachineDefaults, Notifications, OpenLocationDestination, OpenLocationPreferences,
-    OpenLocationSource, Panel, PullRequestLocation, SendKey, SessionSort, SidebarTrailing,
-    SidebarView, TerminalPreferences, TerminalScrollback, Theme, TurnDelivery, UsageDisplay,
-    UsagePins, UsagePreferences,
+    ContentWidth, ConversationDisplay, EditorPreferences, ExplorerSort, Grouping, InterfaceSize,
+    LabelPicks, Layout, MachineDefaults, Notifications, OpenLocationDestination,
+    OpenLocationPreferences, OpenLocationSource, Panel, PullRequestLocation, SendKey, SessionSort,
+    SidebarTrailing, SidebarView, TerminalPreferences, TerminalScrollback, Theme, TurnDelivery,
+    UsageDisplay, UsagePins, UsagePreferences,
 };
 
 /// Declares a section of plain settings: each a [`Field`], the section's
@@ -69,6 +69,11 @@ section! {
 section! {
     /// `terminal`.
     TerminalFile => TerminalPreferences { scrollback: TerminalScrollback }
+}
+
+section! {
+    /// `editor`.
+    EditorFile => EditorPreferences { vim_keybindings: bool }
 }
 
 section! {
