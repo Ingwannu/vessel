@@ -24,12 +24,18 @@ The receiving node was `e0ff69e1b` at protocol 48. The coordinator selected
   proceed. A failed Off write restores the original admission. Recovery
   metadata adds one schema migration. The named protocol remains
   pending until integration binds its client surfaces.
+- Store. The recovery projection shares the existing writer savepoint
+  with create, reopen and ordered checkpoint writes. The caller receives
+  the same committed mutation clock as on an ordinary write. This keeps
+  live metadata and attention wakes consistent even when the checkpoint
+  itself is stale. Existing rows start without recovery intent because a
+  historical start event cannot establish a committed recovery checkpoint.
 
 ## Source commits
 
 | Commit | Selected source |
 | --- | --- |
-| `db372b34a1897639b217cfdd3fce2f25395a3db9` | Recovery checkpoint types and the explicit Get/Set field boundary, mapped onto the current method table and settings fields. |
+| `db372b34a1897639b217cfdd3fce2f25395a3db9` | Recovery checkpoint types, explicit Get/Set field boundary and durable Store projection. The port keeps the current method table, writer receipts and migration order. |
 
 The consumer checklist is `8003b14e1f9fc26f228390ee071b15eb5b47a2fd`.
 The producer reference is `385fc1ee5`, and the exact-run Kill reference

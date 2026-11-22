@@ -22,6 +22,8 @@
 //! a transaction of its own before looking at the queue again.
 
 mod apply;
+mod restarting;
+pub(crate) use restarting::RestartOp;
 
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -72,10 +74,13 @@ pub(crate) enum Write {
         source: crate::PushAttention,
         done: Done<crate::LocalAdmission>,
     },
+    /// Policy, consumed startup claims and ordered commit checkpoints.
+    Restart(RestartOp),
     /// Store a new session. Boxed: operations wait in a bounded queue, and
     /// an inline `SessionInfo` would size every slot for this rare one.
     Create {
         info: Box<SessionInfo>,
+        eligibility: crate::RestartEligibility,
         done: Done<SessionCommit<()>>,
     },
     /// Append records to a session's log. Shared with the session runtime's
@@ -133,6 +138,8 @@ pub(crate) enum Write {
     Reopen {
         session: SessionId,
         next: EventSeq,
+        mode: crate::ReopenMode,
+        generation: Option<vessel_proto::restart::RestartGeneration>,
         done: Done<SessionCommit<KeptMarks>>,
     },
     /// Record an attachment whose file is in place and checked (protocol
@@ -236,6 +243,11 @@ enum Answer {
         Done<crate::LocalAdmission>,
         Result<crate::LocalAdmission, StoreError>,
     ),
+    Checked(Done<bool>, Result<bool, StoreError>),
+    Checkpoint(
+        Done<SessionCommit<bool>>,
+        Result<SessionCommit<bool>, StoreError>,
+    ),
     Done(Done, Result<(), StoreError>),
     Session(
         Done<SessionCommit<()>>,
@@ -264,6 +276,8 @@ impl Answer {
             Self::LabelDeleted(done, result) => done.send(after(failed, result)).is_ok(),
             Self::Detached(done, result) => done.send(after(failed, result)).is_ok(),
             Self::NotificationClaim(done, result) => done.send(after(failed, result)).is_ok(),
+            Self::Checked(done, result) => done.send(after(failed, result)).is_ok(),
+            Self::Checkpoint(done, result) => done.send(after(failed, result)).is_ok(),
             Self::Done(done, result) => done.send(after(failed, result)).is_ok(),
             Self::Session(done, result) => done.send(after(failed, result)).is_ok(),
             Self::Marked(done, result) => done.send(after(failed, result)).is_ok(),
@@ -302,6 +316,26 @@ struct Effects {
     removed: Vec<SessionId>,
     /// How many of them retention pruned.
     pruned: usize,
+}
+
+impl Effects {
+    /// Both ordinary appends and checkpoint batches retain the head's post-commit wakes.
+    fn appended(&mut self, session: SessionId, records: &[Arc<EventRecord>], ended: bool) {
+        let _first = self.touched.insert(session);
+        self.ended |= ended;
+        // ADR 0089 observes any event that changes outstanding attention.
+        self.attention |= records.iter().any(|record| {
+            record.event.asks_for_attention()
+                || matches!(
+                    &record.event,
+                    vessel_proto::SessionEvent::Agent {
+                        event: vessel_proto::AgentEvent::PermissionResolved { .. }
+                            | vessel_proto::AgentEvent::QuestionResolved { .. }
+                            | vessel_proto::AgentEvent::TurnStarted { .. }
+                    } | vessel_proto::SessionEvent::Rewound { .. }
+                )
+        });
+    }
 }
 
 /// Start the writer thread on `connection`.

@@ -36,8 +36,15 @@ pub(super) fn apply(
             source,
             done,
         } => notification_claim(transaction, authority, source, done),
-        Write::Create { info, done } => session_answer(transaction, info.id, done, |connection| {
-            log::create_session(connection, &info)
+        Write::Restart(operation) => {
+            super::restarting::apply(transaction, operation, effects, indexer)
+        }
+        Write::Create {
+            info,
+            eligibility,
+            done,
+        } => session_answer(transaction, info.id, done, |connection| {
+            super::restarting::create(connection, &info, eligibility)
         }),
         Write::Append {
             session,
@@ -94,9 +101,11 @@ pub(super) fn apply(
         Write::Reopen {
             session,
             next,
+            mode,
+            generation,
             done,
         } => marks_answer(transaction, effects, session, done, |connection| {
-            again::reopen(connection, session, next)
+            again::reopen(connection, session, next, mode, generation)
         }),
         Write::Attach { kept, at, done } => write_answer(transaction, done, |connection| {
             attachments::insert(connection, &kept, time_to_sql(at)?)
@@ -265,20 +274,7 @@ fn append(
         ))
     })?;
     indexer.keep(session, advanced);
-    let _first = effects.touched.insert(session);
-    effects.ended |= now_ended;
-    // ADR 0089: what changes a session's attention wakes its observers.
-    effects.attention |= records.iter().any(|record| {
-        record.event.asks_for_attention()
-            || matches!(
-                &record.event,
-                vessel_proto::SessionEvent::Agent {
-                    event: vessel_proto::AgentEvent::PermissionResolved { .. }
-                        | vessel_proto::AgentEvent::QuestionResolved { .. }
-                        | vessel_proto::AgentEvent::TurnStarted { .. }
-                } | vessel_proto::SessionEvent::Rewound { .. }
-            )
-    });
+    effects.appended(session, records, now_ended);
     Ok(SessionCommit::new((), updated_at))
 }
 
