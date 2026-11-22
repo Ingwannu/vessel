@@ -376,7 +376,7 @@ pub struct UpdateSchedule {
 pub const HEARTBEAT_CADENCE_PROTOCOL: Option<ProtocolVersion> = Some(ProtocolVersion::new(48));
 
 /// Per-run workspace isolation. Integration assigns the protocol when consumers land.
-pub const SCHEDULE_ISOLATION_PROTOCOL: Option<ProtocolVersion> = Some(ProtocolVersion::new(49));
+pub const SCHEDULE_ISOLATION_PROTOCOL: Option<ProtocolVersion> = Some(ProtocolVersion::new(50));
 
 /// Whether all hops on a schedule route can carry the isolation policy.
 #[must_use]
@@ -450,6 +450,11 @@ mod tests {
     fn schedule_isolation_is_the_newest_protocol() {
         // Keep the newest equality pin here until the next activation.
         assert_eq!(SCHEDULE_ISOLATION_PROTOCOL, Some(crate::PROTOCOL_VERSION));
+    }
+
+    #[test]
+    fn heartbeat_cadence_keeps_its_assigned_protocol() {
+        assert_eq!(HEARTBEAT_CADENCE_PROTOCOL, Some(ProtocolVersion::new(48)));
     }
 
     #[test]

@@ -1633,11 +1633,12 @@ transport are a following stage, not exposed by these value definitions.
 ### Startup recovery values (ADR 0059)
 
 `vessel-proto::restart` defines the disabled/reference-prompt policy and partial
-patch values using the existing bounded `PromptText`. The feature protocol is
-unassigned. Both settings replies pass through peer projection, including the
-existing recursive envelope walker; an unassigned field stays hidden from every
-peer. The explicit settings read also requires the named protocol. Clients
-treat a missing field as default Off only after that read succeeds.
+patch values using the existing bounded `PromptText`. The Agents settings
+share a protocol version while keeping their separate named thresholds.
+Both settings replies use the recursive peer projection to omit the field
+below its assigned version. The explicit settings read also requires that
+version. Page and CLI clients treat a missing field as default Off only
+after that read succeeds.
 
 ## Ended conversations in the page (ADR 0036 amendment)
 

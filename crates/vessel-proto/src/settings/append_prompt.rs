@@ -11,7 +11,7 @@ use crate::{
 };
 
 /// Saved host prompts and the private read share one receiving-peer threshold.
-pub const APPEND_SYSTEM_PROMPT_PROTOCOL: Option<ProtocolVersion> = None;
+pub const APPEND_SYSTEM_PROMPT_PROTOCOL: Option<ProtocolVersion> = Some(ProtocolVersion::new(49));
 
 /// A bounded saved host supplement. A blank value clears the supplement.
 #[derive(Clone, Default, PartialEq, Eq)]

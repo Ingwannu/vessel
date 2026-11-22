@@ -15108,3 +15108,18 @@ export const TERMINAL_PROFILES_PROTOCOL = 45;
  * A prompt's `context` and `review` blocks (ADR 0124).
  */
 export const PROMPT_CONTEXT_PROTOCOL = 46;
+
+/**
+ * The host switch for injecting Vessel tools on future launches (F-L21).
+ */
+export const VESSEL_TOOLS_PROTOCOL = 49;
+
+/**
+ * The host supplement and its private Admin read (F-L23).
+ */
+export const APPEND_SYSTEM_PROMPT_PROTOCOL = 49;
+
+/**
+ * The explicit startup recovery settings read and patch (ADR 0059).
+ */
+export const RESTART_RECOVERY_PROTOCOL = 49;
