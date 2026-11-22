@@ -10,7 +10,7 @@ use vessel_store::{
     WorkspaceProvision,
 };
 
-async fn explicit_member(fixture: &Fixture, node: &Node, owner: &NodeClient) -> WorkspaceResource {
+async fn explicit_member(fixture: &Fixture, node: &Node, owner: &NodeClient) -> SessionId {
     let service = &node.secure.service.0;
     let project = owner
         .call(AddProject {
@@ -72,7 +72,7 @@ async fn explicit_member(fixture: &Fixture, node: &Node, owner: &NodeClient) -> 
         .unwrap();
     let through = begin_turn(owner, session).await;
     let _original = committed(node, session, through).await;
-    resource
+    session
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
@@ -84,17 +84,13 @@ async fn startup_excludes_an_unarchived_session_whose_explicit_workspace_is_arch
             let node = fixture.start().await;
             let owner = fixture.client(&node).await;
             set(&node, true).await;
-            let resource = explicit_member(&fixture, &node, &owner).await;
+            let session = explicit_member(&fixture, &node, &owner).await;
+            let resource = WorkspaceResource::Session { session };
             node.stop().await.unwrap();
 
             let store = open_store(&fixture).await;
             let candidate = store.next_restart().await.unwrap().unwrap();
-            assert_eq!(
-                resource,
-                WorkspaceResource::Session {
-                    session: candidate.session
-                }
-            );
+            assert_eq!(candidate.session, session);
             let workspace = store
                 .registry_resource_run(resource)
                 .await
@@ -147,7 +143,8 @@ async fn startup_reopens_an_explicit_member_under_a_new_exact_workspace_lease() 
             let node = fixture.start().await;
             let owner = fixture.client(&node).await;
             set(&node, true).await;
-            let resource = explicit_member(&fixture, &node, &owner).await;
+            let session = explicit_member(&fixture, &node, &owner).await;
+            let resource = WorkspaceResource::Session { session };
             let before = node
                 .secure
                 .service
@@ -177,9 +174,6 @@ async fn startup_reopens_an_explicit_member_under_a_new_exact_workspace_lease() 
             assert_eq!(after.lease.resource(), before.lease.resource());
             assert_ne!(after.lease, before.lease);
             assert_eq!(after.readiness, RegistryResourceReadiness::Ready);
-            let WorkspaceResource::Session { session } = resource else {
-                unreachable!()
-            };
             let records = owner
                 .read(session, EventSeq::ZERO, EVENT_PAGE)
                 .await
