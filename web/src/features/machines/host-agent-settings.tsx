@@ -10,11 +10,14 @@ import type { NodeKey } from "../../wire/bridge";
 import type { NodeSettings } from "../../wire/proto";
 import { SettingsSection } from "../settings/settings-page";
 import { AppendSystemPromptCard } from "./append-system-prompt";
+import { RestartRecoveryCard, useRestartRecovery } from "./restart-recovery";
 
 /** The selected machine owns the setting. The control reflects its receipt,
  * so a refused write leaves the current position visible. */
 export function HostAgentSettings({ machine }: { machine: NodeKey }) {
   const fleet = useFleet();
+  const { policy: recovery, setPolicy: setRecovery } =
+    useRestartRecovery(machine);
   const [settings, setSettings] = useState<NodeSettings | null>(null);
   const [saving, setSaving] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
@@ -50,7 +53,7 @@ export function HostAgentSettings({ machine }: { machine: NodeKey }) {
   const hasPrompt =
     settings?.append_system_prompt_transports?.includes("codex_app_server") ===
     true;
-  if (enabled === null && !hasPrompt) {
+  if (enabled === null && !hasPrompt && recovery === null) {
     return null;
   }
 
@@ -84,6 +87,13 @@ export function HostAgentSettings({ machine }: { machine: NodeKey }) {
         />
       )}
       {hasPrompt ? <AppendSystemPromptCard machine={machine} /> : null}
+      {recovery === null ? null : (
+        <RestartRecoveryCard
+          machine={machine}
+          policy={recovery}
+          setPolicy={setRecovery}
+        />
+      )}
     </SettingsSection>
   );
 }
