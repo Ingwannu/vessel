@@ -100,6 +100,8 @@ export const ICON_NAMES = [
   "help",
   "tag",
   "info",
+  "gear",
+  "palette",
   "blocks",
   "zoom-in",
   "zoom-out",
