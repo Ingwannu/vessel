@@ -60,7 +60,8 @@ test("the editor loads on Edit and Vim saves CRLF through the file view", async 
     await expect(mode).toHaveText("Vim insert");
     await page.keyboard.type("F");
     await editor.press("Escape");
-    await editor.press("Shift+a");
+    await editor.press("$");
+    await editor.press("a");
     await editor.press("Enter");
     await page.keyboard.type("added");
     await editor.press("Escape");
