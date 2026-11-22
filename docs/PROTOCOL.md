@@ -68,6 +68,17 @@ no runtime to compile. The package that serves the method changes `staged`
 to `pending` in the commit that adds its handler; from then on the guard
 requires the handler, as for every assigned or pending row.
 
+## Pending host system prompt supplement (M12 F-L23)
+
+`APPEND_SYSTEM_PROMPT_PROTOCOL` is assigned at integration. The Admin
+`node.append_system_prompt {}` method reads the saved text on a direct
+owner or device link. The Admin
+`node.set_settings { append_system_prompt? }` patch keeps bounded text
+verbatim, with blank clearing the effective supplement and omission
+preserving it. `node.settings` and patch replies carry the supported
+native transport names through `append_system_prompt_transports`.
+The pending and older-peer projections hide that field.
+
 ## Version 48 (2026-11-21, milestone 12): heartbeat cadence edits (TRACKER 839, ADR 0033)
 
 Assigned 48 (`HEARTBEAT_CADENCE_PROTOCOL`, `PROTOCOL_VERSION` 48) at its

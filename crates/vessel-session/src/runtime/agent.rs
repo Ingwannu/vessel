@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use tokio::sync::{mpsc, oneshot, watch};
-use vessel_agent::{AgentProcess, AgentSetup, CommandSpec, Driver};
+use vessel_agent::{AgentSetup, CommandSpec, Driver};
 use vessel_harness::{ModelProxy, Profile};
 use vessel_proto::{
     HarnessRef, ResolvedMcpServers, SessionId, SessionInfo, SessionMode, SessionSpec,
@@ -60,9 +60,7 @@ impl SessionRuntime {
         let admission = self.launch_admission();
         admission.check()?;
         // `fork`/`exec` on this thread, as `tokio::process` does.
-        let (agent, input, outputs) =
-            AgentProcess::spawn_with(launch.driver, &launch.command, launch.setup.clone())
-                .map_err(SessionError::agent_not_started)?;
+        let (agent, input, outputs) = launch.spawn().map_err(SessionError::agent_not_started)?;
         if admission.check().is_err() {
             // Dropping the agent kills its process group.
             drop(agent);

@@ -1897,6 +1897,12 @@ only the waiter. After connections finish, teardown closes settings mutation
 admission and joins admitted writers before the store closes (ADR 0064). This
 adds no crate edge, setting, format or wire method.
 
+The host system prompt uses that writer to publish a committed supplement
+to the session runtime. The physical launch takes its own snapshot and gives
+it only to a proved native transport. Ordinary settings projections carry
+transport support, while the Admin endpoint retrieves the saved text.
+See the [host prompt plan](plans/host-append-system-prompt.md).
+
 ## Bounded node diagnostics (ADR 0074)
 
 `vessel-proto::diagnostics` owns the validated report, closed section states,

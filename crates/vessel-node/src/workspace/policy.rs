@@ -287,6 +287,7 @@ const fn refused(method: Method) -> bool {
         // The node's settings (protocol 12): the read as `node.info`; the
         // change needs `admin`, which no agent holds.
         | Method::GetNodeSettings
+        | Method::GetAppendSystemPrompt
         | Method::SetNodeSettings
         // The plugin list and its change poll (ADR 0115): read as
         // `node.settings`; paths and errors are left out for an agent.

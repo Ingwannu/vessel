@@ -27,7 +27,17 @@ pub(super) fn since(request: &SetNodeSettings, method: ProtocolVersion) -> Optio
         Some(_) => Some(crate::mcp::VESSEL_TOOLS_PROTOCOL?.get()),
         None => None,
     };
-    let base = drivers.max(plugins).max(hooks).max(profiles).max(tools);
+    let prompt = if request.append_system_prompt.is_some() {
+        Some(crate::settings::APPEND_SYSTEM_PROMPT_PROTOCOL?.get())
+    } else {
+        None
+    };
+    let base = drivers
+        .max(plugins)
+        .max(hooks)
+        .max(profiles)
+        .max(tools)
+        .max(prompt);
     let metadata = if request.metadata.is_some() {
         Some(crate::GENERATED_NAMES?.get())
     } else {

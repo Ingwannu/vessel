@@ -308,6 +308,33 @@ impl Server {
     }
 
     fn opened(&mut self, id: &Value, thread: &str, params: &Value) -> Result<(), Exit> {
+        let instructions = params.get("developerInstructions");
+        if let Ok(expected) = std::env::var("FAKE_CODEX_EXPECT_DEVELOPER_INSTRUCTIONS")
+            && !instructions_match(instructions, &expected)
+        {
+            return self.refuse(
+                id,
+                -32602,
+                "developer instructions differed from the fixture",
+            );
+        }
+        if let Some(path) = std::env::var_os("FAKE_CODEX_EXPECT_DEVELOPER_INSTRUCTIONS_FILE") {
+            // A fixture can change its expectation between physical launches of one session.
+            let expected = std::fs::read_to_string(path);
+            if !expected.is_ok_and(|value| instructions_match(instructions, &value)) {
+                return self.refuse(
+                    id,
+                    -32602,
+                    "developer instructions differed from the fixture",
+                );
+            }
+        }
+        if std::env::var_os("FAKE_CODEX_REJECT_DEVELOPER_INSTRUCTIONS").is_some()
+            && let Some(instructions) = instructions.and_then(Value::as_str)
+        {
+            // Exercise the driver's refusal redaction with a synthetic echo.
+            return self.refuse(id, -32602, instructions);
+        }
         self.thread = Some(thread.to_owned());
         self.started = format!(
             "{} {} {}",
@@ -646,6 +673,15 @@ fn usage(total: u32) -> Value {
 }
 
 /// `value`'s `key`, or null.
+fn instructions_match(instructions: Option<&Value>, expected: &str) -> bool {
+    // An empty fixture value requires omission of the key, including on resume.
+    match instructions {
+        None => expected.is_empty(),
+        Some(Value::String(actual)) => !expected.is_empty() && actual == expected,
+        Some(_) => false,
+    }
+}
+
 fn field<'v>(value: &'v Value, key: &str) -> &'v Value {
     value.get(key).unwrap_or(&Value::Null)
 }
