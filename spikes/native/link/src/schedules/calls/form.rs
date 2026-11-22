@@ -15,10 +15,10 @@ use vessel_app_view::schedules::{
     page,
 };
 use vessel_proto::{
-    GetDeviceSelf, GetNode, ListHarnesses,
-    agents::ListAgents,
+    GetDeviceSelf, GetNode, Harness, ListHarnesses,
+    agents::{AgentInfo, ListAgents},
     automation::TimeZoneName,
-    workspace::{ListProjects, ListWorktrees},
+    workspace::{ListProjects, ListWorktrees, ProjectInfo, WorktreeInfo},
 };
 
 impl State {
@@ -41,7 +41,9 @@ impl State {
             let guard = selected.delivery_guard();
             let limit = match request.ask {
                 Ask::Save(_) => WRITE_DEADLINE,
-                Ask::Targets | Ask::Options(_) | Ask::Preview(_) => LIST_DEADLINE,
+                Ask::Targets | Ask::HeartbeatFacts | Ask::Options(_) | Ask::Preview(_) => {
+                    LIST_DEADLINE
+                }
             };
             let result = tokio::time::timeout(limit, execute(&selected, &request.ask))
                 .await
@@ -62,7 +64,7 @@ impl State {
 
 async fn execute(client: &SelectedConnection, ask: &Ask) -> Result<Value, Failure> {
     match ask {
-        Ask::Targets => targets(client)
+        Ask::Targets | Ask::HeartbeatFacts => targets(client, ask)
             .await
             .map(|value| Value::Targets(Box::new(value))),
         Ask::Options(options) => client
@@ -79,6 +81,7 @@ async fn execute(client: &SelectedConnection, ask: &Ask) -> Result<Value, Failur
             let result = match save.as_ref() {
                 Save::Create(create) => client.call(create.clone()).await,
                 Save::Update(update) => client.call(update.clone()).await,
+                Save::Heartbeat(update) => client.call(update.clone()).await,
             };
             result
                 .map(|value| Value::Saved(Box::new(value)))
@@ -87,28 +90,54 @@ async fn execute(client: &SelectedConnection, ask: &Ask) -> Result<Value, Failur
     }
 }
 
-async fn targets(client: &SelectedConnection) -> Result<Targets, Failure> {
+async fn targets(client: &SelectedConnection, ask: &Ask) -> Result<Targets, Failure> {
     // The lookup may touch OS files. Keep it off the actor and the async
     // worker pool. Absence is handled by the node zone or the form field.
     let zone = tokio::task::spawn_blocking(device_zone);
-    let (machine, projects, worktrees, harnesses, agents, scopes, device_zone) = tokio::join!(
+    let (machine, scopes, device_zone, choices) = tokio::join!(
         client.call(GetNode {}),
+        client.call(GetDeviceSelf {}),
+        zone,
+        choices(client, ask),
+    );
+    let read = |error| form_failure(ask, error);
+    let machine_zone = machine.map_err(read)?.timezone;
+    let choices = choices?;
+    Ok(Targets {
+        machine_zone,
+        device_zone: device_zone.ok().flatten(),
+        projects: choices.projects,
+        worktrees: choices.worktrees,
+        harnesses: choices.harnesses,
+        agents: choices.agents,
+        scopes: scopes.map(|report| report.scopes).map_err(read),
+    })
+}
+
+#[derive(Default)]
+struct Choices {
+    projects: Vec<ProjectInfo>,
+    worktrees: Vec<WorktreeInfo>,
+    harnesses: Vec<Harness>,
+    agents: Vec<AgentInfo>,
+}
+
+async fn choices(client: &SelectedConnection, ask: &Ask) -> Result<Choices, Failure> {
+    if matches!(ask, Ask::HeartbeatFacts) {
+        return Ok(Choices::default());
+    }
+    let (projects, worktrees, harnesses, agents) = tokio::join!(
         client.call(ListProjects {}),
         client.call(ListWorktrees { project: None }),
         client.call(ListHarnesses {}),
         client.call(ListAgents {}),
-        client.call(GetDeviceSelf {}),
-        zone,
     );
-    let read = |error| form_failure(&Ask::Targets, error);
-    Ok(Targets {
-        machine_zone: machine.map_err(read)?.timezone,
-        device_zone: device_zone.ok().flatten(),
+    let read = |error| form_failure(ask, error);
+    Ok(Choices {
         projects: projects.map_err(read)?.projects,
         worktrees: worktrees.map_err(read)?.worktrees,
         harnesses: harnesses.map_err(read)?,
         agents: agents.map_err(read)?,
-        scopes: scopes.map(|report| report.scopes).map_err(read),
     })
 }
 

@@ -48,7 +48,11 @@ pub(super) fn render(
     {
         let intent = intent.clone();
         let words = shell.words.schedules();
-        let label = if row.heartbeat {
+        let label = if row.heartbeat && super::editor::editable(shell, &intent) {
+            words
+                .heartbeat_edit_row(&row.title)
+                .unwrap_or_else(|_| words.heartbeat_edit_title().to_owned())
+        } else if row.heartbeat {
             words
                 .heartbeat_open_row(&row.title)
                 .unwrap_or_else(|_| words.heartbeat_title().to_owned())

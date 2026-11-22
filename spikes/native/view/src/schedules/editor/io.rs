@@ -37,6 +37,8 @@ pub struct Targets {
 pub enum Ask {
     /// Projects, agents and zone facts for the chosen machine.
     Targets,
+    /// Only time-zone and authority facts; an existing session needs no picker catalogues.
+    HeartbeatFacts,
     /// Options for the selected provider and profile.
     Options(GetHarnessOptions),
     /// Node projection for this exact rule.
@@ -113,6 +115,7 @@ pub struct Form {
     /// The only editable version of this visit's definition.
     pub draft: Draft,
     connection: ConnectionContext,
+    heartbeat_editable: bool,
     targets: Slot<Box<Targets>>,
     options: Slot<Box<HarnessOptions>>,
     options_for: Option<GetHarnessOptions>,
@@ -124,10 +127,11 @@ pub struct Form {
 impl Form {
     /// Open a blank or revision-bound draft for the selected admission.
     #[must_use]
-    pub fn new(connection: ConnectionContext, draft: Draft) -> Self {
+    pub fn new(connection: ConnectionContext, draft: Draft, heartbeat_editable: bool) -> Self {
         Self {
             draft,
             connection,
+            heartbeat_editable,
             targets: Slot::empty(),
             options: Slot::empty(),
             options_for: None,
@@ -154,7 +158,7 @@ impl Form {
             ask,
         };
         match &request.ask {
-            Ask::Targets => self.targets.begin(&request),
+            Ask::Targets | Ask::HeartbeatFacts => self.targets.begin(&request),
             Ask::Options(options) => {
                 if self.options_for.as_ref().is_some_and(|current| {
                     current.harness != options.harness
@@ -178,7 +182,7 @@ impl Form {
     /// Only the exact outstanding request can change this visit.
     pub fn accept(&mut self, request: &Request, result: Result<Value, Failure>) -> bool {
         match &request.ask {
-            Ask::Targets => {
+            Ask::Targets | Ask::HeartbeatFacts => {
                 let result = result.and_then(|value| match value {
                     Value::Targets(facts) => Ok(facts),
                     Value::Options(_) | Value::Preview(_) | Value::Saved(_) => {
@@ -216,7 +220,7 @@ impl Form {
             Ask::Save(save) => self.save.settle(
                 request,
                 result.and_then(|value| match value {
-                    Value::Saved(info) if valid_saved(save, &info) => Ok(info),
+                    Value::Saved(info) if valid_saved(&self.draft, save, &info) => Ok(info),
                     Value::Targets(_) | Value::Options(_) | Value::Preview(_) | Value::Saved(_) => {
                         Err(Failure::Unconfirmed)
                     }
@@ -276,10 +280,16 @@ impl Form {
         self.targets().is_some_and(|facts| {
             facts.as_ref().is_ok_and(|facts| match &facts.scopes {
                 Ok(scopes) => scopes.contains(&Scope::Operate),
-                Err(Failure::Older) => true,
+                Err(Failure::Older) => self.draft.heartbeat().is_none(),
                 Err(_) => false,
             })
         })
+    }
+
+    /// This exact admitted row offers the heartbeat cadence editor.
+    #[must_use]
+    pub const fn heartbeat_editable(&self) -> bool {
+        self.heartbeat_editable
     }
 
     /// Whether the form may build and dispatch a save.
@@ -299,6 +309,7 @@ impl Form {
     fn cadence_for_save(&self) -> Option<&Cadence> {
         if self.saving()
             || !self.can_operate()
+            || self.draft.heartbeat().is_some() && !self.heartbeat_editable
             || matches!(self.save.result, Some(Err(Failure::Unconfirmed)))
         {
             return None;
@@ -306,7 +317,7 @@ impl Form {
         let cadence = self.draft.cadence.checked().ok()?;
         match self.preview()? {
             Ok(preview) if cadence_matches(cadence, &preview.cadence) => Some(cadence),
-            Err(Failure::Older) => Some(cadence),
+            Err(Failure::Older) if self.draft.heartbeat().is_none() => Some(cadence),
             Ok(_) | Err(_) => None,
         }
     }
@@ -319,7 +330,7 @@ fn cadence_matches(request: &Cadence, canonical: &Cadence) -> bool {
                 if seconds == resolved)
 }
 
-fn valid_saved(request: &Save, info: &ScheduleInfo) -> bool {
+fn valid_saved(draft: &Draft, request: &Save, info: &ScheduleInfo) -> bool {
     match request {
         Save::Create(_) => matches!(
             info.definition.target,
@@ -328,5 +339,8 @@ fn valid_saved(request: &Save, info: &ScheduleInfo) -> bool {
         Save::Update(update) => {
             info.id == update.schedule && info.revision == update.revision.wrapping_add(1)
         }
+        Save::Heartbeat(update) => draft
+            .heartbeat()
+            .is_some_and(|opened| super::heartbeat::confirmed(opened, update, info)),
     }
 }

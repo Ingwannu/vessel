@@ -215,7 +215,7 @@ fn apply(shell: &mut Shell, change: Change, window: &mut Window, cx: &mut Contex
             {
                 let mut draft = form.draft;
                 draft.for_other_host();
-                shell.schedule_form_open(connection, draft, window, cx);
+                shell.schedule_form_open(connection, draft, false, window, cx);
             } else {
                 close_picker(editor, window, cx);
             }

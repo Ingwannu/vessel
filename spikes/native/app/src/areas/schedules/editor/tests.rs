@@ -38,7 +38,7 @@ fn cadence_button_announces_its_field_and_preset(cx: &mut TestAppContext) {
                 .unwrap();
             let mut draft = Draft::create(Some(&"UTC".parse().unwrap()));
             draft.cadence.select(Choice::Daily);
-            shell.schedule_form_open(connection, draft, window, cx);
+            shell.schedule_form_open(connection, draft, false, window, cx);
             shell
         }),
     });

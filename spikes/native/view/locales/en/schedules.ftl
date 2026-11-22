@@ -494,3 +494,8 @@ schedules-heartbeat-target = Target
 schedules-heartbeat-close = Close
 # Read-only reason when the node does not support changing heartbeat cadence.
 schedules-heartbeat-older = Updating heartbeat cadence requires a newer node.
+
+# Heading for the heartbeat sheet and the permission-gated menu entry.
+schedules-heartbeat-edit-title = Edit heartbeat
+# Accessible name of the row that opens the heartbeat editor. $title is the displayed schedule name.
+schedules-heartbeat-edit-row = Edit heartbeat { $title }

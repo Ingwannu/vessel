@@ -2,10 +2,12 @@
 mod cadence;
 mod heartbeat;
 mod schedule;
+mod status;
 use super::{
     Shell,
     pick::{self, Field},
 };
+use status::status;
 use vessel_app_kit::{
     self as kit, ButtonContent, ButtonIcon, ButtonKind, ButtonState, ControlSizing, DialogContent,
     DialogSize, Tokens, Type, TypeExt as _,
@@ -17,14 +19,7 @@ use vessel_app_kit::{
         StatefulInteractiveElement as _, Styled as _, Window, div, px,
     },
 };
-use vessel_app_view::schedules::{
-    editor::{
-        fields::Field as TextField,
-        io::{Ask, Form},
-    },
-    load::Failure,
-    locale,
-};
+use vessel_app_view::schedules::editor::{fields::Field as TextField, io::Form};
 
 // AdaptiveModalSheet's default desktop maximum.
 const WIDTH: u16 = 520;
@@ -84,7 +79,7 @@ pub(in crate::areas::schedules) fn render(
     let words = shell.words.schedules();
     let heartbeat = form.draft.heartbeat();
     let body = if let Some(info) = heartbeat {
-        heartbeat::body(shell, form, info, tokens, touch)
+        heartbeat::body(shell, form, info, tokens, touch, cx)
             .children(status(shell, form, tokens, touch, cx))
     } else {
         schedule::body(shell, form, edit, tokens, touch, cx)
@@ -92,7 +87,9 @@ pub(in crate::areas::schedules) fn render(
     let sheet = kit::dialog(
         &editor.dialog,
         DialogContent {
-            title: if heartbeat.is_some() {
+            title: if form.heartbeat_editable() {
+                words.heartbeat_edit_title()
+            } else if heartbeat.is_some() {
                 words.heartbeat_title()
             } else if edit {
                 words.form_edit_title()
@@ -148,10 +145,10 @@ fn footer(
 ) -> Vec<AnyElement> {
     let words = shell.words.schedules();
     let idle = !form.saving();
-    let heartbeat = form.draft.heartbeat().is_some();
+    let read_only = form.draft.heartbeat().is_some() && !form.heartbeat_editable();
     let cancel = button(
         "schedule-form-cancel",
-        if heartbeat {
+        if read_only {
             words.heartbeat_close()
         } else {
             words.cancel()
@@ -178,7 +175,7 @@ fn footer(
     } else {
         cancel
     };
-    if heartbeat {
+    if read_only {
         return vec![cancel.into_any_element()];
     }
     let text = if form.saving() {
@@ -405,55 +402,6 @@ fn limit(
         issue,
         tokens,
     ))
-}
-
-fn status(
-    shell: &Shell,
-    form: &Form,
-    tokens: &Tokens,
-    touch: bool,
-    cx: &mut Context<'_, Shell>,
-) -> Option<AnyElement> {
-    let editor = &shell.areas.schedules.editor;
-    let words = shell.words.schedules();
-    if let Some(Err(error)) = form.saved() {
-        return Some(hint(locale::failure(error, shell.words), true, tokens).into_any_element());
-    }
-    if editor.is_retired() {
-        return Some(
-            hint(
-                locale::failure(&Failure::ConnectionChanged, shell.words),
-                true,
-                tokens,
-            )
-            .into_any_element(),
-        );
-    }
-    match form.targets()? {
-        Err(error) => Some(
-            div()
-                .child(hint(locale::failure(error, shell.words), true, tokens))
-                .child(
-                    button(
-                        "schedule-form-retry-targets",
-                        words.retry(),
-                        ButtonKind::Ghost,
-                        true,
-                        touch,
-                        tokens,
-                    )
-                    .on_click(cx.listener(|shell, _, _, cx| {
-                        shell.schedule_form_issue(Ask::Targets);
-                        cx.notify();
-                    })),
-                )
-                .into_any_element(),
-        ),
-        Ok(_) if !form.can_operate() => {
-            Some(hint(words.read_only(), true, tokens).into_any_element())
-        }
-        Ok(_) => None,
-    }
 }
 
 pub(super) fn hint(text: impl Into<SharedString>, error: bool, tokens: &Tokens) -> Div {

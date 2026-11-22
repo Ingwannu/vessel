@@ -479,3 +479,8 @@ schedules-heartbeat-target = 대상
 schedules-heartbeat-close = 닫기
 # Read-only reason when the node does not support changing heartbeat cadence.
 schedules-heartbeat-older = 하트비트 실행 주기를 변경하려면 새 버전의 노드가 필요합니다.
+
+# Heading for the heartbeat sheet and the permission-gated menu entry.
+schedules-heartbeat-edit-title = 하트비트 편집
+# Accessible name of the row that opens the heartbeat editor. $title is the displayed schedule name.
+schedules-heartbeat-edit-row = 하트비트 편집 { $title }
