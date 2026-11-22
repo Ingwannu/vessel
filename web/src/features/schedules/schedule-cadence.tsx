@@ -6,8 +6,6 @@ import { FieldGroup, Select, TextField } from "../../ui/kit";
 import type { NodeKey, NodeStatus } from "../../wire/bridge";
 import type { Cadence, SchedulePreview } from "../../wire/proto";
 
-export type Cron = Extract<Cadence, { kind: "cron" }>;
-
 export const DEFAULT_CRON = "0 * * * *";
 const PREVIEW_PROTOCOL = 13;
 const PREVIEW_DELAY = 250;
@@ -125,11 +123,13 @@ export function ScheduleCadence({
   preview,
   change,
   disabled,
+  storedElapsed = null,
 }: {
   cadence: Cadence;
   preview: Preview;
   change: (expression: string) => void;
   disabled: boolean;
+  storedElapsed?: Extract<Cadence, { kind: "every" }> | null;
 }) {
   if (cadence.kind !== "cron") {
     return (
@@ -164,20 +164,22 @@ export function ScheduleCadence({
         mono
         disabled={disabled}
       />
-      <span className="schedule-form-note" aria-live="polite">
-        {instant === undefined ? (
-          preview.kind === "loading" ? (
+      {preview.kind === "invalid" ? null : (
+        <span className="schedule-form-note" aria-live="polite">
+          {instant !== undefined ? (
+            <>
+              {cadenceLabel(cadence)} · Next run{" "}
+              <NextRun instant={instant} zone={cadence.zone} />
+            </>
+          ) : preview.kind === "loading" ? (
             "Checking cadence…"
+          ) : expression === "" && storedElapsed !== null ? (
+            cadenceLabel(storedElapsed)
           ) : (
             cadence.zone
-          )
-        ) : (
-          <>
-            {cadenceLabel(cadence)} · Next run{" "}
-            <NextRun instant={instant} zone={cadence.zone} />
-          </>
-        )}
-      </span>
+          )}
+        </span>
+      )}
     </FieldGroup>
   );
 }

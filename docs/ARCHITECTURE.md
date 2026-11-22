@@ -217,8 +217,10 @@ in `web/src/data/schedules` matches list replies to their connection and
 keeps optimistic row actions separate from node snapshots so failures
 can restore a row. The sheet in `web/src/features/schedules` reuses the
 project and harness catalogues and asks the node for cadence previews.
-Updates carry the original revision. ADR 0033 governs ownership and
-execution. The [web schedules plan](plans/web-schedules.md) records the
+Updates carry the original revision. On a capable Operate connection,
+the heartbeat sheet uses `schedule.update_cadence` and verifies the
+owner-preserving receipt. ADR 0033 governs ownership and execution.
+The [web schedules plan](plans/web-schedules.md) records the
 consumer choices and verification.
 
 ## Speed

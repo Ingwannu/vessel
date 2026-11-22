@@ -3,10 +3,15 @@ import { describe, expect, it, vi } from "vitest";
 import { Bridge } from "../../bridge/client";
 import { fixtureId } from "../../testing/ids";
 import type { NodeStatus } from "../../wire/bridge";
-import type { ScheduleInfo, ScheduleList } from "../../wire/proto";
+import {
+  HEARTBEAT_CADENCE_PROTOCOL,
+  type ScheduleInfo,
+  type ScheduleList,
+} from "../../wire/proto";
 import { Fleet } from "../fleet";
 import { bookNode, connectedAs } from "../fixtures/machines";
 import { aggregate } from "./aggregate";
+import { HeartbeatSaveUnconfirmed, heartbeatRequest } from "./heartbeat";
 import { MachineSchedules } from "./machine-schedules";
 import { isHeartbeat, rowActions, scheduleMeta } from "./rows";
 
@@ -34,11 +39,11 @@ const schedule: ScheduleInfo = {
   revision: 0,
 };
 
-function connected(name: string): NodeStatus {
+function connected(name: string, protocol = 45): NodeStatus {
   const status = connectedAs(name);
   if (status.state !== "connected")
     throw new Error("Expected a connected fixture");
-  return { ...status, protocol: 45 };
+  return { ...status, protocol };
 }
 
 function deferred<T>() {
@@ -77,6 +82,42 @@ function setup() {
     statuses: { [laptop.key]: connected("laptop") },
   };
   return { controller, state, call: vi.spyOn(bridge, "call") };
+}
+
+const target = fixtureId("SessionId", "heartbeat");
+const heartbeat: ScheduleInfo = {
+  ...schedule,
+  definition: {
+    ...schedule.definition,
+    target: { kind: "session", session: target },
+    cadence: { kind: "every", seconds: 90, anchor: when },
+  },
+  defined_by: {
+    kind: "agent",
+    node: fixtureId("NodeId", "node"),
+    session: target,
+  },
+};
+const cron = { kind: "cron", expr: "0 9 * * *", zone: "Asia/Seoul" } as const;
+const forecast = { after: when, cadence: cron, runs: [when] };
+
+async function heartbeatSetup() {
+  const { controller, state, call } = setup();
+  const supported = {
+    ...state,
+    statuses: {
+      [laptop.key]: connected("laptop", HEARTBEAT_CADENCE_PROTOCOL),
+    },
+  };
+  call
+    .mockResolvedValueOnce({ schedules: [heartbeat] })
+    .mockResolvedValueOnce({ scopes: ["operate", "read"] });
+  controller.sync(supported);
+  await Promise.resolve();
+  await Promise.resolve();
+  const row = aggregate(controller.store.get()).rows[0];
+  if (row === undefined) throw new Error("Heartbeat fixture missing");
+  return { controller, state: supported, call, row };
 }
 
 describe("machine schedules", () => {
@@ -202,5 +243,100 @@ describe("machine schedules", () => {
       expect(isHeartbeat(info)).toBe(true);
       expect(rowActions(info)).toEqual(["delete"]);
     }
+  });
+
+  it("keeps old and read-only connection rows out of the editor", async () => {
+    const { controller, state, call } = setup();
+    call.mockResolvedValueOnce({ schedules: [heartbeat] });
+    controller.sync(state);
+    await Promise.resolve();
+    expect(call).toHaveBeenCalledTimes(1);
+    expect(
+      aggregate(controller.store.get()).rows[0]?.heartbeatRoute,
+    ).toBeUndefined();
+
+    call
+      .mockResolvedValueOnce({ schedules: [heartbeat] })
+      .mockResolvedValueOnce({ scopes: ["admin", "read"] });
+    controller.sync({
+      ...state,
+      statuses: {
+        [laptop.key]: connected("laptop", HEARTBEAT_CADENCE_PROTOCOL),
+      },
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(call).toHaveBeenLastCalledWith(laptop.key, "device.self", {});
+    expect(
+      aggregate(controller.store.get()).rows[0]?.heartbeatRoute,
+    ).toBeUndefined();
+  });
+
+  it("writes only a previewed changed cadence and does not race another action", async () => {
+    const { controller, call, row } = await heartbeatSetup();
+    expect(row.heartbeatRoute).toBeDefined();
+    const receipt = deferred<ScheduleInfo>();
+    call.mockReturnValueOnce(receipt.promise);
+    const saving = controller.saveHeartbeat(row, cron, forecast);
+    await controller.act(laptop.key, heartbeat.id, "delete");
+    expect(call).toHaveBeenCalledTimes(3);
+    expect(call).toHaveBeenLastCalledWith(
+      laptop.key,
+      "schedule.update_cadence",
+      {
+        schedule: heartbeat.id,
+        revision: heartbeat.revision,
+        cadence: cron,
+      },
+    );
+    const saved = {
+      ...heartbeat,
+      revision: 1,
+      definition: { ...heartbeat.definition, cadence: cron },
+    };
+    call.mockResolvedValueOnce({ schedules: [saved] });
+    receipt.resolve(saved);
+    await saving;
+    expect(aggregate(controller.store.get()).rows[0]?.info).toEqual(saved);
+    expect(heartbeatRequest(saved, cron, forecast)).toBeNull();
+    expect(
+      heartbeatRequest(heartbeat, { ...cron, expr: "0 10 * * *" }, forecast),
+    ).toBeNull();
+  });
+
+  it("treats a changed owner in the reply as unconfirmed and refreshes", async () => {
+    const { controller, call, row } = await heartbeatSetup();
+    call
+      .mockResolvedValueOnce({
+        ...heartbeat,
+        revision: 1,
+        defined_by: { kind: "owner" },
+        definition: { ...heartbeat.definition, cadence: cron },
+      })
+      .mockResolvedValueOnce({ schedules: [heartbeat] });
+    await expect(
+      controller.saveHeartbeat(row, cron, forecast),
+    ).rejects.toBeInstanceOf(HeartbeatSaveUnconfirmed);
+    expect(call).toHaveBeenLastCalledWith(laptop.key, "schedule.list", {});
+    expect(aggregate(controller.store.get()).rows[0]?.info).toEqual(heartbeat);
+  });
+
+  it("keeps an open draft tied to the original connection after reconnect", async () => {
+    const { controller, state, call, row } = await heartbeatSetup();
+    call
+      .mockResolvedValueOnce({ schedules: [heartbeat] })
+      .mockResolvedValueOnce({ scopes: ["read", "operate"] });
+    controller.sync({
+      ...state,
+      statuses: { [laptop.key]: { state: "connecting" } },
+    });
+    controller.sync(state);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(controller.heartbeatAvailable(row)).toBe(false);
+    await expect(controller.saveHeartbeat(row, cron, forecast)).rejects.toThrow(
+      "original heartbeat connection",
+    );
+    expect(call).toHaveBeenLastCalledWith(laptop.key, "device.self", {});
   });
 });

@@ -262,6 +262,24 @@ with the screen).
 carrying the proto reply or the mapped error. No command takes a bare
 `String` for an id, a zone, a cron or a count.
 
+## M12 page heartbeat adoption (TRACKER 839)
+
+The page uses the cadence-only protocol 48 operation from ADR 0033. The
+route confirms Operate on the connection that supplied the row. The edit
+keeps Target fixed and sends only the schedule ID, opened revision and
+previewed changed cron. This path preserves the definer and session-end
+cleanup for agent-owned heartbeats. A receipt must show the expected
+revision, owner and definition. A replaced connection cannot submit the
+open form, and an uncertain write calls for reopening the saved record.
+Older or read-only connections continue to offer the heartbeat detail.
+
+Paseo's sheet offers Edit heartbeat and the target and cadence fields
+(`schedule-form-sheet.tsx` 316–324, 402–431, 476–488, 891–912). A stored
+elapsed heartbeat uses its row label and leaves cron blank until the
+person chooses a rule. The exact elapsed cadence stays intact on open.
+Paseo instead displays a normalized cron, which cannot represent a
+90-second interval exactly (`schedule-cadence-options.ts` 38–60).
+
 ## Why this and not the others
 
 The screen is the place a person stands. The node is the place time is

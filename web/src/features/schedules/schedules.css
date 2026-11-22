@@ -90,6 +90,16 @@
   gap: 16px;
 }
 
+.schedule-target-readout {
+  cursor: default;
+}
+
+.schedule-target-readout > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .schedule-form-note,
 .schedule-form-error {
   margin: 0;
