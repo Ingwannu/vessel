@@ -72,6 +72,7 @@ fn a_missing_project_cache_preserves_the_node_path_without_claiming_deletion() {
     let target = ScheduleTarget::NewSession {
         spec,
         after: AfterRun::Archive,
+        isolation: None,
     };
     assert_eq!(
         resolve(&target, None, None, None).line,
@@ -114,6 +115,7 @@ fn reference_matched_root_prefers_project_name_and_missing_explicit_ids_are_trut
     let target = ScheduleTarget::NewSession {
         spec,
         after: AfterRun::Archive,
+        isolation: None,
     };
     assert_eq!(
         resolve(&target, None, Some(&projects), None).line,
@@ -126,6 +128,7 @@ fn reference_matched_root_prefers_project_name_and_missing_explicit_ids_are_trut
     let target = ScheduleTarget::NewSession {
         spec,
         after: AfterRun::Archive,
+        isolation: None,
     };
     let expected_dir: RelPath = "한글/long-subfolder".parse().unwrap();
     assert_eq!(
@@ -143,6 +146,7 @@ fn reference_matched_root_prefers_project_name_and_missing_explicit_ids_are_trut
     let target = ScheduleTarget::NewSession {
         spec,
         after: AfterRun::Archive,
+        isolation: None,
     };
     assert_eq!(
         resolve(&target, None, None, None).line,
@@ -156,6 +160,7 @@ fn worktree_node_path_and_default_folder_never_use_the_viewers_home_or_platform(
     let target = ScheduleTarget::NewSession {
         spec,
         after: AfterRun::Keep,
+        isolation: None,
     };
     assert_eq!(
         resolve(&target, None, None, Some(&trees)).line,
@@ -165,6 +170,7 @@ fn worktree_node_path_and_default_folder_never_use_the_viewers_home_or_platform(
     let target = ScheduleTarget::NewSession {
         spec,
         after: AfterRun::Archive,
+        isolation: None,
     };
     assert_eq!(resolve(&target, None, None, None).line, Line::DefaultFolder);
     assert_eq!(

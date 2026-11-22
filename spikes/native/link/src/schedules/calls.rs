@@ -53,7 +53,9 @@ impl State {
         let events = self.events.clone();
         drop(tokio::spawn(async move {
             let guard = selected.delivery_guard();
-            let result = execute(&selected, request.ask).await;
+            // Boxed, as the list below: schedule definitions (now with their
+            // isolation) put these futures past clippy's large_futures limit.
+            let result = Box::pin(execute(&selected, request.ask)).await;
             // Even after the connection goes away, one terminal event retires
             // the ticket. A weak guard rechecks validity at the receiver.
             drop(selected);
@@ -73,7 +75,7 @@ impl State {
 async fn execute(client: &SelectedConnection, ask: Ask) -> Result<Value, Failure> {
     let deadline = match ask {
         Ask::List => {
-            return list(client)
+            return Box::pin(list(client))
                 .await
                 .map(|snapshot| Value::Listed(Box::new(snapshot)));
         }
