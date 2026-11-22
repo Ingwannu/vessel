@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import { choose } from "./kit";
 import { acknowledgePreference, openUi } from "./open";
-import { openPanelTab, panelTab, startInShop } from "./shop";
+import { expectEditorText, openPanelTab, panelTab, startInShop } from "./shop";
 
 test("terminal scrollback saves bounded lines and Files shows the real empty state", async ({
   page,
@@ -87,14 +87,14 @@ test("explorer files open beside their tree and keep one dirty editor when the p
       .getByRole("dialog", { name: "Close unsaved tab?" })
       .getByRole("button", { name: "Cancel" })
       .click();
-    await expect(editor).toHaveValue("export const RATE = 0.81;\n");
+    await expectEditorText(editor, "export const RATE = 0.81;\n");
 
     await tree.getByRole("button", { name: "cart.ts", exact: true }).click();
     await expect(
       page.getByRole("tabpanel", { name: "cart.ts" }),
     ).toHaveAttribute("data-placement", "side");
     await panelTab(page, "tax.ts").click();
-    await expect(editor).toHaveValue("export const RATE = 0.81;\n");
+    await expectEditorText(editor, "export const RATE = 0.81;\n");
     await expect(editor).toHaveCount(1);
     await page.getByRole("button", { name: "Close · tax.ts" }).click();
     await page

@@ -139,6 +139,7 @@ describe("paletteEntries", () => {
       "Settings: General",
       "Settings: Appearance",
       "Settings: Terminal",
+      "Settings: Editor",
       "Settings: Files",
       "Settings: Shortcuts",
       "Settings: Notifications",

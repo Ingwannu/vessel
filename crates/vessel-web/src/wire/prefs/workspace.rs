@@ -46,6 +46,14 @@ pub struct TerminalPreferences {
     pub scrollback: TerminalScrollback,
 }
 
+/// Editing choices belong to the browser bridge, independent of the file's host.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+pub struct EditorPreferences {
+    /// Use modal Vim bindings in the source editor.
+    pub vim_keybindings: bool,
+}
+
 /// An action that opens workspace content.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]

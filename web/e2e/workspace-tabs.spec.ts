@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 import { openUi } from "./open";
-import { openPanelTab, panelTab, startInShop } from "./shop";
+import { expectEditorText, openPanelTab, panelTab, startInShop } from "./shop";
 import { shown, watchTyped } from "./terminal-frames";
 
 test("workspace files retain a dirty edit, reorder, and ask once on a bulk close", async ({
@@ -23,7 +23,7 @@ test("workspace files retain a dirty edit, reorder, and ask once on a bulk close
   await editor.fill("export const RATE = 0.73;\n");
   await openPanelTab(page, "Diff");
   await file.click();
-  await expect(editor).toHaveValue("export const RATE = 0.73;\n");
+  await expectEditorText(editor, "export const RATE = 0.73;\n");
   await file.press("Alt+ArrowLeft");
   const strip = page.getByRole("tablist", { name: "Workspace tabs" });
   const order = await strip.getByRole("tab").allTextContents();
@@ -37,7 +37,7 @@ test("workspace files retain a dirty edit, reorder, and ask once on a bulk close
   const bulk = page.getByRole("dialog", { name: "Close tabs to the left?" });
   await expect(bulk).toContainText("unsaved changes");
   await bulk.getByRole("button", { name: "Cancel" }).click();
-  await expect(editor).toHaveValue("export const RATE = 0.73;\n");
+  await expectEditorText(editor, "export const RATE = 0.73;\n");
   await page.getByRole("button", { name: "Close · tax.ts" }).click();
   const unsaved = page.getByRole("dialog", { name: "Close unsaved tab?" });
   await unsaved

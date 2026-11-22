@@ -1212,7 +1212,8 @@ browser on Unix (on Windows, open the printed address).
   worktrees, removed only after saying what would be lost and offering a
   snapshot; its snapshots), Agents (what each agent on a machine
   offers: model, effort, permissions), Models, Devices (pairing a phone with a QR code), Sync
-  and About. Terminal sets the built-in terminal's scrollback. Files shows
+  and About. Terminal sets the built-in terminal's scrollback. Editor enables
+  Vim keybindings in the [source editor](docs/plans/web-editor.md). Files shows
   file-panel preferences. General includes Open location on wide screens
   for workspace files, changes and pull requests.
   A machine in the sidebar opens it there. The page follows

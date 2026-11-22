@@ -286,6 +286,15 @@ kept: Kept,
 drafts: Array<Draft>, };
 
 /**
+ * Editing choices belong to the browser bridge, independent of the file's host.
+ */
+export type EditorPreferences = { 
+/**
+ * Use modal Vim bindings in the source editor.
+ */
+vim_keybindings: boolean, };
+
+/**
  * The order of a folder's entries in the Files tab's tree: folders first,
  * then by name, by last change (newest first) or by size (largest first),
  * as Paseo's file explorer sorts.
@@ -650,7 +659,7 @@ export type Panel = "shown" | "hidden";
 /**
  * One change to the preferences: each replaces one setting.
  */
-export type PreferenceChange = { "set": "theme", "value": Theme } | { "set": "interface_size", "value": InterfaceSize } | { "set": "code_size", "value": CodeSize } | { "set": "content_width", "value": ContentWidth } | { "set": "conversation", "value": ConversationDisplay } | { "set": "sidebar_panel", "value": Panel } | { "set": "inspector_panel", "value": Panel } | { "set": "explorer_sort", "value": ExplorerSort } | { "set": "terminal_scrollback", "value": TerminalScrollback } | { "set": "open_location", "value": { 
+export type PreferenceChange = { "set": "theme", "value": Theme } | { "set": "interface_size", "value": InterfaceSize } | { "set": "code_size", "value": CodeSize } | { "set": "content_width", "value": ContentWidth } | { "set": "conversation", "value": ConversationDisplay } | { "set": "sidebar_panel", "value": Panel } | { "set": "inspector_panel", "value": Panel } | { "set": "explorer_sort", "value": ExplorerSort } | { "set": "terminal_scrollback", "value": TerminalScrollback } | { "set": "vim_keybindings", "value": boolean } | { "set": "open_location", "value": { 
 /**
  * The action whose destination is changing.
  */
@@ -714,6 +723,10 @@ layout: Layout,
  * The built-in terminal display.
  */
 terminal: TerminalPreferences, 
+/**
+ * Source editor controls.
+ */
+editor: EditorPreferences, 
 /**
  * Where workspace actions open.
  */

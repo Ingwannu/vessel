@@ -46,6 +46,8 @@ pub enum PreferenceChange {
     ExplorerSort(ExplorerSort),
     /// Terminal history lines.
     TerminalScrollback(TerminalScrollback),
+    /// Use Vim keybindings when editing source files.
+    VimKeybindings(bool),
     /// The location for one workspace action.
     OpenLocation {
         /// The action whose destination is changing.
