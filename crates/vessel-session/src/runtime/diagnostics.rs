@@ -84,7 +84,7 @@ mod tests {
     use super::*;
     use crate::{Created, RuntimeConfig, SessionHandle};
     use crate::{DEFAULT_DURABLE_CAPACITY, DEFAULT_HANDSHAKE_TIMEOUT, DEFAULT_RING_CAPACITY};
-    use std::{path::PathBuf, sync::Arc, time::Duration};
+    use std::{path::PathBuf, time::Duration};
     use tokio::sync::mpsc;
     use tokio_util::sync::{CancellationToken, DropGuard};
     use vessel_harness::{

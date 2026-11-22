@@ -21,7 +21,7 @@ async fn failed_actual_off_replacement_keeps_the_previous_saved_policy_and_can_r
     tokio::time::timeout(WRITE_TEST_BUDGET, async {
         let root = tempfile::tempdir().unwrap();
         let settings = settings(root.path()).await;
-        settings.change(recovery(true)).await.unwrap();
+        let _saved = settings.change(recovery(true)).await.unwrap();
         let path = settings.state.data_dir.settings_path();
         let original = std::fs::read(&path).unwrap();
         let kept = root.path().join("previous-settings");
@@ -56,7 +56,7 @@ async fn failed_cleanup_keeps_saved_off_and_blocks_later_on_before_any_replaceme
     tokio::time::timeout(WRITE_TEST_BUDGET, async {
         let root = tempfile::tempdir().unwrap();
         let settings = settings(root.path()).await;
-        settings.change(recovery(true)).await.unwrap();
+        let _saved = settings.change(recovery(true)).await.unwrap();
         settings.state.recovery.store().close().await;
         assert!(matches!(
             settings.change(recovery(false)).await,
@@ -130,15 +130,15 @@ async fn ordinary_patches_preserve_the_saved_recovery_patch_and_verbatim_prompt(
             enabled: Some(true),
             prompt: Some("  Preserve exactly.\n계속.\t".parse().unwrap()),
         };
-        settings
+        let _saved = settings
             .change(SetNodeSettings {
                 restart_recovery: Some(recovery.clone()),
                 ..SetNodeSettings::default()
             })
             .await
             .unwrap();
-        settings.change(patch(ParkAfter::Never)).await.unwrap();
-        settings
+        let _saved = settings.change(patch(ParkAfter::Never)).await.unwrap();
+        let _saved = settings
             .change(SetNodeSettings {
                 drivers: Some(SetAgentDrivers::default()),
                 ..SetNodeSettings::default()

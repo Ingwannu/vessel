@@ -68,6 +68,7 @@ use recovery_apply::RecoveryApply;
 mod writer_tests;
 use vessel_proto::HarnessKind;
 use vessel_proto::parking::ParkAfter;
+use vessel_proto::restart::SetRestartRecovery;
 use vessel_proto::settings::{
     AgentDriver, AgentDrivers, MetadataSettings, NodeSettings, SetAgentDrivers, SetNodeSettings,
 };
@@ -159,7 +160,7 @@ impl Settings {
         let directory = tempfile::tempdir().unwrap();
         let store = vessel_store::Store::open_with_restart_policy(
             &DataDir::new(directory.path()),
-            Default::default(),
+            vessel_store::StoreConfig::default(),
             opening.recovery_policy().enabled,
         )
         .await
@@ -400,7 +401,7 @@ impl State {
                 recovery.over(
                     next.restart_recovery
                         .as_ref()
-                        .unwrap_or(&Default::default()),
+                        .unwrap_or(&SetRestartRecovery::default()),
                 ),
             );
         }

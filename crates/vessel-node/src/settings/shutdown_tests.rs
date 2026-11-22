@@ -36,7 +36,7 @@ async fn teardown_drains_saved_off_and_queued_on_before_runtime_and_store_close(
             )
             .await,
         );
-        settings.change(recovery(true)).await.unwrap();
+        let _saved = settings.change(recovery(true)).await.unwrap();
         let store = settings.state.recovery.store();
         let (entered, release) = settings.state.cleanup_gate.install();
         let first = Arc::clone(&settings);
@@ -104,7 +104,7 @@ async fn now_and_drain_seal_the_settings_and_effect_owners_synchronously() {
         for when in [StopWhen::Now, StopWhen::WhenIdle] {
             let root = tempfile::tempdir().unwrap();
             let settings = writer_tests::settings(root.path()).await;
-            settings.change(recovery(true)).await.unwrap();
+            let _saved = settings.change(recovery(true)).await.unwrap();
             let stop = CancellationToken::new();
             let info = vessel_proto::NodeInfo {
                 id: vessel_proto::NodeId::random(),
