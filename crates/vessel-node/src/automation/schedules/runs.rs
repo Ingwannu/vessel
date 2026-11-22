@@ -232,7 +232,11 @@ impl<R: Runner, C: Clock> Actor<R, C> {
     /// A followed run's later outcome. A session waiting for a person, or
     /// done with its first turn, gives its first turn's room back.
     pub(super) async fn followed(&mut self, followed: Followed) {
-        let Followed { schedule, run, committed } = followed;
+        let Followed {
+            schedule,
+            run,
+            committed,
+        } = followed;
         if matches!(
             run.outcome,
             RunOutcome::Waiting { .. } | RunOutcome::Finished { .. }
@@ -248,10 +252,16 @@ impl<R: Runner, C: Clock> Actor<R, C> {
             return;
         };
         let mut info = entry.info;
-        let last = info.last_run.as_ref().is_some_and(|last| last.number == run.number);
+        let last = info
+            .last_run
+            .as_ref()
+            .is_some_and(|last| last.number == run.number);
         let result = if last {
             info.last_run = Some(run.clone());
-            let result = self.store.put_schedule(info.clone(), Some(run.clone())).await;
+            let result = self
+                .store
+                .put_schedule(info.clone(), Some(run.clone()))
+                .await;
             self.book.put(info);
             result
         } else {

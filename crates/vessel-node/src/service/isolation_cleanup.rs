@@ -3,9 +3,9 @@
 use std::path::PathBuf;
 
 use chrono::Utc;
+use vessel_proto::SessionId;
 use vessel_proto::automation::{AfterRun, RunArchive};
 use vessel_proto::registry::{WorkspaceLifecycle, WorkspaceResource};
-use vessel_proto::SessionId;
 use vessel_session::IdleStop;
 use vessel_store::{
     ArchiveDefer, ProvisionRetirement, RunBindingStage, ScheduleRunBinding, WorkspaceArchivePurpose,
@@ -51,9 +51,16 @@ impl NodeService {
         binding: ScheduleRunBinding,
     ) -> Result<IsolationCleanup, WorkspaceError> {
         if binding.stage == RunBindingStage::Started && binding.after == AfterRun::Keep {
-            return Ok(IsolationCleanup::Settled { archive: None, retirement: None });
+            return Ok(IsolationCleanup::Settled {
+                archive: None,
+                retirement: None,
+            });
         }
-        let workspace = match self.workspaces.reconcile_workspace_provision(binding.workspace).await? {
+        let workspace = match self
+            .workspaces
+            .reconcile_workspace_provision(binding.workspace)
+            .await?
+        {
             ReconciledProvision::Published(workspace) => workspace,
             ReconciledProvision::Absent { reserved } => {
                 return Ok(IsolationCleanup::Settled {
@@ -65,18 +72,26 @@ impl NodeService {
         let stop = Some(binding.session);
         let result = match workspace.lifecycle {
             WorkspaceLifecycle::Active => {
-                self.workspaces.archive_workspace(
-                    workspace.id,
-                    workspace.revision,
-                    WorkspaceArchivePurpose::Automatic,
-                    stop,
-                    self,
-                ).await?
+                self.workspaces
+                    .archive_workspace(
+                        workspace.id,
+                        workspace.revision,
+                        WorkspaceArchivePurpose::Automatic,
+                        stop,
+                        self,
+                    )
+                    .await?
             }
             WorkspaceLifecycle::Archiving { .. } => {
-                let record = self.sessions.store().registry_archive(workspace.id).await?
+                let record = self
+                    .sessions
+                    .store()
+                    .registry_archive(workspace.id)
+                    .await?
                     .ok_or(vessel_store::StoreError::RegistryConflict)?;
-                self.workspaces.resume_workspace_archive(record.claim, stop, self).await?
+                self.workspaces
+                    .resume_workspace_archive(record.claim, stop, self)
+                    .await?
             }
             WorkspaceLifecycle::Archived { .. } => {
                 // Before retirement, an absent durable Worktree and absent path
@@ -84,7 +99,9 @@ impl NodeService {
                 let clean = self.workspaces.archived_backing_gone(&workspace).await;
                 return Ok(archived(clean));
             }
-            WorkspaceLifecycle::Restoring { .. } => return Err(vessel_store::StoreError::RegistryConflict.into()),
+            WorkspaceLifecycle::Restoring { .. } => {
+                return Err(vessel_store::StoreError::RegistryConflict.into());
+            }
         };
         Ok(match result {
             ArchiveResult::Archived { kept } => archived(kept.is_empty()),
@@ -102,7 +119,9 @@ impl NodeService {
             IsolationCleanup::Settled { retirement, .. } => {
                 store.finish_schedule_run_binding(binding).await?;
                 if let Some(evidence) = retirement {
-                    store.retire_registry_workspace(binding.workspace, evidence, Utc::now()).await?;
+                    store
+                        .retire_registry_workspace(binding.workspace, evidence, Utc::now())
+                        .await?;
                 }
             }
             IsolationCleanup::Deferred(reason) => {
@@ -121,7 +140,11 @@ impl NodeService {
 
 fn archived(clean: bool) -> IsolationCleanup {
     IsolationCleanup::Settled {
-        archive: Some(if clean { RunArchive::Archived } else { RunArchive::BackingKept }),
+        archive: Some(if clean {
+            RunArchive::Archived
+        } else {
+            RunArchive::BackingKept
+        }),
         retirement: clean.then_some(ProvisionRetirement::CleanArchive),
     }
 }
@@ -130,7 +153,9 @@ impl WorkspaceActors for NodeService {
     fn live(&self, resource: WorkspaceResource) -> bool {
         match resource {
             WorkspaceResource::Session { session } => self.sessions.live(session).is_some(),
-            WorkspaceResource::Terminal { terminal } => self.terminals.get(terminal)
+            WorkspaceResource::Terminal { terminal } => self
+                .terminals
+                .get(terminal)
                 .is_ok_and(|entry| entry.handle.info().is_live()),
         }
     }
@@ -152,7 +177,9 @@ impl WorkspaceActors for NodeService {
             Err(ServiceError::NotFound(_)) => Ok(IdleStop::Stopped),
             Err(error) => {
                 tracing::warn!(%session, %error, "the isolated actor's stop was not confirmed");
-                Err(WorkspaceError::Conflict("the workspace's session stop is unconfirmed".to_owned()))
+                Err(WorkspaceError::Conflict(
+                    "the workspace's session stop is unconfirmed".to_owned(),
+                ))
             }
         }
     }
@@ -163,14 +190,21 @@ impl WorkspaceActors for NodeService {
                 Ok(_) | Err(ServiceError::NotFound(_)) => {}
                 Err(error) => {
                     tracing::warn!(%session, %error, "cannot archive an exact workspace session");
-                    return Err(WorkspaceError::Conflict("the workspace's session stop is unconfirmed".to_owned()));
+                    return Err(WorkspaceError::Conflict(
+                        "the workspace's session stop is unconfirmed".to_owned(),
+                    ));
                 }
             },
             WorkspaceResource::Terminal { terminal } => {
                 if let Ok(entry) = self.terminals.get(terminal) {
                     entry.handle.kill();
-                    tokio::time::timeout(crate::terminals::CLOSE_WAIT, entry.handle.ended()).await
-                        .map_err(|_| WorkspaceError::Conflict("the workspace's terminal stop is unconfirmed".to_owned()))?;
+                    tokio::time::timeout(crate::terminals::CLOSE_WAIT, entry.handle.ended())
+                        .await
+                        .map_err(|_| {
+                            WorkspaceError::Conflict(
+                                "the workspace's terminal stop is unconfirmed".to_owned(),
+                            )
+                        })?;
                 }
             }
         }

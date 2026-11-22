@@ -253,7 +253,9 @@ impl NodeService {
         target: &ScheduleTarget,
     ) -> Result<(), WireError> {
         match target {
-            ScheduleTarget::NewSession { spec, isolation, .. } => {
+            ScheduleTarget::NewSession {
+                spec, isolation, ..
+            } => {
                 if let Some(isolation) = isolation {
                     self.isolation_project(principal, spec, isolation).await?;
                 }

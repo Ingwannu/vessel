@@ -6,11 +6,15 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use chrono::Utc;
-use vessel_proto::registry::{RegistryRevision, WorkspaceBacking, WorkspaceDescriptor, WorkspaceResource};
+use vessel_proto::registry::{
+    RegistryRevision, WorkspaceBacking, WorkspaceDescriptor, WorkspaceResource,
+};
 use vessel_proto::workspace::{KeptReason, RemoveWorktreeOutcome};
 use vessel_proto::{SessionId, WorkspaceId};
 use vessel_session::IdleStop;
-use vessel_store::{ArchiveDefer, ArchiveSettlement, StoreError, WorkspaceArchiveClaim, WorkspaceArchivePurpose};
+use vessel_store::{
+    ArchiveDefer, ArchiveSettlement, StoreError, WorkspaceArchiveClaim, WorkspaceArchivePurpose,
+};
 
 use crate::workspace::{Occupant, WorkspaceError, Workspaces};
 
@@ -36,7 +40,9 @@ pub(crate) trait WorkspaceActors: Send + Sync {
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) enum ArchiveResult {
     /// Lifecycle is Archived. A kept backing still retains its reservation.
-    Archived { kept: Vec<KeptReason> },
+    Archived {
+        kept: Vec<KeptReason>,
+    },
     Deferred(ArchiveDefer),
 }
 
@@ -51,7 +57,10 @@ impl Workspaces {
         session: Option<SessionId>,
         actors: &impl WorkspaceActors,
     ) -> Result<ArchiveResult, WorkspaceError> {
-        let claim = self.store.claim_registry_archive(id, expected, purpose, Utc::now()).await?;
+        let claim = self
+            .store
+            .claim_registry_archive(id, expected, purpose, Utc::now())
+            .await?;
         self.resume_workspace_archive(claim, session, actors).await
     }
 
@@ -63,13 +72,19 @@ impl Workspaces {
         session: Option<SessionId>,
         actors: &impl WorkspaceActors,
     ) -> Result<ArchiveResult, WorkspaceError> {
-        if !self.store.registry_archive(claim.workspace).await?.is_some_and(|current| {
-            current.deferred.is_none() && current.claim == claim
-        }) {
+        if !self
+            .store
+            .registry_archive(claim.workspace)
+            .await?
+            .is_some_and(|current| current.deferred.is_none() && current.claim == claim)
+        {
             return Err(StoreError::RegistryConflict.into());
         }
         self.drain_workspace_starts(claim.workspace).await?;
-        let record = self.store.registry_workspace(claim.workspace).await?
+        let record = self
+            .store
+            .registry_workspace(claim.workspace)
+            .await?
             .ok_or(StoreError::RegistryMissing(claim.workspace))?;
         let members = self.store.registry_members(claim.workspace).await?;
         match claim.purpose {
@@ -80,7 +95,10 @@ impl Workspaces {
             }
             WorkspaceArchivePurpose::Automatic => {
                 let target = session.map(|session| WorkspaceResource::Session { session });
-                if members.iter().any(|member| Some(member.resource) != target && actors.live(member.resource)) {
+                if members
+                    .iter()
+                    .any(|member| Some(member.resource) != target && actors.live(member.resource))
+                {
                     // Check before stopping the schedule's actor: its normal
                     // exit can also end agent terminals registered beside it.
                     return self.defer_archive(claim, ArchiveDefer::OtherMembers).await;
@@ -93,7 +111,9 @@ impl Workspaces {
                 }
             }
         }
-        let kept = self.archive_backing(claim, &record.descriptor, actors).await?;
+        let kept = self
+            .archive_backing(claim, &record.descriptor, actors)
+            .await?;
         self.store
             .settle_registry_archive(claim, ArchiveSettlement::Archived { at: Utc::now() })
             .await?;
@@ -118,7 +138,10 @@ impl Workspaces {
             if pending.is_empty() {
                 return Ok(());
             }
-            if pending.iter().any(|start| start.state == vessel_store::RegistryStartState::Uncertain) {
+            if pending
+                .iter()
+                .any(|start| start.state == vessel_store::RegistryStartState::Uncertain)
+            {
                 return Err(WorkspaceError::Conflict(
                     "an unconfirmed workspace start must be reconciled".to_owned(),
                 ));
@@ -149,7 +172,9 @@ impl Workspaces {
             Ok(RemoveWorktreeOutcome::Kept { reasons, .. }) => Ok(reasons),
             Err(WorkspaceError::RegistryWorktreeOwned(_)) => Ok(vec![KeptReason::InUse]),
             Err(WorkspaceError::UnknownWorktree(_))
-                if tokio::fs::try_exists(&workspace.path).await.is_ok_and(|exists| !exists) =>
+                if tokio::fs::try_exists(&workspace.path)
+                    .await
+                    .is_ok_and(|exists| !exists) =>
             {
                 // The worktree row is removed only after Git confirms removal.
                 Ok(Vec::new())

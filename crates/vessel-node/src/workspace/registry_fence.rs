@@ -29,8 +29,16 @@ impl Workspaces {
         claim: Option<WorkspaceArchiveClaim>,
     ) -> Result<(), WorkspaceError> {
         let allowed = match claim {
-            Some(claim) => self.store.registry_archive_owns_worktree(claim, worktree).await?,
-            None => self.store.registry_worktree_reference(worktree).await?.is_none(),
+            Some(claim) => {
+                self.store
+                    .registry_archive_owns_worktree(claim, worktree)
+                    .await?
+            }
+            None => self
+                .store
+                .registry_worktree_reference(worktree)
+                .await?
+                .is_none(),
         };
         if !allowed {
             return Err(WorkspaceError::RegistryWorktreeOwned(worktree));

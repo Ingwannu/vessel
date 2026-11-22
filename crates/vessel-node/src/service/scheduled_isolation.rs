@@ -3,13 +3,18 @@
 
 use chrono::Utc;
 use vessel_proto::automation::{AfterRun, RunOutcome};
-use vessel_proto::registry::{WorkspaceAutomation, WorkspaceIsolation, WorkspaceResource, WorkspaceVisibility};
+use vessel_proto::registry::{
+    WorkspaceAutomation, WorkspaceIsolation, WorkspaceResource, WorkspaceVisibility,
+};
 use vessel_proto::workspace::SessionPlace;
-use vessel_proto::{ContentBlock, Delivery, ErrorCode, Method, ProjectId, SessionId, SessionSpec, WireError, WorkspaceId};
+use vessel_proto::{
+    ContentBlock, Delivery, ErrorCode, Method, ProjectId, SessionId, SessionSpec, WireError,
+    WorkspaceId,
+};
 use vessel_store::{RunBindingStage, ScheduleRunBinding, WorkspaceProvision};
 
-use super::{NodeService, wire};
 use super::scheduled::failed;
+use super::{NodeService, wire};
 use crate::automation::schedules::{Job, Made};
 use crate::principal::Principal;
 use crate::profiles::launch::creator;
@@ -26,10 +31,14 @@ impl NodeService {
     ) -> Result<ProjectId, WireError> {
         let invalid = |message| WireError::new(ErrorCode::InvalidRequest, message);
         let Some(SessionPlace::Project { project, dir: None }) = spec.place.as_deref() else {
-            return Err(invalid("workspace isolation requires a registered project root"));
+            return Err(invalid(
+                "workspace isolation requires a registered project root",
+            ));
         };
         if spec.cwd.is_some() {
-            return Err(invalid("workspace isolation takes its folder from the project"));
+            return Err(invalid(
+                "workspace isolation takes its folder from the project",
+            ));
         }
         match isolation {
             WorkspaceIsolation::Local => {}
@@ -45,7 +54,9 @@ impl NodeService {
                 }
             }
             WorkspaceIsolation::Unknown => {
-                return Err(invalid("this node does not know the saved isolation policy"));
+                return Err(invalid(
+                    "this node does not know the saved isolation policy",
+                ));
             }
         }
         Ok(*project)
@@ -60,7 +71,10 @@ impl NodeService {
         isolation: WorkspaceIsolation,
         notice: String,
     ) -> Made {
-        match self.start_isolated(job, principal, spec, after, isolation, notice).await {
+        match self
+            .start_isolated(job, principal, spec, after, isolation, notice)
+            .await
+        {
             Ok(session) => Made::outcome(RunOutcome::Started { session }),
             Err((error, binding)) => {
                 if let Some(binding) = binding
@@ -82,7 +96,10 @@ impl NodeService {
         isolation: WorkspaceIsolation,
         notice: String,
     ) -> Result<SessionId, (WireError, Option<ScheduleRunBinding>)> {
-        let prepared = self.prepare_isolated(principal, &spec, isolation).await.map_err(|error| (error, None))?;
+        let prepared = self
+            .prepare_isolated(principal, &spec, isolation)
+            .await
+            .map_err(|error| (error, None))?;
         let (admission, intent) = prepared;
         let store = self.sessions.store();
         let binding = ScheduleRunBinding {
@@ -93,22 +110,37 @@ impl NodeService {
             after,
             stage: RunBindingStage::Bound,
         };
-        store.bind_schedule_run(binding).await
+        store
+            .bind_schedule_run(binding)
+            .await
             .map_err(|error| (WireError::new(error.code(), error.to_string()), None))?;
         let started = async {
-            let workplace = self.workspaces.provision_workspace(binding.workspace, admission, intent, creator(principal)).await
+            let workplace = self
+                .workspaces
+                .provision_workspace(binding.workspace, admission, intent, creator(principal))
+                .await
                 .map_err(|error| error.wire())?;
-            self.launch_isolated(principal, spec, &workplace, binding.session, notice).await?;
-            let _accepted = self.sessions.prompt(
-                binding.session,
-                vec![ContentBlock::Text { text: job.definition.prompt.as_str().to_owned() }],
-                Delivery::Queue,
-                creator(principal),
-            ).await.map_err(|error| wire(&error))?;
-            store.advance_schedule_run_binding(binding, RunBindingStage::Started).await
+            self.launch_isolated(principal, spec, &workplace, binding.session, notice)
+                .await?;
+            let _accepted = self
+                .sessions
+                .prompt(
+                    binding.session,
+                    vec![ContentBlock::Text {
+                        text: job.definition.prompt.as_str().to_owned(),
+                    }],
+                    Delivery::Queue,
+                    creator(principal),
+                )
+                .await
+                .map_err(|error| wire(&error))?;
+            store
+                .advance_schedule_run_binding(binding, RunBindingStage::Started)
+                .await
                 .map_err(|error| WireError::new(error.code(), error.to_string()))?;
             Ok(binding.session)
-        }.await;
+        }
+        .await;
         started.map_err(|error| (error, Some(binding)))
     }
 
@@ -117,10 +149,20 @@ impl NodeService {
         principal: &Principal,
         spec: &SessionSpec,
         isolation: WorkspaceIsolation,
-    ) -> Result<(std::sync::Arc<crate::workspace::ProjectAdmission>, WorkspaceProvision), WireError> {
+    ) -> Result<
+        (
+            std::sync::Arc<crate::workspace::ProjectAdmission>,
+            WorkspaceProvision,
+        ),
+        WireError,
+    > {
         let project = self.isolation_project(principal, spec, &isolation).await?;
         self.check_new_spec(principal, spec).await?;
-        let admission = self.workspaces.admit_project(project).await.map_err(|error| error.wire())?;
+        let admission = self
+            .workspaces
+            .admit_project(project)
+            .await
+            .map_err(|error| error.wire())?;
         let intent = WorkspaceProvision {
             project,
             isolation,
@@ -141,10 +183,25 @@ impl NodeService {
     ) -> Result<(), WireError> {
         let store = self.sessions.store();
         spec.place = Some(Box::new(workplace.place.clone()));
-        self.sessions.inherit_listing(&mut spec, self.local_creator(principal)).await.map_err(|error| wire(&error))?;
-        let lease = self.workspaces.admit_workspace_start(workplace, WorkspaceResource::Session { session })
-            .await.map_err(|error| error.wire())?;
-        let created = self.create_starting(principal, spec, (None, Some(notice)), None, None, Some(&lease)).await;
+        self.sessions
+            .inherit_listing(&mut spec, self.local_creator(principal))
+            .await
+            .map_err(|error| wire(&error))?;
+        let lease = self
+            .workspaces
+            .admit_workspace_start(workplace, WorkspaceResource::Session { session })
+            .await
+            .map_err(|error| error.wire())?;
+        let created = self
+            .create_starting(
+                principal,
+                spec,
+                (None, Some(notice)),
+                None,
+                None,
+                Some(&lease),
+            )
+            .await;
         let settled = if created.is_ok() {
             store.complete_registry_start(lease).await
         } else {

@@ -17,7 +17,9 @@ use crate::workspace::{WorkspaceError, Workspaces};
 pub(crate) enum ReconciledProvision {
     Published(WorkspaceDescriptor),
     /// Nothing was made. A reservation, if any, can now retire.
-    Absent { reserved: bool },
+    Absent {
+        reserved: bool,
+    },
 }
 
 impl Workspaces {
@@ -32,9 +34,13 @@ impl Workspaces {
             return Ok(ReconciledProvision::Absent { reserved: false });
         };
         match reserved.stage {
-            ReservationStage::Retired => return Ok(ReconciledProvision::Absent { reserved: false }),
+            ReservationStage::Retired => {
+                return Ok(ReconciledProvision::Absent { reserved: false });
+            }
             ReservationStage::Ready => return Err(StoreError::RegistryMissing(id).into()),
-            ReservationStage::Reserved => return Ok(ReconciledProvision::Absent { reserved: true }),
+            ReservationStage::Reserved => {
+                return Ok(ReconciledProvision::Absent { reserved: true });
+            }
             ReservationStage::Creating | ReservationStage::Uncertain => {}
         }
         let Some(worktree) = reserved.worktree else {
@@ -63,14 +69,25 @@ impl Workspaces {
             .await?
             .worktrees
             .into_iter()
-            .find(|row| row.id == worktree && row.project == reserved.intent.project && row.created_for.is_none())
-            .ok_or_else(|| WorkspaceError::Conflict(
-                "workspace backing could not be confirmed; its reservation is retained".to_owned()
-            ))?;
+            .find(|row| {
+                row.id == worktree
+                    && row.project == reserved.intent.project
+                    && row.created_for.is_none()
+            })
+            .ok_or_else(|| {
+                WorkspaceError::Conflict(
+                    "workspace backing could not be confirmed; its reservation is retained"
+                        .to_owned(),
+                )
+            })?;
         if reserved.stage == ReservationStage::Uncertain {
-            self.store.set_registry_reservation_stage(
-                id, ReservationStage::Uncertain, ReservationStage::Creating
-            ).await?;
+            self.store
+                .set_registry_reservation_stage(
+                    id,
+                    ReservationStage::Uncertain,
+                    ReservationStage::Creating,
+                )
+                .await?;
         }
         let descriptor = WorkspaceDescriptor {
             id,
@@ -85,10 +102,12 @@ impl Workspaces {
             created_at: recovery.created_at.min(Utc::now()),
             revision: RegistryRevision::ZERO,
         };
-        self.store.complete_registry_workspace(RegistryRecord {
-            descriptor: descriptor.clone(),
-            recovery: Some(recovery),
-        }).await?;
+        self.store
+            .complete_registry_workspace(RegistryRecord {
+                descriptor: descriptor.clone(),
+                recovery: Some(recovery),
+            })
+            .await?;
         Ok(descriptor)
     }
 }
@@ -103,16 +122,24 @@ impl Workspaces {
         for record in registry.workspaces {
             let descriptor = record.descriptor;
             if !matches!(descriptor.lifecycle, WorkspaceLifecycle::Archived { .. })
-                || !self.store.registry_reservation(descriptor.id).await.is_ok_and(|row| {
-                    row.is_some_and(|row| row.stage == ReservationStage::Ready)
-                })
+                || !self
+                    .store
+                    .registry_reservation(descriptor.id)
+                    .await
+                    .is_ok_and(|row| row.is_some_and(|row| row.stage == ReservationStage::Ready))
                 || !self.archived_backing_gone(&descriptor).await
             {
                 continue;
             }
-            if let Err(error) = self.store.retire_registry_workspace(
-                descriptor.id, vessel_store::ProvisionRetirement::CleanArchive, Utc::now()
-            ).await {
+            if let Err(error) = self
+                .store
+                .retire_registry_workspace(
+                    descriptor.id,
+                    vessel_store::ProvisionRetirement::CleanArchive,
+                    Utc::now(),
+                )
+                .await
+            {
                 tracing::debug!(workspace = %descriptor.id, %error, "archived workspace still has a retained obligation");
             }
         }
@@ -122,9 +149,13 @@ impl Workspaces {
         match workspace.backing {
             WorkspaceBacking::Local => true,
             WorkspaceBacking::Managed { worktree } => {
-                self.store.workspace().await.is_ok_and(|stored| {
-                    !stored.worktrees.iter().any(|row| row.id == worktree)
-                }) && tokio::fs::try_exists(&workspace.path).await.is_ok_and(|exists| !exists)
+                self.store
+                    .workspace()
+                    .await
+                    .is_ok_and(|stored| !stored.worktrees.iter().any(|row| row.id == worktree))
+                    && tokio::fs::try_exists(&workspace.path)
+                        .await
+                        .is_ok_and(|exists| !exists)
             }
         }
     }

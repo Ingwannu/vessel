@@ -54,13 +54,27 @@ impl NodeService {
         }
         let result = self.dispose_isolation(binding).await?;
         if let Some(archive) = result.disposition()
-            && let Some(mut run) = store.runs(binding.schedule).await?.into_iter().find(|run| run.number == binding.run)
+            && let Some(mut run) = store
+                .runs(binding.schedule)
+                .await?
+                .into_iter()
+                .find(|run| run.number == binding.run)
             && run.archive.is_none()
         {
             run.archive = Some(archive);
-            let schedule = store.automation().await?.schedules.into_iter().find(|info| info.id == binding.schedule);
+            let schedule = store
+                .automation()
+                .await?
+                .schedules
+                .into_iter()
+                .find(|info| info.id == binding.schedule);
             match schedule {
-                Some(mut schedule) if schedule.last_run.as_ref().is_some_and(|last| last.number == run.number) => {
+                Some(mut schedule)
+                    if schedule
+                        .last_run
+                        .as_ref()
+                        .is_some_and(|last| last.number == run.number) =>
+                {
                     schedule.last_run = Some(run.clone());
                     store.put_schedule(schedule, Some(run)).await?;
                 }
@@ -88,13 +102,15 @@ impl NodeService {
             let mut activity = FuturesUnordered::new();
             for binding in bindings {
                 let ready = match binding.stage {
-                    RunBindingStage::DeferredBusy => self.watch_busy_archive(binding, &activity).await,
-                    RunBindingStage::DeferredMembers => self.watch_other_members(binding, &activity).await,
+                    RunBindingStage::DeferredBusy => {
+                        self.watch_busy_archive(binding, &activity).await
+                    }
+                    RunBindingStage::DeferredMembers => {
+                        self.watch_other_members(binding, &activity).await
+                    }
                     RunBindingStage::Bound | RunBindingStage::Started => false,
                 };
-                if ready
-                    && let Err(error) = self.cleanup_isolation(binding).await
-                {
+                if ready && let Err(error) = self.cleanup_isolation(binding).await {
                     tracing::warn!(workspace = %binding.workspace, %error, "deferred workspace archive remains unsettled");
                 }
             }
@@ -125,7 +141,11 @@ impl NodeService {
             if let Ok(records) = handle.follow(handle.log_end()) {
                 activity.push(Box::pin(async move {
                     let mut live = records.live;
-                    if !records.cached.iter().any(|record| idle_activity(&record.event)) {
+                    if !records
+                        .cached
+                        .iter()
+                        .any(|record| idle_activity(&record.event))
+                    {
                         while let Ok(record) = live.recv().await {
                             if idle_activity(&record.event) {
                                 break;
@@ -137,8 +157,11 @@ impl NodeService {
             }
             handle.info().status == SessionStatus::Running
                 && handle.conversation().is_ok_and(|current| {
-                current.queue.entries.is_empty() && current.permissions.is_empty() && current.questions.is_empty()
-            }) && handle.turn_running().await.is_ok_and(|running| !running)
+                    current.queue.entries.is_empty()
+                        && current.permissions.is_empty()
+                        && current.questions.is_empty()
+                })
+                && handle.turn_running().await.is_ok_and(|running| !running)
         } else {
             match self.sessions.conversation(session).await {
                 Ok(current) => current.queue.entries.is_empty(),
@@ -153,7 +176,12 @@ impl NodeService {
         binding: ScheduleRunBinding,
         activity: &FuturesUnordered<Activity>,
     ) -> bool {
-        let Ok(members) = self.sessions.store().registry_members(binding.workspace).await else {
+        let Ok(members) = self
+            .sessions
+            .store()
+            .registry_members(binding.workspace)
+            .await
+        else {
             return false;
         };
         let mut ready = true;

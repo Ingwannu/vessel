@@ -63,8 +63,13 @@ impl NodeService {
             return ends(&gone, EndReason::CreatorGone);
         };
         match &job.definition.target {
-            ScheduleTarget::NewSession { spec, after, isolation } => {
-                self.run_new_session(job, &principal, spec, *after, isolation.as_ref()).await
+            ScheduleTarget::NewSession {
+                spec,
+                after,
+                isolation,
+            } => {
+                self.run_new_session(job, &principal, spec, *after, isolation.as_ref())
+                    .await
             }
             ScheduleTarget::Session { session } => self.run_prompt(job, &principal, *session).await,
             ScheduleTarget::Unknown => Made::outcome(failed(
@@ -138,7 +143,9 @@ impl NodeService {
             job.run.number.get()
         );
         if let Some(isolation) = isolation {
-            return self.run_isolated(job, principal, spec, after, isolation.clone(), notice).await;
+            return self
+                .run_isolated(job, principal, spec, after, isolation.clone(), notice)
+                .await;
         }
         let info = match self.create_as(principal, spec, None, Some(notice)).await {
             Ok(info) => info,

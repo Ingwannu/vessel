@@ -54,7 +54,11 @@ impl Workspaces {
         admission.require(self, intent.project)?;
         let workspaces = Arc::clone(self);
         self.tasks
-            .spawn(async move { workspaces.provision_under(id, admission, intent, creator).await })
+            .spawn(async move {
+                workspaces
+                    .provision_under(id, admission, intent, creator)
+                    .await
+            })
             .await
             .map_err(WorkspaceError::project_task)?
     }
@@ -123,9 +127,12 @@ impl Workspaces {
             }
             _ => return Err(StoreError::RegistryConflict.into()),
         };
-        let backing = recovery.as_ref().map_or(WorkspaceBacking::Local, |info| {
-            WorkspaceBacking::Managed { worktree: info.id }
-        });
+        let backing =
+            recovery
+                .as_ref()
+                .map_or(WorkspaceBacking::Local, |info| WorkspaceBacking::Managed {
+                    worktree: info.id,
+                });
         let path = recovery
             .as_ref()
             .map_or(project_root, |info| info.path.clone());
@@ -149,7 +156,9 @@ impl Workspaces {
             })
             .await?;
         drop(admission);
-        if setup == SetupChoice::Run && let Some(worktree) = worktree {
+        if setup == SetupChoice::Run
+            && let Some(worktree) = worktree
+        {
             let _setup = self.run_setup(worktree).await?;
             self.wait_for_provision_setup(worktree).await?;
         }

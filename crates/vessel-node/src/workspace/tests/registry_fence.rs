@@ -153,7 +153,9 @@ async fn registry_fence_managed_backing_blocks_discard_before_teardown_and_keeps
             .workspaces
             .remove_worktree(worktree.id, IfLost::Discard, Vec::new)
             .await;
-        assert!(matches!(result, Err(WorkspaceError::RegistryWorktreeOwned(id)) if id == worktree.id));
+        assert!(
+            matches!(result, Err(WorkspaceError::RegistryWorktreeOwned(id)) if id == worktree.id)
+        );
         assert_eq!(
             std::fs::read_to_string(worktree.path.join("uncommitted")).unwrap(),
             "keep this work"
@@ -211,7 +213,9 @@ async fn registry_fence_uncertain_reservation_without_descriptor_blocks_legacy_d
             .workspaces
             .remove_worktree(worktree.id, IfLost::Discard, Vec::new)
             .await;
-        assert!(matches!(result, Err(WorkspaceError::RegistryWorktreeOwned(id)) if id == worktree.id));
+        assert!(
+            matches!(result, Err(WorkspaceError::RegistryWorktreeOwned(id)) if id == worktree.id)
+        );
         assert!(worktree.path.join("README.md").is_file());
         fixture.stop.cancel();
     })

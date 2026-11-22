@@ -5,7 +5,9 @@
 
 use std::time::Duration;
 
-use vessel_proto::automation::{AfterRun, RunArchive, RunEnd, RunOutcome, ScheduleRun, ScheduleTarget};
+use vessel_proto::automation::{
+    AfterRun, RunArchive, RunEnd, RunOutcome, ScheduleRun, ScheduleTarget,
+};
 use vessel_proto::{EventSeq, SessionId, SessionStatus};
 use vessel_session::IdleStop;
 
@@ -82,7 +84,10 @@ impl NodeService {
 
     async fn finish_isolated_run(&self, job: &Job, outcome: RunOutcome, follow: &FollowSender) {
         let store = self.sessions.store();
-        let binding = match store.schedule_run_binding(job.schedule, job.run.number).await {
+        let binding = match store
+            .schedule_run_binding(job.schedule, job.run.number)
+            .await
+        {
             Ok(Some(binding)) => binding,
             Ok(None) => {
                 send(follow, job, outcome).await;
@@ -103,8 +108,19 @@ impl NodeService {
             }
         };
         let (committed, received) = tokio::sync::oneshot::channel();
-        let run = ScheduleRun { outcome, archive, ..job.run.clone() };
-        if follow.send(Followed { schedule: job.schedule, run, committed: Some(committed) }).await.is_ok()
+        let run = ScheduleRun {
+            outcome,
+            archive,
+            ..job.run.clone()
+        };
+        if follow
+            .send(Followed {
+                schedule: job.schedule,
+                run,
+                committed: Some(committed),
+            })
+            .await
+            .is_ok()
             && received.await == Ok(true)
             && let Ok(cleanup) = cleanup
             && let Err(error) = self.settle_isolation(binding, cleanup).await

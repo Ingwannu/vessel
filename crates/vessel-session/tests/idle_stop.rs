@@ -5,7 +5,10 @@ use vessel_proto::{AgentEvent, ContentBlock, Creator, Delivery, SessionEvent, Se
 use vessel_session::{IdleStop, SessionError};
 
 #[path = "support/runtime.rs"]
-#[expect(dead_code, reason = "only the session helpers of the shared fixture are used")]
+#[expect(
+    dead_code,
+    reason = "only the session helpers of the shared fixture are used"
+)]
 mod support;
 
 fn text(text: &str) -> Vec<ContentBlock> {
@@ -33,10 +36,14 @@ async fn idle_stop_preserves_admitted_work_and_refuses_later_deliveries() {
             .send(SessionInput::CancelTurn { turn: None })
             .await
             .unwrap();
-        log.until(|event| matches!(
-            event,
-            SessionEvent::Agent { event: AgentEvent::TurnEnded { .. } }
-        ))
+        log.until(|event| {
+            matches!(
+                event,
+                SessionEvent::Agent {
+                    event: AgentEvent::TurnEnded { .. }
+                }
+            )
+        })
         .await;
         assert_eq!(handle.stop_if_idle().await.unwrap(), IdleStop::Busy);
         let queued = handle.conversation().unwrap().queue.entries[0].id;
@@ -46,7 +53,9 @@ async fn idle_stop_preserves_admitted_work_and_refuses_later_deliveries() {
             .unwrap();
         assert_eq!(handle.stop_if_idle().await.unwrap(), IdleStop::Stopped);
         assert!(matches!(
-            handle.prompt(text("late"), Delivery::Start, Creator::Owner).await,
+            handle
+                .prompt(text("late"), Delivery::Start, Creator::Owner)
+                .await,
             Err(SessionError::Ended)
         ));
         let _end = handle.ended().await;

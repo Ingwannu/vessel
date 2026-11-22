@@ -66,18 +66,28 @@ pub(super) fn prompts(value: &PromptList, protocol: ProtocolVersion) -> Option<P
 /// Project only fields understood by the receiver, without changing identity.
 pub(super) fn schedule(value: &ScheduleInfo, protocol: ProtocolVersion) -> Option<ScheduleInfo> {
     let (session, clear_isolation) = match &value.definition.target {
-        ScheduleTarget::NewSession { spec: session, isolation, .. } => (
+        ScheduleTarget::NewSession {
+            spec: session,
+            isolation,
+            ..
+        } => (
             spec(session, protocol),
             isolation.is_some() && !crate::automation::serves_schedule_isolation(protocol),
         ),
         ScheduleTarget::Session { .. } | ScheduleTarget::Unknown => (None, false),
     };
-    let run = value.last_run.as_ref().and_then(|run| schedule_run(run, protocol));
+    let run = value
+        .last_run
+        .as_ref()
+        .and_then(|run| schedule_run(run, protocol));
     if session.is_none() && !clear_isolation && run.is_none() {
         return None;
     }
     let mut older = value.clone();
-    if let ScheduleTarget::NewSession { spec, isolation, .. } = &mut older.definition.target {
+    if let ScheduleTarget::NewSession {
+        spec, isolation, ..
+    } = &mut older.definition.target
+    {
         if let Some(session) = session {
             **spec = session;
         }
@@ -91,9 +101,10 @@ pub(super) fn schedule(value: &ScheduleInfo, protocol: ProtocolVersion) -> Optio
     Some(older)
 }
 
-pub(super) fn schedule_run(run: &crate::automation::ScheduleRun, protocol: ProtocolVersion)
-    -> Option<crate::automation::ScheduleRun>
-{
+pub(super) fn schedule_run(
+    run: &crate::automation::ScheduleRun,
+    protocol: ProtocolVersion,
+) -> Option<crate::automation::ScheduleRun> {
     (run.archive.is_some() && !crate::automation::serves_schedule_isolation(protocol)).then(|| {
         let mut older = run.clone();
         older.archive = None;
@@ -101,9 +112,10 @@ pub(super) fn schedule_run(run: &crate::automation::ScheduleRun, protocol: Proto
     })
 }
 
-pub(super) fn schedule_runs(value: &crate::automation::RunList, protocol: ProtocolVersion)
-    -> Option<crate::automation::RunList>
-{
+pub(super) fn schedule_runs(
+    value: &crate::automation::RunList,
+    protocol: ProtocolVersion,
+) -> Option<crate::automation::RunList> {
     changed(&value.runs, |item| schedule_run(item, protocol))
         .map(|runs| crate::automation::RunList { runs })
 }

@@ -9,6 +9,7 @@ import type {
   ScheduleInfo,
   SessionSpec,
   UpdateSchedule,
+  WorkspaceIsolation,
 } from "../../wire/proto";
 
 export type NewSessionSpec = Extract<SessionSpec, { mode: "structured" }>;
@@ -19,6 +20,7 @@ export type ScheduleEdit = ScheduleInfo & {
       kind: "new_session";
       spec: NewSessionSpec;
       after: "archive" | "keep";
+      isolation?: WorkspaceIsolation | null;
     };
   };
 };
@@ -33,6 +35,7 @@ export function editable(info: ScheduleInfo): info is ScheduleEdit {
     definition.cadence.kind !== "unknown" &&
     target.kind === "new_session" &&
     target.after !== "unknown" &&
+    target.isolation?.kind !== "unknown" &&
     target.spec.mode === "structured"
   );
 }
@@ -68,6 +71,7 @@ interface FormValue {
   cadence: Cadence;
   spec: NewSessionSpec;
   archive: boolean;
+  isolation?: WorkspaceIsolation;
   cap: number | null;
 }
 
@@ -75,6 +79,9 @@ function definition(
   value: FormValue,
   original?: ScheduleDefinition,
 ): ScheduleDefinition {
+  const previous =
+    original?.target.kind === "new_session" ? original.target.isolation : null;
+  const isolation = value.isolation ?? previous;
   return {
     ...original,
     name: value.name.trim() === "" ? null : value.name.trim(),
@@ -84,6 +91,7 @@ function definition(
       kind: "new_session",
       spec: value.spec,
       after: value.archive ? "archive" : "keep",
+      ...(isolation == null ? {} : { isolation }),
     },
     catch_up: original?.catch_up ?? "skip",
     max_runs: value.cap,

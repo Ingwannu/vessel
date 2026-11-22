@@ -39,7 +39,7 @@ export const KEEP_PLACE = "";
 
 interface ScheduleTarget {
   reset: () => void;
-  projectOptions: readonly { value: ProjectId; label: string }[];
+  projectOptions: readonly { value: ProjectId; label: string; git: boolean }[];
   projectsLoading: boolean;
   project: ProjectId | null;
   chooseProject: (value: ProjectId | typeof KEEP_PLACE) => void;
@@ -95,7 +95,11 @@ export function useScheduleTarget(
     projects.kind === "ready"
       ? projects.list.projects
           .filter((project) => project.state.state === "ready")
-          .map((project) => ({ value: project.id, label: project.name }))
+          .map((project) => ({
+            value: project.id,
+            label: project.name,
+            git: project.git,
+          }))
       : [];
   const project = projectOptions.find((entry) => entry.value === draft.project);
   const withPlace = original !== undefined || project !== undefined;
