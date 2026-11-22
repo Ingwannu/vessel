@@ -40,7 +40,7 @@ impl NodeService {
         request: ForkSession,
     ) -> Result<SessionInfo, WireError> {
         let (spec, fork) = self.fork_of(request).await.map_err(|error| wire(&error))?;
-        self.create_starting(&connection.principal, spec, (None, None), Some(fork), None)
+        self.create_starting(&connection.principal, spec, (None, None), Some(fork), None, None)
             .await
     }
 

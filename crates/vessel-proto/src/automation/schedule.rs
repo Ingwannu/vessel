@@ -175,6 +175,9 @@ pub enum ScheduleTarget {
         /// What becomes of the session after its first turn.
         #[serde(default)]
         after: AfterRun,
+        /// Explicit per-run isolation. Absent on a definition made for legacy placement.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        isolation: Option<crate::registry::WorkspaceIsolation>,
     },
     /// An existing structured session, through its queue: a turn starts
     /// when it is idle and nothing waits; otherwise the prompt waits its
@@ -371,6 +374,26 @@ pub struct UpdateSchedule {
 
 /// Protocol for editing a heartbeat's cadence without changing its owner (ADR 0033).
 pub const HEARTBEAT_CADENCE_PROTOCOL: Option<ProtocolVersion> = Some(ProtocolVersion::new(48));
+
+/// Per-run workspace isolation. Integration assigns the protocol when consumers land.
+pub const SCHEDULE_ISOLATION_PROTOCOL: Option<ProtocolVersion> = None;
+
+/// Whether all hops on a schedule route can carry the isolation policy.
+#[must_use]
+pub fn serves_schedule_isolation(protocol: ProtocolVersion) -> bool {
+    SCHEDULE_ISOLATION_PROTOCOL.is_some_and(|required| protocol >= required)
+}
+
+impl ScheduleTarget {
+    /// The explicitly saved policy, as distinct from legacy placement.
+    #[must_use]
+    pub const fn isolation(&self) -> Option<&crate::registry::WorkspaceIsolation> {
+        match self {
+            Self::NewSession { isolation, .. } => isolation.as_ref(),
+            Self::Session { .. } | Self::Unknown => None,
+        }
+    }
+}
 
 /// `schedule.update_cadence`: change only an existing-session schedule's
 /// cadence. Needs a direct connection and `operate`.

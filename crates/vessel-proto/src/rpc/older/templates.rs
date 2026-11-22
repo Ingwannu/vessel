@@ -63,17 +63,49 @@ pub(super) fn prompts(value: &PromptList, protocol: ProtocolVersion) -> Option<P
     changed(&value.prompts, |item| prompt(item, protocol)).map(|prompts| PromptList { prompts })
 }
 
-/// A schedule carries labels only when its target creates a new session.
+/// Project only fields understood by the receiver, without changing identity.
 pub(super) fn schedule(value: &ScheduleInfo, protocol: ProtocolVersion) -> Option<ScheduleInfo> {
-    let session = match &value.definition.target {
-        ScheduleTarget::NewSession { spec: session, .. } => spec(session, protocol)?,
-        ScheduleTarget::Session { .. } | ScheduleTarget::Unknown => return None,
+    let (session, clear_isolation) = match &value.definition.target {
+        ScheduleTarget::NewSession { spec: session, isolation, .. } => (
+            spec(session, protocol),
+            isolation.is_some() && !crate::automation::serves_schedule_isolation(protocol),
+        ),
+        ScheduleTarget::Session { .. } | ScheduleTarget::Unknown => (None, false),
     };
+    let run = value.last_run.as_ref().and_then(|run| schedule_run(run, protocol));
+    if session.is_none() && !clear_isolation && run.is_none() {
+        return None;
+    }
     let mut older = value.clone();
-    if let ScheduleTarget::NewSession { spec, .. } = &mut older.definition.target {
-        **spec = session;
+    if let ScheduleTarget::NewSession { spec, isolation, .. } = &mut older.definition.target {
+        if let Some(session) = session {
+            **spec = session;
+        }
+        if clear_isolation {
+            *isolation = None;
+        }
+    }
+    if run.is_some() {
+        older.last_run = run;
     }
     Some(older)
+}
+
+pub(super) fn schedule_run(run: &crate::automation::ScheduleRun, protocol: ProtocolVersion)
+    -> Option<crate::automation::ScheduleRun>
+{
+    (run.archive.is_some() && !crate::automation::serves_schedule_isolation(protocol)).then(|| {
+        let mut older = run.clone();
+        older.archive = None;
+        older
+    })
+}
+
+pub(super) fn schedule_runs(value: &crate::automation::RunList, protocol: ProtocolVersion)
+    -> Option<crate::automation::RunList>
+{
+    changed(&value.runs, |item| schedule_run(item, protocol))
+        .map(|runs| crate::automation::RunList { runs })
 }
 
 /// Lists follow the same per-template rule as individual reads and mutations.
@@ -226,6 +258,7 @@ mod tests {
                     anchor: None,
                 },
                 target: ScheduleTarget::NewSession {
+                    isolation: None,
                     spec: Box::new(spec),
                     after: crate::automation::AfterRun::default(),
                 },

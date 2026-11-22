@@ -27,6 +27,7 @@ fn definition(spec: SessionSpec) -> ScheduleDefinition {
             anchor: None,
         },
         target: ScheduleTarget::NewSession {
+            isolation: None,
             spec: Box::new(spec),
             after: AfterRun::default(),
         },

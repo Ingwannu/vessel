@@ -429,6 +429,11 @@ pub const PROTOCOLS: &[(&str, Option<crate::ProtocolVersion>, &str)] = &[
         "`plugin.settings.read`, `.write` and `.reset` (ADR 0115, \"Settings\").",
     ),
     (
+        "SCHEDULE_ISOLATION_PROTOCOL",
+        crate::automation::SCHEDULE_ISOLATION_PROTOCOL,
+        "An explicit Local or Worktree policy for a schedule's new session (ADR 0033).",
+    ),
+    (
         "HEARTBEAT_CADENCE_PROTOCOL",
         crate::automation::HEARTBEAT_CADENCE_PROTOCOL,
         "`schedule.update_cadence`, for editing a heartbeat while retaining its owner (ADR 0033).",

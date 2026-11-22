@@ -5,7 +5,7 @@
 
 use std::time::Duration;
 
-use vessel_proto::automation::{AfterRun, RunEnd, RunOutcome, ScheduleRun, ScheduleTarget};
+use vessel_proto::automation::{AfterRun, RunArchive, RunEnd, RunOutcome, ScheduleRun, ScheduleTarget};
 use vessel_proto::{EventSeq, SessionId, SessionStatus};
 use vessel_session::IdleStop;
 
@@ -69,9 +69,47 @@ impl NodeService {
         // A turn that failed leaves its session live as one that ended
         // does; either is archived, or each run would leave one more.
         let turned = matches!(end, RunEnd::Turn { .. } | RunEnd::Failed { .. });
-        send(&follow, &job, RunOutcome::Finished { session, end }).await;
+        let outcome = RunOutcome::Finished { session, end };
+        if job.definition.target.isolation().is_some() {
+            self.finish_isolated_run(&job, outcome, &follow).await;
+            return;
+        }
+        send(&follow, &job, outcome).await;
         if turned && after == AfterRun::Archive {
             self.archive_if_idle(session).await;
+        }
+    }
+
+    async fn finish_isolated_run(&self, job: &Job, outcome: RunOutcome, follow: &FollowSender) {
+        let store = self.sessions.store();
+        let binding = match store.schedule_run_binding(job.schedule, job.run.number).await {
+            Ok(Some(binding)) => binding,
+            Ok(None) => {
+                send(follow, job, outcome).await;
+                return;
+            }
+            Err(error) => {
+                tracing::warn!(schedule = %job.schedule, %error, "cannot read the isolated run's binding");
+                send(follow, job, outcome).await;
+                return;
+            }
+        };
+        let cleanup = self.dispose_isolation(binding).await;
+        let archive = match &cleanup {
+            Ok(cleanup) => cleanup.disposition(),
+            Err(error) => {
+                tracing::warn!(workspace = %binding.workspace, %error, "isolated workspace cleanup is unconfirmed");
+                Some(RunArchive::Unconfirmed)
+            }
+        };
+        let (committed, received) = tokio::sync::oneshot::channel();
+        let run = ScheduleRun { outcome, archive, ..job.run.clone() };
+        if follow.send(Followed { schedule: job.schedule, run, committed: Some(committed) }).await.is_ok()
+            && received.await == Ok(true)
+            && let Ok(cleanup) = cleanup
+            && let Err(error) = self.settle_isolation(binding, cleanup).await
+        {
+            tracing::warn!(workspace = %binding.workspace, %error, "cannot release an isolated run's settled binding");
         }
     }
 
@@ -124,6 +162,7 @@ async fn send(follow: &FollowSender, job: &Job, outcome: RunOutcome) {
         .send(Followed {
             schedule: job.schedule,
             run,
+            committed: None,
         })
         .await;
 }

@@ -71,6 +71,7 @@ async fn a_skip_never_hides_the_run_that_still_runs() {
 async fn at_start_the_run_under_a_skip_is_settled() {
     let (store, data) = store().await;
     let making = ScheduleRun {
+        archive: None,
         number: RunNumber::FIRST,
         due_at: at("2026-01-01T10:10:00Z"),
         at: at("2026-01-01T10:10:00Z"),
@@ -78,6 +79,7 @@ async fn at_start_the_run_under_a_skip_is_settled() {
         outcome: RunOutcome::Making,
     };
     let skip = ScheduleRun {
+        archive: None,
         number: RunNumber::FIRST.next().unwrap(),
         due_at: at("2026-01-01T10:20:00Z"),
         at: at("2026-01-01T10:20:00Z"),

@@ -28,6 +28,7 @@ mod file_panels;
 mod files;
 mod forge;
 mod git;
+mod lifecycle;
 mod policy;
 mod projects;
 mod registration;
@@ -58,8 +59,9 @@ use vessel_workspace::{Git, GitSetup};
 pub(crate) use diff_stat::{DiffStats, should_wait};
 pub(crate) use error::WorkspaceError;
 pub(crate) use git::{IndexChange, Origin};
+pub(crate) use lifecycle::{ArchiveResult, Provisioned, ReconciledProvision, WorkspaceActors};
 pub(crate) use policy::refuse_agents;
-pub(crate) use projects::Occupant;
+pub(crate) use projects::{Occupant, admission::ProjectAdmission};
 pub(crate) use scripts::{DirError, ScriptRoot};
 pub(crate) use worktrees::{Placed, Starting, TidyScope};
 

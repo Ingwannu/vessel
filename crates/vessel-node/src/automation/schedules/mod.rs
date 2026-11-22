@@ -106,10 +106,12 @@ impl Made {
 /// A later outcome of a run already made (`started` became `waiting` or
 /// `finished`), sent by a runner following its session: the run as it is
 /// now.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) struct Followed {
     pub(crate) schedule: ScheduleId,
     pub(crate) run: ScheduleRun,
+    /// Isolated cleanup releases its pin only after the disposition commits.
+    pub(crate) committed: Option<oneshot::Sender<bool>>,
 }
 
 /// Where a runner sends what it follows.

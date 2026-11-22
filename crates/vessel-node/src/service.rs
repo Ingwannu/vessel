@@ -81,6 +81,8 @@ mod prompts;
 mod push;
 mod schedule_preview;
 mod scheduled;
+mod scheduled_isolation;
+mod isolation_cleanup;
 mod schedules;
 mod usage;
 mod usage_reports;

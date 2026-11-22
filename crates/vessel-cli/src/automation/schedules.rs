@@ -241,7 +241,7 @@ async fn target(
         return Ok(None);
     }
     let (mut spec, mut after) = match (old, &args.harness) {
-        (Some(ScheduleTarget::NewSession { spec, after }), harness) => {
+        (Some(ScheduleTarget::NewSession { spec, after, .. }), harness) => {
             let mut spec = (**spec).clone();
             if let Some(harness) = harness {
                 spec.harness = harness.clone();
@@ -289,6 +289,7 @@ async fn target(
     Ok(Some(ScheduleTarget::NewSession {
         spec: Box::new(spec),
         after,
+        isolation: old.and_then(|target| target.isolation().cloned()),
     }))
 }
 
@@ -312,7 +313,7 @@ fn details(info: &ScheduleInfo) -> String {
     let mut text = line(info);
     let definition = &info.definition;
     let target = match &definition.target {
-        ScheduleTarget::NewSession { spec, after } => format!(
+        ScheduleTarget::NewSession { spec, after, .. } => format!(
             "a new {} session each run ({})",
             spec.harness,
             match after {

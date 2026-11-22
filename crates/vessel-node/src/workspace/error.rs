@@ -142,6 +142,7 @@ impl WorkspaceError {
                 ErrorCode::Conflict
             }
             Self::Busy(_) | Self::Git(GitError::TimedOut { .. }) => ErrorCode::Unavailable,
+            Self::Store(error @ (StoreError::RegistryFull | StoreError::RegistryFinished(_))) => error.code(),
             Self::Git(_) | Self::Store(_) | Self::Io(_) | Self::ProjectTask(_) => {
                 ErrorCode::Internal
             }

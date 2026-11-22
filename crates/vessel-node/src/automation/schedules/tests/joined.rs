@@ -55,6 +55,7 @@ fn due_at_second(seconds: u32) -> ScheduleDefinition {
 fn new_session_at_second(seconds: u32) -> ScheduleDefinition {
     ScheduleDefinition {
         target: ScheduleTarget::NewSession {
+            isolation: None,
             spec: Box::new(vessel_proto::SessionSpec::new(
                 vessel_proto::HarnessKind::ClaudeCode,
                 vessel_proto::SessionMode::Structured {
@@ -190,6 +191,7 @@ impl Runner for TurnRunner {
                 .send(crate::automation::schedules::Followed {
                     schedule: job.schedule,
                     run,
+                    committed: None,
                 })
                 .await;
         }

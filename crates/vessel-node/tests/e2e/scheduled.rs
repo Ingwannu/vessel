@@ -50,6 +50,7 @@ fn hourly(target: ScheduleTarget, prompt: &str) -> ScheduleDefinition {
 
 fn new_session(spec: SessionSpec) -> ScheduleTarget {
     ScheduleTarget::NewSession {
+        isolation: None,
         spec: Box::new(spec),
         after: AfterRun::Archive,
     }

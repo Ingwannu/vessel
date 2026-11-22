@@ -119,6 +119,7 @@ async fn saved_and_scheduled_inputs_cannot_bypass_the_side_prompt_boundary() {
         for (target, expected) in [
             (
                 ScheduleTarget::NewSession {
+                    isolation: None,
                     spec: Box::new(spec),
                     after: AfterRun::default(),
                 },

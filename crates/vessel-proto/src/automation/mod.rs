@@ -25,14 +25,14 @@ pub use hook::{
 pub use preview::{PreviewCount, PreviewSchedule, SchedulePreview, SchedulePreviewError};
 pub use prompt::{CreatePrompt, DeletePrompt, ListPrompts, PromptList, SavedPrompt, UpdatePrompt};
 pub use run::{
-    ListRuns, RunEnd, RunError, RunErrorCode, RunList, RunNumber, RunOutcome, RunTrigger,
+    ListRuns, RunArchive, RunEnd, RunError, RunErrorCode, RunList, RunNumber, RunOutcome, RunTrigger,
     ScheduleRun, SkipReason,
 };
 pub use schedule::{
     AfterRun, Cadence, CatchUp, CreateSchedule, DeleteSchedule, EndReason, EverySeconds,
     GetSchedule, HEARTBEAT_CADENCE_PROTOCOL, ListSchedules, MaxRuns, OutOfRange, PauseSchedule,
-    ResumeSchedule, RunSchedule, ScheduleDefinition, ScheduleInfo, ScheduleList, ScheduleState,
-    ScheduleTarget, UpdateSchedule, UpdateScheduleCadence,
+    ResumeSchedule, RunSchedule, SCHEDULE_ISOLATION_PROTOCOL, ScheduleDefinition, ScheduleInfo, ScheduleList, ScheduleState,
+    ScheduleTarget, UpdateSchedule, UpdateScheduleCadence, serves_schedule_isolation,
 };
 pub use text::{
     AutomationText, DeliveryKey, InvalidAutomationText, PromptName, PromptText, ScheduleName,

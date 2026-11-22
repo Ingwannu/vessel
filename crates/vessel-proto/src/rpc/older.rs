@@ -201,6 +201,8 @@ impl Reply {
             Self::ListPrompts(value) => templates::prompts(value, protocol).map(Self::ListPrompts),
             Self::CreatePrompt(value) => templates::prompt(value, protocol).map(Self::CreatePrompt),
             Self::UpdatePrompt(value) => templates::prompt(value, protocol).map(Self::UpdatePrompt),
+            Self::RunSchedule(value) => templates::schedule_run(value, protocol).map(Self::RunSchedule),
+            Self::ListRuns(value) => templates::schedule_runs(value, protocol).map(Self::ListRuns),
             Self::ListSchedules(value) => templates::schedules(value, protocol).map(Self::ListSchedules),
             Self::GetSchedule(value) => templates::schedule(value, protocol).map(Self::GetSchedule),
             Self::CreateSchedule(value) => templates::schedule(value, protocol).map(Self::CreateSchedule),
@@ -354,9 +356,7 @@ impl Reply {
             | Self::SaveSkillsSelection(_)
             | Self::ImportSkillsSelection(_)
             | Self::PreviewSchedule(_)
-            | Self::RunSchedule(_)
             | Self::DeleteSchedule(_)
-            | Self::ListRuns(_)
             | Self::ListUsageReports(_)
             | Self::InspectUsageReport(_)
             | Self::SetUsageSourceLookup(_)

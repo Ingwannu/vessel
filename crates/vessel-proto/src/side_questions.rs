@@ -88,6 +88,7 @@ mod tests {
                 anchor: None,
             },
             target: ScheduleTarget::NewSession {
+                isolation: None,
                 spec: Box::new(spec.clone()),
                 after: AfterRun::default(),
             },

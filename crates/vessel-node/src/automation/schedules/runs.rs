@@ -44,6 +44,7 @@ impl<R: Runner, C: Clock> Actor<R, C> {
         outcome: RunOutcome,
     ) {
         let run = ScheduleRun {
+            archive: None,
             number: next_number(&info),
             due_at,
             at: self.clock.now(),
@@ -76,6 +77,7 @@ impl<R: Runner, C: Clock> Actor<R, C> {
             .get(info.id)
             .and_then(|entry| entry.current.clone());
         let run = ScheduleRun {
+            archive: None,
             number: next_number(&info),
             due_at,
             at: self.clock.now(),
@@ -230,7 +232,7 @@ impl<R: Runner, C: Clock> Actor<R, C> {
     /// A followed run's later outcome. A session waiting for a person, or
     /// done with its first turn, gives its first turn's room back.
     pub(super) async fn followed(&mut self, followed: Followed) {
-        let Followed { schedule, run } = followed;
+        let Followed { schedule, run, committed } = followed;
         if matches!(
             run.outcome,
             RunOutcome::Waiting { .. } | RunOutcome::Finished { .. }
@@ -239,19 +241,27 @@ impl<R: Runner, C: Clock> Actor<R, C> {
             self.dispatch();
         }
         let Some(entry) = self.book.get(schedule).cloned() else {
+            // Deletion already discarded history, but never discards a pin.
+            if let Some(committed) = committed {
+                let _gone = committed.send(true);
+            }
             return;
         };
         let mut info = entry.info;
-        if info
-            .last_run
-            .as_ref()
-            .is_some_and(|last| last.number == run.number)
-        {
+        let last = info.last_run.as_ref().is_some_and(|last| last.number == run.number);
+        let result = if last {
             info.last_run = Some(run.clone());
-            self.persist(&info, Some(run.clone())).await;
+            let result = self.store.put_schedule(info.clone(), Some(run.clone())).await;
             self.book.put(info);
-        } else if let Err(error) = self.store.put_run(schedule, run.clone()).await {
+            result
+        } else {
+            self.store.put_run(schedule, run.clone()).await
+        };
+        if let Err(error) = &result {
             tracing::warn!(%schedule, %error, "cannot record a run's outcome");
+        }
+        if let Some(committed) = committed {
+            let _gone = committed.send(result.is_ok());
         }
         self.book.noted(schedule, &run);
     }

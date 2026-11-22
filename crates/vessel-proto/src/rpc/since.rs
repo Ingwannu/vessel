@@ -199,8 +199,8 @@ impl Call {
             },
             Self::CreatePrompt(request) => template_since(request.session.as_deref()),
             Self::UpdatePrompt(request) => template_since(request.session.as_deref()),
-            Self::CreateSchedule(request) => target_since(&request.definition.target),
-            Self::UpdateSchedule(request) => target_since(&request.definition.target),
+            Self::CreateSchedule(request) => target_since(&request.definition.target)?,
+            Self::UpdateSchedule(request) => target_since(&request.definition.target)?,
             Self::ListWorkspaceScripts(_)
             | Self::StartWorkspaceScript(_)
             | Self::StopWorkspaceScript(_)
@@ -460,12 +460,18 @@ fn template_since(spec: Option<&crate::SessionSpec>) -> Option<u32> {
     spec.and_then(|spec| spec.side_question_of.map(|_| 19))
 }
 
-fn target_since(target: &crate::automation::ScheduleTarget) -> Option<u32> {
-    match target {
+fn target_since(target: &crate::automation::ScheduleTarget) -> Option<Option<u32>> {
+    let isolation_since = if target.isolation().is_some() {
+        Some(crate::automation::SCHEDULE_ISOLATION_PROTOCOL?.get())
+    } else {
+        None
+    };
+    let spec_since = match target {
         crate::automation::ScheduleTarget::NewSession { spec, .. } => template_since(Some(spec)),
         crate::automation::ScheduleTarget::Session { .. }
         | crate::automation::ScheduleTarget::Unknown => None,
-    }
+    };
+    Some(spec_since.max(isolation_since))
 }
 
 #[cfg(test)]
