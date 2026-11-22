@@ -9,8 +9,8 @@ use vessel_proto::registry::{
     RegistryRevision, WorkspaceBacking, WorkspaceDescriptor, WorkspaceLifecycle, WorkspacePin,
 };
 use vessel_store::{
-    RegistryRecord, RegistryReservation, RegistryResourceReadiness, RegistryStartState, ReservationStage, StoreError,
-    WorkspaceArchivePurpose,
+    RegistryRecord, RegistryReservation, RegistryResourceReadiness, RegistryStartState,
+    ReservationStage, StoreError, WorkspaceArchivePurpose,
 };
 
 use super::WorkspaceActors;
@@ -176,7 +176,9 @@ impl Workspaces {
         for member in self.store.registry_members(workspace).await? {
             let run = self.store.registry_resource_run(member.resource).await?;
             if !actors.live(member.resource)
-                && !run.is_some_and(|run| run.joined || run.readiness == RegistryResourceReadiness::Failed)
+                && !run.is_some_and(|run| {
+                    run.joined || run.readiness == RegistryResourceReadiness::Failed
+                })
                 && !actors.joined(member.resource).await?
             {
                 return Err(WorkspaceError::Conflict(

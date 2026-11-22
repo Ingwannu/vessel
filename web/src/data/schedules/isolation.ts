@@ -6,13 +6,20 @@ import {
 } from "../../wire/proto";
 import type { NewSessionSpec } from "./form";
 
-export function supportsScheduleIsolation(connection: NodeStatus | undefined) {
-  const required: number | null = SCHEDULE_ISOLATION_PROTOCOL;
+export function supportsScheduleIsolation(
+  connection: NodeStatus | undefined,
+): boolean {
   return (
-    required !== null &&
     connection?.state === "connected" &&
-    connection.protocol >= required
+    protocolCarriesIsolation(connection.protocol, SCHEDULE_ISOLATION_PROTOCOL)
   );
+}
+
+function protocolCarriesIsolation(
+  protocol: number,
+  required: number | null,
+): boolean {
+  return required !== null && protocol >= required;
 }
 
 export type IsolationChoice = "legacy" | "local" | "worktree";

@@ -188,10 +188,13 @@ impl WorkspaceActors for NodeService {
                 .store()
                 .session(session)
                 .await?
-                .is_some_and(|info| matches!(
-                    info.status,
-                    vessel_proto::SessionStatus::Exited { .. } | vessel_proto::SessionStatus::Failed { .. }
-                ))),
+                .is_some_and(|info| {
+                    matches!(
+                        info.status,
+                        vessel_proto::SessionStatus::Exited { .. }
+                            | vessel_proto::SessionStatus::Failed { .. }
+                    )
+                })),
             // An empty runtime alone does not prove its old terminal stopped.
             WorkspaceResource::Terminal { terminal } => Ok(self
                 .terminals

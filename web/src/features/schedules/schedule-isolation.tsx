@@ -41,7 +41,11 @@ export function ScheduleIsolation({
           },
         ]}
       />
-      {choice === "worktree" && !git ? (
+      {choice !== "legacy" && !eligible ? (
+        <p className="schedule-form-note" role="status">
+          Choose a registered project for isolation.
+        </p>
+      ) : choice === "worktree" && !git ? (
         <p className="schedule-form-note" role="status">
           Choose a Git project or switch to Local.
         </p>

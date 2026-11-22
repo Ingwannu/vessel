@@ -46,7 +46,11 @@ impl RunBindingStage {
         match self {
             Self::RetiringUnpublished => Some(crate::ProvisionRetirement::Unpublished),
             Self::RetiringArchive => Some(crate::ProvisionRetirement::CleanArchive),
-            Self::Bound | Self::Started | Self::DeferredBusy | Self::DeferredMembers | Self::Unconfirmed => None,
+            Self::Bound
+            | Self::Started
+            | Self::DeferredBusy
+            | Self::DeferredMembers
+            | Self::Unconfirmed => None,
         }
     }
 

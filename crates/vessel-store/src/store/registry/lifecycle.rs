@@ -107,7 +107,8 @@ impl Store {
         &self,
         lease: crate::WorkspaceStartLease,
     ) -> Result<(), StoreError> {
-        self.registry_write(RegistryWrite::MemberJoined(lease)).await
+        self.registry_write(RegistryWrite::MemberJoined(lease))
+            .await
     }
 
     /// Notify the registry watcher after an exact actor's runtime state changed.

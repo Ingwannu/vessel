@@ -31,8 +31,11 @@ impl NodeService {
         for binding in bindings {
             if let Err(error) = self.recover_schedule_workspace(binding).await {
                 tracing::warn!(workspace = %binding.workspace, %error, "isolated run recovery still owes work");
-                if binding.stage.retirement().is_none() && binding.stage != RunBindingStage::Unconfirmed
-                    && let Err(record) = store.advance_schedule_run_binding(binding, RunBindingStage::Unconfirmed).await
+                if binding.stage.retirement().is_none()
+                    && binding.stage != RunBindingStage::Unconfirmed
+                    && let Err(record) = store
+                        .advance_schedule_run_binding(binding, RunBindingStage::Unconfirmed)
+                        .await
                 {
                     tracing::warn!(workspace = %binding.workspace, %record, "cannot retain an unconfirmed isolation receipt");
                 }
@@ -58,9 +61,15 @@ impl NodeService {
         }
         let store = self.sessions.store();
         if !(binding.stage == RunBindingStage::Started && binding.after == AfterRun::Keep)
-            && store.registry_workspace(binding.workspace).await?.is_some_and(|record| {
-                !matches!(record.descriptor.lifecycle, WorkspaceLifecycle::Archived { .. })
-            })
+            && store
+                .registry_workspace(binding.workspace)
+                .await?
+                .is_some_and(|record| {
+                    !matches!(
+                        record.descriptor.lifecycle,
+                        WorkspaceLifecycle::Archived { .. }
+                    )
+                })
         {
             self.workspaces
                 .reconcile_workspace_starts(binding.workspace, self)

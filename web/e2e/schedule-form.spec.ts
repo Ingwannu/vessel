@@ -12,6 +12,7 @@ test("creates a cron schedule and edits a stored elapsed schedule without conver
   page,
 }) => {
   const env = loadEnv();
+  const isolationAvailable = Number.isInteger(SCHEDULE_ISOLATION_PROTOCOL);
   const name = "Recurring review fixture";
   const elapsed = "Elapsed review fixture";
   cli(env, [
@@ -56,7 +57,7 @@ test("creates a cron schedule and edits a stored elapsed schedule without conver
       name: "Isolation",
       exact: true,
     });
-    if (SCHEDULE_ISOLATION_PROTOCOL === null) {
+    if (!isolationAvailable) {
       await expect(isolation).toHaveCount(0);
     } else {
       await expect(isolation).toHaveText("Local");
@@ -99,7 +100,7 @@ test("creates a cron schedule and edits a stored elapsed schedule without conver
       list.getByRole("button", { name: `Edit schedule ${name}` }),
     ).toBeVisible();
 
-    if (SCHEDULE_ISOLATION_PROTOCOL !== null) {
+    if (isolationAvailable) {
       await list.getByRole("button", { name: `Edit schedule ${name}` }).click();
       const saved = page.getByRole("dialog", { name: "Edit schedule" });
       await expect(
@@ -120,7 +121,7 @@ test("creates a cron schedule and edits a stored elapsed schedule without conver
       edit.getByRole("textbox", { name: "Cron expression" }),
     ).toHaveCount(0);
     await expect(edit.getByLabel("Max runs", { exact: true })).toHaveValue("3");
-    if (SCHEDULE_ISOLATION_PROTOCOL !== null) {
+    if (isolationAvailable) {
       await expect(
         edit.getByRole("combobox", { name: "Isolation", exact: true }),
       ).toHaveText("Current behavior");

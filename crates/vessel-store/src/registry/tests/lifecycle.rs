@@ -140,16 +140,18 @@ fn a_kept_managed_backing_retains_its_slot_even_after_the_archive() {
     let project = item.descriptor.project;
     let backing = WorktreeId::random();
     item.descriptor.backing = WorkspaceBacking::Managed { worktree: backing };
-    let _written = db.execute(
-        "INSERT INTO projects VALUES (?1,0,'{}')",
-        [project.to_string()],
-    )
-    .unwrap();
-    let _written = db.execute(
-        "INSERT INTO worktrees VALUES (?1,?2,0,'{}')",
-        params![backing.to_string(), project.to_string()],
-    )
-    .unwrap();
+    let _written = db
+        .execute(
+            "INSERT INTO projects VALUES (?1,0,'{}')",
+            [project.to_string()],
+        )
+        .unwrap();
+    let _written = db
+        .execute(
+            "INSERT INTO worktrees VALUES (?1,?2,0,'{}')",
+            params![backing.to_string(), project.to_string()],
+        )
+        .unwrap();
     let intent = publish(&mut db, item).intent;
     archive(&mut db, id);
     assert!(matches!(
@@ -183,7 +185,8 @@ fn a_kept_managed_backing_retains_its_slot_even_after_the_archive() {
         apply(&mut db, &next),
         Err(StoreError::RegistryFull)
     ));
-    let _written = db.execute("DELETE FROM worktrees WHERE id=?1", [backing.to_string()])
+    let _written = db
+        .execute("DELETE FROM worktrees WHERE id=?1", [backing.to_string()])
         .unwrap();
     retire(&mut db, id, 1).unwrap();
     assert_eq!(worktree_reference(&db, backing, None).unwrap(), None);
@@ -250,16 +253,18 @@ fn metadata_cannot_settle_an_archive_and_a_deferred_token_cannot_reclaim() {
 
 fn making(db: &Connection, workspace: WorkspaceId) -> ScheduleRunBinding {
     let schedule = ScheduleId::random();
-    let _written = db.execute(
-        "INSERT INTO schedules VALUES (?1,0,'{}')",
-        [schedule.to_string()],
-    )
-    .unwrap();
-    let _written = db.execute(
-        "INSERT INTO schedule_runs VALUES (?1,1,'{\"outcome\":{\"outcome\":\"making\"}}')",
-        [schedule.to_string()],
-    )
-    .unwrap();
+    let _written = db
+        .execute(
+            "INSERT INTO schedules VALUES (?1,0,'{}')",
+            [schedule.to_string()],
+        )
+        .unwrap();
+    let _written = db
+        .execute(
+            "INSERT INTO schedule_runs VALUES (?1,1,'{\"outcome\":{\"outcome\":\"making\"}}')",
+            [schedule.to_string()],
+        )
+        .unwrap();
     ScheduleRunBinding {
         schedule,
         run: RunNumber::FIRST,
@@ -323,11 +328,12 @@ fn a_provisioned_local_fences_project_removal_until_its_pending_start_is_settled
     let item = record(WorkspaceId::random());
     let id = item.descriptor.id;
     let project = item.descriptor.project;
-    let _written = db.execute(
-        "INSERT INTO projects VALUES (?1,0,'{}')",
-        [project.to_string()],
-    )
-    .unwrap();
+    let _written = db
+        .execute(
+            "INSERT INTO projects VALUES (?1,0,'{}')",
+            [project.to_string()],
+        )
+        .unwrap();
     let placement = Placement {
         project,
         path: item.descriptor.path.clone(),

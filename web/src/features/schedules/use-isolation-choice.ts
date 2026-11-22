@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import type { NodeStatus } from "../../wire/bridge";
+import type { WorkspaceIsolation } from "../../wire/proto";
 import type { ScheduleEdit } from "../../data/schedules/form";
 import {
   chooseIsolation,
@@ -10,11 +11,25 @@ import {
 } from "../../data/schedules/isolation";
 import type { useScheduleTarget } from "./use-schedule-target";
 
+interface IsolationDraft {
+  visible: boolean;
+  valid: boolean;
+  policy: WorkspaceIsolation | undefined;
+  reset: () => void;
+  field: {
+    choice: IsolationChoice;
+    change: (choice: IsolationChoice) => void;
+    legacy: boolean;
+    eligible: boolean;
+    git: boolean;
+  };
+}
+
 export function useIsolationChoice(
   connection: NodeStatus | undefined,
   edit: ScheduleEdit | undefined,
   target: ReturnType<typeof useScheduleTarget>,
-) {
+): IsolationDraft {
   const [picked, setPicked] = useState<IsolationChoice | null>(null);
   const stored = edit?.definition.target.isolation ?? undefined;
   const supported = supportsScheduleIsolation(connection);
@@ -25,6 +40,11 @@ export function useIsolationChoice(
   const root = isProjectRoot(target.spec);
   const project =
     target.spec?.place?.kind === "project" ? target.spec.place.project : null;
+  const originalPlace = edit?.definition.target.spec.place;
+  const retained =
+    originalPlace?.kind === "project" && originalPlace.project === project
+      ? stored
+      : undefined;
   const source = target.projectOptions.find((entry) => entry.value === project);
   const eligible = root && source !== undefined;
   const git = eligible && source.git;
@@ -35,7 +55,7 @@ export function useIsolationChoice(
   return {
     visible: supported && (root || stored !== undefined),
     valid,
-    policy: supported ? chooseIsolation(choice, stored) : undefined,
+    policy: supported ? chooseIsolation(choice, retained) : undefined,
     reset: () => {
       setPicked(null);
     },
