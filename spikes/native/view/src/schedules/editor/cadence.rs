@@ -1,6 +1,6 @@
 //! The editor writes cron presets or an explicit cron expression. A stored
 //! elapsed cadence remains a typed value until a person changes the rule.
-use crate::localization::{FormatError, Number, Translator};
+use crate::localization::Translator;
 use vessel_proto::automation::{
     Cadence, CronExpr, InvalidAutomationText, InvalidCron, TimeZoneName,
 };
@@ -231,17 +231,4 @@ fn cron(expression: &str, zone: &str) -> Result<Cadence, Issue> {
     let expr = expression.trim().parse::<CronExpr>().map_err(Issue::Cron)?;
     let zone = zone.trim().parse().map_err(Issue::Zone)?;
     Ok(Cadence::Cron { expr, zone })
-}
-
-/// Feedback for a rule, naming the raw count of a stored elapsed schedule.
-/// # Errors
-/// Locale formatting failed.
-pub fn description(rule: &Cadence, catalog: &Translator) -> Result<String, FormatError> {
-    if let Cadence::Every { seconds, .. } = rule {
-        catalog
-            .schedules()
-            .form_elapsed_seconds(Number::count(seconds.get()))
-    } else {
-        super::super::locale::cadence(rule, catalog)
-    }
 }

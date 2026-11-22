@@ -19,8 +19,9 @@ fn edit_keeps_opened_revision_expiry_ownership_input_and_elapsed_phase() {
     draft.cadence.set_expression(String::new());
     assert!(draft.cadence.is_elapsed());
     let locale = crate::localization::Translator::get(crate::localization::ENGLISH).unwrap();
+    assert_eq!(draft.cadence.choice().label(locale), "Custom cron");
     let rule = draft.cadence.checked().unwrap();
-    let label = super::cadence::description(rule, locale).unwrap();
+    let label = crate::schedules::locale::cadence(rule, locale).unwrap();
     assert_eq!(visible(&label), "Every 90 seconds");
     let Some(Save::Update(save)) = draft.save(rule) else {
         panic!("expected revision-bound replacement");

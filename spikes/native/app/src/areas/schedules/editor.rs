@@ -393,10 +393,7 @@ fn preview_label(
             Some((at.naive_utc().checked_add_offset(offset)?, zone.to_string()))
         })
         .unwrap_or_else(|| (at.naive_utc(), "UTC".to_owned()));
-    let rule = form
-        .draft
-        .describe_cadence(&preview.cadence, catalog)
-        .ok()?;
+    let rule = vessel_app_view::schedules::locale::cadence(&preview.cadence, catalog).ok()?;
     let at = Date::DateTime {
         date: local.date(),
         time: local.time(),
