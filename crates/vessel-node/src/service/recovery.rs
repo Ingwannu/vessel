@@ -14,6 +14,16 @@ use vessel_session::SessionHandle;
 use vessel_store::RestartCandidate;
 
 const ADMISSION: Duration = Duration::from_secs(120);
+
+fn admission_expired() -> WireError {
+    WireError::new(
+        ErrorCode::Unavailable,
+        format!(
+            "startup recovery did not become ready within {} seconds; resume it manually",
+            ADMISSION.as_secs()
+        ),
+    )
+}
 mod startup;
 pub(crate) use startup::start;
 
@@ -106,7 +116,7 @@ impl NodeService {
                 biased;
                 () = stop.cancelled() => return Err(WireError::new(ErrorCode::Unavailable, "the node stopped before startup recovery admission")),
                 () = attempt.cancelled.cancelled() => return Err(WireError::new(ErrorCode::Conflict, "a person stopped startup recovery")),
-                () = tokio::time::sleep_until(deadline) => return Err(WireError::new(ErrorCode::Unavailable, format!("startup recovery did not become ready within {} seconds; resume it manually", ADMISSION.as_secs()))),
+                () = tokio::time::sleep_until(deadline) => return Err(admission_expired()),
                 _changed = changed.changed() => {},
                 outcome = &mut future => return Ok(outcome),
             }

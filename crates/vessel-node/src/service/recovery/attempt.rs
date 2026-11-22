@@ -1,5 +1,6 @@
 //! The phases owned by one boot attempt; no new comparison/session registry.
-use super::{Context, NodeService, Run, wire};
+use super::{Context, NodeService, Run, admission_expired, wire};
+use tokio::time::Instant;
 use vessel_proto::{ContentBlock, ErrorCode, WireError};
 use vessel_session::{PreparationCancellation, PreparationGate, SessionHandle};
 impl NodeService {
@@ -138,6 +139,9 @@ impl NodeService {
                         "the node stopped before launch admission",
                     ));
                 }
+                if Instant::now() >= context.deadline {
+                    return Err(admission_expired());
+                }
                 let mut prepared = prepared.take().ok_or_else(|| {
                     WireError::new(ErrorCode::Internal, "startup relaunch was already consumed")
                 })?;
@@ -195,6 +199,9 @@ impl NodeService {
                     ErrorCode::Unavailable,
                     "the node stopped before prompt admission",
                 ));
+            }
+            if Instant::now() >= context.deadline {
+                return Err(admission_expired());
             }
             permit
                 .send(
