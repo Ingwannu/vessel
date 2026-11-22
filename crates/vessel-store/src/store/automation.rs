@@ -68,6 +68,21 @@ impl Store {
             .await
     }
 
+    /// Whether the exact session has a Keep receipt. When requested is
+    /// true, require its person's committed Archive mark as well.
+    /// # Errors
+    /// Storage or read failure.
+    pub async fn schedule_keeps_session(&self, session: vessel_proto::SessionId, requested: bool) -> Result<bool, StoreError> {
+        self.read(move |reader| reader.with(|db| automation::binding::keeps_session(db, session, requested))).await
+    }
+
+    /// Receipts ready for an archive retry or a person's deferred Keep release.
+    /// # Errors
+    /// Storage or decoding failure.
+    pub async fn schedule_bindings_awaiting_archive(&self) -> Result<Vec<ScheduleRunBinding>, StoreError> {
+        self.read(|reader| reader.with(automation::binding::awaiting_archive)).await
+    }
+
     /// Schedules, hooks and the delivery keys hooks saw (protocol 11),
     /// read once when the node starts.
     ///

@@ -94,7 +94,7 @@ impl NodeService {
             return Err(wire(&ServiceError::AgentMarksRead));
         }
         let marked = match mark {
-            Mark::Archive => self.put_away(session).await,
+            Mark::Archive => self.mark_archived_session(connection.principal(), session).await,
             Mark::Read { .. } | Mark::Unread | Mark::Pin | Mark::Unpin | Mark::Unarchive => {
                 self.sessions.mark(session, mark).await
             }
@@ -102,6 +102,24 @@ impl NodeService {
         marked
             .map(|info| self.with_workspace(info))
             .map_err(|error| wire(&error))
+    }
+
+    async fn mark_archived_session(
+        &self,
+        principal: &crate::principal::Principal,
+        session: SessionId,
+    ) -> Result<SessionInfo, ServiceError> {
+        if principal.agent().is_none()
+            && self.sessions.store().schedule_keeps_session(session, false).await?
+        {
+            // A person's session archive requests automatic workspace cleanup.
+            // Other exact members are left for the workspace's claim to observe.
+            let archived = self.sessions.archive_kept(session).await?;
+            self.unwatch_session(session);
+            Ok(archived)
+        } else {
+            self.put_away(session).await
+        }
     }
 
     /// Archive `session` (stopping it first when live) and end what runs

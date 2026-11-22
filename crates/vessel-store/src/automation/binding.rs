@@ -15,6 +15,8 @@ pub enum RunBindingStage {
     Bound,
     /// The exact associated session was registered.
     Started,
+    /// The turn ended and the person can release this Keep receipt.
+    Kept,
     /// The session had queued work or an in-flight turn during automatic archive.
     DeferredBusy,
     /// Another live member still has work in the same workspace.
@@ -32,6 +34,7 @@ impl RunBindingStage {
         match self {
             Self::Bound => "bound",
             Self::Started => "started",
+            Self::Kept => "kept",
             Self::DeferredBusy => "deferred_busy",
             Self::DeferredMembers => "deferred_members",
             Self::RetiringUnpublished => "retiring_unpublished",
@@ -48,6 +51,7 @@ impl RunBindingStage {
             Self::RetiringArchive => Some(crate::ProvisionRetirement::CleanArchive),
             Self::Bound
             | Self::Started
+            | Self::Kept
             | Self::DeferredBusy
             | Self::DeferredMembers
             | Self::Unconfirmed => None,
@@ -58,6 +62,7 @@ impl RunBindingStage {
         match value {
             "bound" => Ok(Self::Bound),
             "started" => Ok(Self::Started),
+            "kept" => Ok(Self::Kept),
             "deferred_busy" => Ok(Self::DeferredBusy),
             "deferred_members" => Ok(Self::DeferredMembers),
             "retiring_unpublished" => Ok(Self::RetiringUnpublished),
@@ -190,6 +195,44 @@ pub(crate) fn find(
 pub(crate) fn load(connection: &Connection) -> Result<Vec<ScheduleRunBinding>, StoreError> {
     let mut statement = connection.prepare_cached(
         "SELECT schedule, number, workspace, session, after, stage FROM schedule_run_bindings ORDER BY schedule,number",
+    )?;
+    let rows = statement.query_map([], read_row)?;
+    rows.map(|row| decode(row?)).collect()
+}
+
+/// Called only by a person's Archive mark in the same writer savepoint.
+pub(crate) fn request_keep_release(
+    connection: &Connection,
+    session: SessionId,
+) -> Result<bool, StoreError> {
+    let changed = connection.execute(
+        "UPDATE schedule_run_bindings SET release_requested=1
+         WHERE session=?1 AND after='keep' AND stage IN ('bound','started','kept') AND release_requested=0",
+        [session.to_string()],
+    )?;
+    Ok(changed != 0)
+}
+
+pub(crate) fn keeps_session(
+    connection: &Connection,
+    session: SessionId,
+    requested: bool,
+) -> Result<bool, StoreError> {
+    Ok(connection.query_row(
+        "SELECT EXISTS(SELECT 1 FROM schedule_run_bindings
+         WHERE session=?1 AND after='keep' AND stage IN ('bound','started','kept','deferred_busy','deferred_members','unconfirmed')
+         AND (NOT ?2 OR release_requested=1))",
+        params![session.to_string(), requested],
+        |row| row.get(0),
+    )?)
+}
+
+pub(crate) fn awaiting_archive(connection: &Connection) -> Result<Vec<ScheduleRunBinding>, StoreError> {
+    let mut statement = connection.prepare_cached(
+        "SELECT schedule, number, workspace, session, after, stage FROM schedule_run_bindings
+         WHERE stage IN ('deferred_busy','deferred_members')
+         OR (stage='kept' AND after='keep' AND release_requested=1)
+         ORDER BY schedule,number",
     )?;
     let rows = statement.query_map([], read_row)?;
     rows.map(|row| decode(row?)).collect()

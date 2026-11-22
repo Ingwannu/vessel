@@ -107,6 +107,7 @@ pub(crate) enum Write {
     Mark {
         session: SessionId,
         mark: Mark,
+        release_keep: bool,
         at: DateTime<Utc>,
         residence: crate::Residence,
         done: Done<SessionCommit<KeptMarks>>,

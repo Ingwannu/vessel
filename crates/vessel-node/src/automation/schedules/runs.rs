@@ -275,4 +275,35 @@ impl<R: Runner, C: Clock> Actor<R, C> {
         }
         self.book.noted(schedule, &run);
     }
+    /// Keep the first archive disposition alongside the original turn.
+    /// A late release must not replace a newer run or re-create trimmed history.
+    pub(super) async fn note_archive(
+        &mut self,
+        schedule: ScheduleId,
+        number: RunNumber,
+        disposition: vessel_proto::automation::RunArchive,
+    ) -> Result<(), AutomationError> {
+        let Some(entry) = self.book.get(schedule) else {
+            return Ok(());
+        };
+        let mut info = entry.info.clone();
+        let Some(mut run) = self.store.runs(schedule).await?.into_iter().find(|run| run.number == number)
+        else {
+            return Ok(());
+        };
+        if run.archive.is_some() {
+            return Ok(());
+        }
+        run.archive = Some(disposition);
+        if info.last_run.as_ref().is_some_and(|last| last.number == number) {
+            info.last_run = Some(run.clone());
+            self.store.put_schedule(info.clone(), Some(run.clone())).await?;
+            self.book.put(info);
+        } else {
+            self.store.put_run(schedule, run.clone()).await?;
+        }
+        self.book.noted(schedule, &run);
+        Ok(())
+    }
+
 }

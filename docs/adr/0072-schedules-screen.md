@@ -310,7 +310,9 @@ Vessel's existing branch, base, setup approval and naming rules.
 
 The node retains Waiting for a permission. The 256 live workspace slots
 include retained backing debt. An isolated run reports a capacity refusal
-once. Ordinary root registration continues to log a full registry and lets
+once. The session's Archive action releases its kept isolated workspace
+through automatic cleanup. Paseo offers this operation in the workspace
+sidebar. Ordinary root registration continues to log a full registry and lets
 the start proceed. Archive preserves other live members' work and reports
 `archive deferred: other members`; Paseo drains the workspace's agents and
 terminals. An elapsed cadence keeps its existing rule and uses an elapsed-unit

@@ -79,6 +79,11 @@ pub(crate) enum WorkspaceWrite {
     Worktree(Box<WorktreeInfo>),
     /// Delete a worktree.
     ForgetWorktree(WorktreeId),
+    ForgetArchivedBacking {
+        worktree: WorktreeId,
+        workspace: vessel_proto::WorkspaceId,
+        at: DateTime<Utc>,
+    },
     /// Approve a set, or withdraw an approval.
     Approval {
         project: ProjectId,
@@ -131,6 +136,18 @@ pub(crate) fn apply(
         WorkspaceWrite::ForgetWorktree(id) => connection
             .prepare_cached("DELETE FROM worktrees WHERE id = ?1")?
             .execute([id.to_string()])?,
+        WorkspaceWrite::ForgetArchivedBacking { worktree, workspace, at } => {
+            if crate::registry::worktree_debt(connection, *worktree)? != Some(*workspace) {
+                return Err(StoreError::RegistryConflict);
+            }
+            let deleted = connection.execute("DELETE FROM worktrees WHERE id = ?1", [worktree.to_string()])?;
+            registry = crate::registry::apply(connection, &crate::registry::RegistryWrite::Retire {
+                workspace: *workspace,
+                evidence: crate::ProvisionRetirement::CleanArchive,
+                at: *at,
+            })?;
+            deleted
+        }
         WorkspaceWrite::Approval {
             project,
             digest,

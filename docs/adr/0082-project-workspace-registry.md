@@ -225,7 +225,9 @@ budget above where the two disagree.
 - Choice:
   - `MAX_WORKSPACES` counts live identities only: records that are not Archived,
     plus every non-retired reservation, deduplicated by identity.
-  - `MAX_RESOURCES` counts explicit ownership rows, including retained archives.
+  - `MAX_RESOURCES` counts explicit ownership rows, including archived
+    explicit rows. Retained membership can refuse a new isolated start
+    because the same byte limit covers live and historical ownership.
   - Eligible legacy Local archives, retired provision receipts and their
     archived descriptors share `MAX_ARCHIVED_WORKSPACES`. Pruning is oldest
     first by archive or retirement time, then id. Ownership and labels
@@ -273,8 +275,16 @@ admission. Accepted prompts retain their place. The run records
 `archive deferred: other members` and relevant registry activity can resume
 cleanup. Paseo stops the workspace's agents and terminals during archive.
 
+A person's Archive mark of a kept scheduled session records a durable
+automatic workspace release in the same transaction. The exact Keep
+receipt persists through restart, schedule deletion and history trimming.
+Other live members still defer that release.
+
 Cleanup reuses exact ownership, Git and occupancy checks. Dirty or occupied
-backing remains charged until proven removed. The shared Store migration
+backing remains charged until proven removed. For exclusive, settled backing
+of an Archived workspace, a person's ordinary worktree removal uses their
+IfLost choice. The Store deletes the backing record and retires its reservation
+in one savepoint after confirmed removal. Session tidying still fences it. The shared Store migration
 rebuilds the reservation table to add Retired and adds internal archive and
 run-binding receipts. The unresolved binding count is bounded by
 `MAX_WORKSPACES`; pruning respects those pins. No new workspace RPC is needed

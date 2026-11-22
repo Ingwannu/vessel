@@ -19,6 +19,7 @@ use crate::workspace::{
 
 /// A pin can be released only after archiving or a proven lack of effects.
 pub(super) enum IsolationCleanup {
+    Retained,
     Settled {
         archive: Option<RunArchive>,
         retirement: Option<ProvisionRetirement>,
@@ -29,6 +30,7 @@ pub(super) enum IsolationCleanup {
 impl IsolationCleanup {
     pub(super) fn disposition(&self) -> Option<RunArchive> {
         match self {
+            Self::Retained => None,
             Self::Settled { archive, .. } => *archive,
             Self::Deferred(ArchiveDefer::BusySession) => Some(RunArchive::DeferredBusy),
             Self::Deferred(ArchiveDefer::OtherMembers) => Some(RunArchive::DeferredOtherMembers),
@@ -42,7 +44,7 @@ impl NodeService {
         &self,
         binding: ScheduleRunBinding,
     ) -> Result<(), WorkspaceError> {
-        let result = self.dispose_isolation(binding).await?;
+        let result = self.archive_isolation(binding).await?;
         self.settle_isolation(binding, result).await
     }
 
@@ -51,11 +53,15 @@ impl NodeService {
         binding: ScheduleRunBinding,
     ) -> Result<IsolationCleanup, WorkspaceError> {
         if binding.stage == RunBindingStage::Started && binding.after == AfterRun::Keep {
-            return Ok(IsolationCleanup::Settled {
-                archive: None,
-                retirement: None,
-            });
+            return Ok(IsolationCleanup::Retained);
         }
+        self.archive_isolation(binding).await
+    }
+
+    pub(super) async fn archive_isolation(
+        &self,
+        binding: ScheduleRunBinding,
+    ) -> Result<IsolationCleanup, WorkspaceError> {
         let workspace = match self
             .workspaces
             .reconcile_workspace_provision(binding.workspace)
@@ -116,6 +122,12 @@ impl NodeService {
     ) -> Result<(), WorkspaceError> {
         let store = self.sessions.store();
         match result {
+            IsolationCleanup::Retained => {
+                store.advance_schedule_run_binding(binding, RunBindingStage::Kept).await?;
+                if store.schedule_keeps_session(binding.session, true).await? {
+                    store.notify_registry_member(WorkspaceResource::Session { session: binding.session }).await?;
+                }
+            }
             IsolationCleanup::Settled { retirement, .. } => {
                 let finishing = if let Some(evidence) = retirement {
                     let stage = match evidence {

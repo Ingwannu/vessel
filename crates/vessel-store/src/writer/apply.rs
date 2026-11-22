@@ -63,12 +63,24 @@ pub(super) fn apply(
         Write::Mark {
             session,
             mark,
+            release_keep,
             at,
             residence,
             done,
-        } => marks_answer(transaction, effects, session, done, |connection| {
-            marks::mark(connection, session, mark, at, residence)
-        }),
+        } => {
+            let mut wake = false;
+            let answer = marks_answer(transaction, effects, session, done, |connection| {
+                let kept = marks::mark(connection, session, mark, at, residence)?;
+                if release_keep {
+                    wake = crate::automation::binding::request_keep_release(connection, session)?;
+                }
+                Ok(kept)
+            });
+            if wake && matches!(answer, Answer::Marked(_, Ok(_))) {
+                effects.registry = crate::registry::RegistryChange::Changed;
+            }
+            answer
+        }
         Write::ReadAttention {
             session,
             through,

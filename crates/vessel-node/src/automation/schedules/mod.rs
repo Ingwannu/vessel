@@ -42,7 +42,7 @@ use std::time::Duration;
 use chrono::{DateTime, Utc};
 use tokio::sync::{mpsc, oneshot};
 use vessel_proto::automation::{
-    Cadence, EndReason, RunOutcome, ScheduleDefinition, ScheduleInfo, ScheduleRun,
+    Cadence, EndReason, RunArchive, RunNumber, RunOutcome, ScheduleDefinition, ScheduleInfo, ScheduleRun,
 };
 use vessel_proto::{Creator, ScheduleId, SessionId};
 
@@ -190,6 +190,12 @@ pub(crate) enum Command {
         schedule: ScheduleId,
         asker: Asker,
         reply: oneshot::Sender<Result<ScheduleRun, AutomationError>>,
+    },
+    ArchiveDisposition {
+        schedule: ScheduleId,
+        run: RunNumber,
+        disposition: RunArchive,
+        reply: oneshot::Sender<Result<(), AutomationError>>,
     },
     /// An agent's session is about to start again: the schedules of its
     /// last run go now, answered once they are gone.
@@ -371,6 +377,16 @@ impl Schedules {
     /// over. Asked here, it cannot, whatever the channel did.
     ///
     /// # Errors
+    pub(crate) async fn record_archive(
+        &self,
+        schedule: ScheduleId,
+        run: RunNumber,
+        disposition: RunArchive,
+    ) -> Result<(), AutomationError> {
+        self.ask(|reply| Command::ArchiveDisposition { schedule, run, disposition, reply }).await
+    }
+
+
     /// `unavailable`: the scheduler has stopped (the node is stopping).
     pub(crate) async fn starting_again(&self, session: SessionId) -> Result<(), AutomationError> {
         let (reply, answer) = oneshot::channel();

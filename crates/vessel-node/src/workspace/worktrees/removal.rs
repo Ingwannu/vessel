@@ -37,7 +37,7 @@ use vessel_proto::conversation::TidiedWorktree;
 use vessel_proto::workspace::{
     IfLost, KeptReason, ProjectCommands, RemoveWorktreeOutcome, WorktreeInfo,
 };
-use vessel_proto::{SessionId, WorktreeId};
+use vessel_proto::{SessionId, WorkspaceId, WorktreeId};
 use vessel_store::WorkspaceArchiveClaim;
 
 use crate::workspace::projects::Occupant;
@@ -204,7 +204,7 @@ impl Workspaces {
             RemovalPurpose::Archive(claim) => Some(claim),
             RemovalPurpose::Requested | RemovalPurpose::Tidy => None,
         };
-        self.check_backing_removal(worktree, archive).await?;
+        let debt = self.check_backing_removal(worktree, archive, purpose == RemovalPurpose::Requested).await?;
         let claim = self.stop.child_token();
         let (info, root, written) = {
             let mut state = self.state();
@@ -258,7 +258,7 @@ impl Workspaces {
                     // replace the checkout between the risk check and recount.
                     *diff_stat = diff_stat::removal_stat(&git, &info).await;
                 }
-                workspaces.settle(worktree, removal).await
+                workspaces.settle(worktree, debt, removal).await
             })
             .await
             .map_err(|_stopped| WorkspaceError::Io("removing the worktree stopped".to_owned()))?
@@ -269,6 +269,7 @@ impl Workspaces {
     async fn settle(
         &self,
         worktree: WorktreeId,
+        debt: Option<WorkspaceId>,
         removal: Result<RemoveWorktreeOutcome, WorkspaceError>,
     ) -> Result<RemoveWorktreeOutcome, WorkspaceError> {
         if !matches!(removal, Ok(RemoveWorktreeOutcome::Removed { .. })) {
@@ -277,8 +278,17 @@ impl Workspaces {
             }
             return removal;
         }
+        let written = match debt {
+            Some(workspace) => self.store.forget_archived_backing(worktree, workspace, chrono::Utc::now()).await,
+            None => self.store.forget_worktree(worktree).await,
+        };
+        if let Err(error) = written {
+            if let Some(entry) = self.state().worktrees.get_mut(&worktree) {
+                entry.running = None;
+            }
+            return Err(error.into());
+        }
         drop(self.state().worktrees.remove(&worktree));
-        self.store.forget_worktree(worktree).await?;
         if let Err(error) = tokio::fs::remove_file(self.log_path(worktree)).await
             && error.kind() != std::io::ErrorKind::NotFound
         {
@@ -298,7 +308,9 @@ impl Workspaces {
     ) -> Result<RemoveWorktreeOutcome, WorkspaceError> {
         let path = &info.path;
         let created = info.created_branch.as_ref();
-        if !tokio::fs::try_exists(path).await.unwrap_or(false) {
+        if !tokio::fs::try_exists(path).await.map_err(|error| {
+            WorkspaceError::Io(format!("could not inspect the worktree folder: {error}"))
+        })? {
             // The folder went another way; git's record of it goes at its
             // next prune. Nothing is left to lose here.
             return Ok(RemoveWorktreeOutcome::Removed { snapshot: None });

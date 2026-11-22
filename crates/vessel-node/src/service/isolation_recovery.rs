@@ -60,22 +60,24 @@ impl NodeService {
                 .await;
         }
         let store = self.sessions.store();
-        if !(binding.stage == RunBindingStage::Started && binding.after == AfterRun::Keep)
-            && store
-                .registry_workspace(binding.workspace)
-                .await?
-                .is_some_and(|record| {
-                    !matches!(
-                        record.descriptor.lifecycle,
-                        WorkspaceLifecycle::Archived { .. }
-                    )
-                })
-        {
-            self.workspaces
-                .reconcile_workspace_starts(binding.workspace, self)
-                .await?;
+        let keep = binding.after == AfterRun::Keep
+            && matches!(binding.stage, RunBindingStage::Started | RunBindingStage::Kept);
+        let releasing = keep && store.schedule_keeps_session(binding.session, true).await?;
+        if keep && !releasing && binding.stage == RunBindingStage::Kept {
+            return Ok(());
         }
-        let result = self.dispose_isolation(binding).await?;
+        if (!keep || releasing)
+            && store.registry_workspace(binding.workspace).await?.is_some_and(|record| {
+                !matches!(record.descriptor.lifecycle, WorkspaceLifecycle::Archived { .. })
+            })
+        {
+            self.workspaces.reconcile_workspace_starts(binding.workspace, self).await?;
+        }
+        let result = if releasing {
+            self.archive_isolation(binding).await?
+        } else {
+            self.dispose_isolation(binding).await?
+        };
         if let Some(archive) = result.disposition()
             && let Some(mut run) = store
                 .runs(binding.schedule)
@@ -115,7 +117,7 @@ impl NodeService {
         let store = self.sessions.store();
         let mut changes = store.registry_changes();
         loop {
-            let bindings = match store.schedule_run_bindings().await {
+            let bindings = match store.schedule_bindings_awaiting_archive().await {
                 Ok(bindings) => bindings,
                 Err(error) => {
                     tracing::warn!(%error, "cannot watch deferred workspace archives");
@@ -131,13 +133,14 @@ impl NodeService {
                     RunBindingStage::DeferredMembers => {
                         self.watch_other_members(binding, &mut observations).await
                     }
+                    RunBindingStage::Kept => true,
                     RunBindingStage::Bound
                     | RunBindingStage::Started
                     | RunBindingStage::RetiringArchive
                     | RunBindingStage::RetiringUnpublished
                     | RunBindingStage::Unconfirmed => false,
                 };
-                if ready && let Err(error) = self.cleanup_isolation(binding).await {
+                if ready && let Err(error) = self.archive_requested_run(binding).await {
                     tracing::warn!(workspace = %binding.workspace, %error, "deferred workspace archive remains unsettled");
                 }
             }
@@ -156,6 +159,15 @@ impl NodeService {
                 }
             }
         }
+    }
+
+    async fn archive_requested_run(&self, binding: ScheduleRunBinding) -> Result<(), WorkspaceError> {
+        let cleanup = self.archive_isolation(binding).await?;
+        if let Some(disposition) = cleanup.disposition() {
+            self.schedules.record_archive(binding.schedule, binding.run, disposition).await
+                .map_err(|error| WorkspaceError::Conflict(error.to_string()))?;
+        }
+        self.settle_isolation(binding, cleanup).await
     }
 
     async fn watch_busy_archive(
@@ -191,6 +203,9 @@ impl NodeService {
                 })
                 && handle.turn_running().await.is_ok_and(|running| !running)
         } else {
+            if self.sessions.get(session).await.is_ok_and(|info| info.marks.archived_at.is_some()) {
+                return true;
+            }
             match self.sessions.conversation(session).await {
                 Ok(current) => current.queue.entries.is_empty(),
                 Err(ServiceError::NotFound(_)) => true,

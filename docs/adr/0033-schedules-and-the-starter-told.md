@@ -348,6 +348,10 @@ A client offers the editor when the exact peer negotiates that version.
   Archive follows that run's captured policy. Keep allows a later isolated run
   after the first turn finishes, even when the prior session remains live.
   Existing definitions carry their prior placement and Keep behavior.
+  An isolated Keep retains its bounded run receipt. A person's Archive
+  mark on that exact session atomically records the release request.
+  The existing automatic workspace archive resumes from that request,
+  including across a restart and after the schedule history is trimmed.
 - **Archive result.** A typed disposition accompanies the turn result.
   Automatic archive defers while the scheduled session has accepted work, or
   another member remains live. The node retries from registry/member activity.

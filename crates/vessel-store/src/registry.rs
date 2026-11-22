@@ -42,6 +42,7 @@ pub(crate) use project_reference::{find as project_reference_in, worktree as wor
 pub(crate) use read::{
     load, memberships as workspace_memberships, reservation, resource_owner, workspace,
 };
+pub(crate) use retirement::worktree_debt;
 pub(crate) use write::apply;
 
 /// Whether a transaction changed the durable snapshot version.

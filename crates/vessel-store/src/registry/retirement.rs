@@ -3,7 +3,7 @@
 
 use chrono::{DateTime, Utc};
 use rusqlite::{Connection, params};
-use vessel_proto::WorkspaceId;
+use vessel_proto::{WorkspaceId, WorktreeId};
 use vessel_proto::registry::{WorkspaceBacking, WorkspaceDescriptor, WorkspaceLifecycle};
 
 use super::{
@@ -23,12 +23,7 @@ pub(super) fn retire(
     if reservation.stage == ReservationStage::Retired {
         return Ok(RegistryChange::Unchanged);
     }
-    let pinned: bool = connection.query_row(
-        "SELECT EXISTS(SELECT 1 FROM schedule_run_bindings WHERE workspace=?1 AND stage NOT IN ('retiring_unpublished','retiring_archive'))",
-        [workspace.to_string()],
-        |row| row.get(0),
-    )?;
-    if pinned || !super::pending_starts(connection, workspace)?.is_empty() {
+    if pinned(connection, workspace)? || !super::pending_starts(connection, workspace)?.is_empty() {
         return Err(StoreError::RegistryConflict);
     }
     let record = read::workspace(connection, workspace)?;
@@ -73,6 +68,34 @@ pub(super) fn retire(
     }
     prune(connection)?;
     Ok(RegistryChange::Changed)
+}
+
+fn pinned(connection: &Connection, workspace: WorkspaceId) -> Result<bool, StoreError> {
+    Ok(connection.query_row(
+        "SELECT EXISTS(SELECT 1 FROM schedule_run_bindings WHERE workspace=?1 AND stage NOT IN ('retiring_unpublished','retiring_archive'))",
+        [workspace.to_string()],
+        |row| row.get(0),
+    )?)
+}
+
+/// A person can resolve debt only for the exclusive, settled archived backing.
+pub(crate) fn worktree_debt(connection: &Connection, worktree: WorktreeId) -> Result<Option<WorkspaceId>, StoreError> {
+    let Some(workspace) = super::worktree_reference(connection, worktree, None)? else {
+        return Ok(None);
+    };
+    let Some(record) = read::workspace(connection, workspace)? else {
+        return Ok(None);
+    };
+    let owned = matches!(record.descriptor.lifecycle, WorkspaceLifecycle::Archived { .. })
+        && record.descriptor.backing == (WorkspaceBacking::Managed { worktree })
+        && read::reservation(connection, workspace)?.is_some_and(|reserved| {
+            reserved.stage == ReservationStage::Ready && reserved.worktree == Some(worktree)
+        })
+        && super::archive_claim(connection, workspace)?.is_none()
+        && super::pending_starts(connection, workspace)?.is_empty()
+        && !pinned(connection, workspace)?
+        && super::worktree_reference(connection, worktree, Some(workspace))?.is_none();
+    Ok(owned.then_some(workspace))
 }
 
 /// Both kinds of settled history share one limit; an unresolved binding pins
