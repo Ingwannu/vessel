@@ -187,10 +187,7 @@ impl Workspaces {
 
     /// Explicit archive claims have the same recovery even if they have no
     /// schedule binding. The corresponding effect is live only after boot.
-    pub(crate) async fn resume_explicit_archives(
-        self: &Arc<Self>,
-        actors: &impl WorkspaceActors,
-    ) {
+    pub(crate) async fn resume_explicit_archives(self: &Arc<Self>, actors: &impl WorkspaceActors) {
         let Ok(registry) = self.store.workspace_registry().await else {
             return;
         };
@@ -203,11 +200,15 @@ impl Workspaces {
                     return Ok(());
                 };
                 if known.claim.purpose == WorkspaceArchivePurpose::Explicit {
-                    self.reconcile_workspace_starts(workspace.id, actors).await?;
-                    let _archived = self.resume_workspace_archive(known.claim, None, actors).await?;
+                    self.reconcile_workspace_starts(workspace.id, actors)
+                        .await?;
+                    let _archived = self
+                        .resume_workspace_archive(known.claim, None, actors)
+                        .await?;
                 }
                 Ok::<(), WorkspaceError>(())
-            }.await;
+            }
+            .await;
             if let Err(error) = replayed {
                 tracing::warn!(workspace = %workspace.id, %error, "an explicit workspace archive remains unsettled");
             }

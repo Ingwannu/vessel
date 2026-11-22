@@ -5,8 +5,8 @@ use std::fmt::Write as _;
 
 use vessel_client::NodeClient;
 use vessel_proto::automation::{
-    AfterRun, Cadence, CatchUp, EverySeconds, MaxRuns, RunArchive, RunOutcome, RunTrigger, ScheduleDefinition,
-    ScheduleInfo, ScheduleRun, ScheduleState, ScheduleTarget, TimeZoneName,
+    AfterRun, Cadence, CatchUp, EverySeconds, MaxRuns, RunArchive, RunOutcome, RunTrigger,
+    ScheduleDefinition, ScheduleInfo, ScheduleRun, ScheduleState, ScheduleTarget, TimeZoneName,
 };
 use vessel_proto::{SessionMode, SessionSpec};
 

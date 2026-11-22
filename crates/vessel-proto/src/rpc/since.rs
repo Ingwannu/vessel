@@ -199,8 +199,12 @@ impl Call {
             },
             Self::CreatePrompt(request) => template_since(request.session.as_deref()),
             Self::UpdatePrompt(request) => template_since(request.session.as_deref()),
-            Self::CreateSchedule(request) => Some(target_since(&request.definition.target, method)?),
-            Self::UpdateSchedule(request) => Some(target_since(&request.definition.target, method)?),
+            Self::CreateSchedule(request) => {
+                Some(target_since(&request.definition.target, method)?)
+            }
+            Self::UpdateSchedule(request) => {
+                Some(target_since(&request.definition.target, method)?)
+            }
             Self::ListWorkspaceScripts(_)
             | Self::StartWorkspaceScript(_)
             | Self::StopWorkspaceScript(_)

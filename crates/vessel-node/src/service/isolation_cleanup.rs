@@ -149,8 +149,7 @@ impl NodeService {
                     store.advance_schedule_run_binding(binding, stage).await?;
                     // The claim's defer may have woken the watcher before
                     // this run receipt was visible. Publish after it as well.
-                    if let Some(member) = store.registry_members(binding.workspace).await?.first()
-                    {
+                    if let Some(member) = store.registry_members(binding.workspace).await?.first() {
                         store.notify_registry_member(member.resource).await?;
                     }
                 }

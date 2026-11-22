@@ -63,7 +63,9 @@ mod tests {
             "SELECT COUNT(*) FROM schedule_run_bindings",
         ] {
             assert_eq!(
-                connection.query_row(query, [], |row| row.get::<_, u32>(0)).unwrap(),
+                connection
+                    .query_row(query, [], |row| row.get::<_, u32>(0))
+                    .unwrap(),
                 0
             );
         }

@@ -300,7 +300,10 @@ fn unresolved_run_pins_are_bounded_and_survive_history_deletion() {
     let stage = RunBindingStage::RetiringArchive;
     write_run(
         &db,
-        &AutomationWrite::AdvanceRunBinding { previous: first, stage },
+        &AutomationWrite::AdvanceRunBinding {
+            previous: first,
+            stage,
+        },
     )
     .unwrap();
     retire(&mut db, id, 1).unwrap();

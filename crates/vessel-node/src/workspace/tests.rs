@@ -1114,5 +1114,5 @@ mod project_task;
 
 mod registration;
 
-mod registry_fence;
 mod isolated_lifecycle;
+mod registry_fence;

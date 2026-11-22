@@ -51,7 +51,9 @@ impl NodeService {
                 .await;
         }
         let store = self.sessions.store();
-        self.workspaces.reconcile_workspace_starts(binding.workspace, self).await?;
+        self.workspaces
+            .reconcile_workspace_starts(binding.workspace, self)
+            .await?;
         let result = self.dispose_isolation(binding).await?;
         if let Some(archive) = result.disposition()
             && let Some(mut run) = store
