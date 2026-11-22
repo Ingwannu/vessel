@@ -5,7 +5,7 @@ use std::fmt::Write as _;
 
 use vessel_client::NodeClient;
 use vessel_proto::automation::{
-    AfterRun, Cadence, CatchUp, EverySeconds, MaxRuns, RunOutcome, RunTrigger, ScheduleDefinition,
+    AfterRun, Cadence, CatchUp, EverySeconds, MaxRuns, RunArchive, RunOutcome, RunTrigger, ScheduleDefinition,
     ScheduleInfo, ScheduleRun, ScheduleState, ScheduleTarget, TimeZoneName,
 };
 use vessel_proto::{SessionMode, SessionSpec};
@@ -381,8 +381,16 @@ fn run_line(run: &ScheduleRun) -> String {
         RunOutcome::Interrupted => "interrupted by the node's stop".to_owned(),
         RunOutcome::Unknown => "?".to_owned(),
     };
+    let archive = match run.archive {
+        Some(RunArchive::Archived) => "  workspace archived",
+        Some(RunArchive::BackingKept) => "  workspace archived; backing kept",
+        Some(RunArchive::DeferredBusy) => "  archive deferred: session has work",
+        Some(RunArchive::DeferredOtherMembers) => "  archive deferred: other members",
+        Some(RunArchive::Unconfirmed) => "  workspace archive unconfirmed",
+        Some(RunArchive::Unknown) | None => "",
+    };
     format!(
-        "#{}  {}  {trigger}  {outcome}\n",
+        "#{}  {}  {trigger}  {outcome}{archive}\n",
         run.number.get(),
         run.due_at
     )
