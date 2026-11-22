@@ -6,30 +6,38 @@ import {
   saveAppendSystemPrompt,
 } from "../../data/host-agent-settings";
 import { promptTextError } from "../../data/prompt-text";
-import { Alert, Button, Dialog, Row, Skeleton, TextArea } from "../../ui/kit";
+import {
+  Alert,
+  Button,
+  Dialog,
+  Row,
+  RowList,
+  Skeleton,
+  TextArea,
+} from "../../ui/kit";
 import type { NodeKey } from "../../wire/bridge";
 
-export function AppendSystemPromptRow({ machine }: { machine: NodeKey }) {
+export function AppendSystemPromptCard({ machine }: { machine: NodeKey }) {
   const [editing, setEditing] = useState(false);
   return (
     <>
-      <Row
-        title="System prompt"
-        detail={{
-          description:
-            "Adds a system prompt to Codex app-server launches. ACP is unsupported.",
-        }}
-        control={
-          <Button
-            size="sm"
-            onClick={() => {
-              setEditing(true);
-            }}
-          >
-            Edit
-          </Button>
-        }
-      />
+      <RowList label="System prompt">
+        <Row
+          title="System prompt"
+          detail={{ description: "Adds a system prompt to Codex agents" }}
+          control={
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setEditing(true);
+              }}
+            >
+              Edit
+            </Button>
+          }
+        />
+      </RowList>
       {editing ? (
         <AppendPromptDialog
           machine={machine}

@@ -9,7 +9,7 @@ import { Alert, Row, RowList, Switch } from "../../ui/kit";
 import type { NodeKey } from "../../wire/bridge";
 import type { NodeSettings } from "../../wire/proto";
 import { SettingsSection } from "../settings/settings-page";
-import { AppendSystemPromptRow } from "./append-system-prompt";
+import { AppendSystemPromptCard } from "./append-system-prompt";
 
 /** The selected machine owns the setting. The control reflects its receipt,
  * so a refused write leaves the current position visible. */
@@ -56,8 +56,8 @@ export function HostAgentSettings({ machine }: { machine: NodeKey }) {
 
   return (
     <SettingsSection title="Agents">
-      <RowList label="Agent settings">
-        {enabled === null ? null : (
+      {enabled === null ? null : (
+        <RowList label="Vessel tools">
           <Row
             title="Enable Vessel tools"
             detail={{
@@ -73,9 +73,8 @@ export function HostAgentSettings({ machine }: { machine: NodeKey }) {
               />
             }
           />
-        )}
-        {hasPrompt ? <AppendSystemPromptRow machine={machine} /> : null}
-      </RowList>
+        </RowList>
+      )}
       {problem === null ? null : (
         <Alert
           variant="error"
@@ -84,6 +83,7 @@ export function HostAgentSettings({ machine }: { machine: NodeKey }) {
           description={problem}
         />
       )}
+      {hasPrompt ? <AppendSystemPromptCard machine={machine} /> : null}
     </SettingsSection>
   );
 }

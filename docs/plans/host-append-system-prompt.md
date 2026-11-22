@@ -1,9 +1,9 @@
 # Host system prompt supplement
 
-M12 F-L23. The host Agents card places System prompt after the browser-tools
-position and before restart recovery. Its Edit button opens an Append system
-prompt sheet with Reset and Save. Paseo 0.15.4 uses this order in
-`packages/app/src/screens/settings/host-page.tsx:281–308` and this editor
+M12 F-L23. The host Agents section stacks its cards. System prompt follows
+the browser-tools position and precedes restart recovery. Its outline Edit
+button opens an Append system prompt sheet with Reset and Save. Paseo 0.15.4
+uses this order in `packages/app/src/screens/settings/host-page.tsx:281–308` and this editor
 in `host-page.tsx:983–1089`.
 
 ## Decision log
@@ -32,10 +32,11 @@ in `host-page.tsx:983–1089`.
 
 The node stores the setting with its other owner-only settings. The saved
 type masks Debug output and the Codex handshake masks provider refusals that
-could quote the supplement. The web sheet reads text on Edit, keeps the draft
-through a failed save, and shows a capability-specific hint. Its hint names
-Codex app-server and ACP because Paseo's “all agents” wording would promise
-more than this node serves.
+could quote the supplement. The web sheet reads text on Edit and keeps the
+draft through a failed save. The row says “Adds a system prompt to Codex
+agents” because the node supports the Codex app-server launch transport.
+The shared Vessel dialog has a 520 px desktop width. Paseo sets 560 px
+for its editor, and Vessel's shared kit offers 520 px and 640 px sizes.
 
 The wire tests exercise the shared boundary and older replies. The settings
 fixture covers Admin scope, saved value across reboot, explicit clearing and
