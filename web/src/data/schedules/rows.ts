@@ -15,11 +15,13 @@ import { sessionName } from "../titles";
 
 export type ScheduleBucket = "active" | "ended";
 export type ScheduleAction = "pause" | "resume" | "run" | "delete";
+export type SchedulePending = ScheduleAction | "change_cadence";
 
 export interface ScheduleRow {
   node: NodeKey;
   info: ScheduleInfo;
-  pending?: ScheduleAction;
+  pending?: SchedulePending;
+  heartbeatRoute?: symbol;
 }
 
 export function rowKey(row: ScheduleRow): string {
@@ -203,7 +205,7 @@ export function scheduleMeta(
   info: ScheduleInfo,
   machine: string | null,
   now: number,
-  pending: ScheduleAction | undefined,
+  pending: SchedulePending | undefined,
 ): string[] {
   const meta = [
     cadenceLabel(info.definition.cadence),

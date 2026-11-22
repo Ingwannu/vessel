@@ -89,7 +89,7 @@ export function ScheduleListRow({
         : stateLabel(row.info.state);
   const facts = scheduleMeta(row.info, machine, now, row.pending);
   const actions = rowActions(row.info);
-  const canEdit = editable(row.info);
+  const canEdit = editable(row.info) || row.heartbeatRoute !== undefined;
   const noun = heartbeat ? "heartbeat" : "schedule";
   const openLabel = `${canEdit ? "Edit" : "View"} ${noun} ${title}`;
   return (

@@ -1,6 +1,7 @@
 // One row carries its host all the way to an action. Ids are local to a
 // node, and a late-updating machine must leave the others available.
 import type { NodeKey } from "../../wire/bridge";
+import { editableHeartbeat } from "./heartbeat";
 import type { ScheduleReads } from "./machine-schedules";
 import { bucket, type ScheduleBucket, type ScheduleRow } from "./rows";
 
@@ -30,9 +31,11 @@ export function aggregate(state: ScheduleReads): ScheduleListView {
         for (const info of machine.read.schedules) {
           const pending = machine.pending.get(info.id);
           if (pending === "delete") continue;
-          rows.push(
-            pending === undefined ? { node, info } : { node, info, pending },
-          );
+          const row: ScheduleRow = { node, info };
+          if (pending !== undefined) row.pending = pending;
+          if (machine.heartbeatGrant === true && editableHeartbeat(info))
+            row.heartbeatRoute = machine.generation;
+          rows.push(row);
         }
         break;
     }

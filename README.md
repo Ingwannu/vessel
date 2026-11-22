@@ -1196,8 +1196,9 @@ browser on Unix (on Windows, open the printed address).
   the fleet. Filter by host or by Active and Ended. Each row's menu offers
   the available actions, including pause, resume, one immediate run and
   delete. New schedule lets you choose a project, agent and cron cadence.
-  Schedules that target existing sessions appear as heartbeats with a
-  read-only target and cadence. See [the web schedules plan](docs/plans/web-schedules.md).
+  Schedules targeting existing sessions appear as heartbeats with a fixed
+  target. Their cadence can be edited with Operate access on nodes
+  supporting protocol 48 or newer. See [the web schedules plan](docs/plans/web-schedules.md).
 - **Settings** (at the sidebar's foot; inside it the sidebar lists its
   sections): General (whether Enter or `Ctrl+Enter` sends, and "Default
   send": whether a message sent while the agent works is queued, steered
