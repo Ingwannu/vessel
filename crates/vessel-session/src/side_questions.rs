@@ -59,7 +59,13 @@ impl StructuredActor {
         // A parked side remains live: reuse the normal actor wake, whose
         // replay is suppressed, while retaining this command's context.
         // A failed wake consumes this command and cannot leave a prefix.
+        if self.life.out.input_closed() {
+            return Err(SessionError::ShuttingDown);
+        }
         self.wake().await?;
+        if self.life.out.input_closed() {
+            return Err(SessionError::ShuttingDown);
+        }
         let input = self.input.clone();
         self.pump(async move { input.prompt_context(question, context).await })
             .await

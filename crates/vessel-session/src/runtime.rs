@@ -38,7 +38,7 @@ use std::time::Duration;
 use tokio::sync::{mpsc, watch};
 use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
-use vessel_proto::{EventRecord, SessionId, SessionInfo};
+use vessel_proto::{SessionId, SessionInfo};
 
 pub(crate) use agent::AgentCommand;
 pub(crate) use claims::Claim;
@@ -95,6 +95,7 @@ pub struct SessionRuntime {
     /// Which protocol drives each agent's new sessions (protocol 18,
     /// `drivers`).
     drivers: drivers::Drivers,
+    restart_journal: bool,
     #[cfg(test)]
     before_registration: registration::RegistrationGate,
     #[cfg(test)]
@@ -126,12 +127,13 @@ pub struct Created {
     pub initial: Box<SessionInfo>,
     /// The session.
     pub handle: SessionHandle,
-    /// Every record, in order, exactly once. The node must drain it into the
+    /// Public records and enabled internal commit barriers, in order.
+    /// The node must persist records and acknowledge barriers through its
     /// store. Bounded: if the node stops draining, the session applies
     /// backpressure (its output pump pauses) rather than dropping records.
     /// Closes after the final status record. The records are shared with
     /// the ring and live followers, not copies.
-    pub durable: mpsc::Receiver<Arc<EventRecord>>,
+    pub durable: mpsc::Receiver<crate::JournalEntry>,
 }
 
 impl SessionRuntime {
@@ -152,6 +154,7 @@ impl SessionRuntime {
             park_after,
             claims: Arc::new(claims::Claims::default()),
             drivers: drivers::Drivers::default(),
+            restart_journal: false,
             #[cfg(test)]
             before_registration: registration::RegistrationGate::default(),
             #[cfg(test)]
@@ -172,6 +175,14 @@ impl SessionRuntime {
     #[must_use]
     pub fn launch_admission(&self) -> LaunchAdmission {
         LaunchAdmission::new(self.shutdown.clone(), self.admission.clone())
+    }
+
+    /// Send ordered recovery checkpoints to the node's durable journal.
+    /// The node must commit and acknowledge each checkpoint.
+    #[must_use]
+    pub fn with_restart_journal(mut self) -> Self {
+        self.restart_journal = true;
+        self
     }
 
     /// The account the agents run as: its home and their home variables.

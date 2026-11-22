@@ -34,7 +34,7 @@ use tokio::sync::{mpsc, watch};
 use tokio_util::task::TaskTracker;
 use vessel_harness::{ModelProxy, Profile};
 use vessel_proto::{
-    EventRecord, EventSeq, HarnessRef, OptionChoice, ProfileName, SessionId, SessionInfo,
+    EventSeq, HarnessRef, OptionChoice, ProfileName, SessionId, SessionInfo,
     SessionOption, SessionTitle,
 };
 use vessel_session::{ProfileMove, SessionHandle, SessionRuntime};
@@ -153,7 +153,7 @@ impl Sessions {
     fn persist(
         self: &Arc<Self>,
         handle: SessionHandle,
-        durable: mpsc::Receiver<Arc<EventRecord>>,
+        durable: mpsc::Receiver<vessel_session::JournalEntry>,
         durability: watch::Sender<Durability>,
     ) {
         let sessions = Arc::clone(self);

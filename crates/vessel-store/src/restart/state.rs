@@ -47,7 +47,8 @@ impl State {
             SessionEvent::Agent {
                 event: AgentEvent::TurnEnded { .. } | AgentEvent::TurnFailed { .. },
             }
-            | SessionEvent::Rewound { .. } => self.active = None,
+            | SessionEvent::Rewound { .. }
+            | SessionEvent::Reloaded { .. } => self.active = None,
             SessionEvent::Status { status } if !status.is_live() => self.active = None,
             SessionEvent::Parked { .. } => {
                 self.parked = true;

@@ -314,6 +314,7 @@ pub(super) fn runtime(
             CancellationToken::new(),
         )
         .with_attachments(loader)
+        .with_restart_journal()
         .with_admission(admission),
     )
 }

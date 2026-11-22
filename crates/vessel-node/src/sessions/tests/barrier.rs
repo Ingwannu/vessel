@@ -45,11 +45,11 @@ async fn slow_at_turn_end(fixture: &Fixture, delay: Duration) -> SessionHandle {
     let (sender, delayed) = mpsc::channel(DEFAULT_DURABLE_CAPACITY.get());
     drop(tokio::spawn(async move {
         let mut durable = durable;
-        while let Some(record) = durable.recv().await {
-            if turn_end(&record.event) {
+        while let Some(entry) = durable.recv().await {
+            if matches!(&entry, vessel_session::JournalEntry::Event(record) if turn_end(&record.event)) {
                 tokio::time::sleep(delay).await;
             }
-            if sender.send(record).await.is_err() {
+            if sender.send(entry).await.is_err() {
                 break;
             }
         }

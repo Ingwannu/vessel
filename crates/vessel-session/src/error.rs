@@ -135,6 +135,9 @@ pub enum SessionError {
     /// A new preparation effect was refused by its original admission owner.
     #[error(transparent)]
     Preparation(#[from] crate::PreparationRefusal),
+    /// An ordered recovery checkpoint could not be committed.
+    #[error(transparent)]
+    Journal(#[from] crate::JournalError),
     /// A runtime task failed unexpectedly.
     #[error("internal session runtime failure")]
     Internal(#[source] tokio::task::JoinError),
@@ -360,7 +363,8 @@ impl SessionError {
             }
             Self::Move(error) => move_code(error),
             // The node resolves `spec.profile`; another profile is its bug.
-            Self::Internal(_)
+            Self::Journal(_)
+            | Self::Internal(_)
             | Self::DuplicateId(_)
             | Self::Attachment(AttachmentError::Failed(_))
             // The actor loads a prompt's attachments before it sends it;

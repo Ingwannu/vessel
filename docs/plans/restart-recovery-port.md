@@ -48,6 +48,8 @@ The port starts from `1829d53dc` at protocol 48. The coordinator selected
 | `b2b31e674a35e57f5603eacfc9dc4b410f57e7a5`, `fe109da25fed27c1b62ac2193c2630e936a9c7cb` | Recovery policy arbiter and settlement in the retained settings writer. |
 | `f655614f91d730ed1e7a7ab4eef2b18f9c0e702b` | Seal recovery effect admission with the settings lane, before runtime and Store drain. |
 | `8970e4fa339fb5199e13584ca6612877c0f8efe8` | Producer regression coverage for failed file replacement, SQL cleanup and exact saved prompt preservation. |
+| `37f9460f4cde60ae629779b80d60104a5fa4b225` | Ordered restart journal and shutdown capture. The port keeps runtime `LaunchAdmission`, preparation claims and the live metadata clock. |
+| `12d862346c78e7bccda51baff9d4f9dda7b56913` | Node persistence consumer and test acknowledgement barrier. The port applies the committed clock before publishing the durable sequence or returning a checkpoint acknowledgement. |
 
 The consumer checklist is `8003b14e1f9fc26f228390ee071b15eb5b47a2fd`.
 The producer reference is `385fc1ee5`, and the exact-run Kill reference
