@@ -105,7 +105,7 @@ pub(crate) enum SettingsError {
     Write(#[source] vessel_store::StoreError),
     /// The write's task did not finish.
     #[error("the settings could not be kept: {0}")]
-    Lost(#[source] tokio::task::JoinError),
+    Lost(#[source] writer::TaskFailure),
     /// `settings.json` could not be used at start and could not be moved
     /// aside either, so no change replaces it.
     #[error(
@@ -290,6 +290,16 @@ impl Settings {
 
     pub(crate) fn recovery_policy(&self) -> Arc<crate::recovery::policy::Policy> {
         self.state.recovery.policy()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn pause_write(&self) -> (tokio::sync::oneshot::Receiver<()>, tokio::sync::oneshot::Sender<()>) {
+        self.state.gate.install()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn pause_cleanup(&self) -> (tokio::sync::oneshot::Receiver<()>, tokio::sync::oneshot::Sender<()>) {
+        self.state.cleanup_gate.install()
     }
 
     pub(crate) async fn shutdown(&self) {

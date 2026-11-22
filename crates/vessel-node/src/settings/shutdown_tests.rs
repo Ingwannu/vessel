@@ -103,7 +103,7 @@ async fn now_and_drain_seal_the_settings_and_effect_owners_synchronously() {
     tokio::time::timeout(WRITE_TEST_BUDGET, async {
         for when in [StopWhen::Now, StopWhen::WhenIdle] {
             let root = tempfile::tempdir().unwrap();
-            let settings = super::writer_tests::settings(root.path()).await;
+            let settings = writer_tests::settings(root.path()).await;
             settings.change(recovery(true)).await.unwrap();
             let stop = CancellationToken::new();
             let info = vessel_proto::NodeInfo {

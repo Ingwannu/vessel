@@ -91,7 +91,7 @@ mod tests {
         HarnessEnv, Lookup,
         fakes::{Role, install},
     };
-    use vessel_proto::{EventRecord, HarnessKind, SessionMode, SessionSpec, SessionStatus};
+    use vessel_proto::{HarnessKind, SessionMode, SessionSpec, SessionStatus};
     use vessel_testkit::Fake;
 
     const SAFETY_NET: Duration = Duration::from_secs(60);
@@ -175,7 +175,7 @@ mod tests {
             source.changed().await.unwrap();
         }
     }
-    async fn drain(mut source: mpsc::Receiver<Arc<EventRecord>>) {
+    async fn drain(mut source: mpsc::Receiver<crate::JournalEntry>) {
         while source.recv().await.is_some() {}
     }
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]

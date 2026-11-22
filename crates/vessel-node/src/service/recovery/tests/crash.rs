@@ -8,6 +8,8 @@ use tokio::io::{AsyncBufReadExt as _, AsyncWriteExt as _, BufReader, Lines};
 use tokio::process::{Child, ChildStdout};
 use vessel_client::{NodeClient, NodeUrl};
 use vessel_harness::{HarnessEnv, Lookup};
+use vessel_proto::restart::SetRestartRecovery;
+use vessel_proto::settings::SetNodeSettings;
 use vessel_proto::{AgentEvent, EventSeq, SessionEvent};
 
 const CHILD: &str = "VESSEL_RECOVERY_KILL_CHILD";
@@ -125,17 +127,13 @@ async fn a_killed_node_resumes_only_its_committed_active_turn() {
             let f = Fixture::new();
             f.data.prepare().unwrap();
             f.data
-                .write_settings(
-                    &vessel_store::SavedNodeSettings::default().with_public_settings(
-                        SetNodeSettings {
-                            restart_recovery: Some(vessel_proto::restart::SetRestartRecovery {
-                                enabled: Some(true),
-                                prompt: Some("loaded".parse().unwrap()),
-                            }),
-                            ..SetNodeSettings::default()
-                        },
-                    ),
-                )
+                .write_settings(&SetNodeSettings {
+                    restart_recovery: Some(SetRestartRecovery {
+                        enabled: Some(true),
+                        prompt: Some("loaded".parse().unwrap()),
+                    }),
+                    ..SetNodeSettings::default()
+                })
                 .unwrap();
             let mut process = child_command(&f).spawn().unwrap();
             let mut lines = BufReader::new(process.stdout.take().unwrap()).lines();

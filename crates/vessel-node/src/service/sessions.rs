@@ -263,11 +263,8 @@ impl NodeService {
         {
             return Ok(Ack);
         }
-        if matches!(
-            &request.input,
-            vessel_proto::SessionInput::CancelTurn { .. }
-        ) {
-            let sessions = std::sync::Arc::clone(&self.sessions);
+        if matches!(&request.input, SessionInput::CancelTurn { .. }) {
+            let sessions = Arc::clone(&self.sessions);
             return self
                 .sessions
                 .hold(connection.operation(), async move {
@@ -293,7 +290,7 @@ impl NodeService {
         let target = operation
             .as_ref()
             .and_then(|operation| operation.kill_target());
-        let sessions = std::sync::Arc::clone(&self.sessions);
+        let sessions = Arc::clone(&self.sessions);
         self.sessions
             .hold(operation, async move {
                 match target {

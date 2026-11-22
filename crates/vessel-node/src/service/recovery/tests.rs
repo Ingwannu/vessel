@@ -333,7 +333,6 @@ async fn caller_loss_during_the_actual_settings_write_does_not_cancel_saved_off_
                     .read_settings()
                     .unwrap()
                     .unwrap()
-                    .public_settings()
                     .restart_recovery
                     .unwrap()
                     .effective()
@@ -367,7 +366,7 @@ async fn caller_loss_after_saved_off_keeps_cleanup_ahead_of_the_next_on() {
             let owner = f.client(&node).await;
             set(&node, true).await;
             let settings = &node.secure.service.0.settings;
-            let (_, generation) = settings.policy().snapshot();
+            let (_, generation) = settings.recovery_policy().snapshot();
             let (entered, release) = settings.pause_cleanup();
             let caller = {
                 let settings = Arc::clone(settings);
@@ -379,13 +378,12 @@ async fn caller_loss_after_saved_off_keeps_cleanup_ahead_of_the_next_on() {
                     .read_settings()
                     .unwrap()
                     .unwrap()
-                    .public_settings()
                     .restart_recovery
                     .unwrap()
                     .effective()
                     .enabled
             );
-            assert!(!settings.policy().snapshot().0.enabled);
+            assert!(!settings.recovery_policy().snapshot().0.enabled);
             caller.abort();
             assert!(caller.await.unwrap_err().is_cancelled());
             let _barrier = owner.call(vessel_proto::GetNode).await.unwrap();
@@ -396,7 +394,7 @@ async fn caller_loss_after_saved_off_keeps_cleanup_ahead_of_the_next_on() {
             release.send(()).unwrap();
             assert!(next.await.unwrap().unwrap().restart_recovery.enabled);
             assert!(
-                settings.policy().check(generation).is_err(),
+                settings.recovery_policy().check(generation).is_err(),
                 "On cannot resurrect the invalidated boot generation"
             );
             node.stop().await.unwrap();
