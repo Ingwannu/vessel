@@ -15036,7 +15036,7 @@ export const PLUGIN_SETTINGS_PROTOCOL = 43;
 /**
  * An explicit Local or Worktree policy for a schedule's new session (ADR 0033).
  */
-export const SCHEDULE_ISOLATION_PROTOCOL = null;
+export const SCHEDULE_ISOLATION_PROTOCOL = 49;
 
 /**
  * `schedule.update_cadence`, for editing a heartbeat while retaining its owner (ADR 0033).
