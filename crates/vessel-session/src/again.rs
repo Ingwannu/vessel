@@ -377,6 +377,7 @@ impl SessionRuntime {
             command,
             setup,
             driver,
+            append_system_prompt: self.append_prompt_setting(),
         };
         Ok(PreparedAgain {
             runtime: self,

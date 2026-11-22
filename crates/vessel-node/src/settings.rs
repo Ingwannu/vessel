@@ -60,7 +60,8 @@ mod writer_tests;
 use vessel_proto::HarnessKind;
 use vessel_proto::parking::ParkAfter;
 use vessel_proto::settings::{
-    AgentDriver, AgentDrivers, MetadataSettings, NodeSettings, SetAgentDrivers, SetNodeSettings,
+    APPEND_SYSTEM_PROMPT_PROTOCOL, AgentDriver, AgentDrivers, AppendPromptTransport,
+    AppendSystemPrompt, MetadataSettings, NodeSettings, SetAgentDrivers, SetNodeSettings,
 };
 use vessel_proto::terminal_profiles::Profiles;
 use vessel_session::SessionRuntime;
@@ -177,6 +178,7 @@ impl Settings {
             .runtime
             .set_park_after(in_force.park_after.duration());
         settings.runtime.set_drivers(in_force.drivers);
+        settings.apply_append_system_prompt(&saved);
         settings
     }
 
@@ -217,7 +219,22 @@ impl Settings {
             plugins_enabled,
             terminal_agent_hooks,
             terminal_profiles,
+            append_system_prompt_transports: APPEND_SYSTEM_PROMPT_PROTOCOL.map(|_| {
+                (offered(HarnessKind::Codex) && vessel_agent::Driver::CodexAppServer.built())
+                    .then_some(AppendPromptTransport::CodexAppServer)
+                    .into_iter()
+                    .collect()
+            }),
         }
+    }
+
+    fn apply_append_system_prompt(&self, saved: &SetNodeSettings) {
+        let prompt = if APPEND_SYSTEM_PROMPT_PROTOCOL.is_some() {
+            saved.append_system_prompt.clone()
+        } else {
+            None
+        };
+        self.runtime.set_append_system_prompt(prompt);
     }
 
     /// The terminal profiles a launch looks in (ADR 0117): the kept list,
@@ -244,6 +261,12 @@ impl Settings {
     pub(crate) async fn current(&self) -> NodeSettings {
         let saved = self.saved.lock().await;
         self.in_force(&saved)
+    }
+
+    /// Read only through the Admin prompt method.
+    pub(crate) async fn append_system_prompt(&self) -> AppendSystemPrompt {
+        let saved = self.saved.lock().await;
+        saved.append_system_prompt.clone().unwrap_or_default()
     }
 
     /// Background generation reads policy itself, before any per-peer reply projection.
@@ -290,6 +313,9 @@ impl Settings {
         // The whole list, as Paseo's patch: Settings sends every row.
         if let Some(profiles) = change.terminal_profiles {
             next.terminal_profiles = Some(profiles);
+        }
+        if let Some(prompt) = change.append_system_prompt {
+            next.append_system_prompt = Some(prompt);
         }
         self.persist(saved, next).await
     }

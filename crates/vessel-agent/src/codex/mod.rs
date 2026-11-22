@@ -39,6 +39,7 @@ use std::time::Duration;
 use tokio::process::{ChildStdin, ChildStdout};
 use tokio::sync::mpsc;
 use vessel_proc::CommandSpec;
+use vessel_proto::settings::AppendSystemPrompt;
 
 use crate::error::AgentError;
 use crate::handshake::AgentSetup;
@@ -50,11 +51,12 @@ use crate::output::AgentOutput;
 /// offers it is `vessel_harness::direct`'s `selectable`.
 pub(crate) const BUILT: bool = true;
 
-/// What this driver's launch leaves to its session: nothing (the
-/// app-server takes a thread's start, resume and MCP servers over its
-/// protocol).
+/// Settings captured at the physical launch. The app-server takes the
+/// supplement over its thread protocol and never on the command line.
 #[derive(Debug, Default)]
-pub(crate) struct Launched;
+pub(crate) struct Launched {
+    append_system_prompt: Option<AppendSystemPrompt>,
+}
 
 /// `command` shaped for one launch from `setup`, before it is spawned
 /// (`AgentProcess::spawn_with`), and what the session keeps of it: the
@@ -70,8 +72,9 @@ pub(crate) struct Launched;
 pub(crate) fn launch(
     command: &CommandSpec,
     _setup: &AgentSetup,
+    append_system_prompt: Option<AppendSystemPrompt>,
 ) -> Result<(CommandSpec, Launched), AgentError> {
-    Ok((command.clone(), Launched))
+    Ok((command.clone(), Launched { append_system_prompt }))
 }
 
 /// Drive one session over the agent's stdio until it ends, as
@@ -84,9 +87,9 @@ pub(crate) async fn run(
     commands: mpsc::Receiver<Command>,
     outputs: mpsc::Sender<AgentOutput>,
     setup: AgentSetup,
-    _launched: Launched,
+    launched: Launched,
 ) {
-    session::run(stdin, stdout, commands, outputs, setup).await;
+    session::run(stdin, stdout, commands, outputs, setup, launched).await;
 }
 
 /// One page of the agent's own conversations in `cwd` (all without), from

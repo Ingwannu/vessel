@@ -425,6 +425,7 @@ impl SessionRuntime {
                 setup,
                 driver,
                 limits: begin.limits.clone(),
+                append_system_prompt: self.append_prompt_setting(),
             },
             begin,
             notices,

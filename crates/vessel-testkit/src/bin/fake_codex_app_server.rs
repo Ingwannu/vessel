@@ -308,6 +308,18 @@ impl Server {
     }
 
     fn opened(&mut self, id: &Value, thread: &str, params: &Value) -> Result<(), Exit> {
+        let instructions = params.get("developerInstructions").and_then(Value::as_str);
+        if let Ok(expected) = std::env::var("FAKE_CODEX_EXPECT_DEVELOPER_INSTRUCTIONS")
+            && instructions != Some(expected.as_str())
+        {
+            return self.refuse(id, -32602, "developer instructions differed from the fixture");
+        }
+        if std::env::var_os("FAKE_CODEX_REJECT_DEVELOPER_INSTRUCTIONS").is_some()
+            && let Some(instructions) = instructions
+        {
+            // Exercise the driver's refusal redaction with a synthetic echo.
+            return self.refuse(id, -32602, instructions);
+        }
         self.thread = Some(thread.to_owned());
         self.started = format!(
             "{} {} {}",

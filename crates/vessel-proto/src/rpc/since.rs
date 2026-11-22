@@ -214,7 +214,12 @@ impl Call {
                     Some(_) => Some(crate::terminal_profiles::TERMINAL_PROFILES_PROTOCOL?.get()),
                     None => None,
                 };
-                let base = drivers.max(plugins).max(hooks).max(profiles);
+                let prompt = if request.append_system_prompt.is_some() {
+                    Some(crate::settings::APPEND_SYSTEM_PROMPT_PROTOCOL?.get())
+                } else {
+                    None
+                };
+                let base = drivers.max(plugins).max(hooks).max(profiles).max(prompt);
                 if request.metadata.is_some() {
                     Some(crate::GENERATED_NAMES?.get()).max(base)
                 } else {
@@ -438,6 +443,7 @@ impl Call {
             | Self::SaveSkillsSelection(_)
             | Self::ImportSkillsSelection(_)
             | Self::GetNodeSettings(_)
+            | Self::GetAppendSystemPrompt(_)
             | Self::ForkSession(_)
             | Self::RewindSession(_)
             | Self::DetachSession(_) => None,

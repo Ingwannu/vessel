@@ -78,17 +78,7 @@ impl AutomationText {
                 if text.trim().is_empty() {
                     return Err("cannot be empty");
                 }
-                if text.len() > Self::PROMPT_MAX {
-                    return Err("is at most 16 KiB");
-                }
-                // Tab and line ends only: any other control character is
-                // six bytes in JSON, and a list of prompts must stay under
-                // a frame (the contract's review, item 6).
-                if text.chars().any(|character| {
-                    character.is_control() && !matches!(character, '\t' | '\n' | '\r')
-                }) {
-                    return Err("cannot contain control characters other than tab and line ends");
-                }
+                Self::validate_prompt_bytes(text)?;
                 Ok(Arc::from(text))
             }
             Self::TimeZone => zone(text).map(|()| Arc::from(text)),
@@ -102,6 +92,20 @@ impl AutomationText {
                 Ok(Arc::from(text))
             }
         }
+    }
+
+    /// The shared transport bounds. Each caller owns its policy on blank
+    /// text because a settings patch can use blank as an explicit clear.
+    pub(crate) fn validate_prompt_bytes(text: &str) -> Result<(), &'static str> {
+        if text.len() > Self::PROMPT_MAX {
+            return Err("is at most 16 KiB");
+        }
+        if text.chars().any(|character| {
+            character.is_control() && !matches!(character, '\t' | '\n' | '\r')
+        }) {
+            return Err("cannot contain control characters other than tab and line ends");
+        }
+        Ok(())
     }
 }
 

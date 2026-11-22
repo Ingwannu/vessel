@@ -126,6 +126,8 @@ macro_rules! method_table_rest {
             GetNodeSettings / node_settings / "node.settings" [Read, 12, unary]: $crate::settings::GetNodeSettings => $crate::settings::NodeSettings;
             /// Change the node's settings; kept across restarts (protocol 12).
             SetNodeSettings / set_node_settings / "node.set_settings" [Admin, 12, unary]: $crate::settings::SetNodeSettings => $crate::settings::NodeSettings;
+            /// Read the host's saved system prompt supplement (Admin only).
+            GetAppendSystemPrompt / get_append_system_prompt / "node.append_system_prompt" [Admin, (pending $crate::settings::APPEND_SYSTEM_PROMPT_PROTOCOL), unary]: $crate::settings::GetAppendSystemPrompt => $crate::settings::AppendSystemPrompt;
             /// A new session continuing another's conversation from a turn's end (protocol 14, ADR 0052).
             ForkSession / fork_session / "session.fork" [Operate, 14, unary]: $crate::forking::ForkSession => $crate::SessionInfo;
             /// Take a session back to a turn's end (protocol 14, ADR 0052).
