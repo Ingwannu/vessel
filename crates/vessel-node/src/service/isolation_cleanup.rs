@@ -222,7 +222,7 @@ impl WorkspaceActors for NodeService {
                     entry.handle.kill();
                     tokio::time::timeout(crate::terminals::CLOSE_WAIT, entry.handle.ended())
                         .await
-                        .map_err(|_| {
+                        .map_err(|_elapsed| {
                             WorkspaceError::Conflict(
                                 "the workspace's terminal stop is unconfirmed".to_owned(),
                             )

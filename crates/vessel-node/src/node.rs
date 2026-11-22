@@ -478,7 +478,7 @@ async fn core(
         limits: features.limits,
         plugins: features.plugins,
     })));
-    node_runner::start_node(&service, commands, &store, &tasks, &stop, ended).await;
+    node_runner::start_node(&service, commands, store, &tasks, &stop, ended).await;
     Ok(Core {
         runtime,
         settings,

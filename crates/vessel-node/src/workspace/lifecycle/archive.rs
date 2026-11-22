@@ -147,7 +147,7 @@ impl Workspaces {
                 ));
             }
             tokio::select! {
-                result = wake.changed() => result.map_err(|_| StoreError::RegistryConflict)?,
+                result = wake.changed() => result.map_err(|_closed| StoreError::RegistryConflict)?,
                 () = self.stop.cancelled() => return Err(WorkspaceError::Conflict(
                     "the node stopped while waiting for workspace starts".to_owned(),
                 )),

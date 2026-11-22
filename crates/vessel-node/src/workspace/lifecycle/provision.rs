@@ -218,7 +218,7 @@ impl Workspaces {
                 return Ok(());
             }
             tokio::select! {
-                result = changes.changed() => result.map_err(|_| WorkspaceError::UnknownWorktree(worktree))?,
+                result = changes.changed() => result.map_err(|_closed| WorkspaceError::UnknownWorktree(worktree))?,
                 () = self.stop.cancelled() => return Err(WorkspaceError::Conflict(
                     "the node stopped while setting up the workspace".to_owned()
                 )),

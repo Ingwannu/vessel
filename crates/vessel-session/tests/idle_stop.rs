@@ -4,6 +4,7 @@ use support::{Fixture, Log, structured, within};
 use vessel_proto::{AgentEvent, ContentBlock, Creator, Delivery, SessionEvent, SessionInput};
 use vessel_session::{IdleStop, SessionError};
 
+#[cfg(test)]
 #[path = "support/runtime.rs"]
 #[expect(
     dead_code,
