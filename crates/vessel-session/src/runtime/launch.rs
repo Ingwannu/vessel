@@ -302,7 +302,6 @@ impl SessionRuntime {
     ) -> Result<Created, SessionError> {
         let lookup = self.config.harness_lookup.clone();
         let env = self.config.harness_env.clone();
-        let admission = self.admission.clone();
         let launch_spec = spec.clone();
         let window = WindowSize {
             cols: size.cols,
