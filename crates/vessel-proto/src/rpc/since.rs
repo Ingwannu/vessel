@@ -480,6 +480,36 @@ mod requirement_tests {
     use crate::{Deliver, Forward, Method, NodeId, RelayCall, Request as _};
 
     #[test]
+    fn explicit_schedule_isolation_keeps_its_requirement_through_every_hop() {
+        use crate::automation::{AfterRun, SCHEDULE_ISOLATION_PROTOCOL, ScheduleTarget};
+        use crate::registry::WorkspaceIsolation;
+        use crate::{Call, HarnessKind, SessionMode, SessionSpec};
+        for method in [Method::CreateSchedule, Method::UpdateSchedule] {
+            let mut request = samples::call(method).unwrap();
+            let target = match &mut request {
+                Call::CreateSchedule(request) => &mut request.definition.target,
+                Call::UpdateSchedule(request) => &mut request.definition.target,
+                _ => unreachable!("the selected methods return schedule writes"),
+            };
+            *target = ScheduleTarget::NewSession {
+                spec: Box::new(SessionSpec::new(HarnessKind::ClaudeCode, SessionMode::Structured {
+                    model: None, resume: None, options: Vec::new(),
+                })),
+                after: AfterRun::Archive,
+                isolation: Some(WorkspaceIsolation::Local),
+            };
+            assert_eq!(request.required_protocol(), SCHEDULE_ISOLATION_PROTOCOL);
+            for wrapper in [
+                Forward { node: NodeId::random(), call: Box::new(request.clone()) }.into_call(),
+                RelayCall { node: NodeId::random(), call: Box::new(request.clone()), origin: samples::origin() }.into_call(),
+                Deliver { call: Box::new(request.clone()), origin: samples::origin() }.into_call(),
+            ] {
+                assert_eq!(wrapper.required_protocol(), SCHEDULE_ISOLATION_PROTOCOL);
+            }
+        }
+    }
+
+    #[test]
     fn assigned_requests_and_every_envelope_keep_the_existing_requirement() {
         let mut failures = Vec::new();
         for &method in Method::ALL {

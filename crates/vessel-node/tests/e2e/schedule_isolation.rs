@@ -88,7 +88,10 @@ async fn scheduled_local_members_keep_distinct_ids_and_managed_archives_remove_o
         let definition = task(&fixture, project.id, WorkspaceIsolation::Local, AfterRun::Keep);
         let local = owner.create_schedule(definition.clone(), false).await;
         if SCHEDULE_ISOLATION_PROTOCOL.is_none() {
-            assert!(local.is_err());
+            assert!(matches!(
+                local,
+                Err(vessel_rpc::CallError::UnassignedProtocol { method: vessel_proto::Method::CreateSchedule })
+            ));
             assert!(owner.schedules().await.unwrap().is_empty());
             assert!(snapshot(&owner).workspaces.is_empty());
             return;
