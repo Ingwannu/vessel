@@ -1,10 +1,10 @@
-//! Real CLI behavior while recovery's feature number remains unassigned.
+//! Real CLI behavior across the named recovery protocol boundary.
 use super::support::{Fixture, within};
 use vessel_node::DataDir;
-use vessel_proto::restart::SetRestartRecovery;
+use vessel_proto::restart::{RESTART_RECOVERY_PROTOCOL, SetRestartRecovery};
 use vessel_proto::settings::SetNodeSettings;
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn unsupported_recovery_is_not_reported_as_off_and_cannot_change_saved_policy() {
+async fn the_cli_distinguishes_supported_recovery_from_an_unassigned_protocol() {
     within(async {
         let saved = SetNodeSettings {
             restart_recovery: Some(SetRestartRecovery {
@@ -19,6 +19,25 @@ async fn unsupported_recovery_is_not_reported_as_off_and_cannot_change_saved_pol
         .await;
         let shown = f.vessel(&["node", "settings"], b"").await;
         assert!(shown.ok, "{}", shown.stderr);
+        if RESTART_RECOVERY_PROTOCOL.is_some() {
+            assert!(shown.stdout.contains("startup recovery: on"));
+            assert!(shown.stdout.contains("resume prompt: synthetic continuation"));
+            let off = f
+                .vessel(&["node", "settings", "--resume-on-startup", "off"], b"")
+                .await;
+            assert!(off.ok, "{}", off.stderr);
+            assert!(off.stdout.contains("startup recovery: off"));
+            let recovery = DataDir::new(f.data())
+                .read_settings()
+                .unwrap()
+                .unwrap()
+                .restart_recovery
+                .unwrap();
+            assert_eq!(recovery.enabled, Some(false));
+            assert_eq!(recovery.prompt, saved.restart_recovery.unwrap().prompt);
+            f.stop().await;
+            return;
+        }
         assert!(
             shown.stdout.contains("startup recovery: unsupported"),
             "{}",

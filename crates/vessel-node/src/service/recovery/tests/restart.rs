@@ -74,7 +74,7 @@ async fn acknowledged_person_stop_is_not_recovered_at_the_next_start() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn unassigned_client_fields_refuse_before_mutating_the_real_saved_policy() {
+async fn a_client_uses_the_assigned_recovery_boundary() {
     vessel_testkit::within(
         CASE_DEADLINE,
         Box::pin(async {
@@ -83,6 +83,20 @@ async fn unassigned_client_fields_refuse_before_mutating_the_real_saved_policy()
             let owner = f.client(&node).await;
             set(&node, true).await;
             let before = f.data.read_settings().unwrap().unwrap();
+            let off = SetRestartRecovery {
+                enabled: Some(false),
+                prompt: None,
+            };
+            if vessel_proto::restart::RESTART_RECOVERY_PROTOCOL.is_some() {
+                let current = owner.restart_recovery().await.unwrap();
+                assert!(current.enabled);
+                let saved = owner.set_restart_recovery(off).await.unwrap();
+                assert!(!saved.enabled);
+                assert_eq!(saved.prompt, current.prompt);
+                assert_eq!(owner.restart_recovery().await.unwrap(), saved);
+                node.stop().await.unwrap();
+                return;
+            }
             assert!(matches!(
                 owner.restart_recovery().await,
                 Err(vessel_client::CallError::UnassignedProtocol {
@@ -90,12 +104,7 @@ async fn unassigned_client_fields_refuse_before_mutating_the_real_saved_policy()
                 })
             ));
             assert!(matches!(
-                owner
-                    .set_restart_recovery(SetRestartRecovery {
-                        enabled: Some(false),
-                        prompt: None
-                    })
-                    .await,
+                owner.set_restart_recovery(off).await,
                 Err(vessel_client::CallError::UnassignedProtocol {
                     method: vessel_proto::Method::SetNodeSettings
                 })
