@@ -8,8 +8,8 @@ use vessel_proto::registry::WorkspaceResource;
 /// Live workspace/backing identity slots: every record not archived, and every
 /// non-retired reservation. Settled archives do not count (ADR 0082).
 pub const MAX_WORKSPACES: usize = 256;
-/// Resource ownership slots of workspaces that are not archived, including
-/// failed and ended starts there (ADR 0082 amendment).
+/// Explicit ownership slots, including retained ended and archived members.
+/// The payload budget covers every row kept by the registry (ADR 0082).
 pub const MAX_RESOURCES: usize = 4096;
 /// Public descriptor JSON remains bounded so complete snapshots fit one RPC frame.
 pub const MAX_DESCRIPTOR_BYTES: usize = 8 * 1024;
@@ -60,7 +60,7 @@ pub(super) fn resource(
     )?;
     if !exists {
         let count: i64 = connection.query_row(
-            "SELECT COUNT(*) FROM workspace_registry_resources r JOIN workspace_registry w ON w.id=r.workspace WHERE json_extract(w.descriptor,'$.lifecycle.kind')!='archived'",
+            "SELECT COUNT(*) FROM workspace_registry_resources",
             [],
             |row| row.get(0),
         )?;

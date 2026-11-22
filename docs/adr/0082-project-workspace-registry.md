@@ -225,8 +225,7 @@ budget above where the two disagree.
 - Choice:
   - `MAX_WORKSPACES` counts live identities only: records that are not Archived,
     plus every non-retired reservation, deduplicated by identity.
-  - `MAX_RESOURCES` counts only the ownership rows of workspaces that are not
-    Archived.
+  - `MAX_RESOURCES` counts explicit ownership rows, including retained archives.
   - Eligible legacy Local archives, retired provision receipts and their
     archived descriptors share `MAX_ARCHIVED_WORKSPACES`. Pruning is oldest
     first by archive or retirement time, then id. Ownership and labels

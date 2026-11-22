@@ -29,7 +29,7 @@ impl SessionHandle {
     /// Stop a structured session only between turns and with an empty queue.
     ///
     /// # Errors
-    /// A session that cannot take actor orders is refused as in [Self::prompt].
+    /// A session that cannot take actor orders is refused as in [`Self::prompt`].
     pub async fn stop_if_idle(&self) -> Result<IdleStop, SessionError> {
         let route = self.structured("an idle stop")?;
         self.order(route, Control::StopIfIdle).await

@@ -8,8 +8,12 @@ use vessel_proto::WorkspaceId;
 use vessel_proto::registry::{
     RegistryRevision, WorkspaceBacking, WorkspaceDescriptor, WorkspaceLifecycle, WorkspacePin,
 };
-use vessel_store::{RegistryRecord, RegistryReservation, ReservationStage, StoreError};
+use vessel_store::{
+    RegistryRecord, RegistryReservation, RegistryStartState, ReservationStage, StoreError,
+    WorkspaceArchivePurpose,
+};
 
+use super::WorkspaceActors;
 use crate::workspace::{WorkspaceError, Workspaces};
 
 /// What the next caller can safely do with the existing provision.
@@ -155,6 +159,57 @@ impl Workspaces {
                     && tokio::fs::try_exists(&workspace.path)
                         .await
                         .is_ok_and(|exists| !exists)
+            }
+        }
+    }
+}
+
+impl Workspaces {
+    /// The process supervisor has joined the old node lifetime. Reconcile
+    /// admitted actor identities from that lifetime before any archive can
+    /// start draining. Neither branch starts or resends work.
+    pub(crate) async fn reconcile_workspace_starts(
+        &self,
+        workspace: WorkspaceId,
+        actors: &impl WorkspaceActors,
+    ) -> Result<(), WorkspaceError> {
+        for start in self.store.pending_registry_starts(workspace).await? {
+            if start.state == RegistryStartState::Uncertain {
+                if actors.live(start.lease.resource()) {
+                    self.store.complete_registry_start(start.lease).await?;
+                } else {
+                    self.store.fail_registry_start(start.lease).await?;
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// Explicit archive claims have the same recovery even if they have no
+    /// schedule binding. The corresponding effect is live only after boot.
+    pub(crate) async fn resume_explicit_archives(
+        self: &Arc<Self>,
+        actors: &impl WorkspaceActors,
+    ) {
+        let Ok(registry) = self.store.workspace_registry().await else {
+            return;
+        };
+        for workspace in registry.workspaces {
+            if !matches!(workspace.lifecycle, WorkspaceLifecycle::Archiving { .. }) {
+                continue;
+            }
+            let replayed = async {
+                let Some(known) = self.store.registry_archive(workspace.id).await? else {
+                    return Ok(());
+                };
+                if known.claim.purpose == WorkspaceArchivePurpose::Explicit {
+                    self.reconcile_workspace_starts(workspace.id, actors).await?;
+                    let _archived = self.resume_workspace_archive(known.claim, None, actors).await?;
+                }
+                Ok::<(), WorkspaceError>(())
+            }.await;
+            if let Err(error) = replayed {
+                tracing::warn!(workspace = %workspace.id, %error, "an explicit workspace archive remains unsettled");
             }
         }
     }

@@ -7,17 +7,18 @@ use std::pin::Pin;
 use futures_util::stream::{FuturesUnordered, StreamExt as _};
 use vessel_proto::registry::WorkspaceResource;
 use vessel_proto::{AgentEvent, SessionEvent, SessionStatus};
-use vessel_store::{RegistryStartState, RunBindingStage, ScheduleRunBinding};
+use vessel_store::{RunBindingStage, ScheduleRunBinding};
 
 use super::NodeService;
 use super::isolation_cleanup::IsolationCleanup;
 use crate::error::ServiceError;
-use crate::workspace::{WorkspaceActors as _, WorkspaceError};
+use crate::workspace::WorkspaceError;
 
 type Activity = Pin<Box<dyn Future<Output = WorkspaceResource> + Send>>;
 
 impl NodeService {
     pub(crate) async fn recover_schedule_workspaces(&self) {
+        self.workspaces.resume_explicit_archives(self).await;
         let store = self.sessions.store();
         let bindings = match store.schedule_run_bindings().await {
             Ok(bindings) => bindings,
@@ -50,20 +51,7 @@ impl NodeService {
                 .await;
         }
         let store = self.sessions.store();
-        for start in store.pending_registry_starts(binding.workspace).await? {
-            if start.state != RegistryStartState::Uncertain {
-                continue;
-            }
-            let resource = start.lease.resource();
-            if self.live(resource) {
-                store.complete_registry_start(start.lease).await?;
-            } else {
-                // Startup has joined the previous node's process lifetime.
-                // No actor survived admission into this runtime and no start
-                // may replay its reserved id.
-                store.fail_registry_start(start.lease).await?;
-            }
-        }
+        self.workspaces.reconcile_workspace_starts(binding.workspace, self).await?;
         let result = self.dispose_isolation(binding).await?;
         if let Some(archive) = result.disposition()
             && let Some(mut run) = store

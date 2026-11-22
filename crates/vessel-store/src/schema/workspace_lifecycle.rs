@@ -58,6 +58,15 @@ mod tests {
                 .unwrap();
         }
         migrate(&mut connection).unwrap();
+        for query in [
+            "SELECT COUNT(*) FROM workspace_archive_claims",
+            "SELECT COUNT(*) FROM schedule_run_bindings",
+        ] {
+            assert_eq!(
+                connection.query_row(query, [], |row| row.get::<_, u32>(0)).unwrap(),
+                0
+            );
+        }
         for stage in ["reserved", "creating", "ready", "uncertain"] {
             let saved: (String, String, String, Option<i64>) = connection
                 .query_row(
