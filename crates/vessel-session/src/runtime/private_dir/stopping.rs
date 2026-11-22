@@ -53,7 +53,9 @@ async fn blocked_until_effect(action: SessionStop) {
     within(async {
         let mut fixture = Fixture::new();
         fixture.runtime = fixture.runtime.with_restart_journal();
-        let Created { handle, durable, .. } = fixture.runtime.create(fixture.spec()).await.unwrap();
+        let Created {
+            handle, durable, ..
+        } = fixture.runtime.create(fixture.spec()).await.unwrap();
         let Held {
             arrived,
             commit,

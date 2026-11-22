@@ -50,7 +50,10 @@ pub(super) fn apply(
             session,
             records,
             done,
-        } => Answer::Session(done, append(transaction, session, &records, effects, indexer)),
+        } => Answer::Session(
+            done,
+            append(transaction, session, &records, effects, indexer),
+        ),
         Write::AddDevice {
             device,
             credential,

@@ -294,12 +294,22 @@ impl Settings {
     }
 
     #[cfg(test)]
-    pub(crate) fn pause_write(&self) -> (tokio::sync::oneshot::Receiver<()>, tokio::sync::oneshot::Sender<()>) {
+    pub(crate) fn pause_write(
+        &self,
+    ) -> (
+        tokio::sync::oneshot::Receiver<()>,
+        tokio::sync::oneshot::Sender<()>,
+    ) {
         self.state.gate.install()
     }
 
     #[cfg(test)]
-    pub(crate) fn pause_cleanup(&self) -> (tokio::sync::oneshot::Receiver<()>, tokio::sync::oneshot::Sender<()>) {
+    pub(crate) fn pause_cleanup(
+        &self,
+    ) -> (
+        tokio::sync::oneshot::Receiver<()>,
+        tokio::sync::oneshot::Sender<()>,
+    ) {
         self.state.cleanup_gate.install()
     }
 
