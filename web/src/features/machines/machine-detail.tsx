@@ -18,7 +18,7 @@ import { Badge, Button, Row, RowList } from "../../ui/kit";
 import { toast } from "../../ui/toasts";
 import { NodeLogRow } from "../diagnostics/node-log";
 import { FactValue, SettingsSection } from "../settings/settings-page";
-import { VesselToolsCard } from "./vessel-tools-card";
+import { HostAgentSettings } from "./host-agent-settings";
 
 /** Live sessions listed here before "all on the board". */
 const SESSIONS_SHOWN = 6;
@@ -107,7 +107,7 @@ export function MachineDetail({ node }: { node: BookNode }) {
         </RowList>
       </SettingsSection>
       {bridgeOpen && status?.state === "connected" && status.protocol >= 12 ? (
-        <VesselToolsCard key={node.key} machine={node.key} />
+        <HostAgentSettings key={node.key} machine={node.key} />
       ) : null}
       {harnesses === undefined ? null : (
         <SettingsSection

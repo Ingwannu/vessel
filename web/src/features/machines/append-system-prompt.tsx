@@ -4,7 +4,7 @@ import { useFleet } from "../../context";
 import {
   readAppendSystemPrompt,
   saveAppendSystemPrompt,
-} from "../../data/append-system-prompt";
+} from "../../data/host-agent-settings";
 import { promptTextError } from "../../data/prompt-text";
 import { Alert, Button, Dialog, Row, Skeleton, TextArea } from "../../ui/kit";
 import type { NodeKey } from "../../wire/bridge";
