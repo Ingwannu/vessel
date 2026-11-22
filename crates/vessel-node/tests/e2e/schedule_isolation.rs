@@ -167,7 +167,12 @@ async fn assert_retired(fixture: &Fixture, released: WorkspaceId, retained: Work
         (retained, ReservationStage::Ready),
     ] {
         assert_eq!(
-            store.registry_reservation(workspace).await.unwrap().unwrap().stage,
+            store
+                .registry_reservation(workspace)
+                .await
+                .unwrap()
+                .unwrap()
+                .stage,
             expected
         );
     }
@@ -189,7 +194,10 @@ async fn a_person_archives_one_kept_schedule_workspace_after_node_restart() {
             WorkspaceIsolation::Local,
             AfterRun::Keep,
         );
-        let local = owner.create_schedule(definition.clone(), false).await.unwrap();
+        let local = owner
+            .create_schedule(definition.clone(), false)
+            .await
+            .unwrap();
 
         let mut old_client = definition;
         if let ScheduleTarget::NewSession { isolation, .. } = &mut old_client.target {
