@@ -151,8 +151,12 @@ async fn drain(
     }
     .run();
     tokio::pin!(draining);
-    assert!(futures_util::poll!(draining.as_mut()).is_pending());
-    assert!(tasks.is_closed());
+    // Settings joins its consumer before the session task tracker closes.
+    // Keep the model read held until teardown reaches that tracker.
+    while !tasks.is_closed() {
+        assert!(futures_util::poll!(draining.as_mut()).is_pending());
+        tokio::task::yield_now().await;
+    }
     assert!(!closing.is_cancelled());
     held.release();
     draining.await;

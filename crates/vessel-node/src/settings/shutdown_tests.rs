@@ -77,11 +77,12 @@ async fn teardown_drains_saved_off_and_queued_on_before_runtime_and_store_close(
             ErrorCode::Unavailable
         );
         release.send(()).unwrap();
+        // The queued On can settle only while the Store still accepts writes.
         assert!(queued_on.await.unwrap().restart_recovery.enabled);
         stop.await;
         assert!(runtime_stop.is_cancelled());
         assert!(matches!(
-            store.sessions().await,
+            store.set_restart_policy(true).await,
             Err(vessel_store::StoreError::Closed)
         ));
         let (_, generation) = settings.recovery_policy().snapshot();
