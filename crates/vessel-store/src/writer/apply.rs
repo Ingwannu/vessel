@@ -5,6 +5,7 @@
 //! this file maps each [`Write`] to its store operation, in its own
 //! savepoint (`isolated`), and records what the batch must do after it.
 
+mod session_mark;
 mod workspace_labels;
 
 use std::sync::Arc;
@@ -60,27 +61,7 @@ pub(super) fn apply(
         Write::RevokeDevice { device, at, done } => write_answer(transaction, done, |connection| {
             devices::revoke(connection, device, at)
         }),
-        Write::Mark {
-            session,
-            mark,
-            release_keep,
-            at,
-            residence,
-            done,
-        } => {
-            let mut wake = false;
-            let answer = marks_answer(transaction, effects, session, done, |connection| {
-                let kept = marks::mark(connection, session, mark, at, residence)?;
-                if release_keep {
-                    wake = crate::automation::binding::request_keep_release(connection, session)?;
-                }
-                Ok(kept)
-            });
-            if wake && matches!(answer, Answer::Marked(_, Ok(_))) {
-                effects.registry = crate::registry::RegistryChange::Changed;
-            }
-            answer
-        }
+        Write::Mark { write, done } => session_mark::apply(transaction, effects, write, done),
         Write::ReadAttention {
             session,
             through,

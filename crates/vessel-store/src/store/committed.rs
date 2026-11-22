@@ -2,7 +2,10 @@
 //! Legacy convenience methods delegate here and keep their original results.
 
 use super::Store;
-use crate::{Residence, SessionCommit, StoreError, writer::Write};
+use crate::{
+    Residence, SessionCommit, StoreError,
+    writer::{SessionMark, Write},
+};
 use chrono::{DateTime, Utc};
 use std::sync::Arc;
 use vessel_proto::{EventRecord, EventSeq, KeptMarks, Mark, SessionId, SessionInfo};
@@ -78,11 +81,13 @@ impl Store {
         release_keep: bool,
     ) -> Result<SessionCommit<KeptMarks>, StoreError> {
         self.write(|done| Write::Mark {
-            session,
-            mark,
-            release_keep,
-            at,
-            residence,
+            write: SessionMark {
+                session,
+                mark,
+                release_keep,
+                at,
+                residence,
+            },
             done,
         })
         .await

@@ -275,6 +275,7 @@ impl<R: Runner, C: Clock> Actor<R, C> {
         }
         self.book.noted(schedule, &run);
     }
+
     /// Keep the first archive disposition alongside the original turn.
     /// A late release must not replace a newer run or re-create trimmed history.
     pub(super) async fn note_archive(
@@ -306,14 +307,11 @@ impl<R: Runner, C: Clock> Actor<R, C> {
             .is_some_and(|last| last.number == number)
         {
             info.last_run = Some(run.clone());
-            self.store
-                .put_schedule(info.clone(), Some(run.clone()))
-                .await?;
+            self.store.put_schedule(info.clone(), Some(run)).await?;
             self.book.put(info);
         } else {
-            self.store.put_run(schedule, run.clone()).await?;
+            self.store.put_run(schedule, run).await?;
         }
-        self.book.noted(schedule, &run);
         Ok(())
     }
 }
