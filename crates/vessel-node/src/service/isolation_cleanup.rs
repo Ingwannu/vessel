@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use chrono::Utc;
 use vessel_proto::automation::{AfterRun, RunArchive};
-use vessel_proto::registry::{WorkspaceBacking, WorkspaceLifecycle, WorkspaceResource};
+use vessel_proto::registry::{WorkspaceLifecycle, WorkspaceResource};
 use vessel_proto::SessionId;
 use vessel_session::IdleStop;
 use vessel_store::{
@@ -81,13 +81,7 @@ impl NodeService {
             WorkspaceLifecycle::Archived { .. } => {
                 // Before retirement, an absent durable Worktree and absent path
                 // verify the earlier removal reached its recorded boundary.
-                let clean = match workspace.backing {
-                    WorkspaceBacking::Local => true,
-                    WorkspaceBacking::Managed { worktree } => {
-                        !self.sessions.store().workspace().await?.worktrees.iter().any(|row| row.id == worktree)
-                            && tokio::fs::try_exists(&workspace.path).await.is_ok_and(|exists| !exists)
-                    }
-                };
+                let clean = self.workspaces.archived_backing_gone(&workspace).await;
                 return Ok(archived(clean));
             }
             WorkspaceLifecycle::Restoring { .. } => return Err(vessel_store::StoreError::RegistryConflict.into()),

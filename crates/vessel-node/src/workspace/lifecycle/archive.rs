@@ -80,14 +80,16 @@ impl Workspaces {
             }
             WorkspaceArchivePurpose::Automatic => {
                 let target = session.map(|session| WorkspaceResource::Session { session });
+                if members.iter().any(|member| Some(member.resource) != target && actors.live(member.resource)) {
+                    // Check before stopping the schedule's actor: its normal
+                    // exit can also end agent terminals registered beside it.
+                    return self.defer_archive(claim, ArchiveDefer::OtherMembers).await;
+                }
                 if let Some(session) = session
                     && members.iter().any(|member| Some(member.resource) == target)
                     && actors.stop_idle(session).await? == IdleStop::Busy
                 {
                     return self.defer_archive(claim, ArchiveDefer::BusySession).await;
-                }
-                if members.iter().any(|member| Some(member.resource) != target && actors.live(member.resource)) {
-                    return self.defer_archive(claim, ArchiveDefer::OtherMembers).await;
                 }
             }
         }

@@ -92,3 +92,40 @@ impl Workspaces {
         Ok(descriptor)
     }
 }
+
+impl Workspaces {
+    /// A crash can occur after a caller released its pin but before the
+    /// separate retirement write. Revisit archived descriptors on opening.
+    pub(crate) async fn retire_reconciled_archives(&self) {
+        let Ok(registry) = self.store.workspace_registry().await else {
+            return;
+        };
+        for record in registry.workspaces {
+            let descriptor = record.descriptor;
+            if !matches!(descriptor.lifecycle, WorkspaceLifecycle::Archived { .. })
+                || !self.store.registry_reservation(descriptor.id).await.is_ok_and(|row| {
+                    row.is_some_and(|row| row.stage == ReservationStage::Ready)
+                })
+                || !self.archived_backing_gone(&descriptor).await
+            {
+                continue;
+            }
+            if let Err(error) = self.store.retire_registry_workspace(
+                descriptor.id, vessel_store::ProvisionRetirement::CleanArchive, Utc::now()
+            ).await {
+                tracing::debug!(workspace = %descriptor.id, %error, "archived workspace still has a retained obligation");
+            }
+        }
+    }
+
+    pub(crate) async fn archived_backing_gone(&self, workspace: &WorkspaceDescriptor) -> bool {
+        match workspace.backing {
+            WorkspaceBacking::Local => true,
+            WorkspaceBacking::Managed { worktree } => {
+                self.store.workspace().await.is_ok_and(|stored| {
+                    !stored.worktrees.iter().any(|row| row.id == worktree)
+                }) && tokio::fs::try_exists(&workspace.path).await.is_ok_and(|exists| !exists)
+            }
+        }
+    }
+}

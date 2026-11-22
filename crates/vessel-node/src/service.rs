@@ -83,6 +83,7 @@ mod schedule_preview;
 mod scheduled;
 mod scheduled_isolation;
 mod isolation_cleanup;
+mod isolation_recovery;
 mod schedules;
 mod usage;
 mod usage_reports;

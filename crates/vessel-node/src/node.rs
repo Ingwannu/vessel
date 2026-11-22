@@ -480,6 +480,13 @@ async fn core(
         limits: features.limits,
         plugins: features.plugins,
     })));
+    service.0.recover_schedule_workspaces().await;
+    let schedule_cleanup = Arc::downgrade(&service);
+    drop(tasks.spawn(async move {
+        if let Some(service) = schedule_cleanup.upgrade() {
+            service.0.watch_deferred_schedule_workspaces().await;
+        }
+    }));
     automation::schedules::start(
         commands,
         automation::schedules::Parts {
