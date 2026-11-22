@@ -1,11 +1,12 @@
 use super::*;
 use vessel_client::CallError;
+use vessel_harness::fakes::{Role, install};
 use vessel_proto::reload::ReloadSession;
 use vessel_proto::settings::{
     APPEND_SYSTEM_PROMPT_PROTOCOL, AppendPromptTransport, AppendSystemPrompt, GetAppendSystemPrompt,
 };
 use vessel_proto::{EventSeq, HarnessKind, Scope, SessionMode, SessionSpec, SessionStatus};
-use vessel_testkit::{Fake, Role, install};
+use vessel_testkit::Fake;
 
 use crate::agents::following;
 use crate::support::ask;
