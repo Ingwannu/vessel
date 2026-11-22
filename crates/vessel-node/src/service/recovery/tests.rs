@@ -130,40 +130,40 @@ impl Fixture {
 }
 
 async fn begin_turn(client: &NodeClient, id: SessionId) -> EventSeq {
-        let mut stream = client.follow(id, EventSeq::ZERO).await.unwrap();
-        loop {
-            let event = stream.next().await.unwrap().unwrap();
-            if matches!(
-                event.event,
-                SessionEvent::Status {
-                    status: SessionStatus::Running
-                }
-            ) {
-                break;
+    let mut stream = client.follow(id, EventSeq::ZERO).await.unwrap();
+    loop {
+        let event = stream.next().await.unwrap().unwrap();
+        if matches!(
+            event.event,
+            SessionEvent::Status {
+                status: SessionStatus::Running
             }
+        ) {
+            break;
         }
-        let delivered = client
-            .prompt(
-                id,
-                vec![ContentBlock::Text {
-                    text: "wait".into(),
-                }],
-                Delivery::Start,
-            )
-            .await
-            .unwrap();
-        assert_eq!(delivered, vessel_proto::Delivered::Started);
-        loop {
-            let record = stream.next().await.unwrap().unwrap();
-            if matches!(
-                record.event,
-                SessionEvent::Agent {
-                    event: AgentEvent::TurnStarted { .. }
-                }
-            ) {
-                return record.seq.next().unwrap();
+    }
+    let delivered = client
+        .prompt(
+            id,
+            vec![ContentBlock::Text {
+                text: "wait".into(),
+            }],
+            Delivery::Start,
+        )
+        .await
+        .unwrap();
+    assert_eq!(delivered, vessel_proto::Delivered::Started);
+    loop {
+        let record = stream.next().await.unwrap().unwrap();
+        if matches!(
+            record.event,
+            SessionEvent::Agent {
+                event: AgentEvent::TurnStarted { .. }
             }
+        ) {
+            return record.seq.next().unwrap();
         }
+    }
 }
 
 mod workspaces;

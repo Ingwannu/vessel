@@ -6,8 +6,8 @@ use crate::reader::select_session;
 use rusqlite::{Connection, OptionalExtension as _, params};
 pub use state::Eligibility;
 pub(crate) use state::State;
-use vessel_proto::restart::{RestartCheckpoint, RestartGeneration};
 use vessel_proto::registry::{WorkspaceLifecycle, WorkspaceResource};
+use vessel_proto::restart::{RestartCheckpoint, RestartGeneration};
 use vessel_proto::{Creator, SessionId, SessionMode, SessionOrigin, SessionStatus};
 
 /// An indexed, passive startup candidate; claiming it still validates current state.

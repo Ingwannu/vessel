@@ -10,11 +10,7 @@ use vessel_store::{
     WorkspaceProvision,
 };
 
-async fn explicit_member(
-    fixture: &Fixture,
-    node: &Node,
-    owner: &NodeClient,
-) -> WorkspaceResource {
+async fn explicit_member(fixture: &Fixture, node: &Node, owner: &NodeClient) -> WorkspaceResource {
     let service = &node.secure.service.0;
     let project = owner
         .call(AddProject {
@@ -93,13 +89,41 @@ async fn startup_excludes_an_unarchived_session_whose_explicit_workspace_is_arch
 
             let store = open_store(&fixture).await;
             let candidate = store.next_restart().await.unwrap().unwrap();
-            assert_eq!(resource, WorkspaceResource::Session { session: candidate.session });
-            let workspace = store.registry_resource_run(resource).await.unwrap().unwrap().lease.workspace();
-            let revision = store.registry_workspace(workspace).await.unwrap().unwrap().descriptor.revision;
+            assert_eq!(
+                resource,
+                WorkspaceResource::Session {
+                    session: candidate.session
+                }
+            );
+            let workspace = store
+                .registry_resource_run(resource)
+                .await
+                .unwrap()
+                .unwrap()
+                .lease
+                .workspace();
+            let revision = store
+                .registry_workspace(workspace)
+                .await
+                .unwrap()
+                .unwrap()
+                .descriptor
+                .revision;
             // The previous actor has joined. Settle only the workspace record
             // so the session's independent Archive mark cannot hide this case.
-            let claim = store.claim_registry_archive(workspace, revision, WorkspaceArchivePurpose::Explicit, Utc::now()).await.unwrap();
-            store.settle_registry_archive(claim, ArchiveSettlement::Archived { at: Utc::now() }).await.unwrap();
+            let claim = store
+                .claim_registry_archive(
+                    workspace,
+                    revision,
+                    WorkspaceArchivePurpose::Explicit,
+                    Utc::now(),
+                )
+                .await
+                .unwrap();
+            store
+                .settle_registry_archive(claim, ArchiveSettlement::Archived { at: Utc::now() })
+                .await
+                .unwrap();
             store.close().await;
 
             let store = open_store(&fixture).await;
@@ -124,20 +148,50 @@ async fn startup_reopens_an_explicit_member_under_a_new_exact_workspace_lease() 
             let owner = fixture.client(&node).await;
             set(&node, true).await;
             let resource = explicit_member(&fixture, &node, &owner).await;
-            let before = node.secure.service.0.sessions.store().registry_resource_run(resource).await.unwrap().unwrap();
+            let before = node
+                .secure
+                .service
+                .0
+                .sessions
+                .store()
+                .registry_resource_run(resource)
+                .await
+                .unwrap()
+                .unwrap();
             node.stop().await.unwrap();
 
             let node = fixture.start().await;
             done(&node).await;
             let owner = fixture.client(&node).await;
-            let after = node.secure.service.0.sessions.store().registry_resource_run(resource).await.unwrap().unwrap();
+            let after = node
+                .secure
+                .service
+                .0
+                .sessions
+                .store()
+                .registry_resource_run(resource)
+                .await
+                .unwrap()
+                .unwrap();
             assert_eq!(after.lease.workspace(), before.lease.workspace());
             assert_eq!(after.lease.resource(), before.lease.resource());
             assert_ne!(after.lease, before.lease);
             assert_eq!(after.readiness, RegistryResourceReadiness::Ready);
-            let WorkspaceResource::Session { session } = resource else { unreachable!() };
-            let records = owner.read(session, EventSeq::ZERO, EVENT_PAGE).await.unwrap().records;
-            assert_eq!(records.iter().filter(|record| restart::continuation(record)).count(), 1);
+            let WorkspaceResource::Session { session } = resource else {
+                unreachable!()
+            };
+            let records = owner
+                .read(session, EventSeq::ZERO, EVENT_PAGE)
+                .await
+                .unwrap()
+                .records;
+            assert_eq!(
+                records
+                    .iter()
+                    .filter(|record| restart::continuation(record))
+                    .count(),
+                1
+            );
             node.stop().await.unwrap();
         }),
     )

@@ -92,7 +92,10 @@ fn resource_capacity_never_evicts_ended_owners_and_existing_lease_still_settles(
         previous: previous.lease,
         expected,
     };
-    assert!(matches!(apply(&mut db, &restart), Err(StoreError::RegistryConflict)));
+    assert!(matches!(
+        apply(&mut db, &restart),
+        Err(StoreError::RegistryConflict)
+    ));
     apply(&mut db, &RegistryWrite::MemberJoined(lease)).unwrap();
     apply(&mut db, &restart).unwrap();
     assert_eq!(load(&db).unwrap().memberships.len(), MAX_RESOURCES);
