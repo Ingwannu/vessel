@@ -24,7 +24,7 @@ pub(super) fn retire(
         return Ok(RegistryChange::Unchanged);
     }
     let pinned: bool = connection.query_row(
-        "SELECT EXISTS(SELECT 1 FROM schedule_run_bindings WHERE workspace=?1)",
+        "SELECT EXISTS(SELECT 1 FROM schedule_run_bindings WHERE workspace=?1 AND stage NOT IN ('retiring_unpublished','retiring_archive'))",
         [workspace.to_string()],
         |row| row.get(0),
     )?;
@@ -82,7 +82,7 @@ pub(super) fn prune(connection: &Connection) -> Result<(), StoreError> {
     {
         let mut statement = connection.prepare_cached(
             "SELECT id,retired_at FROM workspace_registry_reservations r
-             WHERE stage='retired' AND NOT EXISTS(SELECT 1 FROM schedule_run_bindings b WHERE b.workspace=r.id)",
+             WHERE stage='retired' AND NOT EXISTS(SELECT 1 FROM schedule_run_bindings b WHERE b.workspace=r.id AND b.stage NOT IN ('retiring_unpublished','retiring_archive'))",
         )?;
         let mut rows = statement.query([])?;
         while let Some(row) = rows.next()? {
@@ -95,7 +95,7 @@ pub(super) fn prune(connection: &Connection) -> Result<(), StoreError> {
              WHERE json_extract(descriptor,'$.lifecycle.kind')='archived'
              AND json_extract(descriptor,'$.backing.kind')='local'
              AND NOT EXISTS(SELECT 1 FROM workspace_registry_reservations r WHERE r.id=w.id)
-             AND NOT EXISTS(SELECT 1 FROM schedule_run_bindings b WHERE b.workspace=w.id)",
+             AND NOT EXISTS(SELECT 1 FROM schedule_run_bindings b WHERE b.workspace=w.id AND b.stage NOT IN ('retiring_unpublished','retiring_archive'))",
         )?;
         let mut rows = statement.query([])?;
         while let Some(row) = rows.next()? {

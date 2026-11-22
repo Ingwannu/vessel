@@ -462,6 +462,7 @@ pub(crate) mod again;
 mod conversation;
 mod discovery;
 mod marks;
+mod workspace_reopen;
 mod metadata;
 mod read;
 mod reload;

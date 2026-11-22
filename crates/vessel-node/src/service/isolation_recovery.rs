@@ -10,6 +10,7 @@ use vessel_proto::{AgentEvent, SessionEvent, SessionStatus};
 use vessel_store::{RegistryStartState, RunBindingStage, ScheduleRunBinding};
 
 use super::NodeService;
+use super::isolation_cleanup::IsolationCleanup;
 use crate::error::ServiceError;
 use crate::workspace::{WorkspaceActors as _, WorkspaceError};
 
@@ -37,6 +38,12 @@ impl NodeService {
         &self,
         binding: ScheduleRunBinding,
     ) -> Result<(), WorkspaceError> {
+        if let Some(retirement) = binding.stage.retirement() {
+            return self.settle_isolation(
+                binding,
+                IsolationCleanup::Settled { archive: None, retirement: Some(retirement) },
+            ).await;
+        }
         let store = self.sessions.store();
         for start in store.pending_registry_starts(binding.workspace).await? {
             if start.state != RegistryStartState::Uncertain {
@@ -108,7 +115,8 @@ impl NodeService {
                     RunBindingStage::DeferredMembers => {
                         self.watch_other_members(binding, &mut observations).await
                     }
-                    RunBindingStage::Bound | RunBindingStage::Started => false,
+                    RunBindingStage::Bound | RunBindingStage::Started |
+                    RunBindingStage::RetiringArchive | RunBindingStage::RetiringUnpublished => false,
                 };
                 if ready && let Err(error) = self.cleanup_isolation(binding).await {
                     tracing::warn!(workspace = %binding.workspace, %error, "deferred workspace archive remains unsettled");

@@ -28,7 +28,7 @@ CREATE TABLE schedule_run_bindings (
     workspace TEXT NOT NULL UNIQUE,
     session TEXT NOT NULL UNIQUE,
     after TEXT NOT NULL CHECK (after IN ('archive','keep')),
-    stage TEXT NOT NULL CHECK (stage IN ('bound','started','deferred_busy','deferred_members')),
+    stage TEXT NOT NULL CHECK (stage IN ('bound','started','deferred_busy','deferred_members','retiring_unpublished','retiring_archive')),
     PRIMARY KEY (schedule,number)
 ) STRICT, WITHOUT ROWID;
 ";

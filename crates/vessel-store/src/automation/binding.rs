@@ -19,6 +19,10 @@ pub enum RunBindingStage {
     DeferredBusy,
     /// Another live member still has work in the same workspace.
     DeferredMembers,
+    /// The caller released its pin after proving there were no effects.
+    RetiringUnpublished,
+    /// The caller released its pin after proving the backing was removed.
+    RetiringArchive,
 }
 
 impl RunBindingStage {
@@ -28,6 +32,18 @@ impl RunBindingStage {
             Self::Started => "started",
             Self::DeferredBusy => "deferred_busy",
             Self::DeferredMembers => "deferred_members",
+            Self::RetiringUnpublished => "retiring_unpublished",
+            Self::RetiringArchive => "retiring_archive",
+        }
+    }
+
+    /// A terminal binding remains only to deliver an idempotent retirement.
+    #[must_use]
+    pub const fn retirement(self) -> Option<crate::ProvisionRetirement> {
+        match self {
+            Self::RetiringUnpublished => Some(crate::ProvisionRetirement::Unpublished),
+            Self::RetiringArchive => Some(crate::ProvisionRetirement::CleanArchive),
+            Self::Bound | Self::Started | Self::DeferredBusy | Self::DeferredMembers => None,
         }
     }
 
@@ -37,6 +53,8 @@ impl RunBindingStage {
             "started" => Ok(Self::Started),
             "deferred_busy" => Ok(Self::DeferredBusy),
             "deferred_members" => Ok(Self::DeferredMembers),
+            "retiring_unpublished" => Ok(Self::RetiringUnpublished),
+            "retiring_archive" => Ok(Self::RetiringArchive),
             _ => Err(StoreError::RegistryConflict),
         }
     }
@@ -118,6 +136,7 @@ pub(super) fn advance(
     stage: RunBindingStage,
 ) -> Result<(), StoreError> {
     if stage == RunBindingStage::Bound
+        || previous.stage.retirement().is_some()
         || find(connection, previous.schedule, previous.run)? != Some(previous)
     {
         return Err(StoreError::RegistryConflict);

@@ -9955,6 +9955,11 @@ export type RouteUrl = string;
 export type RpcName = string;
 
 /**
+ * The disposition of an isolated workspace after a scheduled turn.
+ */
+export type RunArchive = "archived" | "backing_kept" | "deferred_busy" | "deferred_other_members" | "unconfirmed" | "unknown";
+
+/**
  * How a run's new session's first turn ended.
  */
 export type RunEnd = { "end": "turn", 
@@ -10312,7 +10317,11 @@ trigger: RunTrigger,
 /**
  * What it did.
  */
-outcome: RunOutcome, };
+outcome: RunOutcome, 
+/**
+ * Workspace cleanup is independent of the turn result.
+ */
+archive?: RunArchive | null, };
 
 /**
  * Whether a schedule runs.
@@ -10346,7 +10355,11 @@ spec: SessionSpec,
 /**
  * What becomes of the session after its first turn.
  */
-after: AfterRun, } | { "kind": "session", 
+after: AfterRun, 
+/**
+ * Explicit per-run isolation. Absent on a definition made for legacy placement.
+ */
+isolation?: WorkspaceIsolation | null, } | { "kind": "session", 
 /**
  * Which session.
  */
@@ -14453,6 +14466,19 @@ revision: RegistryRevision, };
 export type WorkspaceId = string & { readonly __brand: "WorkspaceId" };
 
 /**
+ * A create choice is a plan; authoritative backing is returned after success.
+ */
+export type WorkspaceIsolation = { "kind": "local" } | { "kind": "worktree", 
+/**
+ * Branch-off/existing/snapshot request, never inferred from a path string.
+ */
+branch: WorktreeBranch, 
+/**
+ * Saving/creating never implicitly approves a command set.
+ */
+setup: SetupChoice, } | { "kind": "unknown" };
+
+/**
  * A committed assignment reply carries names; color remains in the catalog.
  */
 export type WorkspaceLabelAssigned = { 
@@ -15006,6 +15032,11 @@ export const ORIGIN_LINK_PROTOCOL = 42;
  * `plugin.settings.read`, `.write` and `.reset` (ADR 0115, "Settings").
  */
 export const PLUGIN_SETTINGS_PROTOCOL = 43;
+
+/**
+ * An explicit Local or Worktree policy for a schedule's new session (ADR 0033).
+ */
+export const SCHEDULE_ISOLATION_PROTOCOL = null;
 
 /**
  * `schedule.update_cadence`, for editing a heartbeat while retaining its owner (ADR 0033).

@@ -161,7 +161,20 @@ impl Sessions {
         let sessions = Arc::clone(self);
         self.tasks
             .spawn(async move {
+                let id = ended.info.id;
+                let resource = vessel_proto::registry::WorkspaceResource::Session { session: id };
+                let workspace = sessions.admit_workspace_reopen(resource).await?;
                 let started = sessions.reopen(ended, launch).await;
+                if let Some(lease) = workspace {
+                    if started.is_ok() {
+                        sessions.store.complete_registry_start(lease).await?;
+                    } else {
+                        if let Some(handle) = sessions.live(id) {
+                            let _ended = handle.ended().await;
+                        }
+                        sessions.store.fail_registry_start(lease).await?;
+                    }
+                }
                 drop(claim);
                 started
             })

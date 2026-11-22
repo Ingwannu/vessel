@@ -117,12 +117,25 @@ impl NodeService {
         let store = self.sessions.store();
         match result {
             IsolationCleanup::Settled { retirement, .. } => {
-                store.finish_schedule_run_binding(binding).await?;
-                if let Some(evidence) = retirement {
-                    store
-                        .retire_registry_workspace(binding.workspace, evidence, Utc::now())
-                        .await?;
-                }
+                let finishing = if let Some(evidence) = retirement {
+                    let stage = match evidence {
+                        ProvisionRetirement::Unpublished => RunBindingStage::RetiringUnpublished,
+                        ProvisionRetirement::CleanArchive => RunBindingStage::RetiringArchive,
+                    };
+                    if binding.stage != stage {
+                        // Terminal receipts release the pin before the separate
+                        // retirement commit. They can resume after either write.
+                        store.advance_schedule_run_binding(binding, stage).await?;
+                    }
+                    match store.retire_registry_workspace(binding.workspace, evidence, Utc::now()).await {
+                        Ok(()) | Err(vessel_store::StoreError::RegistryMissing(_)) => {}
+                        Err(error) => return Err(error.into()),
+                    }
+                    ScheduleRunBinding { stage, ..binding }
+                } else {
+                    binding
+                };
+                store.finish_schedule_run_binding(finishing).await?;
             }
             IsolationCleanup::Deferred(reason) => {
                 let stage = match reason {

@@ -294,3 +294,24 @@ screen exists; that registration is the screen's, the slot is not.
 What this decision does not verify: no screen is drawn here, no test
 runs against these types yet, and no capture exists. Those are the
 later slices in the plan.
+
+## Amendment for TRACKER 838, Isolation
+
+Paseo's form puts Isolation after Mode and before Archive on finish. New
+schedules default to Local. Worktree is available for a Git project and
+heartbeats have neither control. Vessel gates editing on the route's assigned
+isolation protocol.
+
+The source is a typed registered project root. Definitions with legacy raw
+folders, subfolders, existing worktrees or unplaced specs retain their behavior
+until explicitly migrated. A saved Worktree whose source is gone or no longer
+a Git project requires choosing a valid source or Local. Managed runs use
+Vessel's existing branch, base, setup approval and naming rules.
+
+The node retains Waiting for a permission. The 256 live workspace slots
+include retained backing debt. An isolated run reports a capacity refusal
+once. Ordinary root registration continues to log a full registry and lets
+the start proceed. Archive preserves other live members' work and reports
+`archive deferred: other members`; Paseo drains the workspace's agents and
+terminals. An elapsed cadence keeps its existing rule and uses an elapsed-unit
+description.
