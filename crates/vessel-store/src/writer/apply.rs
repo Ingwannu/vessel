@@ -278,6 +278,26 @@ fn append(
     Ok(SessionCommit::new((), updated_at))
 }
 
+impl Effects {
+    /// Both ordinary appends and checkpoint batches retain the head's post-commit wakes.
+    pub(super) fn appended(&mut self, session: SessionId, records: &[Arc<EventRecord>], ended: bool) {
+        let _first = self.touched.insert(session);
+        self.ended |= ended;
+        // ADR 0089 observes any event that changes outstanding attention.
+        self.attention |= records.iter().any(|record| {
+            record.event.asks_for_attention()
+                || matches!(
+                    &record.event,
+                    vessel_proto::SessionEvent::Agent {
+                        event: vessel_proto::AgentEvent::PermissionResolved { .. }
+                            | vessel_proto::AgentEvent::QuestionResolved { .. }
+                            | vessel_proto::AgentEvent::TurnStarted { .. }
+                    } | vessel_proto::SessionEvent::Rewound { .. }
+                )
+        });
+    }
+}
+
 pub(super) fn isolated<T>(
     transaction: &mut Transaction<'_>,
     operation: impl FnOnce(&Connection) -> Result<T, StoreError>,

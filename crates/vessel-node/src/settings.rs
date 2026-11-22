@@ -54,9 +54,16 @@ use std::sync::atomic::AtomicBool;
 use tokio::sync::Mutex;
 use tokio_util::task::TaskTracker;
 
+mod admission;
 mod opening;
+#[cfg(test)]
+mod settlement_tests;
+#[cfg(test)]
+mod shutdown_tests;
+mod recovery_apply;
 mod writer;
 pub(crate) use opening::Opening;
+use recovery_apply::RecoveryApply;
 #[cfg(test)]
 mod writer_tests;
 use vessel_proto::HarnessKind;
@@ -74,6 +81,13 @@ pub(crate) enum SettingsError {
     /// Shutdown has closed mutation admission, so no late writer may start.
     #[error("the node is stopping; settings cannot be changed")]
     Stopping,
+    /// The waiting lane refused this operation before any work.
+    #[error("settings queue is full; at most {} changes may wait", admission::SettingsAdmission::MAX_WAITING)]
+    Full,
+    #[error("the settings operation ended without a reply")]
+    Consumer(#[source] tokio::sync::oneshot::error::RecvError),
+    #[error(transparent)]
+    Recovery(#[from] recovery_apply::RecoveryApplyError),
     /// A choice this node does not know.
     #[error("this node does not know that park_after; send never or idle with minutes")]
     Unknown,
@@ -100,18 +114,28 @@ pub(crate) enum SettingsError {
 /// The node's settings: the flags' values and what a person saved.
 #[derive(Debug)]
 pub(crate) struct Settings {
+    admission: admission::SettingsAdmission,
+    state: Arc<State>,
+    hooks: Arc<crate::agent_hooks::Applier>,
+    hook_writes: TaskTracker,
+}
+
+/// The worker holds this state independently of callers and has no lane sender.
+#[derive(Debug)]
+struct State {
     data_dir: DataDir,
     runtime: Arc<SessionRuntime>,
-    /// The terminal agent hooks' one worker (ADR 0089).
-    hooks: Arc<crate::agent_hooks::Applier>,
+    recovery: RecoveryApply,
     /// `--park-after`, or its default.
     flag: ParkAfter,
     /// What a person changed, as kept; held over write and apply.
-    saved: Arc<Mutex<SetNodeSettings>>,
-    /// Writes outlive a cancelled RPC and are joined at node shutdown.
-    writers: TaskTracker,
+    saved: Mutex<SetNodeSettings>,
     #[cfg(test)]
     gate: writer_tests::GateSlot,
+    #[cfg(test)]
+    cleanup_gate: writer_tests::GateSlot,
+    #[cfg(test)]
+    _fixture_store: Option<tempfile::TempDir>,
     /// Why `settings.json` must not be replaced: it could not be used at
     /// start, and moving it aside failed. `None` when changes may write.
     kept: Option<Arc<str>>,
@@ -122,47 +146,151 @@ pub(crate) struct Settings {
 
 impl Settings {
     #[cfg(test)]
-    pub(crate) fn open(
+    pub(crate) async fn open(
         data_dir: DataDir,
         runtime: Arc<SessionRuntime>,
         flag: ParkAfter,
         flag_given: bool,
     ) -> Self {
-        Self::from_opening(Opening::read(data_dir, flag, flag_given), runtime)
+        let opening = Opening::read(data_dir, flag, flag_given);
+        let directory = tempfile::tempdir().unwrap();
+        let store = vessel_store::Store::open_with_restart_policy(
+            &DataDir::new(directory.path()),
+            Default::default(),
+            opening.recovery_policy().enabled,
+        )
+        .await
+        .unwrap()
+        .store;
+        Self::start(opening, runtime, store, Some(directory))
     }
 
-    /// The same opening supplied the policy that Store used before retirement.
-    pub(crate) fn from_opening(opening: Opening, runtime: Arc<SessionRuntime>) -> Self {
+    /// The same opening supplied the policy that Store used before retention.
+    pub(crate) fn from_opening(
+        opening: Opening,
+        runtime: Arc<SessionRuntime>,
+        store: vessel_store::Store,
+    ) -> Self {
+        Self::start(
+            opening,
+            runtime,
+            store,
+            #[cfg(test)]
+            None,
+        )
+    }
+
+    fn start(
+        opening: Opening,
+        runtime: Arc<SessionRuntime>,
+        store: vessel_store::Store,
+        #[cfg(test)] fixture_store: Option<tempfile::TempDir>,
+    ) -> Self {
+        let recovery = RecoveryApply::new(opening.recovery_policy(), store);
         let Opening { data_dir, saved, flag, flag_given, kept, later } = opening;
         let hooks = crate::agent_hooks::Applier::new(crate::agent_hooks::Targets::of(
             runtime.harness_env(),
         ));
-        let settings = Self {
+        let state = State {
             data_dir,
             runtime,
-            hooks,
+            recovery,
             flag,
-            saved: Arc::new(Mutex::new(saved.clone())),
-            writers: TaskTracker::new(),
+            saved: Mutex::new(saved.clone()),
             #[cfg(test)]
             gate: writer_tests::GateSlot::default(),
+            #[cfg(test)]
+            cleanup_gate: writer_tests::GateSlot::default(),
+            #[cfg(test)]
+            _fixture_store: fixture_store,
             kept,
             later: AtomicBool::new(later),
         };
-        let in_force = settings.in_force(&saved);
+        let in_force = state.in_force(&saved);
         if flag_given && saved.park_after.is_some() && in_force.park_after != flag {
             tracing::info!(
                 saved = ?in_force.park_after,
                 "--park-after is overridden by the value saved with node.set_settings"
             );
         }
-        settings
-            .runtime
-            .set_park_after(in_force.park_after.duration());
-        settings.runtime.set_drivers(in_force.drivers);
-        settings
+        state.publish(&in_force);
+        let state = Arc::new(state);
+        Self {
+            admission: admission::SettingsAdmission::start(Arc::clone(&state)),
+            state,
+            hooks,
+            hook_writes: TaskTracker::new(),
+        }
     }
 
+    /// The terminal profiles a launch looks in (ADR 0117): the kept list,
+    /// else the shipped ones (Paseo's `resolveTerminalProfiles`); adopted.
+    pub(crate) async fn terminal_profiles(&self) -> Profiles {
+        let saved = self.state.saved.lock().await;
+        let kept = match &saved.terminal_profiles {
+            Some(kept) => Ok(kept.clone()),
+            None => Profiles::shipped(),
+        };
+        kept.map(|profiles| profiles.adopted()).unwrap_or_default()
+    }
+
+    /// Install or remove the terminal agent hooks in the agents' own
+    /// configuration (ADR 0089), off the async threads, through one worker
+    /// that applies the latest state wanted; it is joined with the settings
+    /// writers at shutdown. Where they go is each agent's home as this node
+    /// starts it.
+    pub(crate) fn apply_agent_hooks(&self, on: bool) {
+        self.hooks.want(on, &self.hook_writes);
+    }
+
+    /// The launch policy uses kept values, including when an older peer's reply omits it.
+    pub(crate) async fn inject_vessel_tools(&self) -> bool {
+        let saved = self.state.saved.lock().await;
+        State::tools_for(&saved).into()
+    }
+
+    /// The settings in force.
+    pub(crate) async fn current(&self) -> NodeSettings {
+        let saved = self.state.saved.lock().await;
+        self.state.in_force(&saved)
+    }
+
+    /// Background generation reads policy itself, before any per-peer reply projection.
+    pub(crate) async fn metadata(&self) -> MetadataSettings {
+        let saved = self.state.saved.lock().await;
+        saved.metadata.clone().unwrap_or_default()
+    }
+
+    /// Admission transfers ownership of the validated patch before waiting.
+    pub(crate) async fn change(
+        &self,
+        change: SetNodeSettings,
+    ) -> Result<NodeSettings, SettingsError> {
+        validate(&change)?;
+        self.admission.submit(change)?.await.map_err(SettingsError::Consumer)?
+    }
+
+    pub(crate) fn seal(&self) {
+        self.admission.seal();
+        self.state.recovery.seal_effect_admission();
+    }
+
+    pub(crate) fn recovery_policy(&self) -> Arc<crate::recovery::policy::Policy> {
+        self.state.recovery.policy()
+    }
+
+    pub(crate) async fn shutdown(&self) {
+        self.seal();
+        self.admission.shutdown().await;
+    }
+
+    pub(crate) async fn finish_hooks(&self) {
+        let _closed = self.hook_writes.close();
+        self.hook_writes.wait().await;
+    }
+}
+
+impl State {
     /// What is in force for `saved`: a saved value this node knows, else
     /// the flag's.
     fn in_force(&self, saved: &SetNodeSettings) -> NodeSettings {
@@ -206,69 +334,21 @@ impl Settings {
         }
     }
 
-    /// The terminal profiles a launch looks in (ADR 0117): the kept list,
-    /// else the shipped ones (Paseo's `resolveTerminalProfiles`); adopted.
-    pub(crate) async fn terminal_profiles(&self) -> Profiles {
-        let saved = self.saved.lock().await;
-        let kept = match &saved.terminal_profiles {
-            Some(kept) => Ok(kept.clone()),
-            None => Profiles::shipped(),
-        };
-        kept.map(|profiles| profiles.adopted()).unwrap_or_default()
-    }
-
-    /// Install or remove the terminal agent hooks in the agents' own
-    /// configuration (ADR 0089), off the async threads, through one worker
-    /// that applies the latest state wanted; it is joined with the settings
-    /// writers at shutdown. Where they go is each agent's home as this node
-    /// starts it.
-    pub(crate) fn apply_agent_hooks(&self, on: bool) {
-        self.hooks.want(on, &self.writers);
-    }
-
     fn tools_for(saved: &SetNodeSettings) -> vessel_proto::mcp::Injection {
         saved
             .vessel_tools
             .unwrap_or(vessel_proto::mcp::Injection::On)
     }
 
-    /// The launch policy uses kept values, including when an older peer's reply omits it.
-    pub(crate) async fn inject_vessel_tools(&self) -> bool {
-        let saved = self.saved.lock().await;
-        Self::tools_for(&saved).into()
+    fn publish(&self, in_force: &NodeSettings) {
+        self.runtime.set_park_after(in_force.park_after.duration());
+        self.runtime.set_drivers(in_force.drivers);
     }
 
-    /// The settings in force.
-    pub(crate) async fn current(&self) -> NodeSettings {
+    /// Only the admitted consumer prepares and persists candidates, in FIFO order.
+    async fn change(&self, change: SetNodeSettings) -> Result<NodeSettings, SettingsError> {
         let saved = self.saved.lock().await;
-        self.in_force(&saved)
-    }
-
-    /// Background generation reads policy itself, before any per-peer reply projection.
-    pub(crate) async fn metadata(&self) -> MetadataSettings {
-        let saved = self.saved.lock().await;
-        saved.metadata.clone().unwrap_or_default()
-    }
-
-    /// Change what `change` names, keep it, then apply it; answers what is
-    /// in force.
-    pub(crate) async fn change(
-        self: &Arc<Self>,
-        change: SetNodeSettings,
-    ) -> Result<NodeSettings, SettingsError> {
-        if change.park_after == Some(ParkAfter::Unknown) {
-            return Err(SettingsError::Unknown);
-        }
-        for (kind, driver) in change.drivers.iter().flat_map(SetAgentDrivers::named) {
-            match driver {
-                AgentDriver::Unknown => return Err(SettingsError::UnknownDriver(kind)),
-                AgentDriver::Direct if !offered(kind) => {
-                    return Err(SettingsError::NoDirect(kind));
-                }
-                AgentDriver::Direct | AgentDriver::Acp => {}
-            }
-        }
-        let saved = Arc::clone(&self.saved).lock_owned().await;
+        self.recovery.settle_before().await?;
         let mut next = saved.clone();
         if let Some(after) = change.park_after {
             next.park_after = Some(after);
@@ -292,8 +372,29 @@ impl Settings {
         if let Some(injection) = change.vessel_tools {
             next.vessel_tools = Some(injection);
         }
+        if let Some(recovery) = change.restart_recovery {
+            next.restart_recovery = Some(recovery.over(
+                next.restart_recovery.as_ref().unwrap_or(&Default::default()),
+            ));
+        }
         self.persist(saved, next).await
     }
+}
+
+fn validate(change: &SetNodeSettings) -> Result<(), SettingsError> {
+    if change.park_after == Some(ParkAfter::Unknown) {
+        return Err(SettingsError::Unknown);
+    }
+    for (kind, driver) in change.drivers.iter().flat_map(SetAgentDrivers::named) {
+        match driver {
+            AgentDriver::Unknown => return Err(SettingsError::UnknownDriver(kind)),
+            AgentDriver::Direct if !offered(kind) => {
+                return Err(SettingsError::NoDirect(kind));
+            }
+            AgentDriver::Direct | AgentDriver::Acp => {}
+        }
+    }
+    Ok(())
 }
 
 /// Move an unusable `settings.json` aside, so no change replaces it;

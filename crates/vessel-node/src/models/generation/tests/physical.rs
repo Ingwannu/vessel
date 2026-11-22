@@ -34,7 +34,7 @@ async fn start(
         Arc::clone(&fixture.runtime),
         ParkAfter::Never,
         false,
-    ));
+    ).await);
     let _changed = settings
         .change(SetNodeSettings {
             metadata: Some(manual()),
