@@ -24,8 +24,10 @@ describes source editing on the page because this packet is web-only.
   new line breaks in a CRLF file. The tested stale-save and Reload paths live
   at the existing file ownership boundary.
 - Effects. The toolbar reports the editor cursor and announces the current
-  Vim mode. Standard editing keeps Tab available to leave the editor. Find
-  uses the standard CodeMirror panel. `StreamLanguage` runs Vessel's existing
+  Vim mode. Vim receives keys before the standard bindings. In standard
+  editing, Tab indents and Escape followed by Tab moves focus out. CodeMirror
+  also enables indentation triggered by the language's input rules. Find uses
+  the standard CodeMirror panel. `StreamLanguage` runs Vessel's existing
   line lexer incrementally. Editing and reading share the same `--syn-*`
   colours and lexer precision. This keeps language packs out of the chunk,
   with the existing lexer limits around complex language constructs.
@@ -60,6 +62,8 @@ The editor chunk loads on Edit.
 | Shared CSS | 234.47 / 49.21 | 237.37 / 49.82 |
 
 The browser test drives the saved setting, verifies lazy loading, highlights
-code and a block comment across lines, follows the toolbar's caret, edits in
-Normal and Insert mode and saves a real CRLF fixture. The existing file and
-split-pane tests exercise draft, conflict and dirty-state behavior.
+code and a block comment across lines, follows the toolbar's caret, exercises
+Normal, Visual and Insert mode and saves a real CRLF fixture. A separate
+browser case exercises indentation and keyboard focus in standard editing.
+The existing file and split-pane tests exercise draft, conflict and dirty-state
+behavior.

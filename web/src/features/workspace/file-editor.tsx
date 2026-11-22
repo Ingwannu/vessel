@@ -1,5 +1,10 @@
-import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
-import { bracketMatching } from "@codemirror/language";
+import {
+  defaultKeymap,
+  history,
+  historyKeymap,
+  indentWithTab,
+} from "@codemirror/commands";
+import { bracketMatching, indentOnInput } from "@codemirror/language";
 import { search, searchKeymap } from "@codemirror/search";
 import {
   Annotation,
@@ -85,6 +90,8 @@ export function FileEditor({
       state: EditorState.create({
         doc: source,
         extensions: [
+          // Modal keys must reach Vim before the standard editing keymap.
+          bindings.of([]),
           EditorState.lineSeparator.of(separator),
           EditorView.contentAttributes.of({ "aria-label": `Edit ${path}` }),
           lineNumbers(),
@@ -92,12 +99,17 @@ export function FileEditor({
           highlightActiveLineGutter(),
           history(),
           drawSelection(),
+          indentOnInput(),
           bracketMatching(),
           fileEditorSyntax(languageOf(path)),
           search({ top: true }),
-          keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap]),
+          keymap.of([
+            indentWithTab,
+            ...defaultKeymap,
+            ...historyKeymap,
+            ...searchKeymap,
+          ]),
           /\.(?:md|markdown)$/iu.test(path) ? EditorView.lineWrapping : [],
-          bindings.of([]),
           editability.of([]),
           EditorView.updateListener.of((update) => {
             if (update.selectionSet || update.docChanged) {
