@@ -58,20 +58,21 @@ async fn the_private_prompt_is_kept_by_admin_and_legacy_settings_stay_public() {
             ErrorCode::Forbidden
         );
         assert_eq!(owner.call(GetAppendSystemPrompt {}).await.unwrap(), prompt);
-        owner
+        let parked = owner
             .call(SetNodeSettings {
                 park_after: Some(ParkAfter::Never),
                 ..SetNodeSettings::default()
             })
             .await
             .unwrap();
+        assert_eq!(parked.park_after, ParkAfter::Never);
         node.stop().await.unwrap();
 
         let node = fixture.start().await;
         let owner = fixture.connect(&node).await;
         let saved = owner.call(GetAppendSystemPrompt {}).await.unwrap();
         assert_eq!(serde_json::to_value(saved).unwrap(), raw);
-        owner
+        let _cleared = owner
             .call(SetNodeSettings {
                 append_system_prompt: Some(AppendSystemPrompt::default()),
                 ..SetNodeSettings::default()
@@ -114,7 +115,7 @@ env = { FAKE_CODEX_EXPECT_DEVELOPER_INSTRUCTIONS_FILE = ".expected-instructions"
 
     let node = fixture.start().await;
     let owner = fixture.connect(&node).await;
-    owner
+    let direct = owner
         .call(SetNodeSettings {
             drivers: Some(SetAgentDrivers {
                 codex: Some(AgentDriver::Direct),
@@ -125,6 +126,7 @@ env = { FAKE_CODEX_EXPECT_DEVELOPER_INSTRUCTIONS_FILE = ".expected-instructions"
         })
         .await
         .unwrap();
+    assert_eq!(direct.drivers.codex, AgentDriver::Direct);
 
     let mut spec = SessionSpec::new(
         HarnessKind::Codex,
@@ -142,7 +144,7 @@ env = { FAKE_CODEX_EXPECT_DEVELOPER_INSTRUCTIONS_FILE = ".expected-instructions"
     assert_eq!(said, "fake reply: plain");
 
     // A blank host value must reach the same conversation on the next launch.
-    owner
+    let _cleared = owner
         .call(SetNodeSettings {
             append_system_prompt: Some(AppendSystemPrompt::default()),
             ..SetNodeSettings::default()
