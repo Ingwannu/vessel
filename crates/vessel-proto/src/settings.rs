@@ -381,7 +381,8 @@ mod tests {
     fn the_three_agents_settings_share_one_compatible_activation() {
         use crate::restart::{RESTART_RECOVERY_PROTOCOL, SetRestartRecovery};
         let since = VESSEL_TOOLS_PROTOCOL.expect("the Agents settings have been assigned");
-        assert!(since <= crate::PROTOCOL_VERSION);
+        // Keep the newest equality pin here until the next activation.
+        assert_eq!(since, crate::PROTOCOL_VERSION);
         assert_eq!(APPEND_SYSTEM_PROMPT_PROTOCOL, Some(since));
         assert_eq!(RESTART_RECOVERY_PROTOCOL, Some(since));
 

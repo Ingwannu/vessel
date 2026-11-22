@@ -6,6 +6,7 @@
 
 use std::path::PathBuf;
 
+use vessel_proto::mcp::Injection;
 use vessel_proto::parking::ParkAfter;
 use vessel_proto::settings::{GetNodeSettings, SetNodeSettings};
 
@@ -50,7 +51,14 @@ async fn a_damaged_file_is_set_aside_and_a_change_does_not_replace_it() {
             idle(30),
             "the flag's value"
         );
-        assert!(!settings.exists(), "moved, not left to be replaced");
+        assert_eq!(
+            fixture.data_dir().read_settings().unwrap().unwrap(),
+            SetNodeSettings {
+                vessel_tools: Some(Injection::Off),
+                ..SetNodeSettings::default()
+            },
+            "first boot records only the fresh Vessel tools choice"
+        );
         let first = set_aside(&fixture, "unreadable");
         assert_eq!(first.len(), 1);
         assert_eq!(first[0].1, b"{ damaged");
@@ -72,6 +80,7 @@ async fn a_damaged_file_is_set_aside_and_a_change_does_not_replace_it() {
         // Damaged again before the next start: a second copy, the first kept.
         std::fs::write(&settings, b"{ damaged again").unwrap();
         let node = fixture.start_with(flag).await;
+        assert!(!settings.exists(), "an existing node moves the file aside");
         let copies = set_aside(&fixture, "unreadable");
         assert_eq!(copies.len(), 2);
         assert!(copies.contains(&first[0]));
@@ -85,6 +94,8 @@ async fn a_damaged_file_is_set_aside_and_a_change_does_not_replace_it() {
 async fn a_later_builds_file_is_copied_before_the_first_change() {
     within(async {
         let fixture = Fixture::new();
+        // An existing store copies later fields when a settings write occurs.
+        fixture.start().await.stop().await.unwrap();
         let settings = fixture.data_dir().settings_path();
         let later = br#"{"park_after":{"kind":"never"},"drivers":{"codex":"acp","gemini":"direct"},"dictation":{"on":true}}"#;
         std::fs::write(&settings, later).unwrap();
