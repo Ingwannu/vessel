@@ -13,6 +13,7 @@ use vessel_proto::{
         AfterRun, Cadence, CatchUp, CreateSchedule, EndReason, ScheduleDefinition, ScheduleInfo,
         ScheduleState, ScheduleTarget, TimeZoneName, UpdateSchedule, UpdateScheduleCadence,
     },
+    registry::WorkspaceIsolation,
     workspace::SessionPlace,
 };
 
@@ -57,7 +58,12 @@ impl Draft {
     /// A whole-definition edit can only preserve compatible new-session data.
     #[must_use]
     pub fn can_open(info: &ScheduleInfo) -> bool {
-        let ScheduleTarget::NewSession { spec, after } = &info.definition.target else {
+        let ScheduleTarget::NewSession {
+            spec,
+            after,
+            isolation,
+        } = &info.definition.target
+        else {
             return false;
         };
         !matches!(info.defined_by, Creator::Agent { .. })
@@ -72,6 +78,8 @@ impl Draft {
             && !matches!(info.definition.catch_up, CatchUp::Unknown)
             && !matches!(info.definition.cadence, Cadence::Unknown)
             && !matches!(after, AfterRun::Unknown)
+            // A newer node's isolation cannot be resaved here (ADR 0072, 838).
+            && !matches!(isolation, Some(WorkspaceIsolation::Unknown))
             && matches!(spec.mode, SessionMode::Structured { resume: None, .. })
     }
 
@@ -82,7 +90,7 @@ impl Draft {
         if !Self::can_open(info) {
             return None;
         }
-        let ScheduleTarget::NewSession { spec, after } = &info.definition.target else {
+        let ScheduleTarget::NewSession { spec, after, .. } = &info.definition.target else {
             return None;
         };
         let archive = match after {
@@ -248,6 +256,11 @@ impl Draft {
                 } else {
                     AfterRun::Keep
                 },
+                // The form has no Isolation control yet: an edit keeps the
+                // stored one, and a new schedule asks for none.
+                isolation: self
+                    .opened()
+                    .and_then(|opened| opened.definition.target.isolation().cloned()),
             },
             catch_up: self
                 .opened()

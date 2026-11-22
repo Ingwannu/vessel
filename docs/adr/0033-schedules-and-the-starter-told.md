@@ -326,3 +326,44 @@ prompt, run history, limit, expiry and catch-up stay with the saved record.
 The method landed pending at protocol 47. Its activation assigned
 `HEARTBEAT_CADENCE_PROTOCOL` 48 at its node-line merge.
 A client offers the editor when the exact peer negotiates that version.
+
+## Amendment for TRACKER 838, per-run workspace isolation
+
+- **Intent.** A new-session schedule can explicitly provision a fresh
+  workspace per run. Local keeps the source files and gets its own workspace
+  identity. Worktree gets its own managed checkout. A heartbeat still uses the
+  existing session's queue.
+- **Placement and ownership.** The saved typed project root supplies the source.
+  At each run the node checks the current definer's normal create permissions,
+  the project, available Git and the existing branch/setup policy. A retained
+  run binding records the schedule, run number, exact workspace and session
+  IDs, and Archive or Keep before provision or launch. The shared workspace
+  producer reserves backing, publishes the descriptor, and claims explicit
+  membership before launching through the normal session service. See ADR 0082.
+- **Settlement.** Binding retention is independent of schedule deletion and
+  bounded history. The node recovers by exact receipts before the scheduler
+  starts. A new runtime's empty actor table does not establish that a
+  previous process exited. A missing join receipt keeps its reservation and
+  run binding for reconciliation. It never replays a prompt or checkout.
+  Archive follows that run's captured policy. Keep allows a later isolated run
+  after the first turn finishes, even when the prior session remains live.
+  Existing definitions carry their prior placement and Keep behavior.
+  An isolated Keep retains its bounded run receipt. A person's Archive
+  mark on that exact session atomically records the release request.
+  The existing automatic workspace archive resumes from that request,
+  including across a restart and after the schedule history is trimmed.
+- **Archive result.** A typed disposition accompanies the turn result.
+  Automatic archive defers while the scheduled session has accepted work, or
+  another member remains live. The node retries from registry/member activity.
+  An unsafe or unconfirmed backing is retained for inspection.
+- **Compatibility.** The optional isolation field is guarded at every hop by
+  `SCHEDULE_ISOLATION_PROTOCOL`. Pending means no producer request is admitted.
+  Replies omit the field and the archive disposition for older peers. A
+  revisioned edit of an isolated definition must include an explicit known
+  policy, preventing an older whole-definition save from discarding it.
+  Integration assigns the pending protocol in merge order. Store schema 26
+  appends the lifecycle receipts after the startup recovery migration.
+
+These choices keep the same authority for interactive and unattended execution.
+A shared directory cannot establish ownership of an actor, and client-created
+backing would make unattended execution depend on a connected editor.

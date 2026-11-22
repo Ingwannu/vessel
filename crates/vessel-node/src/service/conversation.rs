@@ -94,7 +94,7 @@ impl NodeService {
             return Err(wire(&ServiceError::AgentMarksRead));
         }
         let marked = match mark {
-            Mark::Archive => self.put_away_held(session, connection.operation()).await,
+            Mark::Archive => self.mark_archived_session(connection, session).await,
             Mark::Read { .. } | Mark::Unread | Mark::Pin | Mark::Unpin | Mark::Unarchive => {
                 self.sessions.mark(session, mark).await
             }
@@ -102,6 +102,21 @@ impl NodeService {
         marked
             .map(|info| self.with_workspace(info))
             .map_err(|error| wire(&error))
+    }
+
+    async fn mark_archived_session(
+        &self,
+        connection: &Connection,
+        session: SessionId,
+    ) -> Result<SessionInfo, ServiceError> {
+        let release_keep = connection.principal().agent().is_none()
+            && self
+                .sessions
+                .store()
+                .schedule_keeps_session(session, false)
+                .await?;
+        self.put_away_held(session, connection.operation(), release_keep)
+            .await
     }
 
     /// Archive `session` (stopping it first when live) and end what runs
@@ -115,23 +130,38 @@ impl NodeService {
     /// (node)", meeting point 3). A schedule's session must not outlive
     /// what a person's own would ("Integration 3 (node)").
     pub(super) async fn put_away(&self, session: SessionId) -> Result<SessionInfo, ServiceError> {
-        self.put_away_held(session, None).await
+        self.put_away_held(session, None, false).await
     }
+
     async fn put_away_held(
         &self,
         session: SessionId,
         operation: Option<std::sync::Arc<crate::recovery::Operation>>,
+        release_keep: bool,
     ) -> Result<SessionInfo, ServiceError> {
         let sessions = std::sync::Arc::clone(&self.sessions);
         let archived = self
             .sessions
             .hold(operation, async move {
-                sessions.mark(session, Mark::Archive).await
+                if release_keep {
+                    sessions.archive_kept(session).await
+                } else {
+                    sessions.mark(session, Mark::Archive).await
+                }
             })
             .await?;
+        if release_keep {
+            // The exact Automatic claim observes other members in the workspace.
+            self.unwatch_session(session);
+        } else {
+            self.release_archived_session(session).await;
+        }
+        Ok(archived)
+    }
+
+    pub(super) async fn release_archived_session(&self, session: SessionId) {
         self.unwatch_session(session);
         self.terminals.end_beside(session).await;
-        Ok(archived)
     }
 
     /// `session.delete`: remove an ended session whole, and the worktree

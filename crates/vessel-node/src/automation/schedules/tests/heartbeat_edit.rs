@@ -95,6 +95,7 @@ async fn cadence_edit_requires_current_revision_direct_authority_and_heartbeat_t
     }
     let mut definition = old.definition;
     definition.target = ScheduleTarget::NewSession {
+        isolation: None,
         spec: Box::new(SessionSpec::new(
             HarnessKind::ClaudeCode,
             SessionMode::Structured {

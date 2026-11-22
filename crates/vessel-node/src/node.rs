@@ -24,9 +24,7 @@ use crate::agents::Agents;
 use crate::attachments::staging;
 use crate::attachments::uploads::{self, Uploads};
 use crate::attachments::{Attachments, Verified, load};
-use crate::automation;
-use crate::automation::schedules::node_runner::NodeRunner;
-use crate::automation::schedules::{Schedules, SystemClock};
+use crate::automation::schedules::{Schedules, node_runner};
 use crate::config::Config;
 use crate::devices::{Devices, Routes};
 use crate::direct::{self, Limits};
@@ -473,18 +471,7 @@ async fn core(
         limits: features.limits,
         plugins: features.plugins,
     })));
-    automation::schedules::start(
-        commands,
-        automation::schedules::Parts {
-            runner: Arc::new(NodeRunner::new(&service)),
-            clock: SystemClock,
-            store: store.clone(),
-            tasks: tasks.clone(),
-            stop: stop.clone(),
-            ended,
-        },
-    )
-    .await;
+    node_runner::start_node(&service, commands, store, &tasks, &stop, ended).await;
     Ok(Core {
         runtime,
         settings,

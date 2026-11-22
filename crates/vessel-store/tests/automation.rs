@@ -52,6 +52,7 @@ mod support {
 
     pub(crate) fn run(number: u32, outcome: RunOutcome) -> ScheduleRun {
         ScheduleRun {
+            archive: None,
             number: RunNumber::new(number).unwrap(),
             due_at: at(i64::from(number)),
             at: at(i64::from(number)),

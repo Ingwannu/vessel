@@ -105,4 +105,9 @@ impl Stopper {
     pub(crate) fn killed(&self) -> bool {
         self.kill.is_cancelled() && !self.interrupted()
     }
+
+    /// Request the normal stop from an actor that has admitted it.
+    pub(crate) fn request(&self) {
+        self.kill.cancel();
+    }
 }

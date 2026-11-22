@@ -367,6 +367,23 @@ impl Store {
             .await
     }
 
+    /// Settle a person's confirmed backing removal and release its slot together.
+    /// # Errors
+    /// The backing is no longer eligible, or the Store write failed.
+    pub async fn forget_archived_backing(
+        &self,
+        worktree: WorktreeId,
+        workspace: vessel_proto::WorkspaceId,
+        at: DateTime<Utc>,
+    ) -> Result<(), StoreError> {
+        self.workspace_write(WorkspaceWrite::ForgetArchivedBacking {
+            worktree,
+            workspace,
+            at,
+        })
+        .await
+    }
+
     /// Approve the command set `digest` for `project` (with the set, from
     /// schema 11), or withdraw it.
     ///

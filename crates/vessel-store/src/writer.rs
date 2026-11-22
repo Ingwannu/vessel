@@ -52,6 +52,16 @@ const MAX_BATCH: usize = 256;
 /// Answers one write operation once its batch is committed.
 pub(crate) type Done<T = ()> = oneshot::Sender<Result<T, StoreError>>;
 
+/// A session mark and any release it owes to the workspace registry.
+#[derive(Debug)]
+pub(crate) struct SessionMark {
+    pub session: SessionId,
+    pub mark: Mark,
+    pub release_keep: bool,
+    pub at: DateTime<Utc>,
+    pub residence: crate::Residence,
+}
+
 /// One item on the writer's queue.
 #[derive(Debug)]
 pub(crate) enum WriteOp {
@@ -110,10 +120,7 @@ pub(crate) enum Write {
     },
     /// Set a mark on a session (protocol 10); answers with its marks after.
     Mark {
-        session: SessionId,
-        mark: Mark,
-        at: DateTime<Utc>,
-        residence: crate::Residence,
+        write: SessionMark,
         done: Done<SessionCommit<KeptMarks>>,
     },
     /// Atomic first/repeated detach, replied only after commit.

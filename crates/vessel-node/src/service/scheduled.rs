@@ -32,7 +32,7 @@ use crate::error::ServiceError;
 use crate::principal::Principal;
 
 /// A run that failed with `error`.
-fn failed(error: &WireError, session: Option<SessionId>) -> RunOutcome {
+pub(super) fn failed(error: &WireError, session: Option<SessionId>) -> RunOutcome {
     RunOutcome::Failed {
         error: RunError::from_wire(error),
         session,
@@ -63,8 +63,13 @@ impl NodeService {
             return ends(&gone, EndReason::CreatorGone);
         };
         match &job.definition.target {
-            ScheduleTarget::NewSession { spec, after } => {
-                self.run_new_session(job, &principal, spec, *after).await
+            ScheduleTarget::NewSession {
+                spec,
+                after,
+                isolation,
+            } => {
+                self.run_new_session(job, &principal, spec, *after, isolation.as_ref())
+                    .await
             }
             ScheduleTarget::Session { session } => self.run_prompt(job, &principal, *session).await,
             ScheduleTarget::Unknown => Made::outcome(failed(
@@ -111,8 +116,10 @@ impl NodeService {
         principal: &Principal,
         spec: &SessionSpec,
         after: AfterRun,
+        isolation: Option<&vessel_proto::registry::WorkspaceIsolation>,
     ) -> Made {
-        if let Some(previous) = self.previous_session(job, after).await {
+        let previous_policy = isolation.map_or(after, |_| AfterRun::Archive);
+        if let Some(previous) = self.previous_session(job, previous_policy).await {
             tracing::debug!(schedule = %job.schedule, session = %previous, "previous run still running");
             return skipped(SkipReason::PreviousRunning);
         }
@@ -135,6 +142,11 @@ impl NodeService {
             job.name,
             job.run.number.get()
         );
+        if let Some(isolation) = isolation {
+            return self
+                .run_isolated(job, principal, spec, after, isolation.clone(), notice)
+                .await;
+        }
         let info = match self.create_as(principal, spec, None, Some(notice)).await {
             Ok(info) => info,
             Err(error) => return Made::outcome(failed(&error, None)),

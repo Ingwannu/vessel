@@ -81,6 +81,15 @@ impl<R: Runner, C: Clock> Actor<R, C> {
                 asker,
                 reply,
             } => self.run_now(schedule, asker, reply).await,
+            Command::ArchiveDisposition {
+                schedule,
+                run,
+                disposition,
+                reply,
+            } => {
+                let recorded = self.note_archive(schedule, run, disposition).await;
+                let _gone = reply.send(recorded);
+            }
             Command::StartingAgain { session, reply } => {
                 self.session_ended(session).await;
                 let _gone = reply.send(());
@@ -190,6 +199,16 @@ impl<R: Runner, C: Clock> Actor<R, C> {
         let previous_cadence = info.definition.cadence.clone();
         let mut definition = match change {
             DefinitionChange::Replace(definition) => {
+                let previous = info.definition.target.isolation();
+                let next = definition.target.isolation();
+                if previous == Some(&vessel_proto::registry::WorkspaceIsolation::Unknown)
+                    || (previous.is_some() && next.is_none())
+                {
+                    return Err(AutomationError::Invalid(
+                        "the schedule has an explicit isolation policy; include it to save edits"
+                            .to_owned(),
+                    ));
+                }
                 // Only a full replacement changes who a run acts as, which
                 // can move the schedule into the person's quota.
                 self.check_transfer(&info.defined_by, &asker.by)?;

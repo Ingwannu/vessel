@@ -253,6 +253,7 @@ fn polling_a_paused_state_does_not_reverse_the_pending_menu_caption() {
             .unwrap(),
         ),
         after: vessel_proto::automation::AfterRun::Archive,
+        isolation: None,
     };
     let key = RowKey {
         machine: read.machine().clone(),

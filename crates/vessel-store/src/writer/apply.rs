@@ -5,6 +5,7 @@
 //! this file maps each [`Write`] to its store operation, in its own
 //! savepoint (`isolated`), and records what the batch must do after it.
 
+mod session_mark;
 mod workspace_labels;
 
 use std::sync::Arc;
@@ -67,15 +68,7 @@ pub(super) fn apply(
         Write::RevokeDevice { device, at, done } => write_answer(transaction, done, |connection| {
             devices::revoke(connection, device, at)
         }),
-        Write::Mark {
-            session,
-            mark,
-            at,
-            residence,
-            done,
-        } => marks_answer(transaction, effects, session, done, |connection| {
-            marks::mark(connection, session, mark, at, residence)
-        }),
+        Write::Mark { write, done } => session_mark::apply(transaction, effects, &write, done),
         Write::ReadAttention {
             session,
             through,

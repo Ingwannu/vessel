@@ -32,6 +32,7 @@ impl VesselTools {
                         session: parse(session, "session")?,
                     },
                     None => ScheduleTarget::NewSession {
+                        isolation: None,
                         spec: Box::new(Self::spec(args)?),
                         after: if flag(args, "keep")? {
                             AfterRun::Keep

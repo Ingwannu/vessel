@@ -40,6 +40,8 @@ fn restarting_a_ready_terminal_requires_a_new_fenced_lease_and_keeps_its_owner()
     };
     put(&mut db, record, None).unwrap();
     let first = registered(&mut db, id, resource);
+    apply(&mut db, &RegistryWrite::MemberJoined(first.clone())).unwrap();
+    assert!(resource_run(&db, resource).unwrap().unwrap().joined);
     let expected = workspace(&db, id).unwrap().unwrap().descriptor.revision;
     let before = load(&db).unwrap();
     assert!(matches!(
@@ -67,6 +69,9 @@ fn restarting_a_ready_terminal_requires_a_new_fenced_lease_and_keeps_its_owner()
     assert_eq!(current.lease.workspace(), id);
     assert_eq!(current.lease.revision(), expected.next().unwrap());
     assert_eq!(current.readiness, RegistryResourceReadiness::Pending);
+    assert!(!current.joined);
+    apply(&mut db, &RegistryWrite::MemberJoined(first.clone())).unwrap();
+    assert!(!resource_run(&db, resource).unwrap().unwrap().joined);
     let expected = workspace(&db, id).unwrap().unwrap().descriptor.revision;
     for mutation in [
         RegistryWrite::Settle {
@@ -122,6 +127,7 @@ fn foreign_owner_and_archiving_refuse_a_stable_terminal_restart_without_mutation
     put(&mut db, first, None).unwrap();
     put(&mut db, other.clone(), None).unwrap();
     let lease = registered(&mut db, id, resource);
+    apply(&mut db, &RegistryWrite::MemberJoined(lease.clone())).unwrap();
     let forged = WorkspaceStartLease::new(other.descriptor.id, resource, lease.revision());
     let before = load(&db).unwrap();
     assert!(matches!(
@@ -141,7 +147,7 @@ fn foreign_owner_and_archiving_refuse_a_stable_terminal_restart_without_mutation
     record.descriptor.lifecycle = WorkspaceLifecycle::Archiving {
         at: DateTime::UNIX_EPOCH,
     };
-    put(&mut db, record, Some(expected)).unwrap();
+    seed_legacy_lifecycle(&db, &record, expected);
     let before = load(&db).unwrap();
     assert!(matches!(
         apply(

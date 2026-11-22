@@ -93,6 +93,29 @@ pub struct ScheduleRun {
     pub trigger: RunTrigger,
     /// What it did.
     pub outcome: RunOutcome,
+    /// Workspace cleanup is independent of the turn result.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub archive: Option<RunArchive>,
+}
+
+/// The disposition of an isolated workspace after a scheduled turn.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[serde(rename_all = "snake_case")]
+pub enum RunArchive {
+    /// The isolated workspace was archived.
+    Archived,
+    /// The workspace was archived and its managed backing was kept for safety.
+    BackingKept,
+    /// The scheduled session has accepted work.
+    DeferredBusy,
+    /// Another member, agent or terminal, still lives in the workspace.
+    DeferredOtherMembers,
+    /// Cleanup could not confirm all effects.
+    Unconfirmed,
+    /// A result described by a newer node.
+    #[serde(other)]
+    Unknown,
 }
 
 /// What made a run.

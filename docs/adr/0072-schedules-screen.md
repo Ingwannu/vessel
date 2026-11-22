@@ -365,3 +365,26 @@ and a whole hour stays **Every hour**. This matches the page's label
 shape and preserves seconds precision beyond Paseo's rounded
 interval conversion (`schedule-format.ts` 57–83). The formatter affects
 display only. A retained elapsed rule still opens with blank cron.
+
+## Amendment for TRACKER 838, Isolation
+
+Paseo's form puts Isolation after Mode and before Archive on finish. New
+schedules default to Local. Worktree is available for a Git project and
+heartbeats have neither control. Vessel gates editing on the route's assigned
+isolation protocol.
+
+The source is a typed registered project root. Definitions with legacy raw
+folders, subfolders, existing worktrees or unplaced specs retain their behavior
+until explicitly migrated. A saved Worktree whose source is gone or no longer
+a Git project requires choosing a valid source or Local. Managed runs use
+Vessel's existing branch, base, setup approval and naming rules.
+
+The node retains Waiting for a permission. The 256 live workspace slots
+include retained backing debt. An isolated run reports a capacity refusal
+once. The session's Archive action releases its kept isolated workspace
+through automatic cleanup. Paseo offers this operation in the workspace
+sidebar. Ordinary root registration continues to log a full registry and lets
+the start proceed. Archive preserves other live members' work and reports
+`archive deferred: other members`; Paseo drains the workspace's agents and
+terminals. An elapsed cadence keeps its existing rule and uses an elapsed-unit
+description.

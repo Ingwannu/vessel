@@ -2,7 +2,10 @@
 //! Legacy convenience methods delegate here and keep their original results.
 
 use super::Store;
-use crate::{ReopenMode, Residence, RestartEligibility, SessionCommit, StoreError, writer::Write};
+use crate::{
+    ReopenMode, Residence, RestartEligibility, SessionCommit, StoreError,
+    writer::{SessionMark, Write},
+};
 use chrono::{DateTime, Utc};
 use std::sync::Arc;
 use vessel_proto::restart::RestartGeneration;
@@ -66,11 +69,39 @@ impl Store {
         at: DateTime<Utc>,
         residence: Residence,
     ) -> Result<SessionCommit<KeptMarks>, StoreError> {
+        self.commit_mark(session, mark, at, residence, false).await
+    }
+
+    /// A person's Archive also releases an exact scheduled Keep receipt,
+    /// in the same transaction as the mark.
+    /// # Errors
+    /// Unknown session or failure to commit the mark and release.
+    pub async fn archive_kept_session(
+        &self,
+        session: SessionId,
+        at: DateTime<Utc>,
+        residence: Residence,
+    ) -> Result<SessionCommit<KeptMarks>, StoreError> {
+        self.commit_mark(session, Mark::Archive, at, residence, true)
+            .await
+    }
+
+    async fn commit_mark(
+        &self,
+        session: SessionId,
+        mark: Mark,
+        at: DateTime<Utc>,
+        residence: Residence,
+        release_keep: bool,
+    ) -> Result<SessionCommit<KeptMarks>, StoreError> {
         self.write(|done| Write::Mark {
-            session,
-            mark,
-            at,
-            residence,
+            write: SessionMark {
+                session,
+                mark,
+                release_keep,
+                at,
+                residence,
+            },
             done,
         })
         .await

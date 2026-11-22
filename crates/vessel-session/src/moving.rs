@@ -149,6 +149,7 @@ pub(crate) enum Control {
     SideQuestion(crate::side_questions::SidePrompt),
     Queue(Change),
     Cancel(Cancel),
+    StopIfIdle(oneshot::Sender<Result<crate::IdleStop, crate::SessionError>>),
     /// Park or wake the agent (protocol 12).
     Park(ParkOrder),
     /// A bounded node diagnostic, sequenced by the actor rather than the store.

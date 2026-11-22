@@ -5,11 +5,47 @@
 
 use std::sync::{Arc, Weak};
 
+use tokio::sync::{broadcast, mpsc};
+use tokio_util::sync::CancellationToken;
+use tokio_util::task::TaskTracker;
 use vessel_proto::SessionId;
 use vessel_proto::automation::{RunError, RunErrorCode, RunOutcome, ScheduleRun};
 
-use super::{FollowSender, Job, Made, Runner};
+use vessel_store::Store;
+
+use super::{Command, FollowSender, Job, Made, Parts, Runner, SystemClock, start};
 use crate::guard::Guarded;
+
+/// Reconcile exact receipts before the scheduler reads its book or
+/// becomes able to dispatch another due run.
+pub(crate) async fn start_node(
+    service: &Arc<Guarded>,
+    commands: mpsc::Receiver<Command>,
+    store: &Store,
+    tasks: &TaskTracker,
+    stop: &CancellationToken,
+    ended: broadcast::Receiver<SessionId>,
+) {
+    service.0.recover_schedule_workspaces().await;
+    let schedule_cleanup = Arc::downgrade(service);
+    drop(tasks.spawn(async move {
+        if let Some(service) = schedule_cleanup.upgrade() {
+            service.0.watch_deferred_schedule_workspaces().await;
+        }
+    }));
+    start(
+        commands,
+        Parts {
+            runner: Arc::new(NodeRunner::new(service)),
+            clock: SystemClock,
+            store: store.clone(),
+            tasks: tasks.clone(),
+            stop: stop.clone(),
+            ended,
+        },
+    )
+    .await;
+}
 
 /// Runs made through the node's service.
 #[derive(Debug)]

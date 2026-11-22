@@ -22,6 +22,8 @@
 //! - Hook secrets are not here: they are files of their own (ADR 0034), so
 //!   a copy of the database signs nothing.
 
+pub(crate) mod binding;
+
 use chrono::{DateTime, Utc};
 use rusqlite::{Connection, OptionalExtension, params};
 use vessel_proto::automation::{HookDelivery, HookInfo, SavedPrompt, ScheduleInfo, ScheduleRun};
@@ -49,6 +51,12 @@ pub struct StoredAutomation {
 /// A change to that record.
 #[derive(Debug)]
 pub(crate) enum AutomationWrite {
+    BindRun(binding::ScheduleRunBinding),
+    AdvanceRunBinding {
+        previous: binding::ScheduleRunBinding,
+        stage: binding::RunBindingStage,
+    },
+    FinishRunBinding(binding::ScheduleRunBinding),
     /// Insert or replace a schedule.
     Schedule(Box<ScheduleInfo>),
     /// Delete a schedule and its runs.
@@ -90,6 +98,11 @@ fn scope(project: Option<ProjectId>) -> String {
 /// Apply one change. Writer side.
 pub(crate) fn apply(connection: &Connection, write: &AutomationWrite) -> Result<(), StoreError> {
     let changed = match write {
+        AutomationWrite::BindRun(binding) => return binding::reserve(connection, *binding),
+        AutomationWrite::AdvanceRunBinding { previous, stage } => {
+            return binding::advance(connection, *previous, *stage);
+        }
+        AutomationWrite::FinishRunBinding(binding) => return binding::finish(connection, *binding),
         AutomationWrite::Schedule(schedule) => connection
             .prepare_cached(
                 "INSERT INTO schedules (id, created_at, info) VALUES (?1, ?2, ?3)

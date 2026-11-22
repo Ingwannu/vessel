@@ -109,7 +109,7 @@ fn oldest_active(
     connection: &Connection,
     project: ProjectId,
 ) -> Result<Vec<WorkspaceDescriptor>, StoreError> {
-    let mut found: Vec<WorkspaceDescriptor> = descriptors(connection, project)?
+    let mut found: Vec<WorkspaceDescriptor> = legacy_descriptors(connection, project)?
         .into_iter()
         .filter(|descriptor| {
             descriptor.lifecycle == WorkspaceLifecycle::Active
@@ -121,12 +121,14 @@ fn oldest_active(
     Ok(found)
 }
 
-fn descriptors(
+fn legacy_descriptors(
     connection: &Connection,
     project: ProjectId,
 ) -> Result<Vec<WorkspaceDescriptor>, StoreError> {
-    let mut statement =
-        connection.prepare_cached("SELECT descriptor FROM workspace_registry WHERE project=?1")?;
+    let mut statement = connection.prepare_cached(
+        "SELECT descriptor FROM workspace_registry w WHERE project=?1
+         AND NOT EXISTS(SELECT 1 FROM workspace_registry_reservations r WHERE r.id=w.id)",
+    )?;
     let mut rows = statement.query(params![project.to_string()])?;
     let mut found = Vec::new();
     while let Some(row) = rows.next()? {
@@ -145,7 +147,7 @@ pub(crate) fn archive_stranded(
     at: DateTime<Utc>,
 ) -> Result<RegistryChange, StoreError> {
     let mut change = RegistryChange::Unchanged;
-    for mut descriptor in descriptors(connection, project)? {
+    for mut descriptor in legacy_descriptors(connection, project)? {
         if descriptor.backing != WorkspaceBacking::Local
             || descriptor.lifecycle != WorkspaceLifecycle::Active
         {
@@ -167,37 +169,10 @@ pub(crate) fn archive_stranded(
         change = RegistryChange::Changed;
     }
     if change == RegistryChange::Changed {
-        prune_archived(connection)?;
+        super::retirement::prune(connection)?;
         write::bump_revision(connection)?;
     }
     Ok(change)
-}
-
-/// Keep at most [`MAX_ARCHIVED_WORKSPACES`] archived `Local` records; a live
-/// create is never refused for them. Their label assignments cascade.
-fn prune_archived(connection: &Connection) -> Result<(), StoreError> {
-    let mut statement = connection.prepare_cached(
-        "SELECT id,descriptor FROM workspace_registry \
-         WHERE json_extract(descriptor,'$.lifecycle.kind')='archived' \
-         AND json_extract(descriptor,'$.backing.kind')='local' \
-         AND id NOT IN (SELECT id FROM workspace_registry_reservations)",
-    )?;
-    let mut rows = statement.query([])?;
-    let mut archived: Vec<(DateTime<Utc>, WorkspaceId, String)> = Vec::new();
-    while let Some(row) = rows.next()? {
-        let id: String = row.get(0)?;
-        let text: String = row.get(1)?;
-        let descriptor: WorkspaceDescriptor = decode(&text)?;
-        if let WorkspaceLifecycle::Archived { at } = descriptor.lifecycle {
-            archived.push((at, descriptor.id, id));
-        }
-    }
-    let excess = archived.len().saturating_sub(MAX_ARCHIVED_WORKSPACES);
-    archived.sort_by_key(|(at, id, _)| (*at, *id));
-    for (_, _, id) in archived.into_iter().take(excess) {
-        let _deleted = connection.execute("DELETE FROM workspace_registry WHERE id=?1", [id])?;
-    }
-    Ok(())
 }
 
 /// Each placed, non-archived session at a project root belongs to that
@@ -208,12 +183,17 @@ pub(crate) fn derived_memberships(
     workspaces: &[WorkspaceDescriptor],
     explicit: &[WorkspaceMembership],
 ) -> Result<Vec<WorkspaceMembership>, StoreError> {
+    let mut statement =
+        connection.prepare_cached("SELECT id FROM workspace_registry_reservations")?;
+    let provisioned = statement
+        .query_map([], |row| row.get::<_, String>(0))?
+        .collect::<Result<HashSet<_>, _>>()?;
     let mut owners: Vec<(ProjectId, WorkspaceId, DateTime<Utc>)> = Vec::new();
     for descriptor in workspaces {
         let live = descriptor.lifecycle == WorkspaceLifecycle::Active
             && descriptor.visibility == WorkspaceVisibility::Foreground
             && descriptor.backing == WorkspaceBacking::Local;
-        if !live {
+        if !live || provisioned.contains(&descriptor.id.to_string()) {
             continue;
         }
         match owners
@@ -275,7 +255,9 @@ pub(crate) fn unregistered_placed(
     let mut statement = connection.prepare_cached(
         "SELECT json_extract(spec,'$.place.project'), MIN(created_at) FROM sessions \
          WHERE archived_at IS NULL AND json_extract(spec,'$.place.kind')='project' \
-         AND json_extract(spec,'$.place.project') NOT IN (SELECT project FROM workspace_registry) \
+         AND NOT EXISTS (SELECT 1 FROM workspace_registry_resources r WHERE r.kind='session' AND r.resource=sessions.id) \
+         AND json_extract(spec,'$.place.project') NOT IN (SELECT project FROM workspace_registry w \
+              WHERE NOT EXISTS(SELECT 1 FROM workspace_registry_reservations r WHERE r.id=w.id)) \
          GROUP BY json_extract(spec,'$.place.project') \
          ORDER BY json_extract(spec,'$.place.project')",
     )?;

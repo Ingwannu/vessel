@@ -44,6 +44,7 @@ impl sql::Registry for CanonicalRegistry {
             | StoreError::Sqlite(_)
             | StoreError::Commit(_)
             | StoreError::RegistryConflict
+            | StoreError::RegistryFinished(_)
             | StoreError::RegistryFull
             | StoreError::RegistryRecordTooLarge
             | StoreError::RegistryRevisionExhausted

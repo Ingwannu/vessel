@@ -77,6 +77,7 @@ fn listed(shell: &mut Shell, heartbeat: bool) {
                         },
                     )),
                     after: AfterRun::Archive,
+                    isolation: None,
                 }
             },
             prompt: "Check the build report".parse().unwrap(),

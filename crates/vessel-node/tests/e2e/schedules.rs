@@ -87,6 +87,7 @@ async fn a_run_starts_a_session_follows_its_turn_and_archives_it() {
         let node = fixture.start().await;
         let client = fixture.connect(&node).await;
         let target = ScheduleTarget::NewSession {
+            isolation: None,
             spec: Box::new(structured_spec(&fixture, None)),
             after: AfterRun::Archive,
         };
@@ -315,6 +316,7 @@ async fn what_is_refused_at_creation() {
         );
         resuming.title = None;
         let resume = ScheduleTarget::NewSession {
+            isolation: None,
             spec: Box::new(resuming),
             after: AfterRun::Archive,
         };
@@ -323,6 +325,7 @@ async fn what_is_refused_at_creation() {
             ErrorCode::InvalidRequest
         );
         let fine = ScheduleTarget::NewSession {
+            isolation: None,
             spec: Box::new(structured_spec(&fixture, None)),
             after: AfterRun::Keep,
         };
@@ -468,6 +471,7 @@ async fn schedules_are_kept_across_a_restart() {
         let node = fixture.start().await;
         let client = fixture.connect(&node).await;
         let target = ScheduleTarget::NewSession {
+            isolation: None,
             spec: Box::new(structured_spec(&fixture, None)),
             after: AfterRun::Keep,
         };

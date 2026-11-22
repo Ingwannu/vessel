@@ -1,5 +1,7 @@
 //! Async workspace registry handle; blocking SQL stays on existing store threads.
 
+mod lifecycle;
+
 use super::Store;
 use crate::{RegistryRecord, RegistryReservation, ReservationStage, StoreError, StoredRegistry};
 use crate::{
@@ -27,7 +29,7 @@ impl Store {
         .await
     }
     /// Admit a next run for the same actor only after its supervisor proves the previous run joined.
-    /// The exact predecessor must still be Ready; this check is not itself proof of process exit.
+    /// The exact predecessor must still be Ready and have a persisted join receipt.
     ///
     /// # Errors
     /// Foreign/stale/unsettled predecessor, non-Active/stale workspace, or persistence failure.

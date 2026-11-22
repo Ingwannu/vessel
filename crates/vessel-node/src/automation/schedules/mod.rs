@@ -42,7 +42,8 @@ use std::time::Duration;
 use chrono::{DateTime, Utc};
 use tokio::sync::{mpsc, oneshot};
 use vessel_proto::automation::{
-    Cadence, EndReason, RunOutcome, ScheduleDefinition, ScheduleInfo, ScheduleRun,
+    Cadence, EndReason, RunArchive, RunNumber, RunOutcome, ScheduleDefinition, ScheduleInfo,
+    ScheduleRun,
 };
 use vessel_proto::{Creator, ScheduleId, SessionId};
 
@@ -106,10 +107,12 @@ impl Made {
 /// A later outcome of a run already made (`started` became `waiting` or
 /// `finished`), sent by a runner following its session: the run as it is
 /// now.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) struct Followed {
     pub(crate) schedule: ScheduleId,
     pub(crate) run: ScheduleRun,
+    /// Isolated cleanup releases its pin only after the disposition commits.
+    pub(crate) committed: Option<oneshot::Sender<bool>>,
 }
 
 /// Where a runner sends what it follows.
@@ -188,6 +191,12 @@ pub(crate) enum Command {
         schedule: ScheduleId,
         asker: Asker,
         reply: oneshot::Sender<Result<ScheduleRun, AutomationError>>,
+    },
+    ArchiveDisposition {
+        schedule: ScheduleId,
+        run: RunNumber,
+        disposition: RunArchive,
+        reply: oneshot::Sender<Result<(), AutomationError>>,
     },
     /// An agent's session is about to start again: the schedules of its
     /// last run go now, answered once they are gone.
@@ -353,6 +362,22 @@ impl Schedules {
         self.ask(|reply| Command::Run {
             schedule,
             asker,
+            reply,
+        })
+        .await
+    }
+
+    /// Record late archive settlement against the exact retained run.
+    pub(crate) async fn record_archive(
+        &self,
+        schedule: ScheduleId,
+        run: RunNumber,
+        disposition: RunArchive,
+    ) -> Result<(), AutomationError> {
+        self.ask(|reply| Command::ArchiveDisposition {
+            schedule,
+            run,
+            disposition,
             reply,
         })
         .await

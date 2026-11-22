@@ -132,7 +132,7 @@ impl NodeService {
         unattended: Option<String>,
         lease: Option<tokio::sync::OwnedMutexGuard<()>>,
     ) -> Result<SessionInfo, WireError> {
-        self.create_starting(principal, spec, (origin, unattended), None, lease)
+        self.create_starting(principal, spec, (origin, unattended), None, lease, None)
             .await
     }
 
@@ -147,6 +147,7 @@ impl NodeService {
         (origin, unattended): (Option<SessionOrigin>, Option<String>),
         fork: Option<vessel_session::ForkStart>,
         lease: Option<tokio::sync::OwnedMutexGuard<()>>,
+        workspace: Option<&vessel_store::WorkspaceStartLease>,
     ) -> Result<SessionInfo, WireError> {
         if self.lifecycle.is_draining() {
             return Err(wire(&ServiceError::Draining));
@@ -162,7 +163,9 @@ impl NodeService {
         // worktree, `_starting` keeps a removal out until the session is
         // live, or failed to start (ADR 0030); it is dropped on return.
         let (notices, _starting) = self.place(principal, &mut spec).await?;
-        if let Some(SessionPlace::Project { project, .. }) = spec.place.as_deref() {
+        if workspace.is_none()
+            && let Some(SessionPlace::Project { project, .. }) = spec.place.as_deref()
+        {
             self.workspaces.register_root(*project).await;
         }
         let mut options = self
@@ -189,7 +192,16 @@ impl NodeService {
         if origin.is_some() {
             options.origin = origin;
         }
-        let id = SessionId::random();
+        let id = match workspace.map(vessel_store::WorkspaceStartLease::resource) {
+            None => SessionId::random(),
+            Some(vessel_proto::registry::WorkspaceResource::Session { session }) => session,
+            Some(vessel_proto::registry::WorkspaceResource::Terminal { .. }) => {
+                return Err(WireError::new(
+                    vessel_proto::ErrorCode::InvalidRequest,
+                    "the workspace admission belongs to a terminal",
+                ));
+            }
+        };
         let inject = self.launcher.has_tools() && self.settings.inject_vessel_tools().await;
         let secret = self
             .agents

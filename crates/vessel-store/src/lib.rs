@@ -98,6 +98,7 @@ pub use again::{EndedSession, ReopenMode};
 pub use agents_file::AgentsFileError;
 pub use attachments::files::{AttachmentFileError, FileIdentity, ReadBack};
 pub use attachments::{AttachmentUsage, KeptAttachment};
+pub use automation::binding::{RunBindingStage, ScheduleRunBinding};
 pub use automation::{DELIVERIES_KEPT, RUNS_KEPT, StoredAutomation};
 pub use config::{ByteCount, Retention, StoreConfig};
 pub use data_dir::{DataDir, ProfilesFile, SERVICE_LOG_FILE, Space};
@@ -119,8 +120,9 @@ pub use workspace_labels::{LabelRow, WorkspaceLabelCommit};
 /// Explicit workspace registry records shared by create/lifecycle services, and
 /// the project root a start registers (ADR 0106).
 pub use registry::{
-    Placement, RegistryRecord, RegistryReservation, ReservationStage, StoredRegistry,
-    WorkspaceProvision,
+    ArchiveDefer, ArchiveSettlement, Placement, ProvisionRetirement, RegistryArchive,
+    RegistryRecord, RegistryReservation, ReservationStage, StoredRegistry, WorkspaceArchiveClaim,
+    WorkspaceArchivePurpose, WorkspaceProvision,
 };
 
 /// Lifetime logical registry reservation bounds; `SQLite` physical growth is separately managed.

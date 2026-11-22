@@ -7,7 +7,7 @@ pub(crate) use metadata::MetadataChange;
 mod recovery;
 mod stopping;
 mod title;
-pub use input::PromptPermit;
+pub use input::{IdleStop, PromptPermit};
 pub use stopping::SessionStop;
 pub use title::TitleUpdate;
 pub(crate) use title::{Rename, RenameChange};

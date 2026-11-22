@@ -1,6 +1,8 @@
 // Exercise the sheet with the machine's real project and harness catalogue.
 import { expect, test } from "@playwright/test";
 
+import { SCHEDULE_ISOLATION_PROTOCOL } from "../src/wire/proto";
+
 import { loadEnv } from "./fleet";
 import { cli } from "./fleet-home";
 import { choose } from "./kit";
@@ -10,6 +12,7 @@ test("creates a cron schedule and edits a stored elapsed schedule without conver
   page,
 }) => {
   const env = loadEnv();
+  const isolationAvailable = Number.isInteger(SCHEDULE_ISOLATION_PROTOCOL);
   const name = "Recurring review fixture";
   const elapsed = "Elapsed review fixture";
   cli(env, [
@@ -50,6 +53,17 @@ test("creates a cron schedule and edits a stored elapsed schedule without conver
       create.getByRole("combobox", { name: "Project" }),
       /^shop$/,
     );
+    const isolation = create.getByRole("combobox", {
+      name: "Isolation",
+      exact: true,
+    });
+    if (!isolationAvailable) {
+      await expect(isolation).toHaveCount(0);
+    } else {
+      await expect(isolation).toHaveText("Local");
+      await choose(page, isolation, /^Worktree$/);
+      await expect(isolation).toHaveText("Worktree");
+    }
     const model = create.getByRole("group", { name: "Model", exact: true });
     const picker = model.getByRole("button", {
       name: /Model: Claude Code · Fake-small/i,
@@ -86,6 +100,16 @@ test("creates a cron schedule and edits a stored elapsed schedule without conver
       list.getByRole("button", { name: `Edit schedule ${name}` }),
     ).toBeVisible();
 
+    if (isolationAvailable) {
+      await list.getByRole("button", { name: `Edit schedule ${name}` }).click();
+      const saved = page.getByRole("dialog", { name: "Edit schedule" });
+      await expect(
+        saved.getByRole("combobox", { name: "Isolation", exact: true }),
+      ).toHaveText("Worktree");
+      await saved.getByRole("button", { name: "Cancel" }).click();
+      await expect(saved).toBeHidden();
+    }
+
     await list
       .getByRole("button", { name: `Edit schedule ${elapsed}` })
       .click();
@@ -97,6 +121,11 @@ test("creates a cron schedule and edits a stored elapsed schedule without conver
       edit.getByRole("textbox", { name: "Cron expression" }),
     ).toHaveCount(0);
     await expect(edit.getByLabel("Max runs", { exact: true })).toHaveValue("3");
+    if (isolationAvailable) {
+      await expect(
+        edit.getByRole("combobox", { name: "Isolation", exact: true }),
+      ).toHaveText("Current behavior");
+    }
     await edit
       .getByLabel("Prompt", { exact: true })
       .fill("Edited elapsed prompt");
