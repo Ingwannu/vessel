@@ -65,5 +65,7 @@ The browser test drives the saved setting, verifies lazy loading, highlights
 code and a block comment across lines, follows the toolbar's caret, exercises
 Normal, Visual and Insert mode and saves a real CRLF fixture. A separate
 browser case exercises indentation and keyboard focus in standard editing.
+In Vim, Escape in Visual mode returns to Normal mode. The browser confirmed
+that Escape followed by Tab from Normal moves focus out of the editor.
 The existing file and split-pane tests exercise draft, conflict and dirty-state
 behavior.

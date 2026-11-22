@@ -38,12 +38,14 @@ test("the editor loads on Edit and Vim saves CRLF through the file view", async 
   await expect(toggle).not.toBeChecked();
   expect(editorRequests).toHaveLength(0);
 
+  let enabled = false;
   try {
     await acknowledgePreference(
       page,
       () => toggle.click(),
       (prefs) => prefs.editor.vim_keybindings,
     );
+    enabled = true;
     await page.reload();
     await expect(toggle).toBeChecked();
     writeFileSync(file, `first\r\n${code}`);
@@ -130,13 +132,15 @@ test("the editor loads on Edit and Vim saves CRLF through the file view", async 
     await toolbar.getByRole("button", { name: "Cancel" }).click();
   } finally {
     writeFileSync(file, before);
-    await page.goto(settings);
-    if (await toggle.isChecked()) {
+    if (enabled) {
+      await page.goto(settings);
+      await expect(toggle).toBeChecked();
       await acknowledgePreference(
         page,
         () => toggle.click(),
         (prefs) => !prefs.editor.vim_keybindings,
       );
+      await expect(toggle).not.toBeChecked();
     }
   }
 });
