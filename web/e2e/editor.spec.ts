@@ -21,6 +21,7 @@ test("the editor loads on Edit and Vim saves CRLF through the file view", async 
   const settings = `${origin}/settings/editor`;
   const file = join(loadEnv().root, "repos", "shop", "src", "tax.ts");
   const before = readFileSync(file, "utf8");
+  const code = 'const tax = "flat";\r\n/* rate\r\ncomment */\r\n';
   await page.goto(settings);
   const toggle = page.getByRole("switch", { name: "Vim keybindings" });
   await expect(toggle).not.toBeChecked();
@@ -34,7 +35,7 @@ test("the editor loads on Edit and Vim saves CRLF through the file view", async 
     );
     await page.reload();
     await expect(toggle).toBeChecked();
-    writeFileSync(file, "first\r\nsecond\r\n");
+    writeFileSync(file, `first\r\n${code}`);
     await startInShop(page, "Local", "Edit a source file with Vim");
     await expect(page).toHaveURL(/\/sessions\/[^/]+\/[^/]+$/);
     await openPanelTab(page, "Files");
@@ -48,28 +49,43 @@ test("the editor loads on Edit and Vim saves CRLF through the file view", async 
 
     await page.getByRole("button", { name: "Edit", exact: true }).click();
     const editor = page.getByRole("textbox", { name: "Edit src/tax.ts" });
-    const mode = page.getByRole("status").filter({ hasText: /^Vim /u });
-    await expect(mode).toHaveText("Vim normal");
-    await expectEditorText(editor, "first\nsecond\n");
+    const toolbar = page.locator(".file-head");
+    const normal = toolbar.getByRole("status", { name: "Vim mode NORMAL" });
+    await expect(normal).toHaveText("NORMAL");
+    await expect(toolbar).toContainText("Ln 1, Col 1");
+    await expectEditorText(editor, `first\r\n${code}`.replaceAll("\r\n", "\n"));
+    await expect(editor.locator(".syn-keyword")).toHaveText("const");
+    await expect(editor.locator(".syn-string")).toHaveText('"flat"');
+    await expect(editor.locator(".syn-comment")).toHaveText([
+      "/* rate",
+      "comment */",
+    ]);
     expect(editorRequests).toHaveLength(1);
     await editor.press("g");
     await editor.press("g");
     await editor.press("0");
     await editor.press("x");
     await editor.press("i");
-    await expect(mode).toHaveText("Vim insert");
+    await expect(
+      toolbar.getByRole("status", { name: "Vim mode INSERT" }),
+    ).toHaveText("INSERT");
     await page.keyboard.type("F");
     await editor.press("Escape");
     await editor.press("$");
     await editor.press("a");
     await editor.press("Enter");
     await page.keyboard.type("added");
+    await expect(toolbar).toContainText("Ln 2, Col 6");
     await editor.press("Escape");
-    await expect(mode).toHaveText("Vim normal");
-    await expectEditorText(editor, "First\nadded\nsecond\n");
+    await expect(normal).toHaveText("NORMAL");
+    await expectEditorText(
+      editor,
+      `First\r\nadded\r\n${code}`.replaceAll("\r\n", "\n"),
+    );
+    await expect(editor.locator(".syn-keyword")).toHaveText("const");
     await editor.press("Control+s");
     await expect(editor).toHaveCount(0);
-    expect(readFileSync(file, "utf8")).toBe("First\r\nadded\r\nsecond\r\n");
+    expect(readFileSync(file, "utf8")).toBe(`First\r\nadded\r\n${code}`);
   } finally {
     writeFileSync(file, before);
     await page.goto(settings);

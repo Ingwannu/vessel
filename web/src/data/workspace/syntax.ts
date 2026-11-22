@@ -31,6 +31,19 @@ import type { Language } from "./syntax-languages";
 export type TokenKind =
   "keyword" | "string" | "comment" | "number" | "constant" | "function" | "tag";
 
+/** The coloured prefix of a line, shared by the viewer and editor. */
+export const SYNTAX_LINE_LIMIT = 4_000;
+
+export const SYNTAX_CLASS: Readonly<Record<TokenKind, string>> = {
+  keyword: "syn-keyword",
+  string: "syn-string",
+  comment: "syn-comment",
+  number: "syn-number",
+  constant: "syn-const",
+  function: "syn-func",
+  tag: "syn-keyword",
+};
+
 /** A run of a line's text. */
 export interface Token {
   text: string;

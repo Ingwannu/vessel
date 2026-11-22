@@ -1,39 +1,17 @@
 // One line of code in its syntax colours (data/workspace/syntax.ts), as
 // the diff and the file viewer draw it: runs of text in spans named by
-// what they are, coloured by the page's `--syn-*` tokens (code.css).
+// what they are, coloured by the page's `--syn-*` tokens.
 
 import { useMemo } from "react";
 
 import {
   type LineState,
-  type TokenKind,
+  SYNTAX_CLASS,
+  SYNTAX_LINE_LIMIT,
   tokenize,
 } from "../../data/workspace/syntax";
 import type { Language } from "../../data/workspace/syntax-languages";
-
-/** The most characters of a line coloured: a minified file's line of
- * hundreds of kilobytes would otherwise be a span per token; the rest is
- * drawn as plain text. */
-const COLOURED = 4000;
-
-function tokenClass(kind: TokenKind): string {
-  switch (kind) {
-    case "keyword":
-      return "syn-keyword";
-    case "string":
-      return "syn-string";
-    case "comment":
-      return "syn-comment";
-    case "number":
-      return "syn-number";
-    case "constant":
-      return "syn-const";
-    case "function":
-      return "syn-func";
-    case "tag":
-      return "syn-keyword";
-  }
-}
+import "./code-syntax.css";
 
 export function CodeText({
   text,
@@ -46,7 +24,7 @@ export function CodeText({
   state?: LineState;
 }) {
   const tokens = useMemo(
-    () => tokenize(text.slice(0, COLOURED), language, state).tokens,
+    () => tokenize(text.slice(0, SYNTAX_LINE_LIMIT), language, state).tokens,
     [text, language, state],
   );
   return (
@@ -55,12 +33,12 @@ export function CodeText({
         token.kind === null ? (
           token.text
         ) : (
-          <span key={index} className={tokenClass(token.kind)}>
+          <span key={index} className={SYNTAX_CLASS[token.kind]}>
             {token.text}
           </span>
         ),
       )}
-      {text.length > COLOURED ? text.slice(COLOURED) : null}
+      {text.length > SYNTAX_LINE_LIMIT ? text.slice(SYNTAX_LINE_LIMIT) : null}
     </>
   );
 }

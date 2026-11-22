@@ -23,12 +23,15 @@ describes source editing on the page because this packet is web-only.
   transactions stay out of undo history. The initial CRLF separator governs
   new line breaks in a CRLF file. The tested stale-save and Reload paths live
   at the existing file ownership boundary.
-- Effects. The editor reports its Vim mode and follows workspace typography.
-  Standard editing keeps Tab available to leave the editor. Find uses the
-  standard CodeMirror panel. The edit chunk omits language packs, so editing
-  uses plain source text and read-only views retain their existing syntax
-  highlighting. Paseo references are `file-panels/source/editor/view.web.tsx:63–114,138–158`
-  and `file-panels/source/editor/extensions.web.ts:30–45` under `packages/app/src`.
+- Effects. The toolbar reports the editor cursor and announces the current
+  Vim mode. Standard editing keeps Tab available to leave the editor. Find
+  uses the standard CodeMirror panel. `StreamLanguage` runs Vessel's existing
+  line lexer incrementally. Editing and reading share the same `--syn-*`
+  colours and lexer precision. This keeps language packs out of the chunk,
+  with the existing lexer limits around complex language constructs.
+  Paseo references are `file-panels/source/editor/view.web.tsx:63–114,138–158`,
+  `file-panels/source/editor/extensions.web.ts:30–91` and
+  `file-panels/source/toolbar.tsx:80–106` under `packages/app/src`.
 
 ## Dependencies and evidence
 
@@ -54,6 +57,7 @@ The baseline is node `d107c7553`. The editor chunk loads on Edit.
 | Lazy editor JS | — | 429.65 / 137.87 |
 | Shared CSS | 234.47 / 49.21 | 235.87 / 49.48 |
 
-The browser test drives the saved setting, verifies lazy loading, edits in
+The browser test drives the saved setting, verifies lazy loading, highlights
+code and a block comment across lines, follows the toolbar's caret, edits in
 Normal and Insert mode and saves a real CRLF fixture. The existing file and
-split-pane tests still exercise draft, conflict and dirty-state behavior.
+split-pane tests exercise draft, conflict and dirty-state behavior.

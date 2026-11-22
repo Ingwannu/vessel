@@ -217,32 +217,6 @@
   color: var(--danger);
 }
 
-/* Syntax colour (features/workspace/code-text.tsx), DESIGN.md §4.4. */
-.syn-keyword {
-  color: var(--syn-keyword);
-}
-
-.syn-string {
-  color: var(--syn-string);
-}
-
-.syn-comment {
-  color: var(--syn-comment);
-  font-style: italic;
-}
-
-.syn-number {
-  color: var(--syn-number);
-}
-
-.syn-const {
-  color: var(--syn-const);
-}
-
-.syn-func {
-  color: var(--syn-func);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .d-file-toggle > .ico:first-child,
   .d-file-actions {

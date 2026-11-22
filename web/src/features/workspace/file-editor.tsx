@@ -10,6 +10,8 @@ import {
 import {
   drawSelection,
   EditorView,
+  highlightActiveLine,
+  highlightActiveLineGutter,
   keymap,
   lineNumbers,
 } from "@codemirror/view";
@@ -18,8 +20,12 @@ import { useEffect, useEffectEvent, useRef } from "react";
 
 import { prefs } from "../../data/prefs";
 import { useStore } from "../../data/store";
+import { languageOf } from "../../data/workspace/syntax-languages";
 import type { RelPath } from "../../wire/proto";
+import { fileEditorSyntax } from "./file-editor-syntax";
 import "./file-editor.css";
+
+export type FileCursor = Readonly<{ line: number; column: number }>;
 
 const replaceDraft = Annotation.define<boolean>();
 const editability = new Compartment();
@@ -33,22 +39,27 @@ export function FileEditor({
   saving,
   onChange,
   onSave,
+  onCursor,
+  onMode,
 }: {
   path: RelPath;
   draft: string;
   saving: boolean;
   onChange: (draft: string) => void;
   onSave: () => void;
+  onCursor: (cursor: FileCursor) => void;
+  onMode: (mode: string | null) => void;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const editor = useRef<EditorView | null>(null);
-  const status = useRef<HTMLDivElement>(null);
   const vimEnabled = useStore(
     prefs,
     (state) => state.values.editor.vim_keybindings,
   );
   const currentDraft = useEffectEvent(() => draft);
   const changeDraft = useEffectEvent(onChange);
+  const cursorChanged = useEffectEvent(onCursor);
+  const vimModeChanged = useEffectEvent(onMode);
 
   useEffect(() => {
     if (host.current === null) {
@@ -59,6 +70,16 @@ export function FileEditor({
     // An explicit LF for mixed input also retains their literal CR bytes.
     const separator =
       source.includes("\r\n") && !/(^|[^\r])\n/u.test(source) ? "\r\n" : "\n";
+    let lastCursor: FileCursor | undefined;
+    const publishCursor = (state: EditorState) => {
+      const head = state.selection.main.head;
+      const line = state.doc.lineAt(head);
+      const column = head - line.from + 1;
+      if (lastCursor?.line !== line.number || lastCursor.column !== column) {
+        lastCursor = { line: line.number, column };
+        cursorChanged(lastCursor);
+      }
+    };
     const view = new EditorView({
       parent: host.current,
       state: EditorState.create({
@@ -67,15 +88,21 @@ export function FileEditor({
           EditorState.lineSeparator.of(separator),
           EditorView.contentAttributes.of({ "aria-label": `Edit ${path}` }),
           lineNumbers(),
+          highlightActiveLine(),
+          highlightActiveLineGutter(),
           history(),
           drawSelection(),
           bracketMatching(),
+          fileEditorSyntax(languageOf(path)),
           search({ top: true }),
           keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap]),
           /\.(?:md|markdown)$/iu.test(path) ? EditorView.lineWrapping : [],
           bindings.of([]),
           editability.of([]),
           EditorView.updateListener.of((update) => {
+            if (update.selectionSet || update.docChanged) {
+              publishCursor(update.state);
+            }
             if (
               update.docChanged &&
               !update.transactions.some(
@@ -89,6 +116,7 @@ export function FileEditor({
       }),
     });
     editor.current = view;
+    publishCursor(view.state);
     return () => {
       editor.current = null;
       view.destroy();
@@ -126,13 +154,13 @@ export function FileEditor({
     }
     view.dispatch({ effects: bindings.reconfigure(vimEnabled ? vim() : []) });
     const cm = vimEnabled ? getCM(view) : null;
-    const statusLine = status.current;
-    if (cm === null || statusLine === null) {
+    if (cm === null) {
+      vimModeChanged(null);
       return;
     }
-    statusLine.textContent = "Vim normal";
+    vimModeChanged("NORMAL");
     const showMode = (event: { mode: string }) => {
-      statusLine.textContent = `Vim ${event.mode}`;
+      vimModeChanged(event.mode.toUpperCase());
     };
     cm.on("vim-mode-change", showMode);
     return () => {
@@ -156,9 +184,6 @@ export function FileEditor({
       }}
     >
       <div className="file-editor-host" ref={host} />
-      {vimEnabled ? (
-        <div ref={status} role="status" className="file-editor-mode" />
-      ) : null}
     </div>
   );
 }

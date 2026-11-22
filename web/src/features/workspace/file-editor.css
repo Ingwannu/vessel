@@ -13,11 +13,24 @@
   font: var(--t-mono);
 }
 
-.file-editor-host .cm-gutters,
-.file-editor-host .cm-panels {
+.file-editor-host .cm-editor .cm-gutters,
+.file-editor-host .cm-editor .cm-panels {
   color: var(--text-secondary);
   background: var(--bg-base);
   border-color: var(--border-faint);
+}
+
+.file-editor-host .cm-editor .cm-gutters {
+  border-right: 1px solid var(--border-faint);
+}
+
+.file-editor-host .cm-editor .cm-activeLine,
+.file-editor-host .cm-editor .cm-activeLineGutter {
+  background: transparent;
+}
+
+.file-editor-host .cm-editor .cm-activeLineGutter {
+  color: var(--text-primary);
 }
 
 .file-editor-host .cm-content {
@@ -34,8 +47,7 @@
 }
 
 .file-editor-host .cm-editor.cm-focused {
-  outline: var(--focus);
-  outline-offset: -2px;
+  outline: none;
 }
 
 .file-editor-host .cm-cursor,
@@ -53,12 +65,4 @@
 
 .file-editor-host .cm-fat-cursor {
   background: color-mix(in srgb, var(--text-primary) 28%, transparent);
-}
-
-.file-editor-mode {
-  padding: 4px 10px;
-  border-top: 1px solid var(--border-faint);
-  color: var(--text-secondary);
-  font: var(--t-mono);
-  text-transform: uppercase;
 }
