@@ -168,6 +168,7 @@ pub(crate) enum RegistryWrite {
         settlement: ArchiveSettlement,
     },
     MemberChanged(WorkspaceResource),
+    MemberJoined(WorkspaceStartLease),
     Completed(Box<RegistryRecord>),
     Workspace {
         record: Box<RegistryRecord>,
@@ -283,4 +284,6 @@ pub struct RegistryResourceRun {
     pub lease: WorkspaceStartLease,
     /// Only Ready permits a joined old run to seek a new restart admission.
     pub readiness: RegistryResourceReadiness,
+    /// The exact admitted actor generation was joined by its supervisor.
+    pub joined: bool,
 }

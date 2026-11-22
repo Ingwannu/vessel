@@ -342,7 +342,9 @@ A client offers the editor when the exact peer negotiates that version.
   membership before launching through the normal session service. See ADR 0082.
 - **Settlement.** Binding retention is independent of schedule deletion and
   bounded history. The node recovers by exact receipts before the scheduler
-  starts. It never issues another prompt or checkout for an unconfirmed effect.
+  starts. A new runtime's empty actor table does not establish that a
+  previous process exited. A missing join receipt keeps its reservation and
+  run binding for reconciliation. It never replays a prompt or checkout.
   Archive follows that run's captured policy. Keep allows a later isolated run
   after the first turn finishes, even when the prior session remains live.
   Existing definitions carry their prior placement and Keep behavior.

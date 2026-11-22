@@ -28,6 +28,10 @@ impl WorkspaceActors for Actors {
         resource == self.foreign && self.foreign_live.load(Ordering::SeqCst)
     }
 
+    async fn joined(&self, resource: WorkspaceResource) -> Result<bool, WorkspaceError> {
+        Ok(!self.live(resource))
+    }
+
     fn occupied_folders(&self) -> Vec<(Occupant, PathBuf)> {
         Vec::new()
     }

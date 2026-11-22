@@ -23,6 +23,8 @@ pub enum RunBindingStage {
     RetiringUnpublished,
     /// The caller released its pin after proving the backing was removed.
     RetiringArchive,
+    /// Restart cannot yet prove the old process lifetime has ended.
+    Unconfirmed,
 }
 
 impl RunBindingStage {
@@ -34,6 +36,7 @@ impl RunBindingStage {
             Self::DeferredMembers => "deferred_members",
             Self::RetiringUnpublished => "retiring_unpublished",
             Self::RetiringArchive => "retiring_archive",
+            Self::Unconfirmed => "unconfirmed",
         }
     }
 
@@ -43,7 +46,7 @@ impl RunBindingStage {
         match self {
             Self::RetiringUnpublished => Some(crate::ProvisionRetirement::Unpublished),
             Self::RetiringArchive => Some(crate::ProvisionRetirement::CleanArchive),
-            Self::Bound | Self::Started | Self::DeferredBusy | Self::DeferredMembers => None,
+            Self::Bound | Self::Started | Self::DeferredBusy | Self::DeferredMembers | Self::Unconfirmed => None,
         }
     }
 
@@ -55,6 +58,7 @@ impl RunBindingStage {
             "deferred_members" => Ok(Self::DeferredMembers),
             "retiring_unpublished" => Ok(Self::RetiringUnpublished),
             "retiring_archive" => Ok(Self::RetiringArchive),
+            "unconfirmed" => Ok(Self::Unconfirmed),
             _ => Err(StoreError::RegistryConflict),
         }
     }

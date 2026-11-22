@@ -40,6 +40,8 @@ fn restarting_a_ready_terminal_requires_a_new_fenced_lease_and_keeps_its_owner()
     };
     put(&mut db, record, None).unwrap();
     let first = registered(&mut db, id, resource);
+    apply(&mut db, &RegistryWrite::MemberJoined(first.clone())).unwrap();
+    assert!(resource_run(&db, resource).unwrap().unwrap().joined);
     let expected = workspace(&db, id).unwrap().unwrap().descriptor.revision;
     let before = load(&db).unwrap();
     assert!(matches!(
@@ -67,6 +69,9 @@ fn restarting_a_ready_terminal_requires_a_new_fenced_lease_and_keeps_its_owner()
     assert_eq!(current.lease.workspace(), id);
     assert_eq!(current.lease.revision(), expected.next().unwrap());
     assert_eq!(current.readiness, RegistryResourceReadiness::Pending);
+    assert!(!current.joined);
+    apply(&mut db, &RegistryWrite::MemberJoined(first.clone())).unwrap();
+    assert!(!resource_run(&db, resource).unwrap().unwrap().joined);
     let expected = workspace(&db, id).unwrap().unwrap().descriptor.revision;
     for mutation in [
         RegistryWrite::Settle {

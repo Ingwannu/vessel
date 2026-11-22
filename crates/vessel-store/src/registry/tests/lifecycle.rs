@@ -115,7 +115,7 @@ fn three_hundred_archives_release_capacity_and_prune_receipts_with_descriptors()
     );
     for step in 1..300 {
         let id = WorkspaceId::random();
-        publish(&mut db, record(id));
+        let _reservation = publish(&mut db, record(id));
         archive(&mut db, id);
         retire(&mut db, id, step).unwrap();
     }
@@ -140,12 +140,12 @@ fn a_kept_managed_backing_retains_its_slot_even_after_the_archive() {
     let project = item.descriptor.project;
     let backing = WorktreeId::random();
     item.descriptor.backing = WorkspaceBacking::Managed { worktree: backing };
-    db.execute(
+    let _written = db.execute(
         "INSERT INTO projects VALUES (?1,0,'{}')",
         [project.to_string()],
     )
     .unwrap();
-    db.execute(
+    let _written = db.execute(
         "INSERT INTO worktrees VALUES (?1,?2,0,'{}')",
         params![backing.to_string(), project.to_string()],
     )
@@ -183,7 +183,7 @@ fn a_kept_managed_backing_retains_its_slot_even_after_the_archive() {
         apply(&mut db, &next),
         Err(StoreError::RegistryFull)
     ));
-    db.execute("DELETE FROM worktrees WHERE id=?1", [backing.to_string()])
+    let _written = db.execute("DELETE FROM worktrees WHERE id=?1", [backing.to_string()])
         .unwrap();
     retire(&mut db, id, 1).unwrap();
     assert_eq!(worktree_reference(&db, backing, None).unwrap(), None);
@@ -194,7 +194,7 @@ fn a_kept_managed_backing_retains_its_slot_even_after_the_archive() {
 fn metadata_cannot_settle_an_archive_and_a_deferred_token_cannot_reclaim() {
     let mut db = db();
     let id = WorkspaceId::random();
-    publish(&mut db, record(id));
+    let _reservation = publish(&mut db, record(id));
     let automatic = claim(&mut db, id, WorkspaceArchivePurpose::Automatic);
     let mut item = workspace(&db, id).unwrap().unwrap();
     let expected = item.descriptor.revision;
@@ -250,12 +250,12 @@ fn metadata_cannot_settle_an_archive_and_a_deferred_token_cannot_reclaim() {
 
 fn making(db: &Connection, workspace: WorkspaceId) -> ScheduleRunBinding {
     let schedule = ScheduleId::random();
-    db.execute(
+    let _written = db.execute(
         "INSERT INTO schedules VALUES (?1,0,'{}')",
         [schedule.to_string()],
     )
     .unwrap();
-    db.execute(
+    let _written = db.execute(
         "INSERT INTO schedule_runs VALUES (?1,1,'{\"outcome\":{\"outcome\":\"making\"}}')",
         [schedule.to_string()],
     )
@@ -291,7 +291,7 @@ fn unresolved_run_pins_are_bounded_and_survive_history_deletion() {
         crate::automation::binding::find(&db, first.schedule, first.run).unwrap(),
         Some(first)
     );
-    publish(&mut db, record(id));
+    let _reservation = publish(&mut db, record(id));
     archive(&mut db, id);
     assert!(matches!(
         retire(&mut db, id, 0),
@@ -323,7 +323,7 @@ fn a_provisioned_local_fences_project_removal_until_its_pending_start_is_settled
     let item = record(WorkspaceId::random());
     let id = item.descriptor.id;
     let project = item.descriptor.project;
-    db.execute(
+    let _written = db.execute(
         "INSERT INTO projects VALUES (?1,0,'{}')",
         [project.to_string()],
     )
@@ -332,7 +332,7 @@ fn a_provisioned_local_fences_project_removal_until_its_pending_start_is_settled
         project,
         path: item.descriptor.path.clone(),
     };
-    publish(&mut db, item);
+    let _reservation = publish(&mut db, item);
     assert_eq!(project_reference(&db, project).unwrap(), Some(id));
     let legacy_id = WorkspaceId::random();
     let legacy = Register {
@@ -384,7 +384,7 @@ fn a_provisioned_local_fences_project_removal_until_its_pending_start_is_settled
     archive(&mut db, id);
     retire(&mut db, id, 1).unwrap();
     assert_eq!(project_reference(&db, project).unwrap(), None);
-    crate::workspace::apply(&db, &removal).unwrap();
+    let _changed = crate::workspace::apply(&db, &removal).unwrap();
     assert!(matches!(
         workspace(&db, legacy_id)
             .unwrap()

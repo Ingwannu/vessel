@@ -81,6 +81,11 @@ pub(crate) fn apply(
         RegistryWrite::SettleArchive { claim, settlement } => {
             super::archive::settle(connection, *claim, *settlement)?;
         }
+        RegistryWrite::MemberJoined(lease) => {
+            if !super::leases::joined(connection, lease)? {
+                return Ok(RegistryChange::Unchanged);
+            }
+        }
         RegistryWrite::MemberChanged(resource) => {
             if read::resource_owner(connection, *resource)?.is_none() {
                 return Ok(RegistryChange::Unchanged);

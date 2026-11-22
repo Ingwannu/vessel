@@ -15,6 +15,7 @@ INSERT INTO workspace_registry_reservations (id,intent,worktree,stage)
     SELECT id,intent,worktree,stage FROM workspace_reservations_previous;
 DROP TABLE workspace_reservations_previous;
 CREATE INDEX workspace_reservation_backing ON workspace_registry_reservations(worktree);
+ALTER TABLE workspace_registry_resources ADD COLUMN joined INTEGER NOT NULL DEFAULT 0 CHECK (joined IN (0,1));
 CREATE TABLE workspace_archive_claims (
     workspace TEXT NOT NULL PRIMARY KEY REFERENCES workspace_registry(id) ON DELETE CASCADE,
     token TEXT NOT NULL,
@@ -28,7 +29,7 @@ CREATE TABLE schedule_run_bindings (
     workspace TEXT NOT NULL UNIQUE,
     session TEXT NOT NULL UNIQUE,
     after TEXT NOT NULL CHECK (after IN ('archive','keep')),
-    stage TEXT NOT NULL CHECK (stage IN ('bound','started','deferred_busy','deferred_members','retiring_unpublished','retiring_archive')),
+    stage TEXT NOT NULL CHECK (stage IN ('bound','started','deferred_busy','deferred_members','retiring_unpublished','retiring_archive','unconfirmed')),
     PRIMARY KEY (schedule,number)
 ) STRICT, WITHOUT ROWID;
 ";
@@ -50,7 +51,7 @@ mod tests {
             .pragma_update(None, "user_version", version)
             .unwrap();
         for stage in ["reserved", "creating", "ready", "uncertain"] {
-            connection
+            let _copied = connection
                 .execute(
                     "INSERT INTO workspace_registry_reservations VALUES (?1,'intent','backing',?1)",
                     [stage],

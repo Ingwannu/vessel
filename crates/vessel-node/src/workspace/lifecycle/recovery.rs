@@ -9,7 +9,7 @@ use vessel_proto::registry::{
     RegistryRevision, WorkspaceBacking, WorkspaceDescriptor, WorkspaceLifecycle, WorkspacePin,
 };
 use vessel_store::{
-    RegistryRecord, RegistryReservation, RegistryStartState, ReservationStage, StoreError,
+    RegistryRecord, RegistryReservation, RegistryResourceReadiness, RegistryStartState, ReservationStage, StoreError,
     WorkspaceArchivePurpose,
 };
 
@@ -165,14 +165,25 @@ impl Workspaces {
 }
 
 impl Workspaces {
-    /// The process supervisor has joined the old node lifetime. Reconcile
-    /// admitted actor identities from that lifetime before any archive can
-    /// start draining. Neither branch starts or resends work.
+    /// A new runtime's empty actor table cannot prove that a previous
+    /// process group exited. Require an exact join receipt before removing
+    /// backing. Unconfirmed work retains its lease and workspace slot.
     pub(crate) async fn reconcile_workspace_starts(
         &self,
         workspace: WorkspaceId,
         actors: &impl WorkspaceActors,
     ) -> Result<(), WorkspaceError> {
+        for member in self.store.registry_members(workspace).await? {
+            let run = self.store.registry_resource_run(member.resource).await?;
+            if !actors.live(member.resource)
+                && !run.is_some_and(|run| run.joined || run.readiness == RegistryResourceReadiness::Failed)
+                && !actors.joined(member.resource).await?
+            {
+                return Err(WorkspaceError::Conflict(
+                    "a previous workspace actor's stop is unconfirmed".to_owned(),
+                ));
+            }
+        }
         for start in self.store.pending_registry_starts(workspace).await? {
             if start.state == RegistryStartState::Uncertain {
                 if actors.live(start.lease.resource()) {

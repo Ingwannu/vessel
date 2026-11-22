@@ -401,7 +401,7 @@ fn archive_cannot_finish_before_a_pre_admitted_actor_start_settles() {
     let resource = WorkspaceResource::Session {
         session: SessionId::random(),
     };
-    lifecycle::publish(&mut db, record);
+    let _reservation = lifecycle::publish(&mut db, record);
     apply(
         &mut db,
         &RegistryWrite::Claim {

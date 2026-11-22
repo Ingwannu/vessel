@@ -23,6 +23,12 @@ use crate::workspace::{Occupant, WorkspaceError, Workspaces};
 pub(crate) trait WorkspaceActors: Send + Sync {
     fn live(&self, resource: WorkspaceResource) -> bool;
 
+    /// Recoverable proof that a previously admitted process really joined.
+    fn joined(
+        &self,
+        resource: WorkspaceResource,
+    ) -> impl Future<Output = Result<bool, WorkspaceError>> + Send;
+
     fn occupied_folders(&self) -> Vec<(Occupant, PathBuf)>;
 
     fn stop_idle(

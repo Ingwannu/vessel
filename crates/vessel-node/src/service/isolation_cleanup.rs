@@ -181,6 +181,25 @@ impl WorkspaceActors for NodeService {
         }
     }
 
+    async fn joined(&self, resource: WorkspaceResource) -> Result<bool, WorkspaceError> {
+        match resource {
+            WorkspaceResource::Session { session } => Ok(self
+                .sessions
+                .store()
+                .session(session)
+                .await?
+                .is_some_and(|info| matches!(
+                    info.status,
+                    vessel_proto::SessionStatus::Exited { .. } | vessel_proto::SessionStatus::Failed { .. }
+                ))),
+            // An empty runtime alone does not prove its old terminal stopped.
+            WorkspaceResource::Terminal { terminal } => Ok(self
+                .terminals
+                .get(terminal)
+                .is_ok_and(|entry| !entry.handle.info().is_live())),
+        }
+    }
+
     fn occupied_folders(&self) -> Vec<(Occupant, PathBuf)> {
         let mut occupied = self.sessions.live_folders();
         occupied.extend(self.terminals.live_folders());

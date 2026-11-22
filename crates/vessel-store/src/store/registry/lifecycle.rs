@@ -100,6 +100,16 @@ impl Store {
         .await
     }
 
+    /// Retain a supervisor's actual join receipt across node restarts.
+    /// # Errors
+    /// The writer could not record it.
+    pub async fn registry_member_joined(
+        &self,
+        lease: crate::WorkspaceStartLease,
+    ) -> Result<(), StoreError> {
+        self.registry_write(RegistryWrite::MemberJoined(lease)).await
+    }
+
     /// Notify the registry watcher after an exact actor's runtime state changed.
     /// # Errors
     /// The registry writer failed to publish the notification.

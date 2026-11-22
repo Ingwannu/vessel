@@ -51,8 +51,8 @@ pub(crate) fn current(
     resource: vessel_proto::registry::WorkspaceResource,
 ) -> Result<Option<RegistryResourceRun>, StoreError> {
     let (kind, id) = super::resource_key(resource);
-    let row:Option<(String,i64,String)>=connection.query_row("SELECT workspace,lease_revision,stage FROM workspace_registry_resources WHERE kind=?1 AND resource=?2",params![kind,id],|row|Ok((row.get(0)?,row.get(1)?,row.get(2)?))).optional()?;
-    row.map(|(owner, revision, stage)| {
+    let row:Option<(String,i64,String,bool)>=connection.query_row("SELECT workspace,lease_revision,stage,joined FROM workspace_registry_resources WHERE kind=?1 AND resource=?2",params![kind,id],|row|Ok((row.get(0)?,row.get(1)?,row.get(2)?,row.get(3)?))).optional()?;
+    row.map(|(owner, revision, stage, joined)| {
         let owner = decode(&serde_json::to_string(&owner).map_err(StoreError::Encode)?)?;
         let revision = RegistryRevision::from(
             u64::try_from(revision).map_err(StoreError::RegistryRevisionRange)?,
@@ -67,6 +67,7 @@ pub(crate) fn current(
         Ok(RegistryResourceRun {
             lease: WorkspaceStartLease::new(owner, resource, revision),
             readiness,
+            joined,
         })
     })
     .transpose()

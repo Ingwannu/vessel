@@ -5,7 +5,8 @@ use std::future::Future;
 use std::pin::Pin;
 
 use futures_util::stream::{FuturesUnordered, StreamExt as _};
-use vessel_proto::registry::WorkspaceResource;
+use vessel_proto::automation::AfterRun;
+use vessel_proto::registry::{WorkspaceLifecycle, WorkspaceResource};
 use vessel_proto::{AgentEvent, SessionEvent, SessionStatus};
 use vessel_store::{RunBindingStage, ScheduleRunBinding};
 
@@ -30,6 +31,11 @@ impl NodeService {
         for binding in bindings {
             if let Err(error) = self.recover_schedule_workspace(binding).await {
                 tracing::warn!(workspace = %binding.workspace, %error, "isolated run recovery still owes work");
+                if binding.stage.retirement().is_none() && binding.stage != RunBindingStage::Unconfirmed
+                    && let Err(record) = store.advance_schedule_run_binding(binding, RunBindingStage::Unconfirmed).await
+                {
+                    tracing::warn!(workspace = %binding.workspace, %record, "cannot retain an unconfirmed isolation receipt");
+                }
             }
         }
         self.workspaces.retire_reconciled_archives().await;
@@ -51,9 +57,15 @@ impl NodeService {
                 .await;
         }
         let store = self.sessions.store();
-        self.workspaces
-            .reconcile_workspace_starts(binding.workspace, self)
-            .await?;
+        if !(binding.stage == RunBindingStage::Started && binding.after == AfterRun::Keep)
+            && store.registry_workspace(binding.workspace).await?.is_some_and(|record| {
+                !matches!(record.descriptor.lifecycle, WorkspaceLifecycle::Archived { .. })
+            })
+        {
+            self.workspaces
+                .reconcile_workspace_starts(binding.workspace, self)
+                .await?;
+        }
         let result = self.dispose_isolation(binding).await?;
         if let Some(archive) = result.disposition()
             && let Some(mut run) = store
@@ -113,7 +125,8 @@ impl NodeService {
                     RunBindingStage::Bound
                     | RunBindingStage::Started
                     | RunBindingStage::RetiringArchive
-                    | RunBindingStage::RetiringUnpublished => false,
+                    | RunBindingStage::RetiringUnpublished
+                    | RunBindingStage::Unconfirmed => false,
                 };
                 if ready && let Err(error) = self.cleanup_isolation(binding).await {
                     tracing::warn!(workspace = %binding.workspace, %error, "deferred workspace archive remains unsettled");
