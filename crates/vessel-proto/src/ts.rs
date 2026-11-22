@@ -453,6 +453,21 @@ pub const PROTOCOLS: &[(&str, Option<crate::ProtocolVersion>, &str)] = &[
         crate::prompt_context::PROMPT_CONTEXT_PROTOCOL,
         "A prompt's `context` and `review` blocks (ADR 0124).",
     ),
+    (
+        "VESSEL_TOOLS_PROTOCOL",
+        crate::mcp::VESSEL_TOOLS_PROTOCOL,
+        "The host switch for injecting Vessel tools on future launches (F-L21).",
+    ),
+    (
+        "APPEND_SYSTEM_PROMPT_PROTOCOL",
+        crate::settings::APPEND_SYSTEM_PROMPT_PROTOCOL,
+        "The host supplement and its private Admin read (F-L23).",
+    ),
+    (
+        "RESTART_RECOVERY_PROTOCOL",
+        crate::restart::RESTART_RECOVERY_PROTOCOL,
+        "The explicit startup recovery settings read and patch (ADR 0059).",
+    ),
 ];
 
 /// The constants of [`PROTOCOLS`], as the end of the declarations file.

@@ -68,16 +68,37 @@ no runtime to compile. The package that serves the method changes `staged`
 to `pending` in the commit that adds its handler; from then on the guard
 requires the handler, as for every assigned or pending row.
 
-## Pending host system prompt supplement (M12 F-L23)
+## Version 49 (2026-11-22, milestone 12). Agents settings (F-L21, F-L23 and F-L24)
 
-`APPEND_SYSTEM_PROMPT_PROTOCOL` is assigned at integration. The Admin
-`node.append_system_prompt {}` method reads the saved text on a direct
-owner or device link. The Admin
-`node.set_settings { append_system_prompt? }` patch keeps bounded text
-verbatim, with blank clearing the effective supplement and omission
-preserving it. `node.settings` and patch replies carry the supported
-native transport names through `append_system_prompt_transports`.
-The pending and older-peer projections hide that field.
+`VESSEL_TOOLS_PROTOCOL`, `APPEND_SYSTEM_PROMPT_PROTOCOL` and
+`RESTART_RECOVERY_PROTOCOL` share one version. The page's existing
+Agents cards read and save against the owning node. The restart policy
+also has a CLI consumer (ADR 0059).
+
+One assignment makes the three controls available on the same negotiated
+connection. Each control keeps its named threshold and the existing
+settings writer, so the activation needs no additional settings path.
+
+- `vessel_tools` appears in ordinary Read settings and Admin patch replies.
+  An explicit false is a supported value. The Admin patch updates future
+  internal tool injection independently of fleet MCP servers. A fresh
+  event store records Off, and an upgraded store with no choice keeps On.
+- `node.append_system_prompt` is an Admin read on the owning node.
+  Ordinary settings and patch replies report supported transports through
+  `append_system_prompt_transports`. The Admin patch retains bounded raw
+  text and a blank value clears the supplement. The Codex app-server driver
+  omits a blank supplement on thread start and resume.
+- `node.settings {include_restart_recovery: true}` explicitly requests
+  Read access to the restart policy. The Admin patch names either
+  `restart_recovery.enabled` or `restart_recovery.prompt` and preserves
+  an omitted member. The default is Off with the prompt `Resume working.`.
+  A successful explicit read allows clients to use that default when the
+  reply omits the policy.
+
+The existing method table gates each explicit read or named write at
+every hop and keeps the settings host-local. Older peers receive the
+ordinary settings projection with the three later fields omitted.
+Native settings controls follow separately.
 
 ## Version 48 (2026-11-21, milestone 12): heartbeat cadence edits (TRACKER 839, ADR 0033)
 
@@ -1121,18 +1142,6 @@ Two methods, one optional field, two records; types in
   `invalid_request`). Neither is forwardable. A change is kept across
   restarts (`settings.json`) and wins over `--park-after`; it applies to
   live sessions at once. A node older than 12 answers `unsupported`.
-
-### Pending startup recovery settings (ADR 0059)
-
-`RESTART_RECOVERY_PROTOCOL` gates the explicit Read request
-`node.settings {include_restart_recovery: true}` and the Admin patch
-`node.set_settings {restart_recovery: {enabled?, prompt?}}` at every hop.
-The methods retain their host-local scope rules. Each patch member preserves
-the saved value when omitted. The default is disabled with `Resume working.`.
-The `PromptText` byte bound and character validation also apply while off.
-An older reply omits the recovery field. Clients use an explicit read to
-confirm support before showing a default Off. Integration assigns the named
-protocol when its receiving clients are ready.
 
 ## Version 11 (2026-11-12, milestone 11, wave 2)
 
@@ -2499,12 +2508,3 @@ the complete project approval display gate. The detailed DTO/cursor/bounds,
 permission and activation prerequisites are in
 `plans/workspace-services-api.md`. No runtime handler, private consent schema,
 service listener or browser capability is enabled by the staged rows.
-
-### Pending host Vessel tools toggle
-
-`VESSEL_TOOLS_PROTOCOL` adds the optional boolean `vessel_tools` to the
-ordinary `node.settings` and `node.set_settings` replies. Omission signals
-an older peer. An explicit false is part of the supported reply.
-`node.set_settings { vessel_tools? }` keeps the value on the selected
-node with Admin scope. A named edit requires the feature version on each
-hop, so an older node cannot acknowledge a discarded write.

@@ -10,9 +10,9 @@ recovery contract, not a statement that those runtime paths exist in R1.
 No implementation approval is implied by acceptance of the contract.
 
 The F-L24 [port](../plans/restart-recovery-port.md) integrates the node
-runtime, Store, CLI and page on the current node line. The named protocol
-stays pending until integration has the receiving clients. References to
-R1 below describe that initial slice.
+runtime, Store, CLI and page on the current node line. The combined
+Agents activation exposes the CLI and page together. Native controls follow
+separately. References to R1 below describe that initial slice.
 
 ## Reference and existing parts
 
@@ -78,13 +78,13 @@ absent reply field decodes as disabled/default prompt for compatibility,
 but is not evidence that an older node supports the setting: the client/CLI
 reports unsupported when the explicit read is unavailable. Parking/driver
 reads and changes keep their existing minimum versions. Regenerate TypeScript.
-`RESTART_RECOVERY_PROTOCOL` is one named `Option<ProtocolVersion>` and remains
-`None`. Both Get and Set reply projections suppress the field while unassigned,
-including inside Forward/Relay/Deliver envelopes. R1 adds no request flag or
-patch field and changes no call requirement. Wiring must consume the shared
-`required_protocol`/`UnassignedProtocol` boundary and single method table;
-there is no local fallback assignment or sentinel. Integration alone assigns
-a version after the CLI and native/web host-settings consumers exist.
+`RESTART_RECOVERY_PROTOCOL` is one named `Option<ProtocolVersion>`.
+Both Get and Set reply projections suppress the field for peers below the
+assigned version and while unassigned, including inside Forward/Relay/Deliver
+envelopes. R1 adds no request flag or patch field and changes no call
+requirement. The wiring uses the shared `required_protocol` and single method
+table. Integration assigns the CLI and page slice with the other Agents
+settings. Native controls follow separately.
 The staged durable projection will need an appended migration with one named
 schema fact after the node head's existing migrations. R1 adds no migration.
 Existing rows must migrate inactive, with no invented interrupted turn.

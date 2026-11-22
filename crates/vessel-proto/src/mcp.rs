@@ -30,7 +30,7 @@ pub const TOOL_POLICY_VARIABLE: &str = "VESSEL_TOOL_POLICY";
 pub const MCP_PARITY: Option<crate::ProtocolVersion> = None;
 
 /// The host switch for injecting the internal stdio server on future launches.
-pub const VESSEL_TOOLS_PROTOCOL: Option<crate::ProtocolVersion> = None;
+pub const VESSEL_TOOLS_PROTOCOL: Option<crate::ProtocolVersion> = Some(crate::ProtocolVersion::new(49));
 
 /// A refused agent-tool configuration; errors never echo untrusted input.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
