@@ -249,8 +249,9 @@ impl Node {
 }
 
 /// Open the event log, closing sessions a previous run left live.
-async fn open_store(config: &Config) -> Result<Store, NodeError> {
-    let Opened { store, interrupted } = Store::open(&config.data_dir, config.store)
+async fn open_store(config: &Config, recovery_enabled: bool) -> Result<Store, NodeError> {
+    let Opened { store, interrupted } =
+        Store::open_with_restart_policy(&config.data_dir, config.store, recovery_enabled)
         .await
         .map_err(NodeError::Store)?;
     if !interrupted.is_empty() {
@@ -303,7 +304,7 @@ async fn core(
     let runtime = setup::runtime(config, loader, setup.private_dir.clone(), stop.clone());
     // A value saved with `node.set_settings` wins over `--park-after`
     // (protocol 12, `settings`).
-    let settings = Arc::new(Settings::for_config(config, Arc::clone(&runtime)));
+    let settings = Arc::new(Settings::from_opening(setup.settings, Arc::clone(&runtime)));
     // System zone detection may read OS configuration; keep startup I/O
     // off the async workers just as data-directory preparation is.
     let name = config.name.clone();

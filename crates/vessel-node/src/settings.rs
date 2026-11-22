@@ -54,7 +54,9 @@ use std::sync::atomic::AtomicBool;
 use tokio::sync::Mutex;
 use tokio_util::task::TaskTracker;
 
+mod opening;
 mod writer;
+pub(crate) use opening::Opening;
 #[cfg(test)]
 mod writer_tests;
 use vessel_proto::HarnessKind;
@@ -119,38 +121,19 @@ pub(crate) struct Settings {
 }
 
 impl Settings {
-    /// Keep the node startup adapter beside saved-value precedence, not in its
-    /// already large composition function. This reads only the passed config.
-    pub(crate) fn for_config(config: &crate::Config, runtime: Arc<SessionRuntime>) -> Self {
-        Self::open(
-            config.data_dir.clone(),
-            runtime,
-            ParkAfter::from_duration(config.park_after),
-            config.park_after_given,
-        )
-    }
-
-    /// Read `settings.json` and apply what it holds to `runtime`. A file
-    /// that cannot be used is moved aside and logged, and the flags'
-    /// values stand.
+    #[cfg(test)]
     pub(crate) fn open(
         data_dir: DataDir,
         runtime: Arc<SessionRuntime>,
         flag: ParkAfter,
         flag_given: bool,
     ) -> Self {
-        let (saved, kept, later) = match data_dir.read_settings() {
-            Ok(saved) => {
-                let saved = saved.unwrap_or_default();
-                // Unsure counts as more: a copy too many costs nothing.
-                let later = data_dir.settings_hold_more_than(&saved).unwrap_or(true);
-                (saved, None, later)
-            }
-            Err(error) => {
-                let kept = set_aside(&data_dir, &error);
-                (SetNodeSettings::default(), kept, false)
-            }
-        };
+        Self::from_opening(Opening::read(data_dir, flag, flag_given), runtime)
+    }
+
+    /// The same opening supplied the policy that Store used before retirement.
+    pub(crate) fn from_opening(opening: Opening, runtime: Arc<SessionRuntime>) -> Self {
+        let Opening { data_dir, saved, flag, flag_given, kept, later } = opening;
         let hooks = crate::agent_hooks::Applier::new(crate::agent_hooks::Targets::of(
             runtime.harness_env(),
         ));
@@ -196,6 +179,7 @@ impl Settings {
         // Off unless a person turned them on (ADR 0089, Paseo's default).
         let terminal_agent_hooks = saved.terminal_agent_hooks.unwrap_or(false);
         let saved_tools = Self::tools_for(saved);
+        let restart_recovery = opening::recovery_policy(saved);
         let saved = saved.drivers.unwrap_or_default();
         let driver = |kind, chosen: Option<AgentDriver>| match chosen {
             Some(AgentDriver::Direct) if offered(kind) => AgentDriver::Direct,
@@ -213,7 +197,7 @@ impl Settings {
         NodeSettings {
             park_after,
             drivers,
-            restart_recovery: vessel_proto::restart::RestartRecovery::default(),
+            restart_recovery,
             metadata: Some(metadata),
             plugins_enabled,
             terminal_agent_hooks,

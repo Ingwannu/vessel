@@ -1,7 +1,7 @@
 # Startup recovery on the node line
 
 F-L24 implements the settings controls and startup behavior from ADR 0059.
-The receiving node was `e0ff69e1b` at protocol 48. The coordinator selected
+The port starts from `1829d53dc` at protocol 48. The coordinator selected
 `backend/m12-recovery-hook` at `12d862346` for a selective port.
 
 ## Decision log
@@ -36,6 +36,7 @@ The receiving node was `e0ff69e1b` at protocol 48. The coordinator selected
 | Commit | Selected source |
 | --- | --- |
 | `db372b34a1897639b217cfdd3fce2f25395a3db9` | Recovery checkpoint types, explicit Get/Set field boundary and durable Store projection. The port keeps the current method table, writer receipts and migration order. |
+| `baf7ee09a` | The locked startup reads one validated settings snapshot. Store bootstrap and the live settings owner use the same value and preservation decision. The port reuses the current file decoder and writer with their additional settings fields. |
 
 The consumer checklist is `8003b14e1f9fc26f228390ee071b15eb5b47a2fd`.
 The producer reference is `385fc1ee5`, and the exact-run Kill reference
