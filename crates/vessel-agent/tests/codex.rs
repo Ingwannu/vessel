@@ -18,6 +18,59 @@ use support::{
     asked, command, events, mode, question, ready, said, setup, spawn, text, turn, until, within,
 };
 
+#[tokio::test]
+async fn the_native_thread_receives_the_trimmed_supplement_and_omits_a_blank_prompt() {
+    within(async {
+        for (resume, saved, expected) in [
+            (None, " \n Fixture instruction. \n", "Fixture instruction."),
+            (None, " \n", ""),
+            (
+                Some("fixture-original"),
+                " New instruction. ",
+                "New instruction.",
+            ),
+            (Some("fixture-original"), " \n", ""),
+        ] {
+            let command = command().env("FAKE_CODEX_EXPECT_DEVELOPER_INSTRUCTIONS", expected);
+            let (_agent, _input, mut outputs) =
+                vessel_agent::AgentProcess::spawn_with_append_prompt(
+                    Driver::CodexAppServer,
+                    &command,
+                    setup(resume),
+                    Some(saved.parse().unwrap()),
+                )
+                .unwrap();
+            let _outputs = ready(&mut outputs).await;
+        }
+    })
+    .await;
+}
+
+#[tokio::test]
+async fn a_native_thread_refusal_cannot_echo_the_supplement() {
+    within(async {
+        let marker = "synthetic-private-supplement";
+        let command = command().env("FAKE_CODEX_REJECT_DEVELOPER_INSTRUCTIONS", "1");
+        let (_agent, _input, mut outputs) = vessel_agent::AgentProcess::spawn_with_append_prompt(
+            Driver::CodexAppServer,
+            &command,
+            setup(None),
+            Some(marker.parse().unwrap()),
+        )
+        .unwrap();
+        let outputs = until(&mut outputs, |output| {
+            matches!(output, AgentOutput::Disconnected(_))
+        })
+        .await;
+        assert!(!format!("{outputs:?}").contains(marker));
+        assert!(matches!(
+            outputs.last(),
+            Some(AgentOutput::Disconnected(Disconnect::Handshake { .. }))
+        ));
+    })
+    .await;
+}
+
 #[cfg(test)]
 mod support {
     use std::future::Future;

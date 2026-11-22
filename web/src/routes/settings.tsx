@@ -16,6 +16,7 @@ import { DiagnosticsSection } from "../features/diagnostics/diagnostics-section"
 import { AppearanceSection } from "../features/settings/appearance";
 import { DevicesSection } from "../features/settings/devices-section";
 import {
+  EditorSection,
   FilesSection,
   TerminalSection,
 } from "../features/settings/client-workspace";
@@ -63,6 +64,8 @@ export function SettingsPage(): ReactElement | null {
       return <NotificationsSection />;
     case "terminal":
       return <TerminalSection />;
+    case "editor":
+      return <EditorSection />;
     case "files":
       return <FilesSection />;
     case "agents":

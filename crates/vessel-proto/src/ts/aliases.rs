@@ -143,6 +143,7 @@ pub const ALIASES: &[(&str, Alias)] = &[
     ("AgentName", Alias::Named),
     ("AgentProgram", Alias::Named),
     ("AgentVersion", Alias::Named),
+    ("AppendSystemPrompt", Alias::Content),
     ("AttachmentId", Alias::Handle),
     ("AttachmentName", Alias::Named),
     ("AuthMethodId", Alias::Handle),

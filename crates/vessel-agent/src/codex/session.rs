@@ -35,6 +35,8 @@
 //! - Other threads' notifications (Codex's sub-agents run threads of their
 //!   own) are not this session's and are ignored here.
 
+mod thread;
+
 use std::collections::{HashMap, HashSet};
 
 use serde_json::Value;
@@ -42,8 +44,8 @@ use tokio::process::{ChildStdin, ChildStdout};
 use tokio::sync::mpsc;
 use vessel_proto::agents::AgentVersion;
 use vessel_proto::{
-    AgentAbilities, AgentEvent, ContentBlock, ContextUsage, HarnessSessionId, PermissionOutcome,
-    QuestionOutcome, ToolCallUpdate, ToolKind,
+    AgentEvent, ContentBlock, ContextUsage, PermissionOutcome, QuestionOutcome, ToolCallUpdate,
+    ToolKind,
 };
 
 use super::asks::{self, Approvals, Asking, Questions, Settled};
@@ -51,16 +53,14 @@ use super::mapper;
 use super::mode::Mode;
 use super::protocol::{
     ClientInfo, CommandApproval, DeltaNotification, ErrorNotification, FileChangeApproval,
-    InitializeCapabilities, InitializeParams, InitializeResponse, ItemNotification,
-    PermissionsApproval, PlanNotification, RequestResolved, ThreadOpened, ThreadResumeParams,
-    ThreadStartParams, TokenUsageBreakdown, TurnInterruptParams, TurnNotification, TurnStartParams,
-    TurnStartResponse, TurnSteerParams, UsageNotification, UserInputRequest,
+    InitializeCapabilities, InitializeParams, ItemNotification, PermissionsApproval,
+    PlanNotification, RequestResolved, TokenUsageBreakdown, TurnInterruptParams, TurnNotification,
+    TurnStartParams, TurnStartResponse, TurnSteerParams, UsageNotification, UserInputRequest,
 };
 use super::wire::{self, Ended, Incoming, Outgoing, RpcError};
 use crate::error::{Disconnect, InputError};
-use crate::handshake::{AgentSetup, ForkRefusal};
+use crate::handshake::AgentSetup;
 use crate::input::{Command, Reply, SteerOutcome, SteerReply};
-use crate::introduction::Introduction;
 use crate::output::AgentOutput;
 
 /// Lines read ahead of the loop.
@@ -113,10 +113,11 @@ pub(super) async fn run(
     commands: mpsc::Receiver<Command>,
     outputs: mpsc::Sender<AgentOutput>,
     setup: AgentSetup,
+    launched: super::Launched,
 ) {
     let (lines, incoming) = mpsc::channel(INBOUND);
     drop(tokio::spawn(wire::read(stdout, lines)));
-    let mut session = Session::new(Outgoing::start(stdin), outputs, setup);
+    let mut session = Session::new(Outgoing::start(stdin), outputs, setup, launched);
     let disconnect = session.drive(incoming, commands).await;
     session.close(disconnect).await;
 }
@@ -125,6 +126,7 @@ struct Session {
     out: Outgoing,
     outputs: mpsc::Sender<AgentOutput>,
     setup: AgentSetup,
+    launched: super::Launched,
     /// The next request id.
     next: u64,
     pending: HashMap<u64, Pending>,
@@ -152,11 +154,17 @@ struct Session {
 }
 
 impl Session {
-    fn new(out: Outgoing, outputs: mpsc::Sender<AgentOutput>, setup: AgentSetup) -> Self {
+    fn new(
+        out: Outgoing,
+        outputs: mpsc::Sender<AgentOutput>,
+        setup: AgentSetup,
+        launched: super::Launched,
+    ) -> Self {
         Self {
             out,
             outputs,
             setup,
+            launched,
             next: 0,
             pending: HashMap::new(),
             thread: None,
@@ -307,108 +315,6 @@ impl Session {
                 };
                 let _gone = reply.send(outcome);
             }
-        }
-        None
-    }
-
-    /// `initialize` answered: say who the agent is, then open the thread.
-    async fn initialized(&mut self, answer: Result<Value, RpcError>) -> Option<Disconnect> {
-        let response: InitializeResponse = match answer.map(serde_json::from_value) {
-            Ok(Ok(response)) => response,
-            Ok(Err(error)) => return Some(handshake_failed(format!("initialize: {error}"))),
-            Err(error) => return Some(handshake_failed(format!("initialize: {}", error.message))),
-        };
-        let introduction = Introduction {
-            version: response.user_agent.as_deref().and_then(version_of),
-            methods: Vec::new(),
-        };
-        self.output(AgentOutput::Introduced(Box::new(introduction)))
-            .await;
-        if !self.out.notify("initialized", &serde_json::json!({})).await {
-            return Some(Disconnect::Closed);
-        }
-        // The mode is the one option until the options slice: another
-        // choice fails the handshake, as an ACP agent's unknown option
-        // does, rather than run without it unannounced.
-        for choice in &self.setup.options {
-            match Mode::chosen(choice) {
-                Ok(mode) => self.mode = mode,
-                Err(error) => return Some(handshake_failed(error.to_string())),
-            }
-        }
-        if self.setup.fork.is_some() {
-            // Forking a thread is the history slice's (`thread/fork`).
-            return Some(Disconnect::Handshake {
-                message: "this driver does not fork Codex threads yet".to_owned(),
-                refused: None,
-                fork_refused: Some(ForkRefusal::CannotFork),
-            });
-        }
-        let cwd = self.setup.cwd.display().to_string();
-        let model = self.setup.model.as_ref().map(ToString::to_string);
-        let sent = if let Some(thread) = &self.setup.resume {
-            let params = ThreadResumeParams {
-                thread_id: thread.to_string(),
-                cwd,
-                model,
-                approval_policy: self.mode.approval(),
-                approvals_reviewer: self.mode.reviewer(),
-                sandbox: self.mode.sandbox(),
-                exclude_turns: true,
-            };
-            self.request("thread/resume", &params, Pending::Thread)
-                .await
-        } else {
-            let params = ThreadStartParams {
-                cwd,
-                model,
-                approval_policy: self.mode.approval(),
-                approvals_reviewer: self.mode.reviewer(),
-                sandbox: self.mode.sandbox(),
-            };
-            self.request("thread/start", &params, Pending::Thread).await
-        };
-        (!sent).then_some(Disconnect::Closed)
-    }
-
-    /// The thread is open: the session is ready.
-    async fn opened(&mut self, answer: Result<Value, RpcError>) -> Option<Disconnect> {
-        let opened: ThreadOpened = match answer.map(serde_json::from_value) {
-            Ok(Ok(opened)) => opened,
-            Ok(Err(error)) => return Some(handshake_failed(format!("the thread: {error}"))),
-            Err(error) => return Some(handshake_failed(error.message)),
-        };
-        let abilities = AgentAbilities {
-            steer: true,
-            resume: true,
-            image: false,
-            audio: false,
-            fork: false,
-        };
-        self.thread = Some(opened.thread.id.clone());
-        // The mode alone until slice 3 (`model/list`).
-        self.output(AgentOutput::Options(vec![self.mode.option()]))
-            .await;
-        self.emit(AgentEvent::Ready {
-            harness_session: HarnessSessionId::new(opened.thread.id),
-            abilities: Some(abilities),
-        })
-        .await;
-        // Nor tool servers (the thread's `config`, slice 3): said, so a
-        // session never lacks them unannounced.
-        if !self.setup.mcp_servers.is_empty() {
-            let names: Vec<String> = self
-                .setup
-                .mcp_servers
-                .keys()
-                .map(ToString::to_string)
-                .collect();
-            let line = format!(
-                "vessel: Codex's own protocol does not pass tool servers yet; this session runs \
-                 without {}",
-                names.join(", ")
-            );
-            self.emit(AgentEvent::HarnessLog { line }).await;
         }
         None
     }
@@ -1065,7 +971,7 @@ mod tests {
             system_prompt: None,
             private_dir: None,
         };
-        let mut session = Session::new(out, outputs, setup);
+        let mut session = Session::new(out, outputs, setup, crate::codex::Launched::default());
         session.thread = Some("thread".to_owned());
         session.turn = TurnState::Running {
             id: "turn".to_owned(),

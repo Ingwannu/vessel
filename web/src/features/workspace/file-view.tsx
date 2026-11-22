@@ -31,7 +31,8 @@ import {
   ReloadDialog,
 } from "./file-change-alert";
 import { FileConflict } from "./file-conflict";
-import { FileEditor } from "./file-editor";
+import type { FileCursor } from "./file-editor";
+import { LazyFileEditor } from "./file-editor-entry";
 import { FileHead, useSide } from "./file-head";
 import { FileImage } from "./file-image";
 import { FileLines } from "./file-lines";
@@ -72,6 +73,8 @@ export function FileView({
   // read after it.
   const [base, setBase] = useState<FileVersion | null>(null);
   const [saving, setSaving] = useState(false);
+  const [cursor, setCursor] = useState<FileCursor | null>(null);
+  const [vimMode, setVimMode] = useState<string | null>(null);
   const [saved, setSaved] = useState<Saved | null>(null);
   const [confirmReload, setConfirmReload] = useState(false);
   const language = languageOf(path);
@@ -159,6 +162,8 @@ export function FileView({
     void file.whole().then((whole) => {
       if (whole !== null) {
         setSaved(null);
+        setCursor(null);
+        setVimMode(null);
         setBase(whole.version);
         setDraft(whole.text);
       }
@@ -172,6 +177,8 @@ export function FileView({
         dirty={dirty}
         editing={editing}
         saving={saving}
+        cursor={editing && !previewing ? cursor : null}
+        vimMode={editing && !previewing ? vimMode : null}
         edit={
           text.kind !== "text" || image !== null
             ? undefined
@@ -230,11 +237,13 @@ export function FileView({
           onOpenFile={onOpenFile}
         />
       ) : draft !== null ? (
-        <FileEditor
+        <LazyFileEditor
           path={path}
           draft={draft}
           saving={saving}
           onChange={setDraft}
+          onCursor={setCursor}
+          onMode={setVimMode}
           onSave={() => {
             save(false);
           }}

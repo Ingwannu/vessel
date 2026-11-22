@@ -276,6 +276,7 @@ const fn forwardable(method: Method) -> bool {
         | Method::ReloadSession
         // Protocol 12: the node's settings (the change needs `admin`).
         | Method::GetNodeSettings
+        | Method::GetAppendSystemPrompt
         | Method::SetNodeSettings
         // ADR 0115: the host's Plugins page (management needs `admin`).
         | Method::ListPlugins

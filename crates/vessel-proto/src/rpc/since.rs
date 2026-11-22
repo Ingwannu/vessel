@@ -414,6 +414,7 @@ impl Call {
             | Self::SaveSkillsSelection(_)
             | Self::ImportSkillsSelection(_)
             | Self::GetNodeSettings(_)
+            | Self::GetAppendSystemPrompt(_)
             | Self::ForkSession(_)
             | Self::RewindSession(_)
             | Self::DetachSession(_) => None,

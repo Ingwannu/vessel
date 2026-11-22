@@ -199,6 +199,25 @@
   color: var(--text-secondary);
 }
 
+.file-head.editing {
+  flex-wrap: wrap;
+  padding-block: 4px;
+}
+
+.file-head.editing .file-crumb {
+  flex: 1 1 4ch;
+}
+
+.file-head-position {
+  display: flex;
+  flex: none;
+  gap: 8px;
+  color: var(--text-secondary);
+  font: var(--t-meta);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 .file-crumb {
   min-width: 0;
   overflow: hidden;

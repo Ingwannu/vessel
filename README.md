@@ -1212,7 +1212,8 @@ browser on Unix (on Windows, open the printed address).
   worktrees, removed only after saying what would be lost and offering a
   snapshot; its snapshots), Agents (what each agent on a machine
   offers: model, effort, permissions), Models, Devices (pairing a phone with a QR code), Sync
-  and About. Terminal sets the built-in terminal's scrollback. Files shows
+  and About. Terminal sets the built-in terminal's scrollback. Editor enables
+  Vim keybindings in the [source editor](docs/plans/web-editor.md). Files shows
   file-panel preferences. General includes Open location on wide screens
   for workspace files, changes and pull requests.
   A machine in the sidebar opens it there. The page follows
@@ -1269,6 +1270,9 @@ vessel ui --no-open  # prints the address instead
 - **Vessel tools** in a supported machine's Agents settings choose
   whether future agent launches receive the built-in tools. Fleet MCP
   servers use that machine's fleet configuration.
+- **System prompt** in a supported machine's Agents settings appends
+  instructions to future Codex app-server launches. The machine's owner
+  or Admin device can read and edit the saved text.
 - **Adding a machine** (the "+" by Machines in the sidebar, Settings ›
   Machines › Add machine, the welcome, or the command palette): run `vessel node pair` on that machine and paste
   the link it prints. The page reads the link without sending anything and

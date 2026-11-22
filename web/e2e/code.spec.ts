@@ -15,7 +15,12 @@ import { expect, type Page, test } from "@playwright/test";
 import { loadEnv } from "./fleet";
 import { choose, newSessionPage } from "./kit";
 import { openUi } from "./open";
-import { openPanelTab, panelTab as tab, startInShop } from "./shop";
+import {
+  expectEditorText,
+  openPanelTab,
+  panelTab as tab,
+  startInShop,
+} from "./shop";
 
 test("a session starts in a new worktree once its commands are approved, setup shown as it runs", async ({
   page,
@@ -306,7 +311,7 @@ test("an edit is saved, and one saved after the file changed on disk shows both 
   await expect(conflict).toContainText("Read: 26 B");
   await expect(conflict).toContainText("On disk now: 44 B");
   expect(readFileSync(file, "utf8")).toContain("from elsewhere");
-  await expect(editor).toHaveValue("export const RATE = 0.2;\n");
+  await expectEditorText(editor, "export const RATE = 0.2;\n");
   await page.getByRole("button", { name: "Reload from disk" }).click();
   await expect(page.locator(".f-line").first()).toContainText("from elsewhere");
 });
@@ -362,14 +367,14 @@ test("a shown file follows the disk; an open edit keeps its text under Paseo's a
       });
     });
     expect(inside).toBe(true);
-    await expect(editor).toHaveValue("- mine\n");
+    await expectEditorText(editor, "- mine\n");
     expect(readFileSync(file, "utf8")).toBe("- pay in cash\n");
     // Reload asks first, since the edit would be thrown away.
     await alert.getByRole("button", { name: "Reload", exact: true }).click();
     const ask = page.getByRole("dialog", { name: "Reload from disk?" });
     await expect(ask).toContainText("Your local changes will be lost.");
     await ask.getByRole("button", { name: "Cancel", exact: true }).click();
-    await expect(editor).toHaveValue("- mine\n");
+    await expectEditorText(editor, "- mine\n");
     await alert.getByRole("button", { name: "Reload", exact: true }).click();
     await ask.getByRole("button", { name: "Reload", exact: true }).click();
     await expect(editor).toHaveCount(0);

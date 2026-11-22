@@ -128,6 +128,7 @@ impl Reply {
             | Self::ImportSkillsSelection(_)
             | Self::GetNodeSettings(_)
             | Self::SetNodeSettings(_)
+            | Self::GetAppendSystemPrompt(_)
             | Self::GetAgentHistory(_)
             | Self::SendInput(_)
             | Self::KillSession(_)

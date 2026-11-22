@@ -30,6 +30,7 @@ export const SETTINGS_SECTIONS = [
   "general",
   "appearance",
   "terminal",
+  "editor",
   "files",
   "shortcuts",
   "notifications",
@@ -77,6 +78,8 @@ export function settingsSectionLabel(section: SettingsSection): string {
       return "Notifications";
     case "terminal":
       return "Terminal";
+    case "editor":
+      return "Editor";
     case "files":
       return "Files";
     case "agents":
@@ -112,6 +115,7 @@ export function settingsGroupOf(section: SettingsSection): SettingsGroup {
     case "shortcuts":
     case "notifications":
     case "terminal":
+    case "editor":
     case "files":
       return "app";
     case "agents":

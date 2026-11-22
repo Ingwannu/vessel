@@ -291,6 +291,7 @@ impl Method {
             | Self::ImportSkillsSelection
             | Self::GetNodeSettings
             | Self::SetNodeSettings
+            | Self::GetAppendSystemPrompt
             | Self::ListPlugins
             | Self::GetPluginLogs
             | Self::InspectPlugin

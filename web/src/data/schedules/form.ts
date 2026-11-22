@@ -11,6 +11,7 @@ import type {
   UpdateSchedule,
   WorkspaceIsolation,
 } from "../../wire/proto";
+import { promptTextError } from "../prompt-text";
 
 export type NewSessionSpec = Extract<SessionSpec, { mode: "structured" }>;
 
@@ -51,11 +52,7 @@ export function nameError(name: string): string | null {
 
 export function promptError(prompt: string): string | null {
   if (prompt.trim() === "") return "Enter a prompt.";
-  if (UTF8.encode(prompt).length > 16_384)
-    return "Prompt must be 16 KiB or fewer.";
-  return /\p{Cc}/u.test(prompt.replace(/[\t\n\r]/g, ""))
-    ? "Prompt contains an unsupported control character."
-    : null;
+  return promptTextError(prompt);
 }
 
 export function maxRuns(text: string): number | null | "invalid" {

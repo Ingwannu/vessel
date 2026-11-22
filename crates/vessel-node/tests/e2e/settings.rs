@@ -19,6 +19,8 @@ use crate::agents::{as_agent, code, credential, structured, vessel_mcp};
 use crate::support::{Fixture, within};
 
 #[cfg(test)]
+mod append_prompt;
+#[cfg(test)]
 mod aside;
 #[cfg(test)]
 mod metadata;

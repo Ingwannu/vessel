@@ -1,0 +1,68 @@
+.file-editor-host {
+  flex: 1;
+  min-height: 0;
+}
+
+.file-editor-host .cm-editor {
+  height: 100%;
+  color: var(--text-primary);
+}
+
+.file-editor-host .cm-editor .cm-scroller {
+  overflow: auto;
+  font: var(--t-mono);
+}
+
+.file-editor-host .cm-editor .cm-gutters,
+.file-editor-host .cm-editor .cm-panels {
+  color: var(--text-secondary);
+  background: var(--bg-base);
+  border-color: var(--border-faint);
+}
+
+.file-editor-host .cm-editor .cm-gutters {
+  border-right: 1px solid var(--border-faint);
+}
+
+.file-editor-host .cm-editor .cm-activeLine,
+.file-editor-host .cm-editor .cm-activeLineGutter {
+  background: transparent;
+}
+
+.file-editor-host .cm-editor .cm-activeLineGutter {
+  color: var(--text-primary);
+}
+
+.file-editor-host .cm-content {
+  padding-block: 8px;
+  caret-color: var(--text-primary);
+}
+
+.file-editor-host .cm-lineNumbers .cm-gutterElement {
+  padding-inline: 8px;
+}
+
+.file-editor-host .cm-line {
+  padding-inline: 10px;
+}
+
+.file-editor-host .cm-editor.cm-focused {
+  outline: none;
+}
+
+.file-editor-host .cm-cursor,
+.file-editor-host .cm-dropCursor {
+  border-left-color: var(--text-primary);
+}
+
+.file-editor-host
+  .cm-editor
+  .cm-scroller
+  .cm-selectionLayer
+  .cm-selectionBackground {
+  background: color-mix(in srgb, var(--text-primary) 18%, transparent);
+}
+
+.file-editor-host .cm-fat-cursor {
+  background: color-mix(in srgb, var(--text-primary) 28%, transparent);
+}

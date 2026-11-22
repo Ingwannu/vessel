@@ -382,6 +382,8 @@ impl Reply {
             | Self::UnsubscribePush(_)
             | Self::ReportPushPresence(_)
             | Self::SearchMessages(_)
+            // The private prompt is asked only by a peer that reads it.
+            | Self::GetAppendSystemPrompt(_)
             // Protocol 12's, 14's and 17's: asked only by peers that read them.
             | Self::GetAgentHistory(_) => None,
         }

@@ -68,6 +68,20 @@ impl AgentProcess {
         command: &CommandSpec,
         setup: AgentSetup,
     ) -> Result<(Self, AgentInput, AgentOutputs), AgentError> {
+        Self::spawn_with_append_prompt(driver, command, setup, None)
+    }
+
+    /// Begin a physical launch with the host's current saved supplement.
+    /// Only a native driver with a proved instruction channel consumes it.
+    ///
+    /// # Errors
+    /// As [`Self::spawn_with`].
+    pub fn spawn_with_append_prompt(
+        driver: Driver,
+        command: &CommandSpec,
+        setup: AgentSetup,
+        append_system_prompt: Option<vessel_proto::settings::AppendSystemPrompt>,
+    ) -> Result<(Self, AgentInput, AgentOutputs), AgentError> {
         if setup.system_prompt.is_some()
             && driver.system_prompt_support() == vessel_harness::SystemPromptSupport::Unsupported
         {
@@ -86,7 +100,8 @@ impl AgentProcess {
         let (shaped, launch) = match driver {
             Driver::Acp => (None, Launch::Acp),
             Driver::CodexAppServer => {
-                let (shaped, launched) = crate::codex::launch(command, &setup)?;
+                let (shaped, launched) =
+                    crate::codex::launch(command, &setup, append_system_prompt)?;
                 (Some(shaped), Launch::Codex(launched))
             }
             Driver::ClaudeStream => {

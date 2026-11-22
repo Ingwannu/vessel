@@ -22,6 +22,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   },
   layout: { sidebar: "shown", inspector: "shown", explorer_sort: "name" },
   terminal: { scrollback: 10_000 },
+  editor: { vim_keybindings: false },
   open_location: {
     explorer_files: "main",
     diffs: "main",
@@ -103,6 +104,8 @@ export function applyChange(
       };
     case "terminal_scrollback":
       return { ...prefs, terminal: { scrollback: change.value } };
+    case "vim_keybindings":
+      return { ...prefs, editor: { vim_keybindings: change.value } };
     case "open_location":
       return {
         ...prefs,
@@ -208,6 +211,7 @@ export function keepSections(
     appearance: same(previous.appearance, next.appearance),
     layout: same(previous.layout, next.layout),
     terminal: same(previous.terminal, next.terminal),
+    editor: same(previous.editor, next.editor),
     open_location: same(previous.open_location, next.open_location),
     composer: same(previous.composer, next.composer),
     shortcuts: same(previous.shortcuts, next.shortcuts),
@@ -220,6 +224,7 @@ export function keepSections(
     kept.appearance === previous.appearance &&
     kept.layout === previous.layout &&
     kept.terminal === previous.terminal &&
+    kept.editor === previous.editor &&
     kept.open_location === previous.open_location &&
     kept.composer === previous.composer &&
     kept.shortcuts === previous.shortcuts &&

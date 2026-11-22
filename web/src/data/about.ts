@@ -19,6 +19,23 @@ export interface Bundled {
 export const BUNDLED: readonly Bundled[] = [
   { name: "@base-ui/react", licence: "MIT", role: "Controls' behaviour" },
   {
+    name: "@codemirror/commands",
+    licence: "MIT",
+    role: "Editor commands and undo",
+  },
+  {
+    name: "@codemirror/language",
+    licence: "MIT",
+    role: "Editor text structure",
+  },
+  { name: "@codemirror/search", licence: "MIT", role: "Editor search" },
+  {
+    name: "@codemirror/state",
+    licence: "MIT",
+    role: "Editor document and selection",
+  },
+  { name: "@codemirror/view", licence: "MIT", role: "Source editor" },
+  {
     name: "@fontsource-variable/geist",
     licence: "OFL-1.1",
     role: "Geist, the page's face",
@@ -30,6 +47,7 @@ export const BUNDLED: readonly Bundled[] = [
     role: "Geist Mono, for code and ids",
     text: "/licenses/GeistMono-OFL.txt",
   },
+  { name: "@replit/codemirror-vim", licence: "MIT", role: "Vim keybindings" },
   { name: "@tanstack/react-router", licence: "MIT", role: "Addresses" },
   { name: "@xterm/addon-fit", licence: "MIT", role: "Terminal sizing" },
   { name: "@xterm/addon-search", licence: "MIT", role: "Terminal Find" },
