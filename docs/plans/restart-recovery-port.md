@@ -63,3 +63,22 @@ and the deadline under the same policy arbiter as launch and prompt enqueue.
 When preparation is refused, the coordinator awaits the original physical
 lookup or helper before releasing its attempt and Store protection.
 Failure diagnostics use outcome codes because a provider can echo input.
+
+## Page and CLI settings
+
+The connected host shows its recovery card after System prompt in Agents.
+This follows Paseo 0.15.4 `packages/app/src/screens/settings/host-page.tsx:281–308`
+and `packages/app/src/screens/settings/restart-recovery-card.tsx:19–115`.
+The switch follows the node's confirmed value. The outline Edit button
+opens the prompt while On, and a Cancel or an invalid input leaves the
+kept value in place. The sheet uses the Vessel kit's 520 px desktop size
+for Paseo's 560 px sheet (`restart-recovery-card.tsx:125–174`). A failed
+update leaves the draft and error visible. A fresh read reflects any save
+that took effect before the apply failure or reply loss.
+
+The page and CLI get support through the explicit flagged read. An empty
+reply after that read uses the node's Off and `Resume working.` defaults.
+The CLI can change the prompt while Off because the protocol stores the
+prompt and toggle independently. `vessel node settings --resume-on-startup
+on|off` changes the toggle. `--resume-prompt TEXT` changes the prompt.
+The node validates prompt text before accepting a settings operation.
