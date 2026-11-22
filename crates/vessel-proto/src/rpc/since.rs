@@ -484,17 +484,19 @@ mod requirement_tests {
 
     #[test]
     fn explicit_schedule_isolation_keeps_its_requirement_through_every_hop() {
-        use crate::automation::{AfterRun, SCHEDULE_ISOLATION_PROTOCOL, ScheduleTarget};
+        use crate::automation::{
+            AfterRun, Cadence, CatchUp, CreateSchedule, SCHEDULE_ISOLATION_PROTOCOL,
+            ScheduleDefinition, ScheduleTarget, UpdateSchedule,
+        };
         use crate::registry::WorkspaceIsolation;
-        use crate::{Call, HarnessKind, SessionMode, SessionSpec};
-        for method in [Method::CreateSchedule, Method::UpdateSchedule] {
-            let mut request = samples::call(method).unwrap();
-            let target = match &mut request {
-                Call::CreateSchedule(request) => &mut request.definition.target,
-                Call::UpdateSchedule(request) => &mut request.definition.target,
-                _ => unreachable!("the selected methods return schedule writes"),
-            };
-            *target = ScheduleTarget::NewSession {
+        use crate::{HarnessKind, ScheduleId, SessionMode, SessionSpec};
+        let definition = ScheduleDefinition {
+            name: None,
+            cadence: Cadence::Every {
+                seconds: 3600.try_into().unwrap(),
+                anchor: None,
+            },
+            target: ScheduleTarget::NewSession {
                 spec: Box::new(SessionSpec::new(
                     HarnessKind::ClaudeCode,
                     SessionMode::Structured {
@@ -505,7 +507,25 @@ mod requirement_tests {
                 )),
                 after: AfterRun::Archive,
                 isolation: Some(WorkspaceIsolation::Local),
-            };
+            },
+            prompt: "test".parse().unwrap(),
+            catch_up: CatchUp::Skip,
+            max_runs: None,
+            ends_at: None,
+        };
+        for request in [
+            CreateSchedule {
+                definition: definition.clone(),
+                paused: false,
+            }
+            .into_call(),
+            UpdateSchedule {
+                schedule: ScheduleId::random(),
+                revision: 0,
+                definition,
+            }
+            .into_call(),
+        ] {
             assert_eq!(request.required_protocol(), SCHEDULE_ISOLATION_PROTOCOL);
             for wrapper in [
                 Forward {

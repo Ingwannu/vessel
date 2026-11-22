@@ -297,8 +297,20 @@ fn unresolved_run_pins_are_bounded_and_survive_history_deletion() {
         retire(&mut db, id, 0),
         Err(StoreError::RegistryConflict)
     ));
-    write_run(&db, &AutomationWrite::FinishRunBinding(first)).unwrap();
+    let stage = RunBindingStage::RetiringArchive;
+    write_run(
+        &db,
+        &AutomationWrite::AdvanceRunBinding { previous: first, stage },
+    )
+    .unwrap();
     retire(&mut db, id, 1).unwrap();
+    retire(&mut db, id, 1).unwrap();
+    let terminal = ScheduleRunBinding { stage, ..first };
+    assert_eq!(
+        crate::automation::binding::find(&db, first.schedule, first.run).unwrap(),
+        Some(terminal)
+    );
+    write_run(&db, &AutomationWrite::FinishRunBinding(terminal)).unwrap();
     write_run(&db, &AutomationWrite::BindRun(over)).unwrap();
 }
 
