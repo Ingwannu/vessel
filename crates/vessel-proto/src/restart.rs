@@ -11,7 +11,8 @@ mod admission_tests;
 
 /// The CLI and page use this boundary to read and change startup policy.
 /// Each client and dispatch hop uses the shared admission rule (ADR 0059).
-pub const RESTART_RECOVERY_PROTOCOL: Option<crate::ProtocolVersion> = Some(crate::ProtocolVersion::new(49));
+pub const RESTART_RECOVERY_PROTOCOL: Option<crate::ProtocolVersion> =
+    Some(crate::ProtocolVersion::new(49));
 
 /// Node-level startup continuation policy (ADR 0059).
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
