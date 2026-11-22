@@ -71,7 +71,8 @@ requires the handler, as for every assigned or pending row.
 ## Pending host system prompt supplement (M12 F-L23)
 
 `APPEND_SYSTEM_PROMPT_PROTOCOL` is assigned at integration. The Admin
-`node.append_system_prompt {}` method reads the saved text. The Admin
+`node.append_system_prompt {}` method reads the saved text on a direct
+owner or device link. The Admin
 `node.set_settings { append_system_prompt? }` patch keeps bounded text
 verbatim, with blank clearing the effective supplement and omission
 preserving it. `node.settings` and patch replies carry the supported

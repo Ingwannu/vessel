@@ -347,6 +347,7 @@ mod tests {
     fn the_append_prompt_uses_one_private_protocol_boundary() {
         let method = crate::Method::GetAppendSystemPrompt;
         assert_eq!(method.scope(), Some(crate::Scope::Admin));
+        assert!(!method.forwardable());
         assert_eq!(method.since(), APPEND_SYSTEM_PROMPT_PROTOCOL);
 
         let patch = crate::Call::SetNodeSettings(SetNodeSettings {
