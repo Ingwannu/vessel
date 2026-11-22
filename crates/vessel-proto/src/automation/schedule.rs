@@ -376,7 +376,7 @@ pub struct UpdateSchedule {
 pub const HEARTBEAT_CADENCE_PROTOCOL: Option<ProtocolVersion> = Some(ProtocolVersion::new(48));
 
 /// Per-run workspace isolation. Integration assigns the protocol when consumers land.
-pub const SCHEDULE_ISOLATION_PROTOCOL: Option<ProtocolVersion> = None;
+pub const SCHEDULE_ISOLATION_PROTOCOL: Option<ProtocolVersion> = Some(ProtocolVersion::new(49));
 
 /// Whether all hops on a schedule route can carry the isolation policy.
 #[must_use]
