@@ -39,8 +39,11 @@ more than this node serves.
 
 The wire tests exercise the shared boundary and older replies. The settings
 fixture covers Admin scope, saved value across reboot, explicit clearing and
-ordinary settings projection. The Codex fake verifies new and resumed
-thread parameters and echoes a synthetic rejection to exercise redaction.
+ordinary settings projection. With the protocol assigned, it also starts a
+Codex session through the node, clears the setting and reloads the same
+conversation. The fake checks the native parameters on both physical
+launches and echoes a synthetic rejection in a driver test to exercise
+redaction.
 
 Provider reference at Paseo 0.15.4 is
 `packages/server/src/server/agent/providers/codex-app-server-agent.ts:3838–3850,5386–5401`.
