@@ -447,9 +447,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn heartbeat_cadence_is_the_newest_protocol() {
-        // Keep the newest equality pin here until the next activation.
-        assert_eq!(HEARTBEAT_CADENCE_PROTOCOL, Some(crate::PROTOCOL_VERSION));
+    fn heartbeat_cadence_keeps_its_assigned_protocol() {
+        assert_eq!(HEARTBEAT_CADENCE_PROTOCOL, Some(ProtocolVersion::new(48)));
     }
 
     #[test]

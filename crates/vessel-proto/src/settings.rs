@@ -378,6 +378,42 @@ mod tests {
     use super::*;
 
     #[test]
+    fn the_three_agents_settings_share_one_compatible_activation() {
+        use crate::restart::{RESTART_RECOVERY_PROTOCOL, SetRestartRecovery};
+        let since = VESSEL_TOOLS_PROTOCOL.expect("the Agents settings have been assigned");
+        // Keep the newest equality pin here until the next activation.
+        assert_eq!(since, crate::PROTOCOL_VERSION);
+        assert_eq!(APPEND_SYSTEM_PROMPT_PROTOCOL, Some(since));
+        assert_eq!(RESTART_RECOVERY_PROTOCOL, Some(since));
+
+        let legacy: NodeSettings =
+            serde_json::from_str(r#"{"park_after":{"kind":"never"}}"#).unwrap();
+        let settings = NodeSettings {
+            vessel_tools: Some(Injection::Off),
+            append_system_prompt_transports: Some(vec![AppendPromptTransport::CodexAppServer]),
+            restart_recovery: RestartRecovery {
+                enabled: true,
+                ..RestartRecovery::default()
+            },
+            ..legacy.clone()
+        };
+        let older = crate::ProtocolVersion::new(since.get().checked_sub(1).unwrap());
+        assert_eq!(settings.for_protocol(older), Some(legacy));
+        assert_eq!(settings.for_protocol(since), None);
+
+        let patch = crate::Call::SetNodeSettings(SetNodeSettings {
+            vessel_tools: Some(Injection::Off),
+            append_system_prompt: Some(AppendSystemPrompt::default()),
+            restart_recovery: Some(SetRestartRecovery {
+                enabled: Some(true),
+                ..SetRestartRecovery::default()
+            }),
+            ..SetNodeSettings::default()
+        });
+        assert_eq!(patch.required_protocol(), Some(since));
+    }
+
+    #[test]
     fn the_append_prompt_uses_one_private_protocol_boundary() {
         let method = crate::Method::GetAppendSystemPrompt;
         assert_eq!(method.scope(), Some(crate::Scope::Admin));
