@@ -1,5 +1,7 @@
 //! Async workspace registry handle; blocking SQL stays on existing store threads.
 
+mod lifecycle;
+
 use super::Store;
 use crate::{RegistryRecord, RegistryReservation, ReservationStage, StoreError, StoredRegistry};
 use crate::{

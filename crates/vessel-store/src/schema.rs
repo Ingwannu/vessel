@@ -13,6 +13,7 @@ mod labels;
 mod listing;
 mod migrations;
 mod mutation_time;
+mod workspace_lifecycle;
 mod workspace_registry;
 
 /// The label append (schema 23) follows the mutation clock (22); integration rebinds here.
@@ -24,6 +25,9 @@ const WORKSPACE_LABELS_SCHEMA: usize = mutation_time::MUTATION_TIME_SCHEMA.satur
 /// onto the node line they append after its two newer migrations, so no
 /// released version changes meaning.
 const NOTIFICATION_CLAIMS_SCHEMA: usize = WORKSPACE_LABELS_SCHEMA.saturating_add(1);
+
+// Provisional append. Integration fixes the assignment in merge order.
+const WORKSPACE_LIFECYCLE_SCHEMA: usize = NOTIFICATION_CLAIMS_SCHEMA.saturating_add(1);
 
 // Diagnostic schema projection reads the canonical migration list only.
 mod diagnostics;
@@ -65,18 +69,14 @@ pub(crate) fn migrate(connection: &mut Connection) -> Result<(), StoreError> {
     Ok(())
 }
 
-/// A rollback fixture targets the inbox entry, independent of later appends.
-/// Only tests may rewind; production migration stays forward-only.
+/// Rebuild only the inbox projection in the rollback fixture. Reapplying
+/// later migrations would also mutate tables the fixture did not roll back.
 #[cfg(test)]
 pub(crate) fn replay_inbox_after_rollback(connection: &mut Connection) {
-    let before = MIGRATIONS
-        .iter()
-        .position(|migration| *migration == INBOX)
-        .unwrap();
-    connection
-        .pragma_update(None, "user_version", i64::try_from(before).unwrap())
-        .unwrap();
-    migrate(connection).unwrap();
+    let transaction = connection.transaction().unwrap();
+    transaction.execute_batch(INBOX).unwrap();
+    crate::inbox::backfill(&transaction).unwrap();
+    transaction.commit().unwrap();
 }
 
 /// Settings every connection needs.

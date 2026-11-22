@@ -6,7 +6,7 @@ use vessel_proto::WorkspaceId;
 use vessel_proto::registry::WorkspaceResource;
 
 /// Live workspace/backing identity slots: every record not archived, and every
-/// reservation. Archived records do not count (ADR 0082 amendment, ADR 0106).
+/// non-retired reservation. Settled archives do not count (ADR 0082).
 pub const MAX_WORKSPACES: usize = 256;
 /// Resource ownership slots of workspaces that are not archived, including
 /// failed and ended starts there (ADR 0082 amendment).
@@ -38,7 +38,7 @@ pub(super) fn workspace(connection: &Connection, id: WorkspaceId) -> Result<(), 
     )?;
     if !exists {
         let count: i64 = connection.query_row(
-            "SELECT COUNT(*) FROM (SELECT id FROM workspace_registry WHERE json_extract(descriptor,'$.lifecycle.kind')!='archived' UNION SELECT id FROM workspace_registry_reservations)",
+            "SELECT COUNT(*) FROM (SELECT id FROM workspace_registry WHERE json_extract(descriptor,'$.lifecycle.kind')!='archived' UNION SELECT id FROM workspace_registry_reservations WHERE stage!='retired')",
             [], |row| row.get(0),
         )?;
         if count >= i64::try_from(MAX_WORKSPACES).map_err(StoreError::RegistryRevisionRange)? {

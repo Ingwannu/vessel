@@ -62,7 +62,30 @@ pub(crate) fn apply(
                 return Ok(RegistryChange::Unchanged);
             }
         }
-        RegistryWrite::Workspace { record, expected } => put(connection, record, *expected)?,
+        RegistryWrite::Workspace { record, expected } => {
+            if expected.is_some()
+                && read::workspace(connection, record.descriptor.id)?
+                    .is_some_and(|old| old.descriptor.lifecycle != record.descriptor.lifecycle)
+            {
+                return Err(StoreError::RegistryConflict);
+            }
+            put(connection, record, *expected)?;
+        }
+        RegistryWrite::ClaimArchive {
+            claim,
+            expected,
+            at,
+        } => {
+            super::archive::claim(connection, *claim, *expected, *at)?;
+        }
+        RegistryWrite::SettleArchive { claim, settlement } => {
+            super::archive::settle(connection, *claim, *settlement)?;
+        }
+        RegistryWrite::MemberChanged(resource) => {
+            if read::resource_owner(connection, *resource)?.is_none() {
+                return Ok(RegistryChange::Unchanged);
+            }
+        }
         RegistryWrite::Membership {
             workspace,
             resource,
@@ -70,6 +93,17 @@ pub(crate) fn apply(
         } => membership(connection, *workspace, *resource, *expected)?,
         RegistryWrite::Reserve(reservation) => {
             if reserve(connection, reservation)? == RegistryChange::Unchanged {
+                return Ok(RegistryChange::Unchanged);
+            }
+        }
+        RegistryWrite::Retire {
+            workspace,
+            evidence,
+            at,
+        } => {
+            if super::retirement::retire(connection, *workspace, *evidence, *at)?
+                == RegistryChange::Unchanged
+            {
                 return Ok(RegistryChange::Unchanged);
             }
         }
@@ -175,20 +209,30 @@ fn reserve(
     connection: &Connection,
     reservation: &RegistryReservation,
 ) -> Result<RegistryChange, StoreError> {
+    if reservation.stage == ReservationStage::Retired {
+        return Err(StoreError::RegistryConflict);
+    }
+    if let Some(found) = read::reservation(connection, reservation.workspace)? {
+        if found.stage == ReservationStage::Retired {
+            return Err(StoreError::RegistryFinished(reservation.workspace));
+        }
+        return if found.intent == reservation.intent && found.worktree == reservation.worktree {
+            Ok(RegistryChange::Unchanged)
+        } else {
+            Err(StoreError::RegistryConflict)
+        };
+    }
+    if read::workspace(connection, reservation.workspace)?.is_some() {
+        return Err(StoreError::RegistryConflict);
+    }
     super::capacity::workspace(connection, reservation.workspace)?;
     let intent = encode(&reservation.intent)?;
     super::capacity::bytes(&intent, super::MAX_INTENT_BYTES)?;
     let inserted = connection.execute("INSERT INTO workspace_registry_reservations(id,intent,worktree,stage) VALUES (?1,?2,?3,?4) ON CONFLICT(id) DO NOTHING",params![reservation.workspace.to_string(),intent,reservation.worktree.map(|id|id.to_string()),reservation.stage.sql()])?;
-    let found = read::reservation(connection, reservation.workspace)?
-        .ok_or(StoreError::RegistryConflict)?;
-    if found.intent != reservation.intent || found.worktree != reservation.worktree {
+    if inserted != 1 {
         return Err(StoreError::RegistryConflict);
     }
-    Ok(if inserted == 0 {
-        RegistryChange::Unchanged
-    } else {
-        RegistryChange::Changed
-    })
+    Ok(RegistryChange::Changed)
 }
 
 fn stage(
@@ -197,6 +241,9 @@ fn stage(
     expected: ReservationStage,
     next: ReservationStage,
 ) -> Result<(), StoreError> {
+    if expected == ReservationStage::Retired || next == ReservationStage::Retired {
+        return Err(StoreError::RegistryConflict);
+    }
     if next == ReservationStage::Ready && read::workspace(connection, workspace)?.is_none() {
         return Err(StoreError::RegistryConflict);
     }

@@ -1,6 +1,7 @@
 //! Durable independent workspaces; SQL runs only on store writer/read threads.
 //! No filesystem deletion, agent shutdown, or provider launch belongs here.
 
+mod archive;
 mod automation;
 mod capacity;
 mod lease_read;
@@ -8,6 +9,7 @@ mod leases;
 mod placement;
 mod project_reference;
 mod read;
+mod retirement;
 #[cfg(test)]
 mod tests;
 pub(crate) mod write;
@@ -27,10 +29,16 @@ pub use capacity::{
     MAX_WORKSPACES, RESERVED_BYTES_PER_RESOURCE, RESERVED_BYTES_PER_WORKSPACE, WORKSPACE_KEY_BYTES,
 };
 
+pub use archive::{
+    ArchiveDefer, ArchiveSettlement, RegistryArchive, WorkspaceArchiveClaim,
+    WorkspaceArchivePurpose,
+};
+pub(crate) use archive::{owns_backing as archive_owns_backing, read as archive_claim};
 pub(crate) use lease_read::{current as resource_run, pending as pending_starts};
 pub use placement::{MAX_ARCHIVED_WORKSPACES, Placement};
 pub(crate) use placement::{Register, archive_stranded, register, unregistered_placed};
 pub(crate) use project_reference::read as project_reference;
+pub(crate) use project_reference::{find as project_reference_in, worktree as worktree_reference};
 pub(crate) use read::{
     load, memberships as workspace_memberships, reservation, resource_owner, workspace,
 };
@@ -95,6 +103,8 @@ pub enum ReservationStage {
     Ready,
     /// Interrupted work cannot be retried until reconciled against the actual backing.
     Uncertain,
+    /// The fully reconciled operation remains only as a bounded replay record.
+    Retired,
 }
 impl ReservationStage {
     const fn sql(self) -> &'static str {
@@ -103,6 +113,7 @@ impl ReservationStage {
             Self::Creating => "creating",
             Self::Ready => "ready",
             Self::Uncertain => "uncertain",
+            Self::Retired => "retired",
         }
     }
 }
@@ -118,6 +129,15 @@ pub struct RegistryReservation {
     pub worktree: Option<WorktreeId>,
     /// Side-effect admission state is never inferred from existence of a directory.
     pub stage: ReservationStage,
+}
+
+/// Evidence from the workspace owner authorizing release of a live slot.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ProvisionRetirement {
+    /// The archived workspace is Local or its managed backing was removed.
+    CleanArchive,
+    /// A reservation without a descriptor has no remaining backing effects.
+    Unpublished,
 }
 
 /// One writer transaction applies a mutation and bumps the snapshot version.
@@ -138,6 +158,16 @@ pub(crate) enum RegistryWrite {
         settled: RegistryStartSettlement,
     },
     RecoverCreating,
+    ClaimArchive {
+        claim: WorkspaceArchiveClaim,
+        expected: RegistryRevision,
+        at: chrono::DateTime<chrono::Utc>,
+    },
+    SettleArchive {
+        claim: WorkspaceArchiveClaim,
+        settlement: ArchiveSettlement,
+    },
+    MemberChanged(WorkspaceResource),
     Completed(Box<RegistryRecord>),
     Workspace {
         record: Box<RegistryRecord>,
@@ -149,6 +179,11 @@ pub(crate) enum RegistryWrite {
         expected: RegistryRevision,
     },
     Reserve(RegistryReservation),
+    Retire {
+        workspace: WorkspaceId,
+        evidence: ProvisionRetirement,
+        at: chrono::DateTime<chrono::Utc>,
+    },
     Stage {
         workspace: WorkspaceId,
         expected: ReservationStage,

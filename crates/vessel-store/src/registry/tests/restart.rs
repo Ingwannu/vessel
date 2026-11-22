@@ -141,7 +141,7 @@ fn foreign_owner_and_archiving_refuse_a_stable_terminal_restart_without_mutation
     record.descriptor.lifecycle = WorkspaceLifecycle::Archiving {
         at: DateTime::UNIX_EPOCH,
     };
-    put(&mut db, record, Some(expected)).unwrap();
+    seed_legacy_lifecycle(&db, &record, expected);
     let before = load(&db).unwrap();
     assert!(matches!(
         apply(

@@ -106,6 +106,9 @@ pub(crate) fn apply(
                 encode(project)?
             ])?,
         WorkspaceWrite::ForgetProject { project, at } => {
+            if crate::registry::project_reference_in(connection, *project)?.is_some() {
+                return Err(StoreError::RegistryConflict);
+            }
             registry = crate::registry::archive_stranded(connection, *project, *at)?;
             let _approvals = connection
                 .prepare_cached("DELETE FROM approvals WHERE project = ?1")?

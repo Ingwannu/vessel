@@ -52,6 +52,12 @@ fn put(
     )
 }
 
+// Schema 24 could represent these stages without an archive token. Seed
+// them only for the legacy-state admission tests.
+fn seed_legacy_lifecycle(db: &Connection, record: &RegistryRecord, expected: RegistryRevision) {
+    write::put(db, record, Some(expected)).unwrap();
+}
+
 #[test]
 fn shared_cwd_remains_two_workspaces_and_stale_cas_changes_nothing() {
     let mut db = db();
@@ -119,7 +125,7 @@ fn membership_is_unique_and_archiving_claim_blocks_new_admission() {
     archiving.descriptor.lifecycle = WorkspaceLifecycle::Archiving {
         at: DateTime::UNIX_EPOCH,
     };
-    put(&mut db, archiving.clone(), Some(expected)).unwrap();
+    seed_legacy_lifecycle(&db, &archiving, expected);
     let before = load(&db).unwrap();
     let resource = WorkspaceResource::Session {
         session: SessionId::random(),
@@ -395,7 +401,7 @@ fn archive_cannot_finish_before_a_pre_admitted_actor_start_settles() {
     let resource = WorkspaceResource::Session {
         session: SessionId::random(),
     };
-    put(&mut db, record, None).unwrap();
+    lifecycle::publish(&mut db, record);
     apply(
         &mut db,
         &RegistryWrite::Claim {
@@ -406,21 +412,15 @@ fn archive_cannot_finish_before_a_pre_admitted_actor_start_settles() {
     )
     .unwrap();
     let lease = WorkspaceStartLease::new(id, resource, RegistryRevision::ZERO.next().unwrap());
-    let mut archiving = workspace(&db, id).unwrap().unwrap();
-    let expected = archiving.descriptor.revision;
-    archiving.descriptor.revision = expected.next().unwrap();
-    archiving.descriptor.lifecycle = WorkspaceLifecycle::Archiving {
-        at: DateTime::UNIX_EPOCH,
-    };
-    put(&mut db, archiving, Some(expected)).unwrap();
-    let mut archived = workspace(&db, id).unwrap().unwrap();
-    let expected = archived.descriptor.revision;
-    archived.descriptor.revision = expected.next().unwrap();
-    archived.descriptor.lifecycle = WorkspaceLifecycle::Archived {
-        at: DateTime::UNIX_EPOCH,
+    let claim = lifecycle::claim(&mut db, id, WorkspaceArchivePurpose::Explicit);
+    let settle = RegistryWrite::SettleArchive {
+        claim,
+        settlement: ArchiveSettlement::Archived {
+            at: DateTime::UNIX_EPOCH,
+        },
     };
     assert!(matches!(
-        put(&mut db, archived, Some(expected)),
+        apply(&mut db, &settle),
         Err(StoreError::RegistryConflict)
     ));
     assert_eq!(pending_starts(&db, id).unwrap().len(), 1);
@@ -433,13 +433,7 @@ fn archive_cannot_finish_before_a_pre_admitted_actor_start_settles() {
     )
     .unwrap();
     assert!(pending_starts(&db, id).unwrap().is_empty());
-    let mut archived = workspace(&db, id).unwrap().unwrap();
-    let expected = archived.descriptor.revision;
-    archived.descriptor.revision = expected.next().unwrap();
-    archived.descriptor.lifecycle = WorkspaceLifecycle::Archived {
-        at: DateTime::UNIX_EPOCH,
-    };
-    put(&mut db, archived, Some(expected)).unwrap();
+    apply(&mut db, &settle).unwrap();
 }
 
 #[test]
@@ -528,7 +522,7 @@ fn admission_distinguishes_missing_inactive_and_active_without_changing_state() 
     record.descriptor.lifecycle = WorkspaceLifecycle::Restoring {
         at: DateTime::UNIX_EPOCH,
     };
-    put(&mut db, record, Some(RegistryRevision::ZERO)).unwrap();
+    seed_legacy_lifecycle(&db, &record, RegistryRevision::ZERO);
     let before = load(&db).unwrap();
     assert!(
         matches!(write::require_active(&db,id),Err(StoreError::RegistryInactive(inactive)) if inactive==id)
@@ -536,6 +530,7 @@ fn admission_distinguishes_missing_inactive_and_active_without_changing_state() 
     assert_eq!(load(&db).unwrap(), before);
 }
 
+mod lifecycle;
 mod memberships;
 mod placement;
 mod project_reference;
