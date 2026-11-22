@@ -25,6 +25,7 @@ fn idle(minutes: u16) -> NodeSettings {
         plugins_enabled: false,
         terminal_agent_hooks: false,
         terminal_profiles: None,
+        vessel_tools: None,
     }
 }
 
@@ -37,6 +38,7 @@ fn never() -> NodeSettings {
         plugins_enabled: false,
         terminal_agent_hooks: false,
         terminal_profiles: None,
+        vessel_tools: None,
     }
 }
 
@@ -156,7 +158,8 @@ fn has_nothing_to_switch_on_an_older_node_or_a_value_it_does_not_know() {
             metadata: None,
             plugins_enabled: false,
             terminal_agent_hooks: false,
-            terminal_profiles: None
+            terminal_profiles: None,
+            vessel_tools: None
         })
     ));
     assert_eq!(page.toggle(tickets.next_ticket().unwrap()), None);

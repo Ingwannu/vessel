@@ -45,6 +45,7 @@ use crate::error::StoreError;
 use crate::files;
 
 mod metadata;
+mod tools;
 
 const SETTINGS_FILE: &str = "settings.json";
 

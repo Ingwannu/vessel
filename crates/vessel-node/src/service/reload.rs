@@ -25,6 +25,7 @@ use vessel_proto::{Mark, SessionId, SessionInfo, WireError};
 use vessel_session::{NotReloadable, Reload, SessionError, SessionHandle};
 
 use super::{Connection, NodeService, wire};
+use crate::agents::ToolMove;
 use crate::error::ServiceError;
 
 impl NodeService {
@@ -62,8 +63,6 @@ impl NodeService {
                 self.plan(id, handle).await
             })
             .await;
-        self.agents.end_move(id, reloaded.is_ok());
-        self.models.end_move(id, reloaded.is_ok());
         match reloaded {
             // Ended, or ending while this call ran: started again once its
             // log is all in the store (`Sessions::ended` waits for the
@@ -85,7 +84,11 @@ impl NodeService {
 
     /// A live session's reload: its launch as a start again's, with a new
     /// credential and token, and its log's prompts before this run.
-    async fn plan(&self, id: SessionId, handle: &SessionHandle) -> Result<Reload, ServiceError> {
+    async fn plan(
+        &self,
+        id: SessionId,
+        handle: &SessionHandle,
+    ) -> Result<(Reload, Option<ToolMove>), ServiceError> {
         let info = handle.info();
         let before = self.sessions.prompts_before(id, handle.run_start()).await?;
         let mut launch = self.launcher.again(&self.profiles, &info)?;
@@ -95,11 +98,13 @@ impl NodeService {
                 .map_err(|error| ServiceError::Session(SessionError::Launch(error)))?,
         };
         let route = info.model.as_ref().map(|model| &model.route);
-        launch.model_proxy = self.models.begin_move(id, route, &profile)?;
-        if let Some(secret) = self.agents.begin_move(id)? {
+        let inject = self.launcher.has_tools() && self.settings.inject_vessel_tools().await;
+        let (transition, secret) = self.agents.begin_move(id, inject)?;
+        if let Some(secret) = secret {
             self.launcher
                 .attach_tools(&mut launch.mcp_servers, id, &secret)?;
         }
-        Ok(Reload { launch, before })
+        launch.model_proxy = self.models.begin_move(id, route, &profile)?;
+        Ok((Reload { launch, before }, transition))
     }
 }

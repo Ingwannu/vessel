@@ -1265,6 +1265,9 @@ vessel ui --no-open  # prints the address instead
   server proof and launch id; an old tab stops when the UI is restarted.
   A tab whose connection keeps failing stops redialling and says it is
   disconnected; Retry (or a reload) resumes once `vessel ui` answers again.
+- **Vessel tools** in a supported machine's Agents settings choose
+  whether future agent launches receive the built-in tools. Fleet MCP
+  servers use that machine's fleet configuration.
 - **Adding a machine** (the "+" by Machines in the sidebar, Settings ›
   Machines › Add machine, the welcome, or the command palette): run `vessel node pair` on that machine and paste
   the link it prints. The page reads the link without sending anything and

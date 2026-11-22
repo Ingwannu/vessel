@@ -3,10 +3,13 @@
 //! runtime. What a reload does to the agent is the session runtime's
 //! (`vessel_session`'s `reload`).
 
+use std::sync::Arc;
+
 use vessel_proto::{EventSeq, SessionId, SessionInfo};
-use vessel_session::{Reload, SessionHandle, UserPrompts};
+use vessel_session::{Reload, SessionError, SessionHandle, UserPrompts};
 
 use super::{Found, Sessions};
+use crate::agents::ToolMove;
 use crate::error::ServiceError;
 
 /// Records read from the store at a time while folding.
@@ -44,15 +47,40 @@ impl Sessions {
     pub(crate) async fn reload(
         &self,
         id: SessionId,
-        plan: impl AsyncFnOnce(&SessionHandle) -> Result<Reload, ServiceError>,
+        plan: impl AsyncFnOnce(&SessionHandle) -> Result<(Reload, Option<ToolMove>), ServiceError>,
     ) -> Result<SessionInfo, ServiceError> {
         match self.find(id).await? {
             Found::Live { handle, .. } if handle.has_ended() => Err(ServiceError::Ended(id)),
             Found::Live { handle, .. } => {
-                let reload = plan(&handle).await?;
-                Ok(self.runtime.reload(id, reload).await?)
+                let (reload, tools) = plan(&handle).await?;
+                let runtime = Arc::clone(&self.runtime);
+                self.finish_replacement(id, tools, async move { runtime.reload(id, reload).await })
+                    .await
             }
             Found::Stored(_) => Err(ServiceError::Ended(id)),
         }
+    }
+
+    /// Once the replacement has a launch plan, its credential owner waits
+    /// for the actor even if the RPC is cancelled. The preparation stays
+    /// cancellable before the plan is accepted.
+    pub(super) async fn finish_replacement(
+        &self,
+        id: SessionId,
+        tools: Option<ToolMove>,
+        run: impl Future<Output = Result<SessionInfo, SessionError>> + Send + 'static,
+    ) -> Result<SessionInfo, ServiceError> {
+        let models = Arc::clone(&self.models);
+        self.tasks
+            .spawn(async move {
+                let result = run.await;
+                models.end_move(id, result.is_ok());
+                if let Some(tools) = tools {
+                    tools.finish(result.is_ok());
+                }
+                result.map_err(ServiceError::from)
+            })
+            .await
+            .map_err(ServiceError::Task)?
     }
 }

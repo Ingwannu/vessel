@@ -230,6 +230,15 @@ impl Fixture {
         config.bind = Some(SocketAddr::from((Ipv4Addr::LOCALHOST, 0)));
         config.harness_lookup = Lookup::new([self.bin.path().to_path_buf()]);
         adjust(&mut config);
+        // These fakes explicitly request the built-in server. Respect a
+        // value seeded by a case that exercises the disabled path.
+        if config.vessel_mcp.is_some() {
+            let mut saved = config.data_dir.read_settings().unwrap().unwrap_or_default();
+            let _ = saved
+                .vessel_tools
+                .get_or_insert(vessel_proto::mcp::Injection::On);
+            config.data_dir.write_settings(&saved).unwrap();
+        }
         Node::start(config).await.unwrap()
     }
 

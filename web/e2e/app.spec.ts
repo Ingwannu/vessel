@@ -55,7 +55,7 @@ test("Settings lists the machines with what they report", async ({ page }) => {
   const about = page.getByRole("list", { name: "About gpu-box" });
   await expect(about).toContainText("protocol");
   await expect(
-    page.getByRole("list", { name: "Agents on gpu-box" }),
+    page.getByRole("list", { name: "Providers on gpu-box" }),
   ).toContainText("Claude Code");
 });
 

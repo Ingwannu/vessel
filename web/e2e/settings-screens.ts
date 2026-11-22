@@ -146,7 +146,7 @@ async function sections(
 
   await machines.getByRole("link", { name: "laptop" }).click();
   await expect(
-    page.getByRole("list", { name: "Agents on laptop" }),
+    page.getByRole("list", { name: "Providers on laptop" }),
   ).toBeVisible();
   await capture(page, `62-machine-open-${scheme}`, 1500);
 

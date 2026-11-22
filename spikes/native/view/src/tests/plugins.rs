@@ -59,6 +59,7 @@ fn settings(plugins_enabled: bool) -> NodeSettings {
         plugins_enabled,
         terminal_agent_hooks: false,
         terminal_profiles: None,
+        vessel_tools: None,
     }
 }
 
