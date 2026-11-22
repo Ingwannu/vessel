@@ -75,7 +75,7 @@ pub const fn direct(kind: HarnessKind) -> Option<&'static Direct> {
     }
 }
 
-/// Checked against the app-server schema of Codex 0.166.0 (ADR 0057).
+/// Checked against the app-server schemas of Codex 0.166.0 and 0.169.0 (ADR 0057).
 /// Selectable from the driver's slice 2: it asks a person what Codex
 /// asks, with Codex's own choices.
 const CODEX: Direct = Direct {
@@ -83,7 +83,7 @@ const CODEX: Direct = Direct {
     // JSON-RPC over stdio is the app-server's default transport.
     args: &["app-server"],
     oldest: Version::new(0, 166, 0),
-    newest_checked: Version::new(0, 166, 0),
+    newest_checked: Version::new(0, 169, 0),
     selectable: true,
 };
 
@@ -254,10 +254,11 @@ mod tests {
             }
         );
         assert_eq!(codex.fit(Some("codex-cli 0.166.0")), VersionFit::Checked);
+        assert_eq!(codex.fit(Some("codex-cli 0.169.0")), VersionFit::Checked);
         assert_eq!(
             codex.fit(Some("codex-cli 0.170.2")),
             VersionFit::Newer {
-                newest_checked: Version::new(0, 166, 0)
+                newest_checked: Version::new(0, 169, 0)
             }
         );
         assert_eq!(codex.fit(None), VersionFit::Unknown);

@@ -413,3 +413,26 @@ it (`selectable` true). Choices made here:
 - **Checked**: `schema/app-server.json` grows to the 61 definitions the
   driver follows; the contract test checks each field and value used,
   and that a granted permission profile has the requested one's shape.
+
+### Codex 0.169.0 contract (TRACKER 847)
+
+The managed contract check compares the 61 kept definitions to the
+installed Codex 0.169.0 schema, including both thread launch requests and
+their developer instructions. The selected definitions cover the
+driver's current `text` and `mention` input, session identity, thread
+items, completion notifications and approval requests. This keeps the
+snapshot small enough to inspect while a definition change still fails
+the exact comparison.
+
+The 0.169.0 snapshot adds an optional `requiredHumanApproval` capability
+for presenting `humanCommand` and returning a one-time decision.
+Paseo 0.15.4 omits it in
+`packages/server/src/server/agent/providers/codex-app-server-agent.ts:3327–3337`.
+The Vessel handshake likewise advertises its existing capabilities, so
+the existing approval request and reply path remains authoritative.
+A serialization test pins the advertised capabilities.
+
+The other changes are optional completion token telemetry, an attached
+thread ID, optional message moderation, and the audio input URL or file
+ID shape. The direct driver accepts Codex from 0.166.0, with 0.169.0 as
+the latest checked release.

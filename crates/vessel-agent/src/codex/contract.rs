@@ -6,7 +6,7 @@
 //! - Purpose: Codex's protocol moves between releases (0.166.0 dropped
 //!   `thread/rollback`). A field renamed under the driver must fail here,
 //!   not read as absent in a session.
-//! - Choice: the definitions the driver uses, as Codex 0.166.0's
+//! - Choice: the definitions the driver uses, as Codex 0.169.0's
 //!   `generate-json-schema --experimental` wrote them, are checked in. One
 //!   test checks the driver's fields against that file (always run); one
 //!   regenerates the file's definitions from the `codex` on `PATH` and
@@ -29,11 +29,11 @@ use std::process::Command;
 
 use serde_json::Value;
 
-/// The definitions the driver follows (Codex 0.166.0).
+/// The definitions the driver follows (Codex 0.169.0).
 const SCHEMA: &str = include_str!("schema/app-server.json");
 
-/// The oldest Codex these definitions were checked against.
-const CHECKED: (u64, u64, u64) = (0, 166, 0);
+/// The Codex release that generated the checked-in schema.
+const CHECKED: (u64, u64, u64) = (0, 169, 0);
 
 /// Set (to anything) to regenerate the definitions from the installed
 /// Codex: the gate's own step does (AGENTS.md section 1).
@@ -313,6 +313,28 @@ fn a_permission_is_granted_in_the_shape_it_was_asked() {
     assert_eq!(
         asked,
         &definitions["GrantedPermissionProfile"]["properties"]
+    );
+}
+
+#[test]
+fn initialize_advertises_the_existing_capabilities() {
+    use super::protocol::{ClientInfo, InitializeCapabilities, InitializeParams};
+
+    let params = InitializeParams {
+        client_info: ClientInfo {
+            name: "vessel",
+            title: "Vessel",
+            version: "fixture",
+        },
+        capabilities: InitializeCapabilities {
+            experimental_api: true,
+        },
+    };
+    // The generated schema's optional humanCommand capability carries a
+    // separate approval request. The existing handshake keeps its own scope.
+    assert_eq!(
+        serde_json::to_value(params).unwrap()["capabilities"],
+        serde_json::json!({"experimentalApi": true})
     );
 }
 
