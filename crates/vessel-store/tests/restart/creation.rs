@@ -9,7 +9,7 @@ async fn failed_eligibility_insert_rolls_back_the_session_and_the_same_id_can_be
     let connection = rusqlite::Connection::open(dir.database_path()).unwrap();
     connection.execute_batch("CREATE TRIGGER reject_restart BEFORE INSERT ON restart_state BEGIN SELECT RAISE(ABORT,'synthetic projection failure'); END;").unwrap();
     assert!(
-        let _created = store
+        store
             .create_session_with_restart(session.clone(), RestartEligibility::Person)
             .await
             .is_err()
