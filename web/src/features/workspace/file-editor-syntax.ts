@@ -1,5 +1,5 @@
 import { StreamLanguage, syntaxTree } from "@codemirror/language";
-import type { Range } from "@codemirror/state";
+import type { Extension, Range } from "@codemirror/state";
 import {
   Decoration,
   type DecorationSet,
@@ -44,14 +44,14 @@ const MARK = new Map([
   streamMark("tag"),
 ]);
 
-type StreamState = {
+interface StreamState {
   nextLine: LineState;
   parts: readonly Token[];
   next: number;
-};
+}
 
 /** Keep block-comment state in CodeMirror's parser and share the reader's classes. */
-export function fileEditorSyntax(language: Language) {
+export function fileEditorSyntax(language: Language): Extension {
   const lexer = StreamLanguage.define<StreamState>({
     name: language.name,
     startState: () => ({ nextLine: "code", parts: [], next: 0 }),
