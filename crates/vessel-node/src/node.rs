@@ -157,7 +157,7 @@ impl Node {
             workspace_labels: secure.service.0.workspace_labels.clone(),
             runtime,
             settings,
-            tasks,
+            tasks: tasks.clone(),
             forwarders,
             closing,
             connections: connections.clone(),
@@ -181,6 +181,8 @@ impl Node {
         relays.serve(secure.clone(), connections.clone());
         let gateway =
             LocalGateway::new(rpc, token, connections, agents, &secure, config.rpc.clone());
+        // Register before serving can start teardown. The listeners are already bound.
+        crate::service::recovery::start(&secure.service, &tasks, stop.clone());
         let task = tokio::spawn(serve(
             router,
             (local, gateway),
@@ -478,7 +480,6 @@ async fn core(
         },
     )
     .await;
-    crate::service::recovery::start(&service, &tasks, stop.clone());
     Ok(Core {
         runtime,
         settings,
