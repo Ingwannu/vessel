@@ -21,7 +21,11 @@ async fn the_cli_distinguishes_supported_recovery_from_an_unassigned_protocol() 
         assert!(shown.ok, "{}", shown.stderr);
         if RESTART_RECOVERY_PROTOCOL.is_some() {
             assert!(shown.stdout.contains("startup recovery: on"));
-            assert!(shown.stdout.contains("resume prompt: synthetic continuation"));
+            assert!(
+                shown
+                    .stdout
+                    .contains("resume prompt: synthetic continuation")
+            );
             let off = f
                 .vessel(&["node", "settings", "--resume-on-startup", "off"], b"")
                 .await;

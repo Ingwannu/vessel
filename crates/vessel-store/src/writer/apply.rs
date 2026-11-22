@@ -280,7 +280,12 @@ fn append(
 
 impl Effects {
     /// Both ordinary appends and checkpoint batches retain the head's post-commit wakes.
-    pub(super) fn appended(&mut self, session: SessionId, records: &[Arc<EventRecord>], ended: bool) {
+    pub(super) fn appended(
+        &mut self,
+        session: SessionId,
+        records: &[Arc<EventRecord>],
+        ended: bool,
+    ) {
         let _first = self.touched.insert(session);
         self.ended |= ended;
         // ADR 0089 observes any event that changes outstanding attention.

@@ -56,11 +56,11 @@ use tokio_util::task::TaskTracker;
 
 mod admission;
 mod opening;
+mod recovery_apply;
 #[cfg(test)]
 mod settlement_tests;
 #[cfg(test)]
 mod shutdown_tests;
-mod recovery_apply;
 mod writer;
 pub(crate) use opening::Opening;
 use recovery_apply::RecoveryApply;
@@ -82,7 +82,10 @@ pub(crate) enum SettingsError {
     #[error("the node is stopping; settings cannot be changed")]
     Stopping,
     /// The waiting lane refused this operation before any work.
-    #[error("settings queue is full; at most {} changes may wait", admission::SettingsAdmission::MAX_WAITING)]
+    #[error(
+        "settings queue is full; at most {} changes may wait",
+        admission::SettingsAdmission::MAX_WAITING
+    )]
     Full,
     #[error("the settings operation ended without a reply")]
     Consumer(#[source] tokio::sync::oneshot::error::RecvError),
@@ -187,7 +190,14 @@ impl Settings {
         #[cfg(test)] fixture_store: Option<tempfile::TempDir>,
     ) -> Self {
         let recovery = RecoveryApply::new(opening.recovery_policy(), store);
-        let Opening { data_dir, saved, flag, flag_given, kept, later } = opening;
+        let Opening {
+            data_dir,
+            saved,
+            flag,
+            flag_given,
+            kept,
+            later,
+        } = opening;
         let hooks = crate::agent_hooks::Applier::new(crate::agent_hooks::Targets::of(
             runtime.harness_env(),
         ));
@@ -267,7 +277,10 @@ impl Settings {
         change: SetNodeSettings,
     ) -> Result<NodeSettings, SettingsError> {
         validate(&change)?;
-        self.admission.submit(change)?.await.map_err(SettingsError::Consumer)?
+        self.admission
+            .submit(change)?
+            .await
+            .map_err(SettingsError::Consumer)?
     }
 
     pub(crate) fn seal(&self) {
@@ -373,9 +386,13 @@ impl State {
             next.vessel_tools = Some(injection);
         }
         if let Some(recovery) = change.restart_recovery {
-            next.restart_recovery = Some(recovery.over(
-                next.restart_recovery.as_ref().unwrap_or(&Default::default()),
-            ));
+            next.restart_recovery = Some(
+                recovery.over(
+                    next.restart_recovery
+                        .as_ref()
+                        .unwrap_or(&Default::default()),
+                ),
+            );
         }
         self.persist(saved, next).await
     }

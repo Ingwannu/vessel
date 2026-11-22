@@ -46,7 +46,8 @@ async fn slow_at_turn_end(fixture: &Fixture, delay: Duration) -> SessionHandle {
     drop(tokio::spawn(async move {
         let mut durable = durable;
         while let Some(entry) = durable.recv().await {
-            if matches!(&entry, vessel_session::JournalEntry::Event(record) if turn_end(&record.event)) {
+            if matches!(&entry, vessel_session::JournalEntry::Event(record) if turn_end(&record.event))
+            {
                 tokio::time::sleep(delay).await;
             }
             if sender.send(entry).await.is_err() {

@@ -60,7 +60,8 @@ mod tests {
     fn the_startup_snapshot_carries_policy_and_copy_requirement_together() {
         let home = tempfile::tempdir().unwrap();
         let dir = DataDir::new(home.path());
-        let raw = br#"{"restart_recovery":{"enabled":true,"prompt":" Keep working.\n","future":true}}"#;
+        let raw =
+            br#"{"restart_recovery":{"enabled":true,"prompt":" Keep working.\n","future":true}}"#;
         std::fs::write(dir.settings_path(), raw).unwrap();
         let (saved, later) = dir.read_settings_snapshot().unwrap();
         assert!(later);

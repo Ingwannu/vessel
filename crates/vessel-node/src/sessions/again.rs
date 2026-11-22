@@ -202,7 +202,11 @@ impl Sessions {
             + Sync
             + 'static,
     {
-        Ok(self.runtime.with_preparation(gate).prepare_again(continued(ended), launch).await?)
+        Ok(self
+            .runtime
+            .with_preparation(gate)
+            .prepare_again(continued(ended), launch)
+            .await?)
     }
 
     /// After synchronous spawn admission this must settle, including when

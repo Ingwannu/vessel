@@ -213,12 +213,15 @@ async fn identical_typed_words_parking_ending_and_node_stop_cancel_inflight_work
             handle.send(prompt()).await.unwrap();
             given(&handle).await;
             let dir = vessel_store::DataDir::new(fixture.data.path());
-            let settings = Arc::new(crate::settings::Settings::open(
-                dir,
-                Arc::clone(&fixture.runtime),
-                ParkAfter::Never,
-                false,
-            ).await);
+            let settings = Arc::new(
+                crate::settings::Settings::open(
+                    dir,
+                    Arc::clone(&fixture.runtime),
+                    ParkAfter::Never,
+                    false,
+                )
+                .await,
+            );
             let _current = settings
                 .change(SetNodeSettings {
                     metadata: Some(manual()),

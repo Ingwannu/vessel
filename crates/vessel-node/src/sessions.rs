@@ -34,8 +34,8 @@ use tokio::sync::{mpsc, watch};
 use tokio_util::task::TaskTracker;
 use vessel_harness::{ModelProxy, Profile};
 use vessel_proto::{
-    EventSeq, HarnessRef, OptionChoice, ProfileName, SessionId, SessionInfo,
-    SessionOption, SessionTitle,
+    EventSeq, HarnessRef, OptionChoice, ProfileName, SessionId, SessionInfo, SessionOption,
+    SessionTitle,
 };
 use vessel_session::{ProfileMove, SessionHandle, SessionRuntime};
 use vessel_store::Store;
@@ -465,7 +465,6 @@ impl Sessions {
             .ranked_history(harness, launch, dir, folder, ranked)
             .await?)
     }
-
 }
 
 // Protocol 10's marks and deletion, and starting an ended session again;

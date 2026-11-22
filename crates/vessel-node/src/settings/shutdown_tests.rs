@@ -44,18 +44,15 @@ async fn teardown_drains_saved_off_and_queued_on_before_runtime_and_store_close(
         entered.await.unwrap();
         caller.abort();
         assert!(caller.await.unwrap_err().is_cancelled());
-        let saved_off = settings
-            .state
-            .data_dir
-            .read_settings()
-            .unwrap()
-            .unwrap();
+        let saved_off = settings.state.data_dir.read_settings().unwrap().unwrap();
         assert!(!saved_off.restart_recovery.unwrap().effective().enabled);
         assert!(settings.state.saved.try_lock().is_err());
         assert!(!settings.recovery_policy().snapshot().0.enabled);
         let mut queued_on = Box::pin(settings.change(recovery(true)));
         assert!(matches!(futures_util::poll!(&mut queued_on), Poll::Pending));
-        let workspace_labels = crate::workspace_labels::Labels::open(store.clone()).await.unwrap();
+        let workspace_labels = crate::workspace_labels::Labels::open(store.clone())
+            .await
+            .unwrap();
         let teardown = crate::shutdown::Teardown {
             workspace_labels,
             runtime: Arc::clone(&settings.state.runtime),
@@ -72,7 +69,11 @@ async fn teardown_drains_saved_off_and_queued_on_before_runtime_and_store_close(
         assert!(store.sessions().await.is_ok());
         let (_, generation) = settings.recovery_policy().snapshot();
         assert_eq!(
-            settings.recovery_policy().check(generation).unwrap_err().code,
+            settings
+                .recovery_policy()
+                .check(generation)
+                .unwrap_err()
+                .code,
             ErrorCode::Unavailable
         );
         release.send(()).unwrap();
@@ -85,7 +86,11 @@ async fn teardown_drains_saved_off_and_queued_on_before_runtime_and_store_close(
         ));
         let (_, generation) = settings.recovery_policy().snapshot();
         assert_eq!(
-            settings.recovery_policy().check(generation).unwrap_err().code,
+            settings
+                .recovery_policy()
+                .check(generation)
+                .unwrap_err()
+                .code,
             ErrorCode::Unavailable
         );
     })
@@ -127,7 +132,11 @@ async fn now_and_drain_seal_the_settings_and_effect_owners_synchronously() {
             assert_eq!(stop.is_cancelled(), matches!(when, StopWhen::Now));
             let (_, generation) = settings.recovery_policy().snapshot();
             assert_eq!(
-                settings.recovery_policy().check(generation).unwrap_err().code,
+                settings
+                    .recovery_policy()
+                    .check(generation)
+                    .unwrap_err()
+                    .code,
                 ErrorCode::Unavailable
             );
             assert!(matches!(

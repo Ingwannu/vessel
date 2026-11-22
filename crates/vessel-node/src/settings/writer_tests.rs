@@ -46,12 +46,15 @@ impl Gate {
 }
 
 pub(super) async fn settings(root: &std::path::Path) -> Arc<Settings> {
-    Arc::new(Settings::open(
-        DataDir::new(root),
-        runtime_with_stop(root, tokio_util::sync::CancellationToken::new()),
-        ParkAfter::DEFAULT,
-        false,
-    ).await)
+    Arc::new(
+        Settings::open(
+            DataDir::new(root),
+            runtime_with_stop(root, tokio_util::sync::CancellationToken::new()),
+            ParkAfter::DEFAULT,
+            false,
+        )
+        .await,
+    )
 }
 
 pub(super) fn runtime_with_stop(
@@ -94,7 +97,10 @@ async fn cancelled_caller_cannot_release_the_real_writer_or_reorder_application(
         // This is false with the old RPC-owned guard: cancellation lets the
         // next write overtake the still-paused real filesystem replacement.
         assert!(settings.state.saved.try_lock().is_err());
-        assert_eq!(settings.state.runtime.park_after(), ParkAfter::DEFAULT.duration());
+        assert_eq!(
+            settings.state.runtime.park_after(),
+            ParkAfter::DEFAULT.duration()
+        );
         let mut second = Box::pin(settings.change(patch(ParkAfter::DEFAULT)));
         assert!(matches!(futures_util::poll!(&mut second), Poll::Pending));
         release.send(()).unwrap();
@@ -102,7 +108,10 @@ async fn cancelled_caller_cannot_release_the_real_writer_or_reorder_application(
         settings.shutdown().await;
         assert_eq!(applied.park_after, ParkAfter::DEFAULT);
         assert_eq!(settings.current().await, applied);
-        assert_eq!(settings.state.runtime.park_after(), applied.park_after.duration());
+        assert_eq!(
+            settings.state.runtime.park_after(),
+            applied.park_after.duration()
+        );
         assert_eq!(
             settings
                 .state
@@ -197,13 +206,19 @@ async fn cancelled_metadata_write_keeps_the_later_file_and_the_next_patch_policy
         assert!(matches!(futures_util::poll!(&mut policy), Poll::Pending));
         let mut next = Box::pin(settings.change(patch(ParkAfter::DEFAULT)));
         assert!(matches!(futures_util::poll!(&mut next), Poll::Pending));
-        assert_eq!(settings.state.runtime.park_after(), ParkAfter::DEFAULT.duration());
+        assert_eq!(
+            settings.state.runtime.park_after(),
+            ParkAfter::DEFAULT.duration()
+        );
         release.send(()).unwrap();
         assert_eq!(policy.await, desired);
         let applied = next.await.unwrap();
         settings.shutdown().await;
         assert_eq!(applied.metadata, Some(desired.clone()));
-        assert_eq!(settings.state.runtime.park_after(), applied.park_after.duration());
+        assert_eq!(
+            settings.state.runtime.park_after(),
+            applied.park_after.duration()
+        );
         assert_eq!(
             dir.read_settings().unwrap().unwrap().metadata,
             Some(desired.clone())
@@ -258,7 +273,13 @@ async fn metadata_shutdown_joins_apply_and_refuses_a_late_policy_change() {
         assert_eq!(settings.current().await.metadata, Some(desired.clone()));
         assert_eq!(settings.state.runtime.park_after(), None);
         assert_eq!(
-            settings.state.data_dir.read_settings().unwrap().unwrap().metadata,
+            settings
+                .state
+                .data_dir
+                .read_settings()
+                .unwrap()
+                .unwrap()
+                .metadata,
             Some(desired.clone())
         );
         assert!(matches!(

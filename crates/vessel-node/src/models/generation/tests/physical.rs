@@ -29,12 +29,15 @@ async fn start(
     tasks: &TaskTracker,
     stop: &CancellationToken,
 ) -> (tokio::task::JoinHandle<()>, Arc<Settings>) {
-    let settings = Arc::new(Settings::open(
-        DataDir::new(fixture.data.path()),
-        Arc::clone(&fixture.runtime),
-        ParkAfter::Never,
-        false,
-    ).await);
+    let settings = Arc::new(
+        Settings::open(
+            DataDir::new(fixture.data.path()),
+            Arc::clone(&fixture.runtime),
+            ParkAfter::Never,
+            false,
+        )
+        .await,
+    );
     let _changed = settings
         .change(SetNodeSettings {
             metadata: Some(manual()),

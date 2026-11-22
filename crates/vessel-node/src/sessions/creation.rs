@@ -69,7 +69,11 @@ impl Sessions {
         options: LaunchOptions,
         restart_eligible: vessel_store::RestartEligibility,
     ) -> Result<SessionInfo, ServiceError> {
-        let Created { initial, handle, durable } = self.runtime.create_with(spec, options).await?;
+        let Created {
+            initial,
+            handle,
+            durable,
+        } = self.runtime.create_with(spec, options).await?;
         let id = handle.id();
         // Visible from here on (see the module docs). Readers that need the
         // log wait on the watch until persistence starts below.

@@ -96,10 +96,7 @@ async fn the_consumer_outlives_the_last_handle_but_does_not_retain_itself() {
         drained.await;
         assert!(state.upgrade().is_none());
         assert_eq!(
-            data.read_settings()
-                .unwrap()
-                .unwrap()
-                .park_after,
+            data.read_settings().unwrap().unwrap().park_after,
             Some(ParkAfter::DEFAULT)
         );
     })

@@ -128,7 +128,9 @@ impl NodeService {
         let reopening = loop {
             let mut changed = self.recovery.policy.watch();
             let inject = self.launcher.has_tools()
-                && self.stage(context, self.settings.inject_vessel_tools()).await?;
+                && self
+                    .stage(context, self.settings.inject_vessel_tools())
+                    .await?;
             let grant = self
                 .stage(context, self.devices.recovery_grant(creator))
                 .await??;

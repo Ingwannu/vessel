@@ -34,7 +34,10 @@ pub(crate) struct RecoveryApply {
 }
 impl RecoveryApply {
     pub(super) fn new(value: RestartRecovery, store: Store) -> Self {
-        Self { policy: Arc::new(Policy::new(value)), store }
+        Self {
+            policy: Arc::new(Policy::new(value)),
+            store,
+        }
     }
     pub(super) fn policy(&self) -> Arc<Policy> {
         Arc::clone(&self.policy)

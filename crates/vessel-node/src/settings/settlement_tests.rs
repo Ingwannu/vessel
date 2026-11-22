@@ -43,12 +43,7 @@ async fn failed_actual_off_replacement_keeps_the_previous_saved_policy_and_can_r
                 .restart_recovery
                 .enabled
         );
-        let saved = settings
-            .state
-            .data_dir
-            .read_settings()
-            .unwrap()
-            .unwrap();
+        let saved = settings.state.data_dir.read_settings().unwrap().unwrap();
         assert!(!saved.restart_recovery.unwrap().effective().enabled);
         settings.shutdown().await;
     })
@@ -150,12 +145,7 @@ async fn ordinary_patches_preserve_the_saved_recovery_patch_and_verbatim_prompt(
             })
             .await
             .unwrap();
-        let saved = settings
-            .state
-            .data_dir
-            .read_settings()
-            .unwrap()
-            .unwrap();
+        let saved = settings.state.data_dir.read_settings().unwrap().unwrap();
         assert_eq!(saved.restart_recovery, Some(recovery.clone()));
         assert_eq!(
             settings.current().await.restart_recovery,

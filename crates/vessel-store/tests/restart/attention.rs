@@ -37,7 +37,10 @@ async fn checkpoint_records_wake_attention_after_commit_even_when_the_checkpoint
     // while its preceding event still commits and reaches attention readers.
     let (matched, updated_at) = checkpoint.into_parts();
     assert!(!matched);
-    assert_eq!(store.session(session.id).await.unwrap().unwrap().updated_at, updated_at);
+    assert_eq!(
+        store.session(session.id).await.unwrap().unwrap().updated_at,
+        updated_at
+    );
     assert!(notifications.has_changed().unwrap());
     assert!(store.inbox_head().await.unwrap() > before);
     store.close().await;

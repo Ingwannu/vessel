@@ -71,12 +71,10 @@ pub(crate) async fn run(
             return Persisted::Incomplete;
         }
         let result = match &batch.barrier {
-            Some((change, _reply)) => {
-                store
-                    .checkpoint_restart(session, batch.records, *change)
-                    .await
-                    .map(vessel_store::SessionCommit::into_parts)
-            }
+            Some((change, _reply)) => store
+                .checkpoint_restart(session, batch.records, *change)
+                .await
+                .map(vessel_store::SessionCommit::into_parts),
             None => store
                 .append_committed(session, batch.records)
                 .await

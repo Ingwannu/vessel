@@ -20,9 +20,20 @@ impl Opening {
     pub(crate) fn read(data_dir: DataDir, flag: ParkAfter, flag_given: bool) -> Self {
         let (saved, kept, later) = match data_dir.read_settings_snapshot() {
             Ok((saved, later)) => (saved, None, later),
-            Err(error) => (SetNodeSettings::default(), super::set_aside(&data_dir, &error), false),
+            Err(error) => (
+                SetNodeSettings::default(),
+                super::set_aside(&data_dir, &error),
+                false,
+            ),
         };
-        Self { data_dir, saved, flag, flag_given, kept, later }
+        Self {
+            data_dir,
+            saved,
+            flag,
+            flag_given,
+            kept,
+            later,
+        }
     }
 
     pub(crate) fn recovery_policy(&self) -> RestartRecovery {
@@ -31,8 +42,8 @@ impl Opening {
 }
 
 pub(super) fn recovery_policy(saved: &SetNodeSettings) -> RestartRecovery {
-    saved.restart_recovery.as_ref().map_or_else(
-        RestartRecovery::default,
-        SetRestartRecovery::effective,
-    )
+    saved
+        .restart_recovery
+        .as_ref()
+        .map_or_else(RestartRecovery::default, SetRestartRecovery::effective)
 }

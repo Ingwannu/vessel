@@ -37,8 +37,12 @@ impl NodeService {
                 }
                 SettingsError::NoDirect(_) => ErrorCode::Unsupported,
                 // The node's own file needs a person's hand first.
-                SettingsError::Kept(_) | SettingsError::Stopping | SettingsError::Full => ErrorCode::Conflict,
-                SettingsError::Write(_) | SettingsError::Lost(_) | SettingsError::Consumer(_)
+                SettingsError::Kept(_) | SettingsError::Stopping | SettingsError::Full => {
+                    ErrorCode::Conflict
+                }
+                SettingsError::Write(_)
+                | SettingsError::Lost(_)
+                | SettingsError::Consumer(_)
                 | SettingsError::Recovery(_) => ErrorCode::Internal,
             };
             if matches!(code, ErrorCode::Internal | ErrorCode::Conflict) {
