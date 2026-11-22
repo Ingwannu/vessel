@@ -116,9 +116,13 @@ impl NodeService {
     /// what a person's own would ("Integration 3 (node)").
     pub(super) async fn put_away(&self, session: SessionId) -> Result<SessionInfo, ServiceError> {
         let archived = self.sessions.mark(session, Mark::Archive).await?;
+        self.release_archived_session(session).await;
+        Ok(archived)
+    }
+
+    pub(super) async fn release_archived_session(&self, session: SessionId) {
         self.unwatch_session(session);
         self.terminals.end_beside(session).await;
-        Ok(archived)
     }
 
     /// `session.delete`: remove an ended session whole, and the worktree

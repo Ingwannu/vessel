@@ -145,6 +145,7 @@ pub(crate) enum Control {
     SideQuestion(crate::side_questions::SidePrompt),
     Queue(Change),
     Cancel(Cancel),
+    StopIfIdle(oneshot::Sender<Result<crate::IdleStop, crate::SessionError>>),
     /// Park or wake the agent (protocol 12).
     Park(ParkOrder),
     /// Take the conversation back to a turn's end (protocol 14, ADR 0052).

@@ -150,6 +150,14 @@ impl StructuredActor {
                         Some(Control::SideQuestion(order)) => self.side_question(order).await,
                         Some(Control::Queue(order)) => self.change_queue(order).await,
                         Some(Control::Cancel(order)) => self.cancel(order).await,
+                        Some(Control::StopIfIdle(reply)) => {
+                            let stopped = self.stop_if_idle();
+                            if stopped == crate::IdleStop::Stopped {
+                                control_open = false;
+                                self.control.close();
+                            }
+                            let _gone = reply.send(Ok(stopped));
+                        }
                         Some(Control::Park(order)) => self.park_order(order).await,
                         Some(Control::Rewind(order)) => self.rewind(order).await,
                         Some(Control::Reload(order)) => self.reload(*order).await,
@@ -210,6 +218,20 @@ impl StructuredActor {
             }
         };
         self.life.status(&mut self.agent, status).await;
+    }
+
+    /// A delivery ordered before this check owns its turn or its queue entry.
+    /// Once the stop is admitted, later orders cannot enter that queue.
+    fn stop_if_idle(&self) -> crate::IdleStop {
+        if !self.ready
+            || self.desk.running()
+            || !self.desk.queue.is_empty()
+            || self.life.out.waiting_for_answers()
+        {
+            return crate::IdleStop::Busy;
+        }
+        self.life.stop.request();
+        crate::IdleStop::Stopped
     }
 
     /// A restarted agent's replay (a move, a wake, a session started

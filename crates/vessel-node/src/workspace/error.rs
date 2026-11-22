@@ -28,6 +28,9 @@ pub(crate) enum WorkspaceError {
     /// A retained workspace or interrupted backing reservation owns this project.
     #[error("project {0} has retained workspace ownership; use workspace lifecycle actions")]
     RegistryProjectOwned(ProjectId),
+    /// A retained workspace or interrupted reservation owns this exact worktree.
+    #[error("worktree {0} has retained workspace ownership; use workspace lifecycle actions")]
+    RegistryWorktreeOwned(WorktreeId),
     /// No such worktree.
     #[error("no worktree {0} on this machine")]
     UnknownWorktree(WorktreeId),
@@ -135,7 +138,9 @@ impl WorkspaceError {
             | Self::UnknownSnapshot(_)
             | Self::NoSuchPath(_) => ErrorCode::NotFound,
             Self::Invalid(_) => ErrorCode::InvalidRequest,
-            Self::Conflict(_) | Self::RegistryProjectOwned(_) => ErrorCode::Conflict,
+            Self::Conflict(_) | Self::RegistryProjectOwned(_) | Self::RegistryWorktreeOwned(_) => {
+                ErrorCode::Conflict
+            }
             Self::Busy(_) | Self::Git(GitError::TimedOut { .. }) => ErrorCode::Unavailable,
             Self::Git(_) | Self::Store(_) | Self::Io(_) | Self::ProjectTask(_) => {
                 ErrorCode::Internal

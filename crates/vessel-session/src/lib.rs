@@ -147,7 +147,7 @@ pub use error::{
     DeliveryError, InputKind, ModeKind, ParkRefusal, RemoveError, RewindRefusal, SessionError,
 };
 pub use forge::ForgeView;
-pub use handle::{SessionHandle, TitleUpdate};
+pub use handle::{IdleStop, SessionHandle, TitleUpdate};
 pub use moving::{MoveError, ProfileMove, Restart};
 pub use queue::QueueError;
 pub use reload::{NotReloadable, Reload, UserPrompts};

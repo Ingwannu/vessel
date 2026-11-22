@@ -5,6 +5,7 @@ mod input;
 mod metadata;
 mod title;
 pub(crate) use metadata::MetadataChange;
+pub use input::IdleStop;
 pub use title::TitleUpdate;
 pub(crate) use title::{Rename, RenameChange};
 

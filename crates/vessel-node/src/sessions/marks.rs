@@ -46,7 +46,7 @@ use std::sync::Arc;
 
 use chrono::Utc;
 use vessel_proto::{EventSeq, Mark, SessionId, SessionInfo};
-use vessel_session::{RemoveError, SessionHandle};
+use vessel_session::{IdleStop, RemoveError, SessionError, SessionHandle};
 use vessel_store::Residence;
 
 use super::{Found, Sessions};
@@ -113,16 +113,62 @@ impl Sessions {
                     let _final = handle.ended().await;
                 }
                 let _order = sessions.marking.lock().await;
-                let committed = sessions
-                    .store
-                    .mark_committed(id, mark, Utc::now(), Residence::Loaded)
-                    .await?;
-                let (kept, updated_at) = committed.into_parts();
-                handle.set_committed_marks(kept, updated_at);
-                Ok(handle.info())
+                sessions.commit_live_mark(&handle, mark).await
             })
             .await
             .map_err(ServiceError::Task)?
+    }
+
+    /// Schedule cleanup is ordered with deliveries by the actor and with
+    /// reopens by the marking lease. The task retains both decisions when
+    /// the caller leaves after an admitted stop.
+    pub(crate) async fn archive_idle(
+        self: &Arc<Self>,
+        id: SessionId,
+    ) -> Result<IdleStop, ServiceError> {
+        let order = self.marking_lease().await;
+        let sessions = Arc::clone(self);
+        self.tasks
+            .spawn(async move {
+                let _order = order;
+                if let Found::Live { handle, .. } = sessions.find(id).await? {
+                    match handle.stop_if_idle().await {
+                        Ok(IdleStop::Busy) | Err(SessionError::Moving) => {
+                            return Ok(IdleStop::Busy);
+                        }
+                        Ok(IdleStop::Stopped) | Err(SessionError::Ended) => {
+                            let _final = handle.ended().await;
+                        }
+                        Err(error) => return Err(error.into()),
+                    }
+                    if !handle.conversation()?.queue.entries.is_empty() {
+                        return Ok(IdleStop::Busy);
+                    }
+                    let _archived = sessions.commit_live_mark(&handle, Mark::Archive).await?;
+                } else {
+                    if !sessions.conversation(id).await?.queue.entries.is_empty() {
+                        return Ok(IdleStop::Busy);
+                    }
+                    let _archived = sessions.store.mark(id, Mark::Archive, Utc::now()).await?;
+                }
+                Ok(IdleStop::Stopped)
+            })
+            .await
+            .map_err(ServiceError::Task)?
+    }
+
+    async fn commit_live_mark(
+        &self,
+        handle: &SessionHandle,
+        mark: Mark,
+    ) -> Result<SessionInfo, ServiceError> {
+        let committed = self
+            .store
+            .mark_committed(handle.id(), mark, Utc::now(), Residence::Loaded)
+            .await?;
+        let (kept, updated_at) = committed.into_parts();
+        handle.set_committed_marks(kept, updated_at);
+        Ok(handle.info())
     }
 
     /// Human-only Read-scoped ingress; it cannot perform any general mark.

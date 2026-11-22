@@ -7,6 +7,7 @@ use std::time::Duration;
 
 use vessel_proto::automation::{AfterRun, RunEnd, RunOutcome, ScheduleRun, ScheduleTarget};
 use vessel_proto::{EventSeq, SessionId, SessionStatus};
+use vessel_session::IdleStop;
 
 use super::NodeService;
 use crate::automation::schedules::{FollowSender, Followed, Job};
@@ -79,16 +80,10 @@ impl NodeService {
     /// service's one path, so its terminals and services end and its pull
     /// request is no longer watched, as a person's archive does.
     async fn archive_if_idle(&self, session: SessionId) {
-        let idle = self
-            .sessions
-            .conversation(session)
-            .await
-            .is_ok_and(|conversation| conversation.queue.entries.is_empty());
-        if !idle {
-            return;
-        }
-        if let Err(error) = self.put_away(session).await {
-            tracing::warn!(%session, %error, "cannot archive a schedule's session");
+        match self.sessions.archive_idle(session).await {
+            Ok(IdleStop::Stopped) => self.release_archived_session(session).await,
+            Ok(IdleStop::Busy) => {}
+            Err(error) => tracing::warn!(%session, %error, "cannot archive a schedule's session"),
         }
     }
 

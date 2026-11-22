@@ -16,7 +16,25 @@ use crate::error::{DeliveryError, InputKind, ParkRefusal, SessionError};
 use crate::moving::Control;
 use crate::parking::Route;
 
+/// An admission decision made in the same actor that admits prompts.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum IdleStop {
+    /// The stop has been admitted. Wait for the final status before archiving.
+    Stopped,
+    /// The actor still has work or cannot currently admit a stop.
+    Busy,
+}
+
 impl SessionHandle {
+    /// Stop a structured session only between turns and with an empty queue.
+    ///
+    /// # Errors
+    /// A session that cannot take actor orders is refused as in [Self::prompt].
+    pub async fn stop_if_idle(&self) -> Result<IdleStop, SessionError> {
+        let route = self.structured("an idle stop")?;
+        self.order(route, Control::StopIfIdle).await
+    }
+
     /// Send input to the session.
     ///
     /// Terminal input waits while the program's input queue is full.

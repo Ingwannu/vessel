@@ -38,6 +38,7 @@ use vessel_proto::workspace::{
     IfLost, KeptReason, ProjectCommands, RemoveWorktreeOutcome, WorktreeInfo,
 };
 use vessel_proto::{SessionId, WorktreeId};
+use vessel_store::WorkspaceArchiveClaim;
 
 use crate::workspace::projects::Occupant;
 use crate::workspace::setup::Kind;
@@ -58,6 +59,7 @@ pub(crate) enum TidyScope {
 enum RemovalPurpose {
     Requested,
     Tidy,
+    Archive(WorkspaceArchiveClaim),
 }
 
 fn kept(reasons: Vec<KeptReason>) -> RemoveWorktreeOutcome {
@@ -80,6 +82,18 @@ impl Workspaces {
         live: impl FnOnce() -> Vec<(Occupant, PathBuf)>,
     ) -> Result<RemoveWorktreeOutcome, WorkspaceError> {
         self.remove(worktree, if_lost, RemovalPurpose::Requested, live)
+            .await
+    }
+
+    /// Use the same occupancy and Git inspection as ordinary removal.
+    /// A matching archive claims only its exclusive backing and keeps work.
+    pub(in crate::workspace) async fn remove_registry_backing(
+        self: &Arc<Self>,
+        claim: WorkspaceArchiveClaim,
+        worktree: WorktreeId,
+        live: impl FnOnce() -> Vec<(Occupant, PathBuf)>,
+    ) -> Result<RemoveWorktreeOutcome, WorkspaceError> {
+        self.remove(worktree, IfLost::Keep, RemovalPurpose::Archive(claim), live)
             .await
     }
 
@@ -186,7 +200,11 @@ impl Workspaces {
         // Serialize against provisioning before checking ownership. The task
         // retains this exact bounded hold through teardown, git and Store ack.
         let admission = self.admit_project(project).await?;
-        self.require_no_registry_reference(project).await?;
+        let archive = match purpose {
+            RemovalPurpose::Archive(claim) => Some(claim),
+            RemovalPurpose::Requested | RemovalPurpose::Tidy => None,
+        };
+        self.check_backing_removal(worktree, archive).await?;
         let claim = self.stop.child_token();
         let (info, root, written) = {
             let mut state = self.state();
