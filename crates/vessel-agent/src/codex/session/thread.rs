@@ -1,6 +1,7 @@
 //! Thread start and resume share the native developer-instruction channel.
 
 use serde_json::Value;
+use vessel_proto::settings::AppendSystemPrompt;
 use vessel_proto::{AgentAbilities, AgentEvent, HarnessSessionId};
 
 use super::{Pending, Session, handshake_failed, version_of};
@@ -54,7 +55,7 @@ impl Session {
         let cwd = self.setup.cwd.display().to_string();
         let model = self.setup.model.as_ref().map(ToString::to_string);
         let prompt = self.launched.append_system_prompt.clone();
-        let developer_instructions = prompt.as_ref().map(|prompt| prompt.effective());
+        let developer_instructions = prompt.as_ref().map(AppendSystemPrompt::effective);
         let sent = if let Some(thread) = &self.setup.resume {
             let params = ThreadResumeParams {
                 thread_id: thread.to_string(),
