@@ -40,6 +40,7 @@ pub(super) fn lock_data_dir(
 /// What sessions are created with: the node's profiles and the launch seam.
 pub(super) struct SessionSetup {
     pub(super) profiles: Arc<NodeProfiles>,
+    pub(super) settings: crate::settings::Opening,
     /// The model routes and the proxy's tokens (ADR 0015).
     pub(super) models: Arc<Models>,
     pub(super) launcher: Launcher,
@@ -74,6 +75,7 @@ impl SessionSetup {
         id: NodeId,
         profiles: NodeProfiles,
         models: Arc<Models>,
+        settings: crate::settings::Opening,
         SetupDirs {
             mcp,
             probe,
@@ -89,6 +91,7 @@ impl SessionSetup {
         let source: Arc<dyn McpSource> = Arc::<FleetMcp>::clone(&fleet_mcp);
         Self {
             profiles: Arc::new(profiles),
+            settings,
             models,
             private_dir: mcp.clone(),
             launcher: Launcher::new(mcp, source, tools),
@@ -261,9 +264,19 @@ impl Startup {
             models,
             dirs,
         } = super::prepare_off_thread(config).await?;
-        let store = super::open_store(config).await?;
+        // The directory lock covers this snapshot and every later write.
+        let data_dir = config.data_dir.clone();
+        let flag = vessel_proto::parking::ParkAfter::from_duration(config.park_after);
+        let flag_given = config.park_after_given;
+        let settings = tokio::task::spawn_blocking(move || {
+            crate::settings::Opening::read(data_dir, flag, flag_given)
+        })
+        .await
+        .map_err(NodeError::Task)?;
+        let store = open_store(config, settings.recovery_policy().enabled).await?;
         let (models, proxy) = model_proxy(models).await?;
-        let session_setup = SessionSetup::new(config, id, profiles, Arc::clone(&models), dirs);
+        let session_setup =
+            SessionSetup::new(config, id, profiles, Arc::clone(&models), settings, dirs);
         Ok(Self {
             id,
             token,
@@ -277,6 +290,28 @@ impl Startup {
             relaying,
         })
     }
+}
+
+/// Open the event log, closing sessions a previous run left live.
+async fn open_store(
+    config: &Config,
+    recovery_enabled: bool,
+) -> Result<vessel_store::Store, NodeError> {
+    let vessel_store::Opened { store, interrupted } =
+        vessel_store::Store::open_with_restart_policy(
+            &config.data_dir,
+            config.store,
+            recovery_enabled,
+        )
+        .await
+        .map_err(NodeError::Store)?;
+    if !interrupted.is_empty() {
+        tracing::info!(
+            sessions = interrupted.len(),
+            "sessions from the previous run are now interrupted"
+        );
+    }
+    Ok(store)
 }
 
 /// The session runtime, whose structured sessions load their prompts'
@@ -302,6 +337,7 @@ pub(super) fn runtime(
             CancellationToken::new(),
         )
         .with_attachments(loader)
+        .with_restart_journal()
         .with_admission(admission),
     )
 }

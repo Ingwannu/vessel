@@ -84,14 +84,14 @@ mod tests {
     use super::*;
     use crate::{Created, RuntimeConfig, SessionHandle};
     use crate::{DEFAULT_DURABLE_CAPACITY, DEFAULT_HANDSHAKE_TIMEOUT, DEFAULT_RING_CAPACITY};
-    use std::{path::PathBuf, sync::Arc, time::Duration};
+    use std::{path::PathBuf, time::Duration};
     use tokio::sync::mpsc;
     use tokio_util::sync::{CancellationToken, DropGuard};
     use vessel_harness::{
         HarnessEnv, Lookup,
         fakes::{Role, install},
     };
-    use vessel_proto::{EventRecord, HarnessKind, SessionMode, SessionSpec, SessionStatus};
+    use vessel_proto::{HarnessKind, SessionMode, SessionSpec, SessionStatus};
     use vessel_testkit::Fake;
 
     const SAFETY_NET: Duration = Duration::from_secs(60);
@@ -175,7 +175,7 @@ mod tests {
             source.changed().await.unwrap();
         }
     }
-    async fn drain(mut source: mpsc::Receiver<Arc<EventRecord>>) {
+    async fn drain(mut source: mpsc::Receiver<crate::JournalEntry>) {
         while source.recv().await.is_some() {}
     }
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]

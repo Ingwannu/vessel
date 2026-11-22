@@ -16,6 +16,10 @@ use vessel_store::{ApprovalChange, StoreConfig};
 )]
 mod fixtures;
 
+#[cfg(test)]
+#[path = "support/registry_rollback.rs"]
+mod registry_rollback;
+
 /// Undoes schemas 16 to 10: the inbox and push subscriptions, the usage
 /// ledger, side plans, search,
 /// schedules, saved prompts, hooks, the set an approval covered, and pull
@@ -94,7 +98,7 @@ async fn an_old_approval_survives_current_migrations_and_new_ones_keep_their_set
     connection
         .execute_batch("ALTER TABLE sessions DROP COLUMN labels;")
         .unwrap();
-    fixtures::undo_registry_schema(&connection);
+    registry_rollback::undo_registry_schema(&connection);
     connection.execute_batch(UNDO_SCHEMAS_10_TO_16).unwrap();
     let _row = connection
         .execute(

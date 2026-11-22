@@ -370,3 +370,6 @@ async fn sigterm_detaches_cleanly() {
     })
     .await;
 }
+
+#[cfg(test)]
+mod restart_settings;

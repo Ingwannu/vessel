@@ -9,6 +9,11 @@ accessor and the single method table. The remaining sections are the complete
 recovery contract, not a statement that those runtime paths exist in R1.
 No implementation approval is implied by acceptance of the contract.
 
+The F-L24 [port](../plans/restart-recovery-port.md) integrates the node
+runtime, Store, CLI and page on the current node line. The named protocol
+stays pending until integration has the receiving clients. References to
+R1 below describe that initial slice.
+
 ## Reference and existing parts
 
 Paseo's `packages/server/src/server/agent/restart-recovery/index.ts` and

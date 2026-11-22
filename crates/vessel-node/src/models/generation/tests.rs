@@ -213,12 +213,15 @@ async fn identical_typed_words_parking_ending_and_node_stop_cancel_inflight_work
             handle.send(prompt()).await.unwrap();
             given(&handle).await;
             let dir = vessel_store::DataDir::new(fixture.data.path());
-            let settings = Arc::new(crate::settings::Settings::open(
-                dir,
-                Arc::clone(&fixture.runtime),
-                ParkAfter::Never,
-                false,
-            ));
+            let settings = Arc::new(
+                crate::settings::Settings::open(
+                    dir,
+                    Arc::clone(&fixture.runtime),
+                    ParkAfter::Never,
+                    false,
+                )
+                .await,
+            );
             let _current = settings
                 .change(SetNodeSettings {
                     metadata: Some(manual()),
@@ -274,7 +277,7 @@ async fn later_file_metadata_survives_an_unrelated_patch_and_reopen() {
             "metadata": {"future":true,"providers":[{"route":"sonnet","future":true,"effort":"future"}]}
         })).unwrap();
         std::fs::write(dir.settings_path(), &raw).unwrap();
-        let settings = Arc::new(crate::settings::Settings::open(dir.clone(), Arc::clone(&fixture.runtime), ParkAfter::Never, false));
+        let settings = Arc::new(crate::settings::Settings::open(dir.clone(), Arc::clone(&fixture.runtime), ParkAfter::Never, false).await);
         let metadata = settings.metadata().await;
         assert_eq!(metadata.providers()[0].effort, Some(vessel_proto::settings::MetadataEffort::Unknown));
         assert!(fixture.models.validate_metadata(&metadata).is_err());
@@ -287,7 +290,7 @@ async fn later_file_metadata_survives_an_unrelated_patch_and_reopen() {
             .filter(|path| path.file_name().unwrap().to_string_lossy().starts_with("settings.json.later-")).collect();
         assert_eq!(copies.len(), 1);
         assert_eq!(std::fs::read(&copies[0]).unwrap(), raw);
-        let reopened = crate::settings::Settings::open(dir, Arc::clone(&fixture.runtime), ParkAfter::Never, false);
+        let reopened = crate::settings::Settings::open(dir, Arc::clone(&fixture.runtime), ParkAfter::Never, false).await;
         assert_eq!(reopened.metadata().await, metadata);
         fixture.stop().await;
     }).await;

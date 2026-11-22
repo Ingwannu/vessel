@@ -13,6 +13,10 @@ use vessel_store::StoreConfig;
 )]
 mod fixtures;
 
+#[cfg(test)]
+#[path = "support/registry_rollback.rs"]
+mod registry_rollback;
+
 const BEFORE_TITLE_ORIGIN_SCHEMA: i64 = 17;
 
 #[tokio::test]
@@ -115,7 +119,7 @@ async fn pre_origin_schema_titles_are_unknown_including_explicit_ones() {
     connection
         .execute_batch("ALTER TABLE sessions DROP COLUMN listing;")
         .unwrap();
-    fixtures::undo_registry_schema(&connection);
+    registry_rollback::undo_registry_schema(&connection);
     connection
         .execute_batch(
             "ALTER TABLE sessions DROP COLUMN detach_receipt;

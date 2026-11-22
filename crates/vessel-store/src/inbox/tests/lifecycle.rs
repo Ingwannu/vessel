@@ -181,7 +181,10 @@ fn migrate_again_without_inbox(db: &mut Connection) {
         .unwrap();
     db.execute_batch("ALTER TABLE sessions DROP COLUMN updated_at;")
         .unwrap();
-    db.execute_batch("DROP TABLE notification_claims;").unwrap();
+    db.execute_batch(
+        "DROP TABLE restart_state; DROP TABLE restart_control; DROP TABLE notification_claims;",
+    )
+    .unwrap();
     db.execute_batch("ALTER TABLE sessions DROP COLUMN listing;")
         .unwrap();
     db.execute_batch("DROP TABLE workspace_registry_resources; DROP TABLE workspace_registry_reservations; DROP TABLE workspace_registry; DROP TABLE workspace_registry_meta;").unwrap();

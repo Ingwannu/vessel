@@ -58,6 +58,7 @@ pub mod pairing;
 mod pinned;
 mod prompts;
 mod push;
+mod restart;
 mod resume;
 mod schedules;
 pub mod secure;

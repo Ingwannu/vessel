@@ -64,6 +64,10 @@ DROP TABLE inbox_tools;
 #[path = "support/fixtures.rs"]
 mod fixtures;
 
+#[cfg(test)]
+#[path = "support/registry_rollback.rs"]
+mod registry_rollback;
+
 #[tokio::test]
 async fn appended_records_read_back_in_pages() {
     let (_temp, dir) = data_dir();
@@ -682,7 +686,7 @@ async fn sessions_from_schema_3_have_no_origin() {
     connection
         .execute_batch("ALTER TABLE sessions DROP COLUMN labels;")
         .unwrap();
-    fixtures::undo_registry_schema(&connection);
+    registry_rollback::undo_registry_schema(&connection);
     connection.execute_batch(UNDO_SCHEMAS_7_TO_16).unwrap();
     connection
         .execute_batch(
@@ -722,7 +726,7 @@ async fn sessions_from_schema_2_read_as_the_owners_on_the_default() {
     connection
         .execute_batch("ALTER TABLE sessions DROP COLUMN labels;")
         .unwrap();
-    fixtures::undo_registry_schema(&connection);
+    registry_rollback::undo_registry_schema(&connection);
     connection.execute_batch(UNDO_SCHEMAS_7_TO_16).unwrap();
     connection
         .execute_batch(
@@ -774,7 +778,7 @@ async fn a_sessions_model_is_stored_and_older_ones_have_none() {
     connection
         .execute_batch("ALTER TABLE sessions DROP COLUMN labels;")
         .unwrap();
-    fixtures::undo_registry_schema(&connection);
+    registry_rollback::undo_registry_schema(&connection);
     connection.execute_batch(UNDO_SCHEMAS_7_TO_16).unwrap();
     connection
         .execute_batch(

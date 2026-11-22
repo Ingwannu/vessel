@@ -84,6 +84,12 @@ pub(crate) enum NodeCommand {
         /// access.
         #[arg(long, value_enum)]
         plugins: Option<super::Switch>,
+        /// Continue interrupted active turns at daemon start (default: off).
+        #[arg(long, value_enum)]
+        resume_on_startup: Option<super::Switch>,
+        /// Exact nonblank continuation text, also editable while off.
+        #[arg(long)]
+        resume_prompt: Option<vessel_proto::automation::PromptText>,
     },
 }
 
@@ -210,3 +216,6 @@ mod tests {
         assert!(driver("gemini=acp").is_err(), "no protocol of its own");
     }
 }
+
+#[cfg(test)]
+mod restart_tests;

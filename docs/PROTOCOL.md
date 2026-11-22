@@ -1122,6 +1122,18 @@ Two methods, one optional field, two records; types in
   restarts (`settings.json`) and wins over `--park-after`; it applies to
   live sessions at once. A node older than 12 answers `unsupported`.
 
+### Pending startup recovery settings (ADR 0059)
+
+`RESTART_RECOVERY_PROTOCOL` gates the explicit Read request
+`node.settings {include_restart_recovery: true}` and the Admin patch
+`node.set_settings {restart_recovery: {enabled?, prompt?}}` at every hop.
+The methods retain their host-local scope rules. Each patch member preserves
+the saved value when omitted. The default is disabled with `Resume working.`.
+The `PromptText` byte bound and character validation also apply while off.
+An older reply omits the recovery field. Clients use an explicit read to
+confirm support before showing a default Off. Integration assigns the named
+protocol when its receiving clients are ready.
+
 ## Version 11 (2026-11-12, milestone 11, wave 2)
 
 Nodes speak 2..=11. Wave 2's protocol, raised once for the whole wave;

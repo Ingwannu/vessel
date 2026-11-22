@@ -76,6 +76,8 @@ impl sql::Registry for CanonicalRegistry {
             | StoreError::Thread(_)
             | StoreError::UsageBusy(_)
             | StoreError::MutationTime { .. }
+            | StoreError::RestartChanged(_)
+            | StoreError::RestartGenerationExhausted(_)
             | StoreError::Task(_)) => error,
         })
     }

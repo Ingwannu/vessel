@@ -13,7 +13,8 @@ use crate::structured::StructuredActor;
 impl StructuredActor {
     /// Carry out a `session.queue` change and answer it.
     pub(crate) async fn change_queue(&mut self, order: Change) {
-        let result = self.change(order.change).await;
+        self.desk.admission = order.generation;
+        let result = self.change(order.action).await;
         let _gone = order.reply.send(result);
     }
 
@@ -22,6 +23,7 @@ impl StructuredActor {
         let Some(end) = self.desk.ended.take() else {
             return;
         };
+        self.desk.admission = self.desk.accepted;
         match end {
             TurnEnd::Done => {
                 let _started = self.advance().await;
