@@ -85,7 +85,7 @@ async fn call(
 ) -> Result<NodeSettings, Problem> {
     use vessel_proto::settings::{GetNodeSettings, SetNodeSettings};
     let answer = match change {
-        None => client.call(GetNodeSettings {}).await,
+        None => client.call(GetNodeSettings::default()).await,
         Some(park_after) => {
             client
                 .call(SetNodeSettings {

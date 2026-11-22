@@ -27,12 +27,19 @@ pub(super) fn since(request: &SetNodeSettings, method: ProtocolVersion) -> Optio
         Some(_) => Some(crate::mcp::VESSEL_TOOLS_PROTOCOL?.get()),
         None => None,
     };
-    let base = drivers.max(plugins).max(hooks).max(profiles).max(tools);
+    let recovery = match request.restart_recovery {
+        Some(_) => Some(crate::restart::RESTART_RECOVERY_PROTOCOL?.get()),
+        None => None,
+    };
     let metadata = if request.metadata.is_some() {
         Some(crate::GENERATED_NAMES?.get())
     } else {
         None
     };
-    let fields = base.max(metadata).unwrap_or_default();
+    let fields = [drivers, plugins, hooks, profiles, tools, recovery, metadata]
+        .into_iter()
+        .flatten()
+        .max()
+        .unwrap_or_default();
     Some(method.max(ProtocolVersion::new(fields)))
 }
