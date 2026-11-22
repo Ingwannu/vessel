@@ -1636,9 +1636,8 @@ transport are a following stage, not exposed by these value definitions.
 patch values using the existing bounded `PromptText`. The feature protocol is
 unassigned. Both settings replies pass through peer projection, including the
 existing recursive envelope walker; an unassigned field stays hidden from every
-peer. The node's existing response builder supplies only the disabled default.
-There is no recovery settings engine, request registration or startup service
-in this value-only slice; those remain for the staged and wiring slices.
+peer. The explicit settings read also requires the named protocol. Clients
+treat a missing field as default Off only after that read succeeds.
 
 ## Ended conversations in the page (ADR 0036 amendment)
 
@@ -1897,6 +1896,12 @@ atomic file replacement and application, even if the RPC caller leaves.
 The node closes admission before shutdown and settles accepted changes
 while runtime and Store are available (ADR 0064 and ADR 0059).
 
+The host system prompt uses that writer to publish a committed supplement
+to the session runtime. The physical launch takes its own snapshot and gives
+it only to a proved native transport. Ordinary settings projections carry
+transport support, while the Admin endpoint retrieves the saved text.
+See the [host prompt plan](plans/host-append-system-prompt.md).
+
 ### Session restart recovery
 
 Startup uses one validated settings snapshot for Store normalization and
@@ -1916,12 +1921,6 @@ Store. An admitted prompt keeps its own outcome. See
 [`plans/restart-recovery-port.md`](plans/restart-recovery-port.md) for the
 port decisions and [`ADR 0059`](adr/0059-resume-interrupted-turns-at-node-start.md)
 for the full contract.
-
-The host system prompt uses that writer to publish a committed supplement
-to the session runtime. The physical launch takes its own snapshot and gives
-it only to a proved native transport. Ordinary settings projections carry
-transport support, while the Admin endpoint retrieves the saved text.
-See the [host prompt plan](plans/host-append-system-prompt.md).
 
 ## Bounded node diagnostics (ADR 0074)
 
