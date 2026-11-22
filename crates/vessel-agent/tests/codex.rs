@@ -19,10 +19,11 @@ use support::{
 };
 
 #[tokio::test]
-async fn the_native_thread_receives_the_trimmed_supplement_and_can_clear_it_on_resume() {
+async fn the_native_thread_receives_the_trimmed_supplement_and_omits_a_blank_prompt() {
     within(async {
         for (resume, saved, expected) in [
             (None, " \n Fixture instruction. \n", "Fixture instruction."),
+            (None, " \n", ""),
             (
                 Some("fixture-original"),
                 " New instruction. ",

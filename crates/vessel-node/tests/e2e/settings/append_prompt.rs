@@ -145,7 +145,7 @@ env = { FAKE_CODEX_EXPECT_DEVELOPER_INSTRUCTIONS_FILE = ".expected-instructions"
     let said = ask(&owner, &mut running.stream, &mut running.seen, id, "plain").await;
     assert_eq!(said, "fake reply: plain");
 
-    // A blank host value must reach the same conversation on the next launch.
+    // Clearing the host value leaves Codex to choose its default on resume.
     let _cleared = owner
         .call(SetNodeSettings {
             append_system_prompt: Some(AppendSystemPrompt::default()),

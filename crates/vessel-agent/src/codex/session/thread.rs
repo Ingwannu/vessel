@@ -55,13 +55,12 @@ impl Session {
         let cwd = self.setup.cwd.display().to_string();
         let model = self.setup.model.as_ref().map(ToString::to_string);
         let prompt = self.launched.append_system_prompt.clone();
-        let developer_instructions = prompt.as_ref().map(AppendSystemPrompt::effective);
+        let developer_instructions = developer_instructions(prompt.as_ref());
         let sent = if let Some(thread) = &self.setup.resume {
             let params = ThreadResumeParams {
                 thread_id: thread.to_string(),
                 cwd,
                 model,
-                // Explicit blank clears a supplement on an existing thread.
                 developer_instructions,
                 approval_policy: self.mode.approval(),
                 approvals_reviewer: self.mode.reviewer(),
@@ -74,7 +73,7 @@ impl Session {
             let params = ThreadStartParams {
                 cwd,
                 model,
-                developer_instructions: developer_instructions.filter(|value| !value.is_empty()),
+                developer_instructions,
                 approval_policy: self.mode.approval(),
                 approvals_reviewer: self.mode.reviewer(),
                 sandbox: self.mode.sandbox(),
@@ -127,5 +126,36 @@ impl Session {
             self.emit(AgentEvent::HarnessLog { line }).await;
         }
         None
+    }
+}
+
+fn developer_instructions(prompt: Option<&AppendSystemPrompt>) -> Option<&str> {
+    // Omission leaves Codex's configured default available on a resumed thread.
+    prompt
+        .map(AppendSystemPrompt::effective)
+        .filter(|value| !value.is_empty())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::codex::protocol::{ApprovalsReviewer, AskForApproval, SandboxMode};
+
+    #[test]
+    fn a_blank_host_prompt_is_omitted_from_the_resume_payload() {
+        let prompt = " \n ".parse::<AppendSystemPrompt>().unwrap();
+        let params = ThreadResumeParams {
+            thread_id: "fixture-thread".to_owned(),
+            cwd: "/fixture".to_owned(),
+            model: None,
+            developer_instructions: developer_instructions(Some(&prompt)),
+            approval_policy: AskForApproval::OnRequest,
+            approvals_reviewer: ApprovalsReviewer::User,
+            sandbox: SandboxMode::WorkspaceWrite,
+            exclude_turns: true,
+        };
+        let payload = serde_json::to_value(params).unwrap();
+        assert!(payload.get("developerInstructions").is_none());
+        assert_eq!(payload["threadId"], "fixture-thread");
     }
 }

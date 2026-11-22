@@ -24,19 +24,12 @@ in `host-page.tsx:983–1089`.
   value, so it applies on restart, reload and wake as well as on create.
 - Effect. The first supported transport is Codex app-server. Its
   `developerInstructions` field carries the supplement on thread start and
-  resume. An explicit blank on resume clears a prior supplement, while a
-  fresh thread without a supplement follows the provider's usual defaults.
+  resume. Both omit the field when the supplement is blank, so Codex can
+  use the person's configured default. This follows Paseo's resume payload
+  (`codex-app-server-agent.ts:4076–4091`, `agent/system-prompt.ts:1–10`).
   ACP cannot carry the setting. The Claude and OpenCode direct drivers
   remain unavailable on this receiving line. Support is added when each
   driver is usable and its native delivery passes the provider fixtures.
-
-Paseo omits `developerInstructions` on resume when its composed prompt is
-empty (`codex-app-server-agent.ts:4076–4091`, `agent/system-prompt.ts:1–10`).
-Vessel sends an empty value on resume to clear a host supplement that Codex
-may retain with the thread. This can also clear the user's configured Codex
-`developer_instructions` default for that resumed thread. On a fresh thread,
-Vessel omits the field when the supplement is empty, so Codex keeps its
-configured default.
 
 The node stores the setting with its other owner-only settings. The saved
 type masks Debug output and the Codex handshake masks provider refusals that
@@ -47,12 +40,13 @@ The shared Vessel dialog has a 520 px desktop width. Paseo sets 560 px
 for its editor, and Vessel's shared kit offers 520 px and 640 px sizes.
 
 The wire tests exercise the shared boundary and older replies. The settings
-fixture covers Admin scope, saved value across reboot, explicit clearing and
+fixture covers Admin scope, saved value across reboot, clearing and
 ordinary settings projection. With the protocol assigned, it also starts a
 Codex session through the node, clears the setting and reloads the same
 conversation. The fake checks the native parameters on both physical
-launches and echoes a synthetic rejection in a driver test to exercise
-redaction.
+launches and requires the key to be absent after clearing. A unit test
+also checks the serialized resume payload. A synthetic rejection tests
+refusal redaction.
 
 Provider reference at Paseo 0.15.4 is
 `packages/server/src/server/agent/providers/codex-app-server-agent.ts:3838–3850,5386–5401`.
