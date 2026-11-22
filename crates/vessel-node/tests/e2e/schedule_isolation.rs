@@ -13,7 +13,7 @@ use vessel_proto::registry::{
     WorkspaceLifecycle, WorkspaceResource,
 };
 use vessel_proto::workspace::{AddProject, SessionPlace, SetupChoice, WorktreeBranch};
-use vessel_proto::{ProjectId, ScheduleId, SessionId};
+use vessel_proto::{ProjectId, ScheduleId, SessionId, WorkspaceId};
 
 use crate::support::{Fixture, step, structured_spec, within};
 use crate::workspace::{lookup, repository};
@@ -91,6 +91,50 @@ async fn run(
     session
 }
 
+async fn release_keep(
+    owner: &NodeClient,
+    session: SessionId,
+    kept_workspace: WorkspaceId,
+    next_workspace: WorkspaceId,
+) {
+    assert!(
+        snapshot(owner)
+            .await
+            .workspaces
+            .iter()
+            .any(|workspace| workspace.id == kept_workspace
+                && workspace.lifecycle == WorkspaceLifecycle::Active)
+    );
+    let archived = owner
+        .mark(session, vessel_proto::Mark::Archive)
+        .await
+        .unwrap();
+    assert!(archived.marks.archived_at.is_some());
+    step(
+        "the kept workspace retires on its person's Archive",
+        async {
+            loop {
+                let registry = snapshot(owner).await;
+                if registry.workspaces.iter().any(|workspace| {
+                    workspace.id == kept_workspace
+                        && matches!(workspace.lifecycle, WorkspaceLifecycle::Archived { .. })
+                }) {
+                    assert!(
+                        registry
+                            .workspaces
+                            .iter()
+                            .any(|workspace| workspace.id == next_workspace
+                                && workspace.lifecycle == WorkspaceLifecycle::Active)
+                    );
+                    break;
+                }
+                tokio::time::sleep(Duration::from_millis(30)).await;
+            }
+        },
+    )
+    .await;
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn scheduled_local_members_keep_distinct_ids_and_managed_archives_remove_only_their_backing()
 {
@@ -152,49 +196,12 @@ async fn scheduled_local_members_keep_distinct_ids_and_managed_archives_remove_o
         assert_eq!(first_local.lifecycle, WorkspaceLifecycle::Active);
         assert_eq!(second_local.lifecycle, WorkspaceLifecycle::Active);
 
-        let kept_workspace = first_local.id;
-        let next_workspace = second_local.id;
         node.stop().await.unwrap();
         let node = fixture
             .start_with(|config| config.harness_lookup = lookup(&fixture))
             .await;
         let owner = fixture.connect(&node).await;
-        assert!(
-            snapshot(&owner)
-                .await
-                .workspaces
-                .iter()
-                .any(|workspace| workspace.id == kept_workspace
-                    && workspace.lifecycle == WorkspaceLifecycle::Active)
-        );
-        let archived = owner
-            .mark(first, vessel_proto::Mark::Archive)
-            .await
-            .unwrap();
-        assert!(archived.marks.archived_at.is_some());
-        step(
-            "the kept workspace retires on its person's Archive",
-            async {
-                loop {
-                    let registry = snapshot(&owner).await;
-                    if registry.workspaces.iter().any(|workspace| {
-                        workspace.id == kept_workspace
-                            && matches!(workspace.lifecycle, WorkspaceLifecycle::Archived { .. })
-                    }) {
-                        assert!(
-                            registry
-                                .workspaces
-                                .iter()
-                                .any(|workspace| workspace.id == next_workspace
-                                    && workspace.lifecycle == WorkspaceLifecycle::Active)
-                        );
-                        break;
-                    }
-                    tokio::time::sleep(Duration::from_millis(30)).await;
-                }
-            },
-        )
-        .await;
+        release_keep(&owner, first, first_local.id, second_local.id).await;
 
         let managed = owner
             .create_schedule(
