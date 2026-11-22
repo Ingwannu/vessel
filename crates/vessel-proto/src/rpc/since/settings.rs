@@ -32,7 +32,12 @@ pub(super) fn since(request: &SetNodeSettings, method: ProtocolVersion) -> Optio
     } else {
         None
     };
-    let base = drivers.max(plugins).max(hooks).max(profiles).max(tools).max(prompt);
+    let base = drivers
+        .max(plugins)
+        .max(hooks)
+        .max(profiles)
+        .max(tools)
+        .max(prompt);
     let metadata = if request.metadata.is_some() {
         Some(crate::GENERATED_NAMES?.get())
     } else {

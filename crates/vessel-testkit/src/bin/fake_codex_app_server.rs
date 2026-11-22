@@ -312,13 +312,21 @@ impl Server {
         if let Ok(expected) = std::env::var("FAKE_CODEX_EXPECT_DEVELOPER_INSTRUCTIONS")
             && instructions != Some(expected.as_str())
         {
-            return self.refuse(id, -32602, "developer instructions differed from the fixture");
+            return self.refuse(
+                id,
+                -32602,
+                "developer instructions differed from the fixture",
+            );
         }
         if let Some(path) = std::env::var_os("FAKE_CODEX_EXPECT_DEVELOPER_INSTRUCTIONS_FILE") {
             // A fixture can change its expectation between physical launches of one session.
             let expected = std::fs::read_to_string(path).ok();
             if expected.is_none() || instructions != expected.as_deref() {
-                return self.refuse(id, -32602, "developer instructions differed from the fixture");
+                return self.refuse(
+                    id,
+                    -32602,
+                    "developer instructions differed from the fixture",
+                );
             }
         }
         if std::env::var_os("FAKE_CODEX_REJECT_DEVELOPER_INSTRUCTIONS").is_some()

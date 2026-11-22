@@ -74,7 +74,12 @@ pub(crate) fn launch(
     _setup: &AgentSetup,
     append_system_prompt: Option<AppendSystemPrompt>,
 ) -> Result<(CommandSpec, Launched), AgentError> {
-    Ok((command.clone(), Launched { append_system_prompt }))
+    Ok((
+        command.clone(),
+        Launched {
+            append_system_prompt,
+        },
+    ))
 }
 
 /// Drive one session over the agent's stdio until it ends, as

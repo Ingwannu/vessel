@@ -23,20 +23,26 @@ async fn the_native_thread_receives_the_trimmed_supplement_and_can_clear_it_on_r
     within(async {
         for (resume, saved, expected) in [
             (None, " \n Fixture instruction. \n", "Fixture instruction."),
-            (Some("fixture-original"), " New instruction. ", "New instruction."),
+            (
+                Some("fixture-original"),
+                " New instruction. ",
+                "New instruction.",
+            ),
             (Some("fixture-original"), " \n", ""),
         ] {
             let command = command().env("FAKE_CODEX_EXPECT_DEVELOPER_INSTRUCTIONS", expected);
-            let (_agent, _input, mut outputs) = vessel_agent::AgentProcess::spawn_with_append_prompt(
-                Driver::CodexAppServer,
-                &command,
-                setup(resume),
-                Some(saved.parse().unwrap()),
-            )
-            .unwrap();
+            let (_agent, _input, mut outputs) =
+                vessel_agent::AgentProcess::spawn_with_append_prompt(
+                    Driver::CodexAppServer,
+                    &command,
+                    setup(resume),
+                    Some(saved.parse().unwrap()),
+                )
+                .unwrap();
             let _outputs = ready(&mut outputs).await;
         }
-    }).await;
+    })
+    .await;
 }
 
 #[tokio::test]
@@ -51,10 +57,17 @@ async fn a_native_thread_refusal_cannot_echo_the_supplement() {
             Some(marker.parse().unwrap()),
         )
         .unwrap();
-        let outputs = until(&mut outputs, |output| matches!(output, AgentOutput::Disconnected(_))).await;
+        let outputs = until(&mut outputs, |output| {
+            matches!(output, AgentOutput::Disconnected(_))
+        })
+        .await;
         assert!(!format!("{outputs:?}").contains(marker));
-        assert!(matches!(outputs.last(), Some(AgentOutput::Disconnected(Disconnect::Handshake { .. }))));
-    }).await;
+        assert!(matches!(
+            outputs.last(),
+            Some(AgentOutput::Disconnected(Disconnect::Handshake { .. }))
+        ));
+    })
+    .await;
 }
 
 #[cfg(test)]

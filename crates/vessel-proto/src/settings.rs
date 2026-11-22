@@ -387,12 +387,27 @@ mod tests {
         let older = crate::ProtocolVersion::new(current.get() - 1);
         let mut settings: NodeSettings =
             serde_json::from_str(r#"{"park_after":{"kind":"never"}}"#).unwrap();
-        settings.append_system_prompt_transports = Some(vec![AppendPromptTransport::CodexAppServer]);
-        assert!(settings.for_append_system_prompt_protocol(current, Some(current)).is_none());
-        assert!(settings.for_append_system_prompt_protocol(older, Some(current))
-            .unwrap().append_system_prompt_transports.is_none());
-        assert!(settings.for_append_system_prompt_protocol(current, None)
-            .unwrap().append_system_prompt_transports.is_none());
+        settings.append_system_prompt_transports =
+            Some(vec![AppendPromptTransport::CodexAppServer]);
+        assert!(
+            settings
+                .for_append_system_prompt_protocol(current, Some(current))
+                .is_none()
+        );
+        assert!(
+            settings
+                .for_append_system_prompt_protocol(older, Some(current))
+                .unwrap()
+                .append_system_prompt_transports
+                .is_none()
+        );
+        assert!(
+            settings
+                .for_append_system_prompt_protocol(current, None)
+                .unwrap()
+                .append_system_prompt_transports
+                .is_none()
+        );
     }
 
     #[test]

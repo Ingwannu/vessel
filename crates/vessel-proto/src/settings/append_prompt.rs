@@ -5,7 +5,10 @@ use std::{fmt, str::FromStr, sync::Arc};
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de::Error as _};
 
-use crate::{ProtocolVersion, automation::{AutomationText, InvalidAutomationText}};
+use crate::{
+    ProtocolVersion,
+    automation::{AutomationText, InvalidAutomationText},
+};
 
 /// Saved host prompts and the private read share one receiving-peer threshold.
 pub const APPEND_SYSTEM_PROMPT_PROTOCOL: Option<ProtocolVersion> = None;
@@ -27,11 +30,10 @@ impl FromStr for AppendSystemPrompt {
     type Err = InvalidAutomationText;
 
     fn from_str(text: &str) -> Result<Self, Self::Err> {
-        AutomationText::validate_prompt_bytes(text)
-            .map_err(|problem| InvalidAutomationText {
-                kind: AutomationText::PromptText,
-                problem,
-            })?;
+        AutomationText::validate_prompt_bytes(text).map_err(|problem| InvalidAutomationText {
+            kind: AutomationText::PromptText,
+            problem,
+        })?;
         Ok(Self(Arc::from(text)))
     }
 }
@@ -50,7 +52,9 @@ impl Serialize for AppendSystemPrompt {
 
 impl<'de> Deserialize<'de> for AppendSystemPrompt {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        String::deserialize(deserializer)?.parse().map_err(D::Error::custom)
+        String::deserialize(deserializer)?
+            .parse()
+            .map_err(D::Error::custom)
     }
 }
 
@@ -84,6 +88,10 @@ mod tests {
         assert_eq!(" \n".parse::<AppendSystemPrompt>().unwrap().effective(), "");
         assert!(!format!("{value:?}").contains("Synthetic"));
         assert!("internal\0text".parse::<AppendSystemPrompt>().is_err());
-        assert!(" ".repeat(AutomationText::PROMPT_MAX + 1).parse::<AppendSystemPrompt>().is_err());
+        assert!(
+            " ".repeat(AutomationText::PROMPT_MAX + 1)
+                .parse::<AppendSystemPrompt>()
+                .is_err()
+        );
     }
 }

@@ -5,7 +5,9 @@ use vessel_proto::{AgentAbilities, AgentEvent, HarnessSessionId};
 
 use super::{Pending, Session, handshake_failed, version_of};
 use crate::codex::mode::Mode;
-use crate::codex::protocol::{InitializeResponse, ThreadOpened, ThreadResumeParams, ThreadStartParams};
+use crate::codex::protocol::{
+    InitializeResponse, ThreadOpened, ThreadResumeParams, ThreadStartParams,
+};
 use crate::codex::wire::RpcError;
 use crate::error::Disconnect;
 use crate::handshake::ForkRefusal;
@@ -14,7 +16,10 @@ use crate::output::AgentOutput;
 
 impl Session {
     /// `initialize` answered: say who the agent is, then open the thread.
-    pub(super) async fn initialized(&mut self, answer: Result<Value, RpcError>) -> Option<Disconnect> {
+    pub(super) async fn initialized(
+        &mut self,
+        answer: Result<Value, RpcError>,
+    ) -> Option<Disconnect> {
         let response: InitializeResponse = match answer.map(serde_json::from_value) {
             Ok(Ok(response)) => response,
             Ok(Err(error)) => return Some(handshake_failed(format!("initialize: {error}"))),

@@ -100,9 +100,10 @@ impl AutomationText {
         if text.len() > Self::PROMPT_MAX {
             return Err("is at most 16 KiB");
         }
-        if text.chars().any(|character| {
-            character.is_control() && !matches!(character, '\t' | '\n' | '\r')
-        }) {
+        if text
+            .chars()
+            .any(|character| character.is_control() && !matches!(character, '\t' | '\n' | '\r'))
+        {
             return Err("cannot contain control characters other than tab and line ends");
         }
         Ok(())

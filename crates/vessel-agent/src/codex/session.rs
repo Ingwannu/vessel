@@ -44,8 +44,8 @@ use tokio::process::{ChildStdin, ChildStdout};
 use tokio::sync::mpsc;
 use vessel_proto::agents::AgentVersion;
 use vessel_proto::{
-    AgentEvent, ContentBlock, ContextUsage, PermissionOutcome,
-    QuestionOutcome, ToolCallUpdate, ToolKind,
+    AgentEvent, ContentBlock, ContextUsage, PermissionOutcome, QuestionOutcome, ToolCallUpdate,
+    ToolKind,
 };
 
 use super::asks::{self, Approvals, Asking, Questions, Settled};
@@ -55,8 +55,7 @@ use super::protocol::{
     ClientInfo, CommandApproval, DeltaNotification, ErrorNotification, FileChangeApproval,
     InitializeCapabilities, InitializeParams, ItemNotification, PermissionsApproval,
     PlanNotification, RequestResolved, TokenUsageBreakdown, TurnInterruptParams, TurnNotification,
-    TurnStartParams,
-    TurnStartResponse, TurnSteerParams, UsageNotification, UserInputRequest,
+    TurnStartParams, TurnStartResponse, TurnSteerParams, UsageNotification, UserInputRequest,
 };
 use super::wire::{self, Ended, Incoming, Outgoing, RpcError};
 use crate::error::{Disconnect, InputError};

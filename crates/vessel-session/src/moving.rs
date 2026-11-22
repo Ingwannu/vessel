@@ -39,8 +39,8 @@ use vessel_agent::{
     Driver, Signal,
 };
 use vessel_harness::{LinkError, ModelProxy, Profile, SessionFiles, SessionFilesError};
-use vessel_proto::{ProfileName, ResolvedMcpServers, SessionEvent};
 use vessel_proto::settings::AppendSystemPrompt;
+use vessel_proto::{ProfileName, ResolvedMcpServers, SessionEvent};
 
 use crate::delivery::{Cancel, Change, Deliver};
 use crate::lifecycle::drain_deadline;
