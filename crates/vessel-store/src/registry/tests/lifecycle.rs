@@ -330,6 +330,17 @@ fn unresolved_run_pins_are_bounded_and_survive_history_deletion() {
         crate::automation::binding::awaiting_archive(&db).unwrap(),
         [first]
     );
+    let stage = RunBindingStage::DeferredBusy;
+    write_run(
+        &db,
+        &AutomationWrite::AdvanceRunBinding {
+            previous: first,
+            stage,
+        },
+    )
+    .unwrap();
+    let first = ScheduleRunBinding { stage, ..first };
+    assert!(crate::automation::binding::request_keep_release(&db, first.session).unwrap());
 
     let _reservation = publish(&mut db, record(id));
     archive(&mut db, id);

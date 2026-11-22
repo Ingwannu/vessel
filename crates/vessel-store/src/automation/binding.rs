@@ -201,13 +201,16 @@ pub(crate) fn load(connection: &Connection) -> Result<Vec<ScheduleRunBinding>, S
 }
 
 /// Called only by a person's Archive mark in the same writer savepoint.
+/// A fresh mark also wakes a released binding whose session was reopened
+/// while its workspace archive was waiting on another member.
 pub(crate) fn request_keep_release(
     connection: &Connection,
     session: SessionId,
 ) -> Result<bool, StoreError> {
     let changed = connection.execute(
         "UPDATE schedule_run_bindings SET release_requested=1
-         WHERE session=?1 AND after='keep' AND stage IN ('bound','started','kept') AND release_requested=0",
+         WHERE session=?1 AND after='keep' AND (stage IN ('bound','started','kept')
+         OR (release_requested=1 AND stage IN ('deferred_busy','deferred_members')))",
         [session.to_string()],
     )?;
     Ok(changed != 0)

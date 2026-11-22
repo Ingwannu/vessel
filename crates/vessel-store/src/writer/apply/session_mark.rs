@@ -12,7 +12,7 @@ use crate::{SessionCommit, marks};
 pub(super) fn apply(
     transaction: &mut Transaction<'_>,
     effects: &mut Effects,
-    write: SessionMark,
+    write: &SessionMark,
     done: Done<SessionCommit<KeptMarks>>,
 ) -> Answer {
     let mut wake = false;

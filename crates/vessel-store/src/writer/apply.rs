@@ -61,7 +61,7 @@ pub(super) fn apply(
         Write::RevokeDevice { device, at, done } => write_answer(transaction, done, |connection| {
             devices::revoke(connection, device, at)
         }),
-        Write::Mark { write, done } => session_mark::apply(transaction, effects, write, done),
+        Write::Mark { write, done } => session_mark::apply(transaction, effects, &write, done),
         Write::ReadAttention {
             session,
             through,
