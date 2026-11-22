@@ -91,16 +91,8 @@ async fn workspace_labels_real_registry_refuses_missing_and_each_inactive_state_
     ] {
         let mut record = record();
         let id = record.descriptor.id;
-        store
-            .put_registry_workspace(record.clone(), None)
-            .await
-            .unwrap();
         record.descriptor.lifecycle = lifecycle;
-        record.descriptor.revision = RegistryRevision::ZERO.next().unwrap();
-        store
-            .put_registry_workspace(record, Some(RegistryRevision::ZERO))
-            .await
-            .unwrap();
+        store.put_registry_workspace(record, None).await.unwrap();
         let before = store.workspace_registry().await.unwrap();
         let changes = store.registry_changes();
         assert!(matches!(
