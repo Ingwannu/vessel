@@ -18,12 +18,14 @@ import { Badge, Button, Row, RowList } from "../../ui/kit";
 import { toast } from "../../ui/toasts";
 import { NodeLogRow } from "../diagnostics/node-log";
 import { FactValue, SettingsSection } from "../settings/settings-page";
+import { VesselToolsCard } from "./vessel-tools-card";
 
 /** Live sessions listed here before "all on the board". */
 const SESSIONS_SHOWN = 6;
 
 export function MachineDetail({ node }: { node: BookNode }) {
   const fleet = useFleet();
+  const bridgeOpen = useFleetState((state) => state.link.kind === "open");
   const status = useFleetState((state) => state.statuses[node.key]);
   const harnesses = useFleetState((state) => state.harnesses[node.key]);
   const sessions = useFleetState((state) => state.sessions[node.key]);
@@ -104,9 +106,12 @@ export function MachineDetail({ node }: { node: BookNode }) {
           <NodeLogRow machine={node.key} />
         </RowList>
       </SettingsSection>
+      {bridgeOpen && status?.state === "connected" && status.protocol >= 12 ? (
+        <VesselToolsCard key={node.key} machine={node.key} />
+      ) : null}
       {harnesses === undefined ? null : (
         <SettingsSection
-          title="Agents"
+          title="Providers"
           action={
             <Link
               className="section-link"
@@ -118,7 +123,7 @@ export function MachineDetail({ node }: { node: BookNode }) {
             </Link>
           }
         >
-          <RowList label={`Agents on ${label}`}>
+          <RowList label={`Providers on ${label}`}>
             {agentsOn(harnesses, agents).map(
               ({ agent: kind, status: agent }) => {
                 const shown = agentHeadline(agent);

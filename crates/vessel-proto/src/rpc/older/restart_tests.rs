@@ -106,6 +106,7 @@ fn settings() -> NodeSettings {
         plugins_enabled: false,
         terminal_agent_hooks: false,
         terminal_profiles: None,
+        vessel_tools: None,
         append_system_prompt_transports: None,
     }
 }

@@ -134,24 +134,61 @@ fn a_move_keeps_the_credential_of_the_agent_that_runs() {
         .unwrap()
         .unwrap();
 
-    let new = agents.begin_move(id).unwrap().unwrap();
+    let (moving, new) = agents.begin_move(id, true).unwrap();
+    let new = new.unwrap();
     assert!(matches!(
-        agents.begin_move(id),
+        agents.begin_move(id, true),
         Err(ServiceError::MoveRunning(_))
     ));
     assert!(agents.admit(&auth(id, &old), &closing).is_some());
     assert!(agents.admit(&auth(id, &new), &closing).is_some());
-    agents.end_move(id, true);
+    moving.unwrap().finish(true);
     assert!(agents.admit(&auth(id, &old), &closing).is_none());
     assert!(agents.admit(&auth(id, &new), &closing).is_some());
 
-    let failed = agents.begin_move(id).unwrap().unwrap();
-    agents.end_move(id, false);
+    let (moving, failed) = agents.begin_move(id, true).unwrap();
+    let failed = failed.unwrap();
+    moving.unwrap().finish(false);
     assert!(agents.admit(&auth(id, &failed), &closing).is_none());
     assert!(agents.admit(&auth(id, &new), &closing).is_some());
-    // No move began: nothing changes.
-    agents.end_move(id, true);
-    assert!(agents.admit(&auth(id, &new), &closing).is_some());
+}
+
+#[test]
+fn an_internal_tool_transition_can_disable_and_restore_a_live_agent() {
+    let agents = Arc::new(Agents::new(NodeId::random()));
+    let closing = CancellationToken::new();
+    let id = SessionId::random();
+    let old = agents
+        .reserve(id, &Principal::Owner, true)
+        .unwrap()
+        .unwrap();
+    let (_grant, old_link) = agents.admit(&auth(id, &old), &closing).unwrap();
+
+    let (disable, absent) = agents.begin_move(id, false).unwrap();
+    assert!(absent.is_none());
+    drop(disable);
+    assert!(!old_link.closing().is_cancelled());
+    let (disable, absent) = agents.begin_move(id, false).unwrap();
+    assert!(absent.is_none());
+    disable.unwrap().finish(true);
+    assert!(old_link.closing().is_cancelled());
+    assert!(agents.admit(&auth(id, &old), &closing).is_none());
+    assert_eq!(agents.depth(id), Some(0));
+
+    let (enable, secret) = agents.begin_move(id, true).unwrap();
+    let secret = secret.unwrap();
+    let (_grant, rolled_back) = agents.admit(&auth(id, &secret), &closing).unwrap();
+    drop(enable);
+    assert!(rolled_back.closing().is_cancelled());
+    assert!(agents.admit(&auth(id, &secret), &closing).is_none());
+
+    let (enable, secret) = agents.begin_move(id, true).unwrap();
+    enable.unwrap().finish(true);
+    assert!(
+        agents
+            .admit(&auth(id, &secret.unwrap()), &closing)
+            .is_some()
+    );
 }
 
 #[test]

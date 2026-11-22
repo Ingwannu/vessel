@@ -74,6 +74,15 @@ impl Fixture {
         drop(install(bin.path(), HarnessKind::ClaudeCode, Role::Structured, &acp).unwrap());
         let mut config = config(data.path(), bin.path());
         adjust(&mut config, data.path());
+        // These fakes explicitly request the built-in server. Respect a
+        // value seeded by a case that exercises the disabled path.
+        if config.vessel_mcp.is_some() {
+            let mut saved = config.data_dir.read_settings().unwrap().unwrap_or_default();
+            let _ = saved
+                .vessel_tools
+                .get_or_insert(vessel_proto::mcp::Injection::On);
+            config.data_dir.write_settings(&saved).unwrap();
+        }
         let node = Node::start(config).await.unwrap();
         Self { data, bin, node }
     }

@@ -2487,3 +2487,12 @@ the complete project approval display gate. The detailed DTO/cursor/bounds,
 permission and activation prerequisites are in
 `plans/workspace-services-api.md`. No runtime handler, private consent schema,
 service listener or browser capability is enabled by the staged rows.
+
+### Pending host Vessel tools toggle
+
+`VESSEL_TOOLS_PROTOCOL` adds the optional boolean `vessel_tools` to the
+ordinary `node.settings` and `node.set_settings` replies. Omission signals
+an older peer. An explicit false is part of the supported reply.
+`node.set_settings { vessel_tools? }` keeps the value on the selected
+node with Admin scope. A named edit requires the feature version on each
+hop, so an older node cannot acknowledge a discarded write.

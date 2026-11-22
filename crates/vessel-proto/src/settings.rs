@@ -27,6 +27,7 @@ pub use metadata::{
 use serde::{Deserialize, Serialize};
 
 use crate::harness::HarnessKind;
+use crate::mcp::{Injection, VESSEL_TOOLS_PROTOCOL};
 use crate::parking::ParkAfter;
 use crate::restart::RestartRecovery;
 use crate::terminal_profiles::Profiles;
@@ -71,6 +72,11 @@ pub struct NodeSettings {
     /// below `TERMINAL_PROFILES_PROTOCOL`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub terminal_profiles: Option<Profiles>,
+    /// The node's internal stdio tools for future launches, absent below
+    /// the Vessel tools protocol.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "ts", ts(optional))]
+    pub vessel_tools: Option<Injection>,
     /// Usable native transports. Ordinary settings replies carry only this
     /// capability, so a Read device cannot retrieve the saved supplement.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -101,14 +107,32 @@ impl NodeSettings {
             )
             .or(plugins);
         let base = hooks.as_ref().unwrap_or(self);
-        let profiles = base.for_profiles_protocol(
-            protocol,
-            crate::terminal_profiles::TERMINAL_PROFILES_PROTOCOL,
-        )
-        .or(hooks);
+        let profiles = base
+            .for_profiles_protocol(
+                protocol,
+                crate::terminal_profiles::TERMINAL_PROFILES_PROTOCOL,
+            )
+            .or(hooks);
         let base = profiles.as_ref().unwrap_or(self);
+        let tools = base
+            .for_vessel_tools_protocol(protocol, VESSEL_TOOLS_PROTOCOL)
+            .or(profiles);
+        let base = tools.as_ref().unwrap_or(self);
         base.for_append_system_prompt_protocol(protocol, APPEND_SYSTEM_PROMPT_PROTOCOL)
-            .or(profiles)
+            .or(tools)
+    }
+
+    fn for_vessel_tools_protocol(
+        &self,
+        protocol: crate::ProtocolVersion,
+        assigned: Option<crate::ProtocolVersion>,
+    ) -> Option<Self> {
+        let supported = assigned.is_some_and(|version| protocol >= version);
+        (!supported && self.vessel_tools.is_some()).then(|| {
+            let mut older = self.clone();
+            older.vessel_tools = None;
+            older
+        })
     }
 
     fn for_append_system_prompt_protocol(
@@ -333,6 +357,9 @@ pub struct SetNodeSettings {
     /// `TERMINAL_PROFILES_PROTOCOL` (45).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub terminal_profiles: Option<Profiles>,
+    /// Turn the internal stdio tool server on or off for future agent launches.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub vessel_tools: Option<Injection>,
     /// Saved supplemental instructions for future launches. An empty value
     /// clears them, and omission preserves the prior setting.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -369,6 +396,34 @@ mod tests {
     }
 
     #[test]
+    fn an_explicit_tools_off_is_visible_only_to_supported_peers() {
+        let old: NodeSettings = serde_json::from_str(r#"{"park_after":{"kind":"never"}}"#).unwrap();
+        let current = NodeSettings {
+            vessel_tools: Some(Injection::Off),
+            ..old.clone()
+        };
+        let version = crate::PROTOCOL_VERSION;
+        let older = crate::ProtocolVersion::new(version.get().checked_sub(1).unwrap());
+        assert_eq!(
+            current.for_vessel_tools_protocol(older, Some(version)),
+            Some(old.clone())
+        );
+        assert_eq!(current.for_vessel_tools_protocol(version, None), Some(old));
+        assert_eq!(
+            current.for_vessel_tools_protocol(version, Some(version)),
+            None
+        );
+        assert_eq!(
+            serde_json::to_value(&current).unwrap()["vessel_tools"],
+            false
+        );
+        let request: SetNodeSettings = serde_json::from_str(r#"{"vessel_tools":false}"#).unwrap();
+        assert_eq!(request.vessel_tools, Some(Injection::Off));
+        let call = crate::Call::SetNodeSettings(request);
+        assert_eq!(call.required_protocol(), VESSEL_TOOLS_PROTOCOL);
+    }
+
+    #[test]
     fn recovery_projection_respects_a_synthetic_assigned_boundary() {
         let original = NodeSettings {
             park_after: ParkAfter::Never,
@@ -381,6 +436,7 @@ mod tests {
             plugins_enabled: false,
             terminal_agent_hooks: false,
             terminal_profiles: None,
+            vessel_tools: None,
             append_system_prompt_transports: None,
         };
         let required = crate::PROTOCOL_VERSION;

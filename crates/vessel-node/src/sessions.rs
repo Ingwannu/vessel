@@ -40,7 +40,7 @@ use vessel_proto::{
 use vessel_session::{ProfileMove, SessionHandle, SessionRuntime};
 use vessel_store::Store;
 
-use crate::agents::Agents;
+use crate::agents::{Agents, ToolMove};
 use crate::error::ServiceError;
 use crate::models::Models;
 use crate::persist::{self, Durability, Persisted};
@@ -338,12 +338,16 @@ impl Sessions {
     pub(crate) async fn move_profile(
         &self,
         id: SessionId,
-        plan: impl AsyncFnOnce(&SessionInfo) -> Result<ProfileMove, ServiceError>,
+        plan: impl AsyncFnOnce(&SessionInfo) -> Result<(ProfileMove, Option<ToolMove>), ServiceError>,
     ) -> Result<SessionInfo, ServiceError> {
         match self.find(id).await? {
             Found::Live { handle, .. } => {
-                let request = plan(&handle.info()).await?;
-                Ok(self.runtime.move_profile(id, request).await?)
+                let (request, tools) = plan(&handle.info()).await?;
+                let runtime = Arc::clone(&self.runtime);
+                self.finish_replacement(id, tools, async move {
+                    runtime.move_profile(id, request).await
+                })
+                .await
             }
             Found::Stored(_) => Err(ServiceError::Ended(id)),
         }

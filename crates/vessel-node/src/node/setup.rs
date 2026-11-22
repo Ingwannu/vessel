@@ -19,6 +19,24 @@ use crate::models::Models;
 use crate::profiles::NodeProfiles;
 use crate::profiles::launch::{AgentTools, Launcher, McpSource};
 
+/// Prepare settings that distinguish an unused store from an upgrade
+/// before Store can create that file. The node lock also guards the copy.
+pub(super) fn lock_data_dir(
+    dir: &vessel_store::DataDir,
+) -> Result<vessel_store::NodeLock, NodeError> {
+    let owner = vessel_store::NodeOwner {
+        pid: std::process::id(),
+        executable: std::env::current_exe().unwrap_or_default(),
+        version: env!("CARGO_PKG_VERSION").to_owned(),
+        started_at: chrono::Utc::now(),
+    };
+    let lock = vessel_store::NodeLock::acquire(dir, &owner).map_err(NodeError::AlreadyRunning)?;
+    if vessel_proto::mcp::VESSEL_TOOLS_PROTOCOL.is_some() {
+        dir.initialize_vessel_tools().map_err(NodeError::DataDir)?;
+    }
+    Ok(lock)
+}
+
 /// What sessions are created with: the node's profiles and the launch seam.
 pub(super) struct SessionSetup {
     pub(super) profiles: Arc<NodeProfiles>,
