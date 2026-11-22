@@ -1,24 +1,45 @@
 // The route owns this controller's lifetime, so Schedule RPCs go quiet
 // elsewhere. Each connection gets its own request marker because a slow
 // reply from a previous connection must never replace the current list.
-import type { Bridge } from "../../bridge/client";
+import { type Bridge, CallFailed } from "../../bridge/client";
 import type { BookNode, NodeKey, NodeStatus } from "../../wire/bridge";
-import type { ScheduleId, ScheduleInfo } from "../../wire/proto";
+import type {
+  ScheduleId,
+  ScheduleInfo,
+  SchedulePreview,
+} from "../../wire/proto";
 import type { FleetState } from "../fleet";
 import { Store } from "../store";
-import { type ScheduleAction, rowActions } from "./rows";
+import {
+  confirmsHeartbeat,
+  type Cron,
+  editableHeartbeat,
+  heartbeatRequest,
+  HeartbeatSaveUnconfirmed,
+  supportsHeartbeatEdit,
+} from "./heartbeat";
+import {
+  actionReply,
+  initialRead,
+  type ScheduleRead,
+  supportsSchedules,
+} from "./machine-read";
+import {
+  type ScheduleAction,
+  type SchedulePending,
+  type ScheduleRow,
+  rowActions,
+} from "./rows";
 
-type Read =
-  | { kind: "loading" }
-  | { kind: "offline" }
-  | { kind: "failed"; reason: string }
-  | { kind: "ready"; schedules: readonly ScheduleInfo[] };
+export { supportsSchedules } from "./machine-read";
 
 interface MachineRead {
   generation: symbol;
   connection: NodeStatus | undefined;
-  read: Read;
-  pending: ReadonlyMap<ScheduleId, ScheduleAction>;
+  read: ScheduleRead;
+  pending: ReadonlyMap<ScheduleId, SchedulePending>;
+  // Undefined until a relevant list starts this connection's grant read.
+  heartbeatGrant?: boolean;
 }
 
 export interface ScheduleReads {
@@ -93,11 +114,14 @@ export class MachineSchedules {
     if (machine === undefined || !supportsSchedules(machine.connection)) return;
     const request = Symbol();
     this.#requests.set(node, request);
-    const settle = (read: Read) => {
+    const settle = (read: ScheduleRead) => {
       if (this.#requests.get(node) !== request) return;
       this.#requests.delete(node);
       const latest = this.store.get().machines.get(node);
-      if (latest !== undefined) this.#set(node, { ...latest, read });
+      if (latest === undefined) return;
+      this.#set(node, { ...latest, read });
+      if (read.kind === "ready" && read.schedules.some(editableHeartbeat))
+        this.#readHeartbeatGrant(node);
     };
     void this.#bridge.call(node, "schedule.list", {}).then(
       ({ schedules }) => {
@@ -107,6 +131,94 @@ export class MachineSchedules {
         settle({ kind: "failed", reason: "Could not load schedules" });
       },
     );
+  }
+
+  #readHeartbeatGrant(node: NodeKey): void {
+    const machine = this.store.get().machines.get(node);
+    if (
+      machine === undefined ||
+      machine.heartbeatGrant !== undefined ||
+      !supportsHeartbeatEdit(machine.connection)
+    )
+      return;
+    this.#set(node, { ...machine, heartbeatGrant: false });
+    void this.#bridge.call(node, "device.self", {}).then(
+      ({ scopes }) => {
+        const latest = this.store.get().machines.get(node);
+        if (
+          latest?.generation === machine.generation &&
+          scopes.includes("operate")
+        )
+          this.#set(node, { ...latest, heartbeatGrant: true });
+      },
+      () => {
+        // A grant which cannot be read cannot offer a write.
+      },
+    );
+  }
+
+  heartbeatAvailable(row: ScheduleRow): boolean {
+    const machine = this.store.get().machines.get(row.node);
+    return (
+      machine !== undefined &&
+      machine.generation === row.heartbeatRoute &&
+      machine.heartbeatGrant === true
+    );
+  }
+
+  async saveHeartbeat(
+    row: ScheduleRow,
+    draft: Cron,
+    preview: SchedulePreview,
+  ): Promise<void> {
+    const { node, info } = row;
+    const machine = this.store.get().machines.get(node);
+    if (
+      machine === undefined ||
+      machine.generation !== row.heartbeatRoute ||
+      machine.heartbeatGrant !== true
+    )
+      throw new Error(
+        "The original heartbeat connection is unavailable. Reopen it to edit.",
+      );
+    if (machine.pending.has(info.id))
+      throw new Error("Another change to this heartbeat is pending.");
+    const request = heartbeatRequest(info, draft, preview);
+    if (request === null)
+      throw new Error("Choose a new, previewed cron cadence.");
+
+    const pending = new Map(machine.pending).set(info.id, "change_cadence");
+    this.#set(node, { ...machine, pending });
+    let replace: ScheduleInfo | undefined;
+    try {
+      const received = await this.#bridge.call(
+        node,
+        "schedule.update_cadence",
+        request,
+      );
+      if (
+        !this.heartbeatAvailable(row) ||
+        !confirmsHeartbeat(info, request, received)
+      )
+        throw new HeartbeatSaveUnconfirmed();
+      const read = this.store.get().machines.get(node)?.read;
+      const current =
+        read?.kind === "ready"
+          ? read.schedules.find((item) => item.id === info.id)
+          : undefined;
+      // A newer observation or a deletion during the save takes precedence.
+      if (current?.revision === info.revision) replace = received;
+    } catch (error) {
+      if (
+        error instanceof CallFailed &&
+        (error.failure.kind === "disconnected" ||
+          error.failure.kind === "failed")
+      )
+        throw new HeartbeatSaveUnconfirmed();
+      throw error;
+    } finally {
+      this.#settleAction(node, info.id, machine.generation, replace, false);
+    }
   }
 
   async act(
@@ -172,52 +284,4 @@ export class MachineSchedules {
       machines: new Map(state.machines).set(node, machine),
     }));
   }
-}
-
-function initialRead(connection: NodeStatus | undefined): Read {
-  switch (connection?.state) {
-    case "failed":
-    case "reconnecting":
-      // A host that could not be asked is distinct from one that refused
-      // the request. The pane keeps the actual errors from connected hosts.
-      return { kind: "offline" };
-    case "connected":
-      return supportsSchedules(connection)
-        ? { kind: "loading" }
-        : {
-            kind: "failed",
-            reason: "Schedules are unavailable on this machine",
-          };
-    case undefined:
-    case "idle":
-    case "connecting":
-      return { kind: "loading" };
-  }
-}
-
-export function supportsSchedules(connection: NodeStatus | undefined): boolean {
-  return connection?.state === "connected" && connection.protocol >= 11;
-}
-
-function actionReply(
-  read: Read,
-  id: ScheduleId,
-  replace: ScheduleInfo | undefined,
-  deleted: boolean,
-): Read {
-  if (read.kind !== "ready") return read;
-  if (deleted) {
-    return {
-      kind: "ready",
-      schedules: read.schedules.filter((info) => info.id !== id),
-    };
-  }
-  return replace === undefined
-    ? read
-    : {
-        kind: "ready",
-        schedules: read.schedules.map((info) =>
-          info.id === id ? replace : info,
-        ),
-      };
 }

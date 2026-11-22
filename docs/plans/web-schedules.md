@@ -33,8 +33,8 @@ ADR 0072 records the native consumer decisions.
   Creator gone and Unknown. The bridge uses each book entry's own
   connection, where the node authorizes every action. As in Paseo
   (`utils/schedule-format.ts:31–33`, `components/schedules/schedule-row.tsx:196,275–277`),
-  the row menu calls every existing-session target a heartbeat and offers
-  deletion as its only mutation. The target line shows the session title
+  the row menu calls every existing-session target a heartbeat. It offers
+  editing and deletion as admitted by the node. The target line shows the session title
   (`schedules/schedule-derivation.ts:64–72`). Ownership and session-end
   cleanup use the node's rules in ADR 0033 and ADR 0072. Vessel's Go to group and
   shell are preserved, and the English list copy follows Paseo while
@@ -64,8 +64,8 @@ sheets in the UI references above.
 
 ## Editing decisions
 
-- Purpose. Create and edit recurring new-agent schedules in the same
-  place as their rows, with an explicit read-only view for heartbeats.
+- Purpose. Create and edit recurring new-agent schedules alongside
+  cadence-only heartbeat edits, with a read-only fallback for older nodes.
 - Constraint. `schedule.update` replaces a whole revision and changes
   the authorizing principal to the caller. Old definitions can carry
   elapsed cadence, an expiry, a non-default catch-up policy or choices
@@ -79,9 +79,14 @@ sheets in the UI references above.
   probe, kit controls and the node's cadence preview. It sets an hourly
   cron in the local device zone for creation. A saved zone or elapsed
   interval stays as stored. Updates preserve unedited fields and carry
-  the original revision. The read-only heartbeat sheet displays Target,
-  Cadence and Host for every existing-session target. Heartbeats can be
-  deleted from the row. Cadence-only editing depends on TRACKER 839.
+  the original revision. The heartbeat sheet keeps Target fixed and
+  uses the same cadence controls. TRACKER 839 uses only
+  `schedule.update_cadence` at the opened revision. The edit opens on a
+  route with the assigned protocol and a confirmed Operate grant. The
+  controller compares the receipt to the original owner and definition
+  with the new cadence, and does not retry a write with an unknown result.
+  The read-only sheet still displays Target, Cadence and Host when the
+  editor is unavailable.
 - Differences. The Model field reuses the composer picker and shows the
   provider and model in one trigger. Thinking and Mode have their own
   fields. A profile appears when the machine offers choices. The node cannot mint a fresh worktree
@@ -92,3 +97,7 @@ sheets in the UI references above.
   missing device zone uses the machine's zone when known. When the
   harness cannot return a model catalogue, the composer can still
   schedule the selected agent with its default model.
+  An elapsed heartbeat displays its row cadence and a blank cron until
+  the person chooses a rule. Paseo pre-fills a normalized cron in this
+  case, which rounds a 90-second interval to two minutes
+  (`schedule-cadence-options.ts:38–60`).
