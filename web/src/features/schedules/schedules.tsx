@@ -33,6 +33,7 @@ import type { NodeKey } from "../../wire/bridge";
 import { DeleteSchedule } from "./delete-schedule";
 import { ScheduleDetail } from "./schedule-detail";
 import { ScheduleForm } from "./schedule-form";
+import { ScheduleHeartbeat } from "./schedule-heartbeat";
 import { ScheduleListRow } from "./schedule-row";
 
 const FILTERS = [
@@ -118,7 +119,14 @@ export function Schedules() {
           saved={saved}
         />
       ) : sheet?.kind === "row" ? (
-        editable(sheet.row.info) ? (
+        sheet.row.heartbeatRoute !== undefined ? (
+          <ScheduleHeartbeat
+            row={sheet.row}
+            schedules={schedules}
+            available={schedules.heartbeatAvailable(sheet.row)}
+            close={closeSheet}
+          />
+        ) : editable(sheet.row.info) ? (
           <ScheduleForm
             initialNode={sheet.row.node}
             edit={sheet.row.info}
