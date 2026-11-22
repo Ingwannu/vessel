@@ -41,10 +41,12 @@ pub(super) fn since(request: &SetNodeSettings, method: ProtocolVersion) -> Optio
     } else {
         None
     };
-    let fields = [drivers, plugins, hooks, profiles, tools, recovery, prompt, metadata]
-        .into_iter()
-        .flatten()
-        .max()
-        .unwrap_or_default();
+    let fields = [
+        drivers, plugins, hooks, profiles, tools, recovery, prompt, metadata,
+    ]
+    .into_iter()
+    .flatten()
+    .max()
+    .unwrap_or_default();
     Some(method.max(ProtocolVersion::new(fields)))
 }

@@ -37,7 +37,10 @@ async fn the_private_prompt_is_kept_by_admin_and_legacy_settings_stay_public() {
                 owner.call(GetAppendSystemPrompt {}).await,
                 Err(CallError::UnassignedProtocol { .. })
             ));
-            assert_eq!(owner.call(GetNodeSettings::default()).await.unwrap(), original);
+            assert_eq!(
+                owner.call(GetNodeSettings::default()).await.unwrap(),
+                original
+            );
             node.stop().await.unwrap();
             return;
         }
@@ -90,7 +93,11 @@ async fn the_private_prompt_is_kept_by_admin_and_legacy_settings_stay_public() {
             ""
         );
         assert_eq!(
-            owner.call(GetNodeSettings::default()).await.unwrap().park_after,
+            owner
+                .call(GetNodeSettings::default())
+                .await
+                .unwrap()
+                .park_after,
             ParkAfter::Never
         );
         node.stop().await.unwrap();
